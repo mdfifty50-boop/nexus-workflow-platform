@@ -35,3 +35,6 @@ dist-ssr
 
 .vercel
 nul
+
+# SonarCloud secrets (local only, never commit)
+.sonar.secrets.local
