@@ -522,4 +522,65 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  describe('Move 6.6: Plan Validation and Normalization', () => {
+    it('should return 400 with invalidTasks when toolSlug is unknown', async () => {
+      // Mock composio to return connected (so we pass preflight)
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      // Create workflow
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Invalid Plan Test Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Unknown Action', tool: 'unknown_integration', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Manually inject an invalid execution plan with unknown integration
+      // mockWorkflowDB is in module scope, directly accessible
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_invalid',
+                dependencies: [],
+                config: { integration: 'unknownapp', action: 'do_something' },
+              },
+            ],
+            requiredIntegrations: [],
+          },
+        }
+        mockWorkflowDB[workflowId].status = 'building'
+      }
+
+      // Try to execute - should fail plan validation
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      expect(executeRes.status).toBe(400)
+      expect(executeRes.body.success).toBe(false)
+      expect(executeRes.body.error).toBe('Invalid workflow plan')
+      expect(executeRes.body.invalidTasks).toBeDefined()
+      expect(executeRes.body.invalidTasks.length).toBeGreaterThan(0)
+      expect(executeRes.body.invalidTasks[0].taskId).toBe('task_invalid')
+
+      // Verify SSE event was emitted
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_plan_invalid',
+          invalidTasks: expect.arrayContaining([
+            expect.objectContaining({ taskId: 'task_invalid' }),
+          ]),
+        })
+      )
+    })
+  })
 })

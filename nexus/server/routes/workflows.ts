@@ -6,6 +6,58 @@ import { broadcastWorkflowUpdate } from './sse.js'
 
 const router = Router()
 
+// ============================================================================
+// Move 6.6: TOOL_SLUGS mapping for plan validation (subset for validation only)
+// Full mapping in RubeExecutionBridge.ts
+// ============================================================================
+const TOOL_SLUGS: Record<string, Record<string, string>> = {
+  gmail: { send: 'GMAIL_SEND_EMAIL', fetch: 'GMAIL_FETCH_EMAILS', default: 'GMAIL_SEND_EMAIL' },
+  slack: { send: 'SLACK_SEND_MESSAGE', message: 'SLACK_SEND_MESSAGE', default: 'SLACK_SEND_MESSAGE' },
+  googlesheets: { read: 'GOOGLESHEETS_BATCH_GET', write: 'GOOGLESHEETS_BATCH_UPDATE', default: 'GOOGLESHEETS_BATCH_GET' },
+  sheets: { read: 'GOOGLESHEETS_BATCH_GET', append: 'GOOGLESHEETS_BATCH_UPDATE', default: 'GOOGLESHEETS_BATCH_GET' },
+  googlecalendar: { create: 'GOOGLECALENDAR_CREATE_EVENT', list: 'GOOGLECALENDAR_EVENTS_LIST', default: 'GOOGLECALENDAR_CREATE_EVENT' },
+  calendar: { create: 'GOOGLECALENDAR_CREATE_EVENT', list: 'GOOGLECALENDAR_EVENTS_LIST', default: 'GOOGLECALENDAR_CREATE_EVENT' },
+  github: { issue: 'GITHUB_CREATE_ISSUE', create: 'GITHUB_CREATE_ISSUE', list: 'GITHUB_LIST_REPOSITORY_ISSUES', default: 'GITHUB_CREATE_ISSUE' },
+  notion: { create: 'NOTION_CREATE_PAGE', page: 'NOTION_CREATE_PAGE', update: 'NOTION_UPDATE_PAGE', default: 'NOTION_CREATE_PAGE' },
+  discord: { send: 'DISCORD_SEND_MESSAGE', message: 'DISCORD_SEND_MESSAGE', default: 'DISCORD_SEND_MESSAGE' },
+  trello: { card: 'TRELLO_CREATE_CARD', create: 'TRELLO_CREATE_CARD', default: 'TRELLO_CREATE_CARD' },
+  stripe: { customer: 'STRIPE_CREATE_CUSTOMER', charge: 'STRIPE_CREATE_CHARGE', default: 'STRIPE_CREATE_CUSTOMER' },
+  twitter: { post: 'TWITTER_CREATE_TWEET', tweet: 'TWITTER_CREATE_TWEET', default: 'TWITTER_CREATE_TWEET' },
+  whatsapp: { send: 'WHATSAPP_SEND_MESSAGE', message: 'WHATSAPP_SEND_MESSAGE', default: 'WHATSAPP_SEND_MESSAGE' },
+  hubspot: { contact: 'HUBSPOT_CREATE_CONTACT', create: 'HUBSPOT_CREATE_CONTACT', default: 'HUBSPOT_CREATE_CONTACT' },
+  linear: { create: 'LINEAR_CREATE_ISSUE', issue: 'LINEAR_CREATE_ISSUE', default: 'LINEAR_CREATE_ISSUE' },
+  jira: { create: 'JIRA_CREATE_ISSUE', issue: 'JIRA_CREATE_ISSUE', default: 'JIRA_CREATE_ISSUE' },
+}
+
+/**
+ * Validate and normalize a tool slug for a task
+ * Returns { valid: true, normalizedSlug } or { valid: false, reason }
+ */
+function validateAndNormalizeToolSlug(task: any): { valid: boolean; normalizedSlug?: string; reason?: string } {
+  const toolSlug = task.config?.toolSlug
+  const integration = task.config?.integration?.toLowerCase()
+
+  // If toolSlug already looks valid (uppercase with underscores), accept it
+  if (toolSlug && /^[A-Z]+_[A-Z_]+$/.test(toolSlug)) {
+    return { valid: true, normalizedSlug: toolSlug }
+  }
+
+  // Try to resolve from integration + action
+  if (integration && TOOL_SLUGS[integration]) {
+    const action = task.config?.action?.toLowerCase() || 'default'
+    const resolved = TOOL_SLUGS[integration][action] || TOOL_SLUGS[integration].default
+    if (resolved) {
+      return { valid: true, normalizedSlug: resolved }
+    }
+  }
+
+  // Could not resolve
+  return {
+    valid: false,
+    reason: `Unknown tool slug for task ${task.id}: integration=${integration || 'missing'}, toolSlug=${toolSlug || 'missing'}`
+  }
+}
+
 /**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
@@ -399,6 +451,37 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
           missingIntegrations,
         })
       }
+    }
+
+    // =========================================================================
+    // Move 6.6: Plan Validation - Validate and normalize tool slugs
+    // =========================================================================
+    const invalidTasks: Array<{ taskId: string; reason: string }> = []
+
+    for (const task of plan.tasks) {
+      const validation = validateAndNormalizeToolSlug(task)
+      if (!validation.valid) {
+        invalidTasks.push({ taskId: task.id, reason: validation.reason || 'Unknown error' })
+      } else if (validation.normalizedSlug && task.config) {
+        // Auto-normalize the tool slug
+        task.config.toolSlug = validation.normalizedSlug
+      }
+    }
+
+    if (invalidTasks.length > 0) {
+      // Emit SSE event for plan validation failure
+      broadcastWorkflowUpdate({
+        workflowId: req.params.id,
+        type: 'golden_path_plan_invalid',
+        timestamp: new Date().toISOString(),
+        invalidTasks,
+      })
+
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid workflow plan',
+        invalidTasks,
+      })
     }
 
     // Execute tasks in dependency order
