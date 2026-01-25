@@ -587,8 +587,8 @@ describe('Golden Path HTTP Integration', () => {
     })
   })
 
-  describe('Move 6.8: Required Param Validation', () => {
-    it('should return 400 with missingParams when required param is missing', async () => {
+  describe('Move 6.9: Needs User Input Response', () => {
+    it('should return 200 with needs_user_input when required param is missing', async () => {
       // Mock composio to return connected (so we pass preflight)
       composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
 
@@ -626,27 +626,32 @@ describe('Golden Path HTTP Integration', () => {
         mockWorkflowDB[workflowId].status = 'building'
       }
 
-      // Try to execute - should fail param validation
+      // Try to execute - should return needs_user_input (not 400)
       const executeRes = await request(app)
         .post(`/api/workflows/${workflowId}/execute`)
         .send({})
 
-      expect(executeRes.status).toBe(400)
-      expect(executeRes.body.success).toBe(false)
-      expect(executeRes.body.error).toBe('Invalid workflow plan')
-      expect(executeRes.body.invalidTasks).toBeDefined()
-      expect(executeRes.body.invalidTasks.length).toBeGreaterThan(0)
-      expect(executeRes.body.invalidTasks[0].taskId).toBe('task_missing_to')
-      expect(executeRes.body.invalidTasks[0].missingParams).toContain('to')
+      // Move 6.9: Returns 200 with needs_user_input instead of 400
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+      expect(executeRes.body.status).toBe('needs_user_input')
+      expect(executeRes.body.workflowId).toBe(workflowId)
+      expect(executeRes.body.missingFields).toBeDefined()
+      expect(executeRes.body.missingFields.length).toBeGreaterThan(0)
+      expect(executeRes.body.missingFields[0].taskId).toBe('task_missing_to')
+      expect(executeRes.body.missingFields[0].toolSlug).toBe('GMAIL_SEND_EMAIL')
+      expect(executeRes.body.missingFields[0].missingParams).toContain('to')
+      expect(executeRes.body.message).toBe('I need more info before I can run this workflow.')
 
-      // Verify SSE event was emitted with missingParams
+      // Verify SSE event was emitted with needs_user_input type
       expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           workflowId,
-          type: 'golden_path_plan_invalid',
-          invalidTasks: expect.arrayContaining([
+          type: 'golden_path_needs_user_input',
+          missingFields: expect.arrayContaining([
             expect.objectContaining({
               taskId: 'task_missing_to',
+              toolSlug: 'GMAIL_SEND_EMAIL',
               missingParams: expect.arrayContaining(['to']),
             }),
           ]),

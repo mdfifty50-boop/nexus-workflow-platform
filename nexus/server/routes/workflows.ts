@@ -514,15 +514,18 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
-    // Move 6.6 + 6.8: Plan Validation - Validate tool slugs AND required params
+    // Move 6.6 + 6.8 + 6.9: Plan Validation with user-friendly missing param handling
+    // - Invalid toolSlug: hard 400 error (can't auto-fix)
+    // - Missing params: soft 200 with needs_user_input (can prompt user)
     // =========================================================================
-    const invalidTasks: Array<{ taskId: string; reason: string; missingParams?: string[] }> = []
+    const invalidSlugTasks: Array<{ taskId: string; reason: string }> = []
+    const missingParamTasks: Array<{ taskId: string; toolSlug: string; missingParams: string[] }> = []
 
     for (const task of plan.tasks) {
       // Step 1: Validate and normalize tool slug
       const slugValidation = validateAndNormalizeToolSlug(task)
       if (!slugValidation.valid) {
-        invalidTasks.push({ taskId: task.id, reason: slugValidation.reason || 'Unknown error' })
+        invalidSlugTasks.push({ taskId: task.id, reason: slugValidation.reason || 'Unknown error' })
         continue // Skip param validation if slug is invalid
       }
 
@@ -534,27 +537,47 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
       // Step 2 (Move 6.8): Validate required params
       const paramValidation = validateRequiredParams(task)
       if (!paramValidation.valid && paramValidation.missingParams) {
-        invalidTasks.push({
+        missingParamTasks.push({
           taskId: task.id,
-          reason: `Missing required params: ${paramValidation.missingParams.join(', ')}`,
+          toolSlug: task.config?.toolSlug || 'unknown',
           missingParams: paramValidation.missingParams,
         })
       }
     }
 
-    if (invalidTasks.length > 0) {
-      // Emit SSE event for plan validation failure
+    // Invalid toolSlug = hard failure (can't fix without code change)
+    if (invalidSlugTasks.length > 0) {
       broadcastWorkflowUpdate({
         workflowId: req.params.id,
         type: 'golden_path_plan_invalid',
         timestamp: new Date().toISOString(),
-        invalidTasks,
+        invalidTasks: invalidSlugTasks,
       })
 
       return res.status(400).json({
         success: false,
         error: 'Invalid workflow plan',
-        invalidTasks,
+        invalidTasks: invalidSlugTasks,
+      })
+    }
+
+    // =========================================================================
+    // Move 6.9: Missing params = soft failure, prompt user for input
+    // =========================================================================
+    if (missingParamTasks.length > 0) {
+      broadcastWorkflowUpdate({
+        workflowId: req.params.id,
+        type: 'golden_path_needs_user_input',
+        timestamp: new Date().toISOString(),
+        missingFields: missingParamTasks,
+      })
+
+      return res.status(200).json({
+        success: true,
+        status: 'needs_user_input',
+        workflowId: req.params.id,
+        missingFields: missingParamTasks,
+        message: 'I need more info before I can run this workflow.',
       })
     }
 
