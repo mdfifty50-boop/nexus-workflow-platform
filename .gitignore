@@ -10,6 +10,7 @@ node_modules/
 .pnp.js
 .yarn/
 package-lock.json
+!nexus/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
