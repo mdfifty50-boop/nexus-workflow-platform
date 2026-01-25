@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { workflowService } from '../services/workflowService.js'
 import { bmadOrchestrator } from '../services/bmadOrchestrator.js'
+import { composioService } from '../services/ComposioService.js'
+import { broadcastWorkflowUpdate } from './sse.js'
 
 const router = Router()
 
@@ -361,6 +363,42 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     const plan = workflow.config?.executionPlan as any
     if (!plan?.tasks) {
       return res.status(400).json({ success: false, error: 'No execution plan found' })
+    }
+
+    // =========================================================================
+    // Move 6.5: Execution Preflight - Check required integrations are connected
+    // =========================================================================
+    const requiredIntegrations: string[] = plan.requiredIntegrations || []
+    if (requiredIntegrations.length > 0) {
+      const missingIntegrations: string[] = []
+
+      for (const integration of requiredIntegrations) {
+        try {
+          const status = await composioService.checkConnection(integration)
+          if (!status.connected) {
+            missingIntegrations.push(integration)
+          }
+        } catch {
+          // If check fails, assume disconnected
+          missingIntegrations.push(integration)
+        }
+      }
+
+      if (missingIntegrations.length > 0) {
+        // Emit SSE event for preflight failure
+        broadcastWorkflowUpdate({
+          workflowId: req.params.id,
+          type: 'golden_path_preflight_failed',
+          timestamp: new Date().toISOString(),
+          missingIntegrations,
+        })
+
+        return res.status(400).json({
+          success: false,
+          error: `Connect ${missingIntegrations.join(', ')} before execution`,
+          missingIntegrations,
+        })
+      }
     }
 
     // Execute tasks in dependency order

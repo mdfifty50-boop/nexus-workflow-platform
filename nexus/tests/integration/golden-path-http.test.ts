@@ -240,6 +240,18 @@ vi.mock('../../server/services/PreFlightValidationService.js', () => ({
   WorkflowNode: class {},
 }))
 
+// Mock ComposioService for preflight integration checks (Move 6.5)
+const composioMocks = {
+  checkConnection: vi.fn().mockResolvedValue({ connected: false, status: 'disconnected' }),
+}
+
+vi.mock('../../server/services/ComposioService.js', () => ({
+  composioService: {
+    checkConnection: composioMocks.checkConnection,
+    initialized: true,
+  },
+}))
+
 // Mock SSE broadcast for Golden Path logging (Move 6.4)
 // Store mock reference in a way accessible from tests
 const sseMocks = {
@@ -270,6 +282,9 @@ describe('Golden Path HTTP Integration', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     sseMocks.broadcastWorkflowUpdate.mockClear()
+    composioMocks.checkConnection.mockClear()
+    // Reset composio mock to default connected state for most tests
+    composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'connected' })
     // Clear mock DB
     Object.keys(mockWorkflowDB).forEach(key => delete mockWorkflowDB[key])
     process.env.NODE_ENV = 'development'
@@ -452,6 +467,59 @@ describe('Golden Path HTTP Integration', () => {
 
       expect(executeRes.status).toBe(400)
       expect(executeRes.body.error).toContain('status')
+    })
+  })
+
+  describe('Move 6.5: Execution Preflight Validation', () => {
+    it('should return 400 with missingIntegrations when required integration is not connected', async () => {
+      // Mock composioService to return disconnected for gmail
+      composioMocks.checkConnection.mockResolvedValue({ connected: false, status: 'disconnected' })
+
+      // Create workflow
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Preflight Test Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Start planning (sets status to pending_approval and adds executionPlan)
+      const startRes = await request(app)
+        .post(`/api/workflows/${workflowId}/start`)
+        .send({})
+
+      expect(startRes.status).toBe(200)
+
+      // Approve (sets status to building)
+      const approveRes = await request(app)
+        .post(`/api/workflows/${workflowId}/approve`)
+        .send({})
+
+      expect(approveRes.status).toBe(200)
+
+      // Try to execute - should fail preflight because gmail is not connected
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      expect(executeRes.status).toBe(400)
+      expect(executeRes.body.success).toBe(false)
+      expect(executeRes.body.missingIntegrations).toBeDefined()
+      expect(executeRes.body.missingIntegrations).toContain('gmail')
+      expect(executeRes.body.error).toContain('gmail')
+
+      // Verify SSE event was emitted
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_preflight_failed',
+          missingIntegrations: expect.arrayContaining(['gmail']),
+        })
+      )
     })
   })
 })
