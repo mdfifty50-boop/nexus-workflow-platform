@@ -229,14 +229,26 @@ describe('IntegrationSelfHealingService', () => {
     })
 
     it('should apply exponential backoff', () => {
-      const delay1 = calculateBackoffDelay(1, DEFAULT_HEALING_RETRY_CONFIG)
-      const delay2 = calculateBackoffDelay(2, DEFAULT_HEALING_RETRY_CONFIG)
-      const delay3 = calculateBackoffDelay(3, DEFAULT_HEALING_RETRY_CONFIG)
+      // Use config without jitter for deterministic testing
+      const noJitterConfig = { ...DEFAULT_HEALING_RETRY_CONFIG, jitterPercent: 0 }
 
-      // Each delay should be approximately 2x the previous (with jitter)
-      expect(delay1).toBeGreaterThan(0)
-      expect(delay2).toBeGreaterThan(delay1 * 1.5) // Allow for jitter
-      expect(delay3).toBeGreaterThan(delay2 * 1.5)
+      const delay1 = calculateBackoffDelay(1, noJitterConfig)
+      const delay2 = calculateBackoffDelay(2, noJitterConfig)
+      const delay3 = calculateBackoffDelay(3, noJitterConfig)
+
+      // With 2x multiplier and no jitter: 1000, 2000, 4000
+      expect(delay1).toBe(1000)
+      expect(delay2).toBe(2000)
+      expect(delay3).toBe(4000)
+
+      // Also verify delays increase with default config (jitter enabled)
+      const jitteredDelay1 = calculateBackoffDelay(1, DEFAULT_HEALING_RETRY_CONFIG)
+      const jitteredDelay2 = calculateBackoffDelay(2, DEFAULT_HEALING_RETRY_CONFIG)
+
+      // With ±20% jitter, delays should still generally increase
+      // delay1: 800-1200ms, delay2: 1600-2400ms
+      expect(jitteredDelay1).toBeGreaterThan(0)
+      expect(jitteredDelay2).toBeGreaterThan(jitteredDelay1 * 0.8) // Conservative check accounting for jitter overlap
     })
 
     it('should cap delay at maxDelayMs', () => {
