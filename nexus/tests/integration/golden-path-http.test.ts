@@ -129,7 +129,10 @@ vi.mock('../../server/services/bmadOrchestrator.js', () => ({
                 integrationId: 'gmail',
                 description: 'Send email via Gmail',
                 dependencies: [],
-                config: { toolSlug: 'GMAIL_SEND_EMAIL' },
+                config: {
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { to: 'test@example.com', subject: 'Test', body: 'Hello' },
+                },
                 estimatedTokens: 100,
               },
             ],
@@ -578,6 +581,74 @@ describe('Golden Path HTTP Integration', () => {
           type: 'golden_path_plan_invalid',
           invalidTasks: expect.arrayContaining([
             expect.objectContaining({ taskId: 'task_invalid' }),
+          ]),
+        })
+      )
+    })
+  })
+
+  describe('Move 6.8: Required Param Validation', () => {
+    it('should return 400 with missingParams when required param is missing', async () => {
+      // Mock composio to return connected (so we pass preflight)
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      // Create workflow
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Missing Params Test Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with valid toolSlug but missing required 'to' param
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_missing_to',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Test', body: 'Hello' }, // Missing 'to'
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+        mockWorkflowDB[workflowId].status = 'building'
+      }
+
+      // Try to execute - should fail param validation
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      expect(executeRes.status).toBe(400)
+      expect(executeRes.body.success).toBe(false)
+      expect(executeRes.body.error).toBe('Invalid workflow plan')
+      expect(executeRes.body.invalidTasks).toBeDefined()
+      expect(executeRes.body.invalidTasks.length).toBeGreaterThan(0)
+      expect(executeRes.body.invalidTasks[0].taskId).toBe('task_missing_to')
+      expect(executeRes.body.invalidTasks[0].missingParams).toContain('to')
+
+      // Verify SSE event was emitted with missingParams
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_plan_invalid',
+          invalidTasks: expect.arrayContaining([
+            expect.objectContaining({
+              taskId: 'task_missing_to',
+              missingParams: expect.arrayContaining(['to']),
+            }),
           ]),
         })
       )

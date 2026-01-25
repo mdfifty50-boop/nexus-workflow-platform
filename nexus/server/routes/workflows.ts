@@ -58,6 +58,66 @@ function validateAndNormalizeToolSlug(task: any): { valid: boolean; normalizedSl
   }
 }
 
+// ============================================================================
+// Move 6.8: REQUIRED_PARAMS for parameter schema validation
+// Maps toolSlug -> array of required param keys
+// ============================================================================
+const REQUIRED_PARAMS: Record<string, string[]> = {
+  // Gmail
+  GMAIL_SEND_EMAIL: ['to'],
+  GMAIL_FETCH_EMAILS: [],
+  // Slack
+  SLACK_SEND_MESSAGE: ['channel'],
+  // Google Sheets
+  GOOGLESHEETS_BATCH_UPDATE: ['spreadsheet_id'],
+  GOOGLESHEETS_BATCH_GET: ['spreadsheet_id'],
+  // WhatsApp (from template)
+  WHATSAPP_SEND_MESSAGE: ['to'],
+  // HubSpot (from template)
+  HUBSPOT_CREATE_CONTACT: ['email'],
+  // Stripe (from template)
+  STRIPE_CREATE_CUSTOMER: ['email'],
+  STRIPE_CREATE_CHARGE: ['amount'],
+  STRIPE_CREATE_INVOICE: ['customer'],
+  // Discord
+  DISCORD_SEND_MESSAGE: ['channel_id'],
+  // Notion
+  NOTION_CREATE_PAGE: ['parent_id'],
+  // GitHub
+  GITHUB_CREATE_ISSUE: ['repo', 'title'],
+}
+
+/**
+ * Validate required params for a task
+ * Returns { valid: true } or { valid: false, missingParams: [...] }
+ */
+function validateRequiredParams(task: any): { valid: boolean; missingParams?: string[] } {
+  const toolSlug = task.config?.toolSlug
+  if (!toolSlug) return { valid: true } // No toolSlug = skip param validation
+
+  const requiredParams = REQUIRED_PARAMS[toolSlug]
+  if (!requiredParams || requiredParams.length === 0) {
+    return { valid: true } // No required params for this tool
+  }
+
+  const params = task.config?.params || {}
+  const missingParams: string[] = []
+
+  for (const param of requiredParams) {
+    const value = params[param]
+    // Check if param exists and is not empty
+    if (value === undefined || value === null || value === '') {
+      missingParams.push(param)
+    }
+  }
+
+  if (missingParams.length > 0) {
+    return { valid: false, missingParams }
+  }
+
+  return { valid: true }
+}
+
 /**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
@@ -454,17 +514,31 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
-    // Move 6.6: Plan Validation - Validate and normalize tool slugs
+    // Move 6.6 + 6.8: Plan Validation - Validate tool slugs AND required params
     // =========================================================================
-    const invalidTasks: Array<{ taskId: string; reason: string }> = []
+    const invalidTasks: Array<{ taskId: string; reason: string; missingParams?: string[] }> = []
 
     for (const task of plan.tasks) {
-      const validation = validateAndNormalizeToolSlug(task)
-      if (!validation.valid) {
-        invalidTasks.push({ taskId: task.id, reason: validation.reason || 'Unknown error' })
-      } else if (validation.normalizedSlug && task.config) {
-        // Auto-normalize the tool slug
-        task.config.toolSlug = validation.normalizedSlug
+      // Step 1: Validate and normalize tool slug
+      const slugValidation = validateAndNormalizeToolSlug(task)
+      if (!slugValidation.valid) {
+        invalidTasks.push({ taskId: task.id, reason: slugValidation.reason || 'Unknown error' })
+        continue // Skip param validation if slug is invalid
+      }
+
+      // Auto-normalize the tool slug
+      if (slugValidation.normalizedSlug && task.config) {
+        task.config.toolSlug = slugValidation.normalizedSlug
+      }
+
+      // Step 2 (Move 6.8): Validate required params
+      const paramValidation = validateRequiredParams(task)
+      if (!paramValidation.valid && paramValidation.missingParams) {
+        invalidTasks.push({
+          taskId: task.id,
+          reason: `Missing required params: ${paramValidation.missingParams.join(', ')}`,
+          missingParams: paramValidation.missingParams,
+        })
       }
     }
 
