@@ -659,4 +659,72 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  describe('Move 6.10: Safe Param Autofill', () => {
+    it('should autofill email from user_input and proceed to execution', async () => {
+      // Mock composio to return connected (so we pass preflight)
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      // Create workflow with user_input containing an email
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Autofill Test Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          user_input: 'Send an email to alice@example.com about the meeting',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with GMAIL_SEND_EMAIL missing 'to' param
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_autofill',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Meeting', body: 'Hello' }, // Missing 'to'
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+        mockWorkflowDB[workflowId].status = 'building'
+      }
+
+      // Execute - should autofill 'to' from user_input and proceed
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      // Should succeed (not return needs_user_input)
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+      expect(executeRes.body.status).not.toBe('needs_user_input')
+      expect(executeRes.body.taskResults).toBeDefined()
+
+      // Verify SSE autofill event was emitted
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_autofill_applied',
+          filledParams: expect.arrayContaining([
+            expect.objectContaining({
+              taskId: 'task_autofill',
+              param: 'to',
+              source: 'user_input',
+            }),
+          ]),
+        })
+      )
+    })
+  })
 })

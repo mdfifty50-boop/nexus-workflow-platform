@@ -118,6 +118,72 @@ function validateRequiredParams(task: any): { valid: boolean; missingParams?: st
   return { valid: true }
 }
 
+// ============================================================================
+// Move 6.10: Safe param autofill from user context
+// Only fills high-confidence matches (email/phone regex, safe defaults)
+// ============================================================================
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+const PHONE_REGEX = /\+?[1-9]\d{6,14}/ // Simple international phone format
+
+interface AutoFillResult {
+  filled: boolean
+  filledParams: Array<{ taskId: string; param: string; value: string; source: string }>
+}
+
+/**
+ * Try to auto-fill missing params from user_input and safe defaults
+ * Only fills if confidence is high (regex match or safe default)
+ */
+function autoFillParams(
+  tasks: any[],
+  missingParamTasks: Array<{ taskId: string; toolSlug: string; missingParams: string[] }>,
+  userInput: string | undefined
+): AutoFillResult {
+  const filledParams: AutoFillResult['filledParams'] = []
+  const inputText = userInput || ''
+
+  for (const missing of missingParamTasks) {
+    const task = tasks.find((t: any) => t.id === missing.taskId)
+    if (!task || !task.config) continue
+
+    // Ensure params object exists
+    if (!task.config.params) task.config.params = {}
+
+    for (const param of missing.missingParams) {
+      let filled = false
+
+      // GMAIL_SEND_EMAIL: extract 'to' email from user input
+      if (missing.toolSlug === 'GMAIL_SEND_EMAIL' && param === 'to') {
+        const emailMatch = inputText.match(EMAIL_REGEX)
+        if (emailMatch) {
+          task.config.params.to = emailMatch[0]
+          filledParams.push({ taskId: task.id, param: 'to', value: emailMatch[0], source: 'user_input' })
+          filled = true
+        }
+      }
+
+      // WHATSAPP_SEND_MESSAGE: extract 'to' phone from user input
+      if (missing.toolSlug === 'WHATSAPP_SEND_MESSAGE' && param === 'to') {
+        const phoneMatch = inputText.match(PHONE_REGEX)
+        if (phoneMatch) {
+          task.config.params.to = phoneMatch[0]
+          filledParams.push({ taskId: task.id, param: 'to', value: phoneMatch[0], source: 'user_input' })
+          filled = true
+        }
+      }
+
+      // SLACK_SEND_MESSAGE: default channel to #general (safe default)
+      if (missing.toolSlug === 'SLACK_SEND_MESSAGE' && param === 'channel') {
+        task.config.params.channel = '#general'
+        filledParams.push({ taskId: task.id, param: 'channel', value: '#general', source: 'safe_default' })
+        filled = true
+      }
+    }
+  }
+
+  return { filled: filledParams.length > 0, filledParams }
+}
+
 /**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
@@ -562,23 +628,76 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
-    // Move 6.9: Missing params = soft failure, prompt user for input
+    // Move 6.10: Try autofill before returning needs_user_input
     // =========================================================================
     if (missingParamTasks.length > 0) {
-      broadcastWorkflowUpdate({
-        workflowId: req.params.id,
-        type: 'golden_path_needs_user_input',
-        timestamp: new Date().toISOString(),
-        missingFields: missingParamTasks,
-      })
+      // Try to auto-fill from user_input and safe defaults
+      const userInput = workflow.user_input as string | undefined
+      const autoFillResult = autoFillParams(plan.tasks, missingParamTasks, userInput)
 
-      return res.status(200).json({
-        success: true,
-        status: 'needs_user_input',
-        workflowId: req.params.id,
-        missingFields: missingParamTasks,
-        message: 'I need more info before I can run this workflow.',
-      })
+      if (autoFillResult.filled) {
+        // Emit SSE event for autofill (no secrets in payload)
+        broadcastWorkflowUpdate({
+          workflowId: req.params.id,
+          type: 'golden_path_autofill_applied',
+          timestamp: new Date().toISOString(),
+          filledParams: autoFillResult.filledParams.map(p => ({
+            taskId: p.taskId,
+            param: p.param,
+            source: p.source,
+          })),
+        })
+
+        // Re-validate after autofill to check if all params are now filled
+        const stillMissing: typeof missingParamTasks = []
+        for (const task of plan.tasks) {
+          const paramValidation = validateRequiredParams(task)
+          if (!paramValidation.valid && paramValidation.missingParams) {
+            stillMissing.push({
+              taskId: task.id,
+              toolSlug: task.config?.toolSlug || 'unknown',
+              missingParams: paramValidation.missingParams,
+            })
+          }
+        }
+
+        // If all params filled, continue to execution
+        if (stillMissing.length === 0) {
+          // Fall through to execution below
+        } else {
+          // Still missing some params after autofill
+          broadcastWorkflowUpdate({
+            workflowId: req.params.id,
+            type: 'golden_path_needs_user_input',
+            timestamp: new Date().toISOString(),
+            missingFields: stillMissing,
+          })
+
+          return res.status(200).json({
+            success: true,
+            status: 'needs_user_input',
+            workflowId: req.params.id,
+            missingFields: stillMissing,
+            message: 'I need more info before I can run this workflow.',
+          })
+        }
+      } else {
+        // Move 6.9: No autofill possible, prompt user for input
+        broadcastWorkflowUpdate({
+          workflowId: req.params.id,
+          type: 'golden_path_needs_user_input',
+          timestamp: new Date().toISOString(),
+          missingFields: missingParamTasks,
+        })
+
+        return res.status(200).json({
+          success: true,
+          status: 'needs_user_input',
+          workflowId: req.params.id,
+          missingFields: missingParamTasks,
+          message: 'I need more info before I can run this workflow.',
+        })
+      }
     }
 
     // Execute tasks in dependency order
