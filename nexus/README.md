@@ -1,168 +1,79 @@
-# Nexus - AI-Powered Workflow Automation Platform
+# Nexus AI Workflow Platform
 
-Nexus is an AI-powered workflow automation platform that enables business users to create, execute, and monitor complex multi-agent AI workflows without coding. Build automations like "When I get an email from a client, create a task in ClickUp and notify me on Slack" - all through natural language.
+AI-powered workflow automation platform built with React, TypeScript, and Vite.
 
----
-
-## Local Dev (Quick Start)
-
-### Prerequisites
-- **Node.js 20+** - Check with `node -v`
-- **Claude API key** - Get from [console.anthropic.com](https://console.anthropic.com)
-
-### One-Command Setup
+## Quick Start
 
 ```bash
-# 1. Clone and enter directory
-git clone <repository-url>
 cd nexus
-
-# 2. Install dependencies
 npm install
-
-# 3. Set up environment (only ANTHROPIC_API_KEY required)
-cp .env.example .env
-# Edit .env: Add your ANTHROPIC_API_KEY
-
-# 4. Start everything
-npm run dev:all
+npm run dev
 ```
 
-**Open [http://localhost:5173](http://localhost:5173)** - That's it!
+## Testing
 
-> **Note:** Auth is bypassed in dev mode. For production, configure Clerk credentials.
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev:all` | **Start frontend + backend** (recommended) |
-| `npm run dev` | Frontend only (port 5173) |
-| `npm run dev:server` | Backend only (port 4567) |
-| `npm run build` | Build for production |
-| `npm run start` | Run production server |
-
-### Minimum .env for Development
-
-```env
-# Only this is required to run locally:
-ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
-
-# Add this for app integrations (Gmail, Slack, etc.):
-COMPOSIO_API_KEY=your_composio_key
+```bash
+npm test              # Run all tests
+npm test -- --watch   # Watch mode
+npm run build         # Type-check and build
 ```
 
-See `.env.example` for all 40+ optional variables.
+## CI/CD Setup
 
----
+### GitHub Actions
 
-## Features
+The CI pipeline (`.github/workflows/ci.yml`) runs on every push and PR:
+1. **Test job**: Installs deps, runs tests with coverage, builds
+2. **SonarCloud job**: Static analysis for bugs/vulnerabilities
 
-- **Natural Language Workflows** - Describe what you want, Nexus builds it
-- **500+ App Integrations** - Gmail, Slack, Google Sheets, Dropbox, GitHub via Composio
-- **Visual Workflow Builder** - See your automation as connected nodes
-- **One-Click OAuth** - Connect apps without leaving the chat
-- **Real-time Execution** - Watch workflows run step-by-step
-- **Kuwait Region Support** - Arabic, KWD currency, Sunday-Thursday week
+### Required GitHub Secrets
 
-## Tech Stack
+Configure these in your repository settings (`Settings > Secrets and variables > Actions`):
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 19, TypeScript, Tailwind CSS, shadcn/ui |
-| Backend | Node.js/Express, Supabase (PostgreSQL) |
-| AI Engine | Claude API (Opus 4.5, Sonnet 4.5) |
-| Integrations | Composio MCP (500+ apps) |
-| Auth | Clerk (production) / Bypass (development) |
-| Payments | Stripe |
+| Secret | Description | How to Get |
+|--------|-------------|------------|
+| `SONAR_TOKEN` | SonarCloud authentication token | [SonarCloud > My Account > Security](https://sonarcloud.io/account/security) |
+| `SONAR_ORGANIZATION` | Your SonarCloud organization key | SonarCloud organization settings (e.g., `my-org`) |
+| `SONAR_PROJECT_KEY` | Unique project identifier | Create project in SonarCloud (e.g., `my-org_nexus`) |
+
+### SonarCloud Setup
+
+1. **Create account**: Sign up at [sonarcloud.io](https://sonarcloud.io) with GitHub
+2. **Import project**: Click "+" > "Analyze new project" > Select this repo
+3. **Get credentials**:
+   - Organization key: From your organization URL (`sonarcloud.io/organizations/YOUR_ORG`)
+   - Project key: Auto-generated or custom (e.g., `your-org_nexus`)
+   - Token: My Account > Security > Generate Token
+4. **Add secrets**: Add all three to GitHub repository secrets
+5. **Configure Quality Gate** (recommended):
+   - Go to project > Administration > Quality Gate
+   - Create custom gate that only fails on HIGH severity Bugs/Vulnerabilities
+   - Recommended settings:
+     - New Bugs > 0 (severity >= HIGH) → Fail
+     - New Vulnerabilities > 0 (severity >= HIGH) → Fail
+     - Code Smells → Warning only (don't fail)
+
+### PR Integration
+
+SonarCloud automatically:
+- Comments on PRs with analysis results
+- Adds status check that blocks merge on critical issues
+- Shows inline code annotations for issues
 
 ## Project Structure
 
 ```
 nexus/
-├── src/                    # Frontend React app
-│   ├── components/         # UI components
-│   │   └── chat/           # Chat & workflow preview
-│   ├── contexts/           # React contexts
-│   ├── hooks/              # Custom hooks
-│   ├── lib/                # Utilities
-│   ├── pages/              # Route pages
-│   └── services/           # API services
-├── server/                 # Backend Express server
-│   ├── routes/             # API endpoints
-│   ├── services/           # Business logic
-│   └── agents/             # AI personality definitions
-├── supabase/               # Database migrations
-└── tests/                  # Test suites
+├── src/
+│   ├── components/     # React components
+│   ├── services/       # API clients & business logic
+│   ├── lib/            # Utilities
+│   └── types/          # TypeScript types
+├── server/             # Backend API
+├── tests/              # Test setup & integration tests
+└── sonar-project.properties  # SonarCloud config
 ```
-
-## API Routes
-
-| Route | Purpose |
-|-------|---------|
-| `/api/chat` | AI conversation endpoint |
-| `/api/workflow` | Workflow execution |
-| `/api/workflows` | CRUD for workflows |
-| `/api/composio` | Integration OAuth & execution |
-| `/api/oauth` | White-label OAuth flows |
-| `/api/preflight` | Pre-execution parameter validation |
-
-## Environment Variables
-
-### Required for Production
-
-| Variable | Purpose |
-|----------|---------|
-| `ANTHROPIC_API_KEY` | Claude AI (core engine) |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Frontend auth |
-| `CLERK_SECRET_KEY` | Backend auth |
-| `VITE_SUPABASE_URL` | Database URL |
-| `VITE_SUPABASE_ANON_KEY` | Database public key |
-
-### Recommended
-
-| Variable | Purpose |
-|----------|---------|
-| `COMPOSIO_API_KEY` | App integrations (Gmail, Slack, etc.) |
-| `STRIPE_SECRET_KEY` | Payment processing |
-
-See `.env.example` for complete list with setup URLs.
-
-## Database
-
-Uses Supabase (PostgreSQL) with Row-Level Security.
-
-Key tables: `user_profiles`, `workflows`, `workflow_executions`, `user_integrations`
-
-## Testing
-
-```bash
-npm run test           # Unit tests
-npm run test:e2e       # E2E tests (Playwright)
-npm run test:e2e:headed # E2E with visible browser
-```
-
-## Deployment
-
-### Vercel (Recommended)
-```bash
-vercel --prod
-```
-Set env vars in Vercel Dashboard → Settings → Environment Variables.
-
-## Pricing
-
-| Tier | Workflows/Month | Price |
-|------|-----------------|-------|
-| Free | 3 | $0 |
-| Launch | 50 | $79 |
-| Professional | 200 | $149 |
-| Business | Unlimited | $299 |
 
 ## License
 
 Proprietary - All rights reserved
-
-## Support
-
-Email: support@nexus-platform.com

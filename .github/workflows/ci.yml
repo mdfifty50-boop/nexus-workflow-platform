@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud analysis
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,8 +30,57 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npm test -- --coverage --reporter=default --reporter=json --outputFile=test-results.json
+        continue-on-error: false
 
       - name: Build
         run: npm run build
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: nexus/coverage/
+          retention-days: 7
+
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: test  # Run after tests pass
+    # Skip on forks (they don't have access to secrets)
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate blame information
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: nexus/coverage/
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: nexus
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Quality Gate check - fails only on high-severity issues
+      - name: SonarCloud Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Quality Gate is configured in SonarCloud to only fail on:
+        # - New Bugs with severity >= HIGH
+        # - New Vulnerabilities with severity >= HIGH
+        # Does NOT fail on code smells or style issues
