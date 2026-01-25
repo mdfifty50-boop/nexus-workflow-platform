@@ -1,0 +1,958 @@
+{
+  "app": {
+    "name": "Nexus",
+    "tagline": "AI-Powered Workflow Automation",
+    "description": "An integrated automation platform that connects your apps and executes your tasks automatically"
+  },
+
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "workflows": "My Workflows",
+    "templates": "Templates",
+    "workflowDemo": "Workflow Demo",
+    "create": "Create",
+    "myApps": "My Apps",
+    "integrations": "Connected Apps",
+    "profile": "Profile",
+    "settings": "Settings",
+    "help": "Help",
+    "analytics": "Analytics",
+    "admin": "Admin Panel"
+  },
+
+  "common": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete": "Delete",
+    "save": "Save",
+    "edit": "Edit",
+    "execute": "Execute",
+    "run": "Run",
+    "stop": "Stop",
+    "pause": "Pause",
+    "resume": "Resume",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "done": "Done",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "processing": "Processing...",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "more": "More",
+    "less": "Less",
+    "viewAll": "View All",
+    "seeMore": "See More",
+    "showLess": "Show Less",
+    "getStarted": "Get Started",
+    "learnMore": "Learn More",
+    "tryNow": "Try Now",
+    "free": "Free",
+    "new": "New",
+    "beta": "Beta",
+    "soon": "Coming Soon",
+    "popular": "Popular",
+    "recommended": "Recommended",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "all": "All",
+    "none": "None",
+    "copy": "Copy",
+    "share": "Share",
+    "download": "Download",
+    "upload": "Upload",
+    "import": "Import",
+    "export": "Export",
+    "add": "Add",
+    "remove": "Remove",
+    "update": "Update",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "continue": "Continue",
+    "skip": "Skip",
+    "retry": "Retry"
+  },
+
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "rememberMe": "Remember Me",
+    "user": "User",
+    "createAccount": "Create New Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "continueWith": "Continue with",
+    "welcomeBack": "Welcome Back",
+    "signInToContinue": "Sign in to continue",
+    "joinNexus": "Join Nexus",
+    "startFreeToday": "Start free today"
+  },
+
+  "errors": {
+    "general": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "validation": "Please check your input and try again.",
+    "timeout": "Request timed out. Please try again.",
+    "serverError": "Server error. Please try again later.",
+    "required": "This field is required.",
+    "invalidEmail": "Please enter a valid email address.",
+    "passwordMismatch": "Passwords do not match.",
+    "tooShort": "This field is too short.",
+    "tooLong": "This field is too long.",
+    "loadingFailed": "Failed to load data.",
+    "saveFailed": "Failed to save changes.",
+    "deleteFailed": "Failed to delete item.",
+    "connectionFailed": "Failed to connect to the service.",
+    "permissionDenied": "You do not have permission to access this content.",
+    "sessionExpired": "Your session has expired. Please sign in again."
+  },
+
+  "success": {
+    "saved": "Changes saved successfully.",
+    "created": "Created successfully.",
+    "deleted": "Deleted successfully.",
+    "updated": "Updated successfully.",
+    "copied": "Copied to clipboard.",
+    "executed": "Executed successfully.",
+    "connected": "Connected successfully.",
+    "disconnected": "Disconnected successfully.",
+    "sent": "Sent successfully.",
+    "imported": "Imported successfully.",
+    "exported": "Exported successfully."
+  },
+
+  "workflow": {
+    "title": "Workflows",
+    "create": "Create Workflow",
+    "edit": "Edit Workflow",
+    "delete": "Delete Workflow",
+    "duplicate": "Duplicate Workflow",
+    "execute": "Execute Workflow",
+    "running": "Running...",
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "paused": "Paused",
+    "name": "Workflow Name",
+    "description": "Description",
+    "trigger": "Trigger",
+    "actions": "Actions",
+    "nodes": "Nodes",
+    "connections": "Connections",
+    "noWorkflows": "No workflows yet. Create your first one!",
+    "lastRun": "Last Run",
+    "nextRun": "Next Run",
+    "totalRuns": "Total Runs",
+    "successRate": "Success Rate",
+    "builder": {
+      "title": "Workflow Builder",
+      "addNode": "Add Node",
+      "addTrigger": "Add Trigger",
+      "addAction": "Add Action",
+      "addCondition": "Add Condition",
+      "connectNodes": "Connect Nodes",
+      "testWorkflow": "Test Workflow",
+      "saveWorkflow": "Save Workflow",
+      "publishWorkflow": "Publish Workflow",
+      "canvas": "Canvas",
+      "properties": "Properties",
+      "nodeSettings": "Node Settings",
+      "inputData": "Input Data",
+      "outputData": "Output Data",
+      "dragToConnect": "Drag to connect",
+      "dropHere": "Drop here"
+    },
+    "triggers": {
+      "schedule": "Schedule",
+      "webhook": "Webhook",
+      "email": "Email Received",
+      "manual": "Manual",
+      "event": "Event"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "inactive": "Inactive",
+      "error": "Error"
+    }
+  },
+
+  "template": {
+    "title": "Templates",
+    "use": "Use Template",
+    "preview": "Preview",
+    "category": "Category",
+    "popular": "Popular",
+    "new": "New",
+    "recommended": "Recommended",
+    "all": "All Templates",
+    "noTemplates": "No templates available.",
+    "featured": "Featured",
+    "community": "Community",
+    "official": "Official",
+    "categories": {
+      "sales": "Sales",
+      "marketing": "Marketing",
+      "support": "Support",
+      "hr": "Human Resources",
+      "finance": "Finance",
+      "productivity": "Productivity",
+      "communication": "Communication",
+      "data": "Data"
+    }
+  },
+
+  "integration": {
+    "title": "Integrations",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "configure": "Configure",
+    "status": "Status",
+    "lastSync": "Last Sync",
+    "noIntegrations": "No integrations connected yet.",
+    "browse": "Browse Integrations",
+    "search": "Search for an integration...",
+    "categories": {
+      "communication": "Communication",
+      "productivity": "Productivity",
+      "crm": "Customer Relationship Management",
+      "marketing": "Marketing",
+      "analytics": "Analytics",
+      "storage": "Storage",
+      "database": "Databases",
+      "payment": "Payment",
+      "social": "Social Media"
+    },
+    "apps": {
+      "gmail": "Gmail",
+      "slack": "Slack",
+      "sheets": "Google Sheets",
+      "drive": "Google Drive",
+      "calendar": "Google Calendar",
+      "whatsapp": "WhatsApp",
+      "telegram": "Telegram",
+      "notion": "Notion",
+      "trello": "Trello",
+      "salesforce": "Salesforce"
+    }
+  },
+
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "welcomeMessage": "Here's a summary of your activity today",
+    "overview": "Overview",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "stats": "Statistics",
+    "timeSaved": "Time Saved",
+    "workflowsRun": "Workflows Run",
+    "tasksAutomated": "Tasks Automated",
+    "activeIntegrations": "Active Integrations",
+    "recentWorkflows": "Recent Workflows",
+    "upcomingSchedules": "Upcoming Schedules",
+    "notifications": "Notifications",
+    "performance": "Performance",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "voiceControl": {
+      "title": "Voice Control",
+      "subtitle": "Speak in Arabic or English - workflows execute automatically!",
+      "kuwaitiSupport": "Kuwaiti dialect support",
+      "continuousListening": "Continuous listening mode",
+      "autoContextSave": "Auto context save",
+      "voiceResponses": "Voice responses"
+    },
+    "multiAgent": {
+      "title": "Multi-Agent Workflows",
+      "subtitle": "Multiple AI agents working together!",
+      "launch": "Launch Advanced Workflows"
+    }
+  },
+
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minute ago",
+    "minutesAgo_plural": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_plural": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_plural": "{{count}} days ago",
+    "weeksAgo": "{{count}} week ago",
+    "weeksAgo_plural": "{{count}} weeks ago",
+    "monthsAgo": "{{count}} month ago",
+    "monthsAgo_plural": "{{count}} months ago",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This Week",
+    "lastWeek": "Last Week",
+    "nextWeek": "Next Week",
+    "thisMonth": "This Month",
+    "lastMonth": "Last Month",
+    "nextMonth": "Next Month"
+  },
+
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "expandSection": "Expand section",
+    "collapseSection": "Collapse section",
+    "loading": "Loading content",
+    "dismiss": "Dismiss",
+    "navigateTo": "Navigate to",
+    "currentPage": "Current page",
+    "newWindow": "Opens in new window",
+    "required": "Required",
+    "optional": "Optional"
+  },
+
+  "hints": {
+    "proTip": "Pro tip",
+    "viewShortcuts": "View shortcuts",
+    "quickSearch": "Quick search",
+    "pressKey": "Press",
+    "toOpen": "to open"
+  },
+
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences",
+    "tabs": {
+      "profile": "Profile",
+      "notifications": "Notifications",
+      "integrations": "Integrations",
+      "billing": "Billing",
+      "security": "Security",
+      "api": "API Keys",
+      "language": "Language",
+      "voice": "Voice Settings",
+      "appearance": "Appearance",
+      "team": "Team"
+    },
+    "profile": {
+      "title": "Profile Settings",
+      "avatar": "Avatar",
+      "changeAvatar": "Change Avatar",
+      "avatarHint": "JPG, PNG or GIF. Max 2MB",
+      "fullName": "Full Name",
+      "email": "Email",
+      "company": "Company",
+      "companyPlaceholder": "Your company name",
+      "timezone": "Timezone",
+      "phone": "Phone Number",
+      "location": "Location"
+    },
+    "notifications": {
+      "title": "Notification Preferences",
+      "workflowCompleted": "Workflow completed",
+      "workflowCompletedDesc": "Get notified when a workflow finishes execution",
+      "workflowFailed": "Workflow failed",
+      "workflowFailedDesc": "Get notified when a workflow encounters an error",
+      "weeklySummary": "Weekly summary",
+      "weeklySummaryDesc": "Receive a weekly summary of workflow activity",
+      "newFeatures": "New features",
+      "newFeaturesDesc": "Stay updated on new features and improvements",
+      "email": "Email Notifications",
+      "push": "Push Notifications",
+      "sms": "SMS Notifications"
+    },
+    "billing": {
+      "title": "Billing & Subscription",
+      "currentPlan": "Pro Plan",
+      "planPrice": "$99/month",
+      "planFeatures": "100 workflows/month • 25 users • API access",
+      "nextBilling": "Next billing date",
+      "nextBillingDate": "February 1, 2026",
+      "manageSubscription": "Manage Subscription",
+      "paymentMethod": "Payment method",
+      "paymentMethodValue": "Visa ending in 4242",
+      "update": "Update",
+      "billingHistory": "Billing history",
+      "billingHistoryDesc": "View past invoices",
+      "viewHistory": "View History",
+      "upgrade": "Upgrade Plan",
+      "downgrade": "Downgrade Plan",
+      "cancel": "Cancel Subscription"
+    },
+    "security": {
+      "title": "Security Settings",
+      "twoFactor": "Two-factor authentication",
+      "twoFactorDesc": "Add an extra layer of security",
+      "enable2FA": "Enable 2FA",
+      "changePassword": "Change password",
+      "changePasswordDesc": "Update your password regularly",
+      "change": "Change",
+      "activeSessions": "Active sessions",
+      "activeSessionsDesc": "Manage your active sessions",
+      "viewSessions": "View Sessions",
+      "loginHistory": "Login History",
+      "revokeAll": "Revoke All Sessions"
+    },
+    "api": {
+      "title": "API Keys",
+      "generateNew": "Generate New API Key",
+      "created": "Created",
+      "copy": "Copy",
+      "revoke": "Revoke",
+      "name": "Key Name",
+      "permissions": "Permissions",
+      "expiresAt": "Expires At",
+      "neverExpires": "Never Expires"
+    },
+    "language": {
+      "title": "Language & Region",
+      "appLanguage": "Application Language",
+      "appLanguageDesc": "Choose your preferred language for the interface",
+      "currentLanguage": "Current language",
+      "selectLanguage": "Select language",
+      "rtlSupport": "RTL Support",
+      "rtlSupportDesc": "Right-to-left text direction is automatically enabled for Arabic",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "dateFormat": "Date Format",
+      "timeFormat": "Time Format",
+      "region": "Region"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System (Auto)",
+      "accentColor": "Accent Color",
+      "fontSize": "Font Size",
+      "compact": "Compact",
+      "comfortable": "Comfortable",
+      "spacious": "Spacious"
+    },
+    "voice": {
+      "title": "Voice Settings",
+      "language": "Voice Recognition Language",
+      "dialect": "Dialect",
+      "standardArabic": "Standard Arabic (MSA)",
+      "kuwaitiDialect": "Kuwaiti Dialect",
+      "voiceOutput": "Voice Output",
+      "voiceSpeed": "Voice Speed",
+      "voicePitch": "Voice Pitch"
+    },
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "saved": "Settings saved successfully!"
+  },
+
+  "modals": {
+    "changePassword": {
+      "title": "Change Password",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "cancel": "Cancel",
+      "update": "Update Password",
+      "updating": "Updating..."
+    },
+    "enable2FA": {
+      "title": "Enable Two-Factor Authentication",
+      "scanQR": "Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+      "enterCode": "Enter verification code",
+      "codePlaceholder": "000000",
+      "cancel": "Cancel",
+      "verify": "Verify & Enable",
+      "verifying": "Verifying..."
+    },
+    "confirm": {
+      "title": "Confirm Action",
+      "deleteTitle": "Confirm Delete",
+      "deleteMessage": "Are you sure you want to delete this item? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "delete": "Delete"
+    },
+    "share": {
+      "title": "Share Workflow",
+      "copyLink": "Copy Link",
+      "email": "Send via Email",
+      "permissions": "Permissions",
+      "viewOnly": "View Only",
+      "canEdit": "Can Edit",
+      "canExecute": "Can Execute"
+    }
+  },
+
+  "voice": {
+    "listening": "Listening...",
+    "processing": "Processing...",
+    "speak": "Speak now",
+    "retry": "Retry",
+    "stop": "Stop",
+    "noMicrophone": "No microphone found",
+    "permissionDenied": "Microphone permission denied",
+    "error": "Voice recognition error occurred",
+    "supported": "Your browser supports voice recognition",
+    "notSupported": "Your browser does not support voice recognition",
+    "arabic": "Arabic",
+    "english": "English",
+    "kuwaitiHint": "You can speak in Kuwaiti dialect"
+  },
+
+  "projects": {
+    "title": "Projects",
+    "create": "Create Project",
+    "edit": "Edit Project",
+    "delete": "Delete Project",
+    "settings": "Project Settings",
+    "name": "Project Name",
+    "description": "Project Description",
+    "members": "Members",
+    "workflows": "Workflows",
+    "noProjects": "No projects yet. Create your first project!",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member",
+    "role": "Role",
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Member",
+    "viewer": "Viewer"
+  },
+
+  "analytics": {
+    "title": "Analytics Dashboard",
+    "subtitle": "Track user behavior and workflow performance",
+    "overview": "Overview",
+    "performance": "Performance",
+    "usage": "Usage",
+    "trends": "Trends",
+    "executionTime": "Execution Time",
+    "successRate": "Success Rate",
+    "failureRate": "Failure Rate",
+    "totalExecutions": "Total Executions",
+    "totalWorkflows": "Total Workflows",
+    "totalEvents": "Total Events",
+    "activeUsers": "Active Users",
+    "avgDuration": "Average Duration",
+    "peakUsage": "Peak Usage",
+    "loadError": "Failed to load analytics data",
+    "retry": "Retry",
+    "selectTimeRange": "Select time range",
+    "7days": "7 Days",
+    "30days": "30 Days",
+    "90days": "90 Days",
+    "last7Days": "7 Days",
+    "last30Days": "30 Days",
+    "last90Days": "90 Days",
+    "last": "Last",
+    "days": "days",
+    "dailyActiveUsers": "Daily Active Users",
+    "weeklyActiveUsers": "Weekly Active Users",
+    "monthlyActiveUsers": "Monthly Active Users",
+    "wau": "WAU",
+    "mau": "MAU",
+    "workflowExecutions": "Workflow Executions",
+    "executions": "Executions",
+    "activeUsersOverTime": "Active Users Over Time",
+    "workflowExecutionsOverTime": "Workflow Executions Over Time",
+    "signupToWorkflowFunnel": "Signup to First Workflow",
+    "topEvents": "Top Events",
+    "event": "Event",
+    "count": "Count",
+    "percentage": "%",
+    "popularTemplates": "Popular Templates",
+    "uses": "uses",
+    "noTemplates": "No template usage data",
+    "noData": "No data available",
+    "integrationUsage": "Integration Usage",
+    "connections": "connections",
+    "noIntegrations": "No integration data",
+    "conversionFunnel": "Conversion Funnel",
+    "recentActivity": "Recent Activity",
+    "avgTimeToFirstWorkflow": "Avg. Time to First Workflow",
+    "hours": "hours",
+    "minutes": "m",
+    "successful": "Successful",
+    "failed": "Failed",
+    "users": "Users",
+    "excellent": "Excellent",
+    "privacyNotice": "Analytics data is collected with user privacy in mind. No personally identifiable information is stored. You can opt out at any time in Settings.",
+    "privacySettings": "Privacy Settings",
+    "analyticsEnabled": "Analytics Tracking",
+    "performanceTracking": "Performance Tracking",
+    "errorTracking": "Error Tracking",
+    "sessionRecording": "Session Recording",
+    "personalizedSuggestions": "Personalized Suggestions",
+    "optOut": "Opt Out of Analytics",
+    "optIn": "Opt In to Analytics",
+    "deleteData": "Delete My Data",
+    "exportData": "Export My Data",
+    "gdprCompliance": "GDPR Compliance",
+    "dataRetention": "Data Retention"
+  },
+
+  "help": {
+    "title": "Help & Support",
+    "documentation": "Documentation",
+    "tutorials": "Tutorials",
+    "faq": "FAQ",
+    "contact": "Contact Us",
+    "feedback": "Send Feedback",
+    "reportBug": "Report a Bug",
+    "requestFeature": "Request a Feature",
+    "community": "Community",
+    "status": "System Status"
+  },
+
+  "notFound": {
+    "title": "Page Not Found",
+    "message": "Sorry, the page you're looking for doesn't exist.",
+    "goHome": "Go Home",
+    "goBack": "Go Back"
+  },
+
+  "landing": {
+    "hero": {
+      "badge": "Powered by Claude AI",
+      "headline": "Replace Your $2,500/Month",
+      "headlineHighlight": "Automation Agency",
+      "subheadline": "Describe any task in plain English. Our AI agents create your workflow instantly—no coding, no agency fees, no waiting weeks.",
+      "inputPlaceholder": "Start typing to create your workflow...",
+      "createButton": "Create Workflow",
+      "typeToCreate": "Type to Create",
+      "buildingWorkflow": "Nexus is building your workflow...",
+      "schedule": "Schedule",
+      "onDemand": "On Demand",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "noCodeRequired": "No coding required",
+      "instantSetup": "Instant setup"
+    },
+    "features": {
+      "title": "Everything You Need for Automation",
+      "subtitle": "Powerful tools designed to simplify your work",
+      "aiPowered": {
+        "title": "AI-Powered",
+        "description": "Multiple AI agents working together to execute your complex tasks"
+      },
+      "integrations": {
+        "title": "8,500+ Integrations",
+        "description": "Connect all your favorite apps with complete ease"
+      },
+      "automation": {
+        "title": "Smart Automation",
+        "description": "Create complex workflows with simple natural language descriptions"
+      },
+      "security": {
+        "title": "Enterprise-Grade Security",
+        "description": "End-to-end encryption and compliance with highest security standards"
+      },
+      "analytics": {
+        "title": "Advanced Analytics",
+        "description": "Track workflow performance and get valuable insights"
+      },
+      "scale": {
+        "title": "Scalability",
+        "description": "From one task to millions of executions - we grow with you"
+      },
+      "buildInSeconds": "Build in Seconds",
+      "integrationsCount": "8,500+ Integrations"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Three simple steps to complete automation",
+      "step1": {
+        "title": "Describe What You Want",
+        "description": "Write a simple description in English or Arabic of what you want to automate"
+      },
+      "step2": {
+        "title": "AI Builds It",
+        "description": "Nexus analyzes your request and builds the appropriate workflow automatically"
+      },
+      "step3": {
+        "title": "Relax and Watch",
+        "description": "The workflow runs automatically according to your chosen schedule"
+      }
+    },
+    "useCases": {
+      "title": "Use Cases",
+      "subtitle": "Discover how Nexus can help you",
+      "sales": {
+        "title": "Sales Teams",
+        "description": "Automate customer follow-ups and CRM updates"
+      },
+      "marketing": {
+        "title": "Marketing",
+        "description": "Schedule posts and analyze performance across platforms"
+      },
+      "support": {
+        "title": "Customer Support",
+        "description": "Auto-replies and smart ticket escalation"
+      },
+      "hr": {
+        "title": "Human Resources",
+        "description": "Automate recruitment and new employee onboarding"
+      },
+      "finance": {
+        "title": "Finance",
+        "description": "Invoice processing and automatic report generation"
+      },
+      "it": {
+        "title": "IT",
+        "description": "Automate technical operations and monitoring"
+      }
+    },
+    "testimonials": {
+      "title": "What Our Customers Say",
+      "subtitle": "Join thousands of companies that trust Nexus"
+    },
+    "pricing": {
+      "badge": "Launch Special - Limited Time",
+      "badgeSub": "Lock in this price forever",
+      "title": "Simple, Transparent",
+      "titleHighlight": "Pricing",
+      "subtitle": "Start free, upgrade as you grow",
+      "launchPrice": "$79",
+      "regularPrice": "$99",
+      "perMonth": "/month",
+      "launchLabel": "Launch Price",
+      "regularLabel": "Regular",
+      "saveBadge": "Save $20/month",
+      "plans": {
+        "free": {
+          "name": "Free",
+          "price": "$0",
+          "period": "forever",
+          "workflows": "10 workflows/month",
+          "perWorkflow": "Free",
+          "cta": "Start Free",
+          "features": ["5 integrations", "Community support", "1 user", "Basic templates"]
+        },
+        "starter": {
+          "name": "Starter",
+          "price": "$29",
+          "period": "month",
+          "workflows": "100 workflows/month",
+          "perWorkflow": "$0.29/workflow",
+          "cta": "Start Free Trial",
+          "features": ["All integrations", "Email support", "5 users", "Analytics dashboard", "Priority queue"]
+        },
+        "pro": {
+          "name": "Pro",
+          "price": "$79",
+          "originalPrice": "$99",
+          "period": "month",
+          "workflows": "500 workflows/month",
+          "perWorkflow": "$0.16/workflow",
+          "cta": "Start Free Trial",
+          "popular": true,
+          "launchBadge": "Launch Special",
+          "features": ["Everything in Starter", "15 users", "Custom workflows", "API access", "Advanced analytics", "Webhook triggers", "Priority support"]
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "price": "Custom",
+          "period": "",
+          "workflows": "Unlimited workflows",
+          "perWorkflow": "Volume discounts",
+          "cta": "Contact Sales",
+          "features": ["Everything in Pro", "Unlimited users", "Dedicated support", "SLA guarantee", "SSO & SAML", "On-premise option"]
+        }
+      },
+      "comparison": {
+        "agencyTitle": "Automation Agency",
+        "agencyCost": "$2,500+/month",
+        "nexusTitle": "With Nexus",
+        "nexusCost": "$79/month",
+        "savingsTitle": "You Save",
+        "savingsAmount": "$2,400+/month"
+      }
+    },
+    "cta": {
+      "title": "Ready to Get Started?",
+      "subtitle": "Join over 10,000 companies using Nexus",
+      "button": "Start Free",
+      "noCard": "No credit card required"
+    },
+    "footer": {
+      "product": "Product",
+      "company": "Company",
+      "resources": "Resources",
+      "legal": "Legal",
+      "about": "About Us",
+      "careers": "Careers",
+      "blog": "Blog",
+      "docs": "Documentation",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contact": "Contact Us",
+      "copyright": "All rights reserved"
+    },
+    "languageToggle": {
+      "label": "Language",
+      "english": "English",
+      "arabic": "العربية"
+    }
+  },
+
+  "kuwaiti": {
+    "greetings": {
+      "hello": "Hala",
+      "welcome": "Welcome (Hayak Allah)",
+      "howAreYou": "How are you? (Shlonak?)",
+      "fine": "Good (Zain)",
+      "thanks": "Thanks (Mashkoor)",
+      "goodbye": "Goodbye (Fi Aman Allah)",
+      "goodMorning": "Good morning",
+      "goodEvening": "Good evening"
+    },
+    "common": {
+      "yes": "Yes (Ee)",
+      "no": "No (La)",
+      "ok": "OK",
+      "good": "Good (Zain)",
+      "bad": "Not good (Mo zain)",
+      "now": "Now (Al7een)",
+      "later": "Later (Ba3dain)",
+      "quickly": "Quickly (Bisor3a)",
+      "wait": "Wait (Sabr)",
+      "done": "Done (Khallas)",
+      "understand": "I understand (Fahem)",
+      "want": "I want (Abi)",
+      "dontWant": "I don't want (Ma abi)",
+      "what": "What (Shino)",
+      "why": "Why (Laish)",
+      "where": "Where (Wain)",
+      "when": "When (Meta)",
+      "how": "How (Shlon)"
+    },
+    "workflow": {
+      "createNew": "I want to create a new workflow",
+      "sendEmail": "Send an email",
+      "sendWhatsApp": "Send a WhatsApp message",
+      "everyday": "Every day",
+      "everyWeek": "Every week",
+      "morning": "Morning",
+      "evening": "Evening",
+      "reminder": "Remind me",
+      "notifyMe": "Notify me"
+    },
+    "responses": {
+      "understood": "OK, I understand",
+      "working": "Working on it now",
+      "done": "Done, it's completed",
+      "error": "There was a problem, let me try again",
+      "confirm": "Are you sure you want to do this?",
+      "askAgain": "Can you repeat the question?"
+    }
+  },
+
+  "onboarding": {
+    "steps": {
+      "welcome": "Welcome",
+      "connect": "Connect",
+      "workflow": "Workflow",
+      "success": "Success"
+    },
+    "stepOf": "Step {{current}} of {{total}}",
+    "skipAll": "Skip onboarding",
+
+    "welcome": {
+      "title": "Welcome to Nexus!",
+      "subtitle": "Let's get you set up in under 5 minutes",
+      "greeting": "Hey {{name}}, ready to automate?",
+      "question": "What do you want to automate?",
+      "helper": "Don't worry, you can always change this later",
+      "options": {
+        "ecommerce": {
+          "title": "E-commerce"
+        },
+        "crm": {
+          "title": "CRM & Sales"
+        },
+        "support": {
+          "title": "Customer Support"
+        },
+        "custom": {
+          "title": "Custom Workflow"
+        }
+      },
+      "examples": {
+        "orders": "Orders",
+        "inventory": "Inventory",
+        "shipping": "Shipping",
+        "leads": "Leads",
+        "contacts": "Contacts",
+        "sales": "Sales",
+        "tickets": "Tickets",
+        "helpdesk": "Helpdesk",
+        "chat": "Chat",
+        "email": "Email",
+        "files": "Files",
+        "tasks": "Tasks"
+      }
+    },
+
+    "connect": {
+      "title": "Connect your first app",
+      "subtitle": "This lets Nexus automate tasks for you",
+      "recommended": "Recommended for {{type}}",
+      "connectButton": "Connect",
+      "connectedCount": "{{count}} app connected",
+      "connectedCount_plural": "{{count}} apps connected",
+      "skipForNow": "Skip for now, I'll explore first"
+    },
+
+    "workflow": {
+      "title": "Create your first workflow",
+      "subtitle": "Describe what you want to automate",
+      "nameLabel": "Workflow name",
+      "namePlaceholder": "e.g., Order Notification",
+      "descriptionLabel": "What should this workflow do?",
+      "descriptionPlaceholder": "e.g., When a new order comes in, notify the team on Slack and send a confirmation email to the customer",
+      "aiPowered": "AI-powered",
+      "generateButton": "Generate Workflow",
+      "generating": "Generating...",
+      "previewTitle": "Workflow Preview",
+      "generated": "Generated",
+      "trigger": "Trigger",
+      "continueButton": "Continue to test"
+    },
+
+    "success": {
+      "title": "Let's test your workflow!",
+      "subtitle": "Run a quick test to make sure everything works",
+      "runTest": "Run Test",
+      "running": "Running...",
+      "goToDashboard": "Go to Dashboard",
+      "congratsTitle": "You're all set!",
+      "congratsSubtitle": "Your first workflow is ready. Let's go to your dashboard!",
+      "completedIn": "You completed onboarding like a pro!"
+    }
+  }
+}

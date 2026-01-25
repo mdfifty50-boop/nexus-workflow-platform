@@ -1,0 +1,276 @@
+/**
+ * RTL Support Styles for Nexus
+ *
+ * These styles are automatically applied when the html[dir="rtl"] attribute is set.
+ * The i18n system handles this automatically when language changes.
+ *
+ * Import this file in index.css or main.tsx:
+ *   import '@/i18n/rtl.css'
+ */
+
+/* Base RTL adjustments */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Flip horizontal margins */
+[dir="rtl"] .ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Flip flex row direction for RTL */
+[dir="rtl"] .flex-row-i18n {
+  flex-direction: row-reverse;
+}
+
+/* Flip icons that indicate direction */
+[dir="rtl"] .icon-flip {
+  transform: scaleX(-1);
+}
+
+/* Navigation items - flip order in RTL */
+[dir="rtl"] nav .nav-links {
+  flex-direction: row-reverse;
+}
+
+/* Sidebar positioning */
+[dir="rtl"] .sidebar-left {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .sidebar-right {
+  right: auto;
+  left: 0;
+}
+
+/* Form labels and inputs alignment */
+[dir="rtl"] label {
+  text-align: right;
+}
+
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[type="search"],
+[dir="rtl"] textarea {
+  text-align: right;
+}
+
+/* Placeholder text alignment */
+[dir="rtl"] input::placeholder,
+[dir="rtl"] textarea::placeholder {
+  text-align: right;
+}
+
+/* Dropdown/Select positioning */
+[dir="rtl"] select {
+  text-align: right;
+  background-position: left 0.75rem center;
+  padding-left: 2.5rem;
+  padding-right: 0.75rem;
+}
+
+/* Modal/Dialog close button */
+[dir="rtl"] .modal-close {
+  left: 1rem;
+  right: auto;
+}
+
+/* Toast notifications */
+[dir="rtl"] .toast-container {
+  left: 1rem;
+  right: auto;
+}
+
+/* Search input icon positioning */
+[dir="rtl"] .search-icon {
+  left: auto;
+  right: 0.75rem;
+}
+
+[dir="rtl"] .search-input {
+  padding-left: 0.75rem;
+  padding-right: 2.5rem;
+}
+
+/* Checkbox/Radio label spacing */
+[dir="rtl"] .checkbox-label {
+  padding-left: 0;
+  padding-right: 1.75rem;
+}
+
+[dir="rtl"] .checkbox-label::before {
+  left: auto;
+  right: 0;
+}
+
+/* Progress bar direction */
+[dir="rtl"] .progress-bar {
+  direction: rtl;
+}
+
+/* Breadcrumbs separator */
+[dir="rtl"] .breadcrumb-separator {
+  transform: scaleX(-1);
+}
+
+/* Pagination */
+[dir="rtl"] .pagination-prev::before,
+[dir="rtl"] .pagination-next::after {
+  transform: scaleX(-1);
+}
+
+/* Accordion/Collapse arrows */
+[dir="rtl"] .accordion-arrow {
+  left: 1rem;
+  right: auto;
+}
+
+/* Tab navigation */
+[dir="rtl"] .tabs {
+  flex-direction: row-reverse;
+}
+
+/* Timeline */
+[dir="rtl"] .timeline::before {
+  left: auto;
+  right: 50%;
+}
+
+[dir="rtl"] .timeline-item:nth-child(odd) {
+  padding-left: 0;
+  padding-right: calc(50% + 1rem);
+}
+
+[dir="rtl"] .timeline-item:nth-child(even) {
+  padding-right: 0;
+  padding-left: calc(50% + 1rem);
+}
+
+/* Workflow nodes - maintain LTR for technical diagrams */
+[dir="rtl"] .workflow-canvas {
+  direction: ltr;
+}
+
+/* Code blocks - maintain LTR */
+[dir="rtl"] pre,
+[dir="rtl"] code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Numbers and data - maintain LTR */
+[dir="rtl"] .numeric-data,
+[dir="rtl"] .stats-number {
+  direction: ltr;
+}
+
+/* Chat interface - messages on correct side */
+[dir="rtl"] .chat-message-user {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+[dir="rtl"] .chat-message-ai {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Floating action buttons */
+[dir="rtl"] .fab-bottom-right {
+  right: auto;
+  left: 1.5rem;
+}
+
+[dir="rtl"] .fab-bottom-left {
+  left: auto;
+  right: 1.5rem;
+}
+
+/* Animations that reference direction */
+@keyframes slideInFromRight-rtl {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft-rtl {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+[dir="rtl"] .animate-slide-in-right {
+  animation: slideInFromRight-rtl 0.3s ease-out;
+}
+
+[dir="rtl"] .animate-slide-in-left {
+  animation: slideInFromLeft-rtl 0.3s ease-out;
+}
+
+/* Utility classes for manual RTL control */
+.rtl\:flip {
+  /* Use with [dir="rtl"] .rtl\:flip */
+}
+
+[dir="rtl"] .rtl\:flip {
+  transform: scaleX(-1);
+}
+
+.rtl\:reverse {
+  /* Use with [dir="rtl"] .rtl\:reverse */
+}
+
+[dir="rtl"] .rtl\:reverse {
+  flex-direction: row-reverse;
+}
+
+.rtl\:text-right {
+  /* Default - already right in RTL */
+}
+
+[dir="rtl"] .rtl\:text-left {
+  text-align: left;
+}
+
+/* Logical properties (modern approach - use these when possible) */
+.margin-inline-start-4 {
+  margin-inline-start: 1rem;
+}
+
+.margin-inline-end-4 {
+  margin-inline-end: 1rem;
+}
+
+.padding-inline-start-4 {
+  padding-inline-start: 1rem;
+}
+
+.padding-inline-end-4 {
+  padding-inline-end: 1rem;
+}
+
+.text-start {
+  text-align: start;
+}
+
+.text-end {
+  text-align: end;
+}

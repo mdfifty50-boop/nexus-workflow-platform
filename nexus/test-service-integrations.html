@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Integrations Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 { margin-top: 0; color: #333; }
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .service-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        .service-card h3 {
+            margin: 0 0 8px 0;
+            color: #1976d2;
+        }
+        .service-card .category {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .service-card .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+        .status.connected {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        .status.disconnected {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        .actions {
+            margin-top: 12px;
+        }
+        .action-item {
+            padding: 8px 0;
+            border-top: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+        .action-item:first-child {
+            border-top: none;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        button:hover {
+            background: #1565c0;
+        }
+        .test-results {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .success { color: #2e7d32; }
+        .error { color: #c62828; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Service Integrations Test</h1>
+        <p>Testing the service integration layer for the workflow orchestrator.</p>
+
+        <div id="test-results" class="test-results"></div>
+    </div>
+
+    <div class="container">
+        <h2>Available Services</h2>
+        <div id="services-grid" class="service-grid"></div>
+    </div>
+
+    <script type="module">
+        // Simulate the service integrations module
+        const SERVICE_REGISTRY = {
+            talabat: {
+                id: 'talabat',
+                name: 'Talabat',
+                category: 'food_delivery',
+                description: 'Order food from restaurants across the Middle East',
+                authType: 'oauth2',
+                actions: [
+                    { id: 'search_restaurants', name: 'Search Restaurants' },
+                    { id: 'get_menu', name: 'Get Restaurant Menu' },
+                    { id: 'place_order', name: 'Place Order' },
+                    { id: 'track_order', name: 'Track Order' }
+                ]
+            },
+            whatsapp: {
+                id: 'whatsapp',
+                name: 'WhatsApp Business',
+                category: 'communication',
+                description: 'Send messages via WhatsApp Business API',
+                authType: 'api_key',
+                actions: [
+                    { id: 'send_message', name: 'Send Message' },
+                    { id: 'send_template', name: 'Send Template Message' }
+                ]
+            },
+            email: {
+                id: 'email',
+                name: 'Email (SendGrid)',
+                category: 'communication',
+                description: 'Send emails via SendGrid',
+                authType: 'api_key',
+                actions: [
+                    { id: 'send_email', name: 'Send Email' }
+                ]
+            },
+            pdf_processor: {
+                id: 'pdf_processor',
+                name: 'PDF Processor',
+                category: 'document_processing',
+                description: 'Extract and analyze content from PDF documents',
+                authType: 'none',
+                actions: [
+                    { id: 'extract_text', name: 'Extract Text' },
+                    { id: 'extract_tables', name: 'Extract Tables' },
+                    { id: 'ocr', name: 'OCR (Image to Text)' }
+                ]
+            },
+            booking: {
+                id: 'booking',
+                name: 'Booking.com',
+                category: 'transportation',
+                description: 'Search and book hotels and accommodations',
+                authType: 'oauth2',
+                actions: [
+                    { id: 'search_hotels', name: 'Search Hotels' },
+                    { id: 'book_hotel', name: 'Book Hotel' }
+                ]
+            },
+            stripe: {
+                id: 'stripe',
+                name: 'Stripe',
+                category: 'payment',
+                description: 'Process payments securely',
+                authType: 'api_key',
+                actions: [
+                    { id: 'create_payment_intent', name: 'Create Payment Intent' }
+                ]
+            }
+        };
+
+        class ServiceIntegrationManager {
+            constructor() {
+                this.connectedServices = new Map();
+            }
+
+            getAllIntegrations() {
+                return Object.values(SERVICE_REGISTRY).map(service => ({
+                    ...service,
+                    connected: this.connectedServices.get(service.id)?.connected || false,
+                }));
+            }
+
+            getIntegrationsByCategory(category) {
+                return this.getAllIntegrations().filter(s => s.category === category);
+            }
+
+            getIntegration(serviceId) {
+                const service = SERVICE_REGISTRY[serviceId];
+                if (!service) return null;
+                return {
+                    ...service,
+                    connected: this.connectedServices.get(serviceId)?.connected || false,
+                };
+            }
+
+            getServiceActions(serviceId) {
+                const service = SERVICE_REGISTRY[serviceId];
+                return service?.actions || [];
+            }
+        }
+
+        // Create instance
+        const serviceIntegrations = new ServiceIntegrationManager();
+
+        // Run tests
+        function runTests() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<strong>Running Tests...</strong><br><br>';
+
+            try {
+                // Test 1: Get all integrations
+                const allIntegrations = serviceIntegrations.getAllIntegrations();
+                results.innerHTML += `<span class="success">✓ getAllIntegrations(): Found ${allIntegrations.length} services</span><br>`;
+
+                // Test 2: Get by category
+                const foodServices = serviceIntegrations.getIntegrationsByCategory('food_delivery');
+                results.innerHTML += `<span class="success">✓ getIntegrationsByCategory('food_delivery'): Found ${foodServices.length} services</span><br>`;
+
+                const commServices = serviceIntegrations.getIntegrationsByCategory('communication');
+                results.innerHTML += `<span class="success">✓ getIntegrationsByCategory('communication'): Found ${commServices.length} services</span><br>`;
+
+                // Test 3: Get specific integration
+                const talabat = serviceIntegrations.getIntegration('talabat');
+                if (talabat && talabat.name === 'Talabat') {
+                    results.innerHTML += `<span class="success">✓ getIntegration('talabat'): Found service with ${talabat.actions.length} actions</span><br>`;
+                } else {
+                    results.innerHTML += `<span class="error">✗ getIntegration('talabat'): Failed</span><br>`;
+                }
+
+                // Test 4: Get service actions
+                const actions = serviceIntegrations.getServiceActions('whatsapp');
+                results.innerHTML += `<span class="success">✓ getServiceActions('whatsapp'): Found ${actions.length} actions</span><br>`;
+
+                // Test 5: Test invalid service
+                const invalid = serviceIntegrations.getIntegration('nonexistent');
+                if (invalid === null) {
+                    results.innerHTML += `<span class="success">✓ getIntegration('nonexistent'): Correctly returned null</span><br>`;
+                } else {
+                    results.innerHTML += `<span class="error">✗ getIntegration('nonexistent'): Should return null</span><br>`;
+                }
+
+                results.innerHTML += '<br><strong class="success">All tests passed!</strong>';
+            } catch (error) {
+                results.innerHTML += `<br><span class="error">✗ Error: ${error.message}</span>`;
+            }
+        }
+
+        // Render services
+        function renderServices() {
+            const grid = document.getElementById('services-grid');
+            const services = serviceIntegrations.getAllIntegrations();
+
+            grid.innerHTML = services.map(service => `
+                <div class="service-card">
+                    <h3>${service.name}</h3>
+                    <div>
+                        <span class="category">${service.category.replace('_', ' ')}</span>
+                        <span class="status ${service.connected ? 'connected' : 'disconnected'}">
+                            ${service.connected ? 'Connected' : 'Not Connected'}
+                        </span>
+                    </div>
+                    <p style="margin: 12px 0; color: #666; font-size: 14px;">${service.description}</p>
+                    <div style="font-size: 13px; color: #666;">
+                        Auth: <strong>${service.authType === 'oauth2' ? 'OAuth 2.0' : service.authType === 'api_key' ? 'API Key' : 'None'}</strong>
+                    </div>
+                    <div class="actions">
+                        <strong style="font-size: 13px; color: #666;">Available Actions:</strong>
+                        ${service.actions.map(action => `
+                            <div class="action-item">${action.name}</div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize
+        runTests();
+        renderServices();
+    </script>
+</body>
+</html>

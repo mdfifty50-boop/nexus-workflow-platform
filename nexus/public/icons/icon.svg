@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Nexus Icon - Layered hexagons representing workflow connections -->
+  <g transform="translate(256, 256)">
+    <!-- Outer hexagon -->
+    <polygon
+      points="0,-140 121.24,-70 121.24,70 0,140 -121.24,70 -121.24,-70"
+      fill="none"
+      stroke="url(#accent)"
+      stroke-width="8"
+      opacity="0.3"
+    />
+
+    <!-- Middle hexagon -->
+    <polygon
+      points="0,-100 86.60,-50 86.60,50 0,100 -86.60,50 -86.60,-50"
+      fill="none"
+      stroke="url(#accent)"
+      stroke-width="10"
+      opacity="0.6"
+    />
+
+    <!-- Inner hexagon (filled) -->
+    <polygon
+      points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30"
+      fill="url(#accent)"
+    />
+
+    <!-- Connection nodes -->
+    <circle cx="0" cy="-140" r="12" fill="#3b82f6"/>
+    <circle cx="121.24" cy="-70" r="12" fill="#6366f1"/>
+    <circle cx="121.24" cy="70" r="12" fill="#8b5cf6"/>
+    <circle cx="0" cy="140" r="12" fill="#a855f7"/>
+    <circle cx="-121.24" cy="70" r="12" fill="#8b5cf6"/>
+    <circle cx="-121.24" cy="-70" r="12" fill="#6366f1"/>
+
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="16" fill="#f8fafc"/>
+  </g>
+</svg>

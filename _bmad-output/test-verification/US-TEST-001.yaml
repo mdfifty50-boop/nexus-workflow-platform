@@ -1,0 +1,58 @@
+# Test Story for Verification Gate System
+# Purpose: Validate the gate runner works correctly
+
+---
+id: US-TEST-001
+title: "Test Verification Gate System"
+description: |
+  This is a test story to verify the BMAD Verification Gate System works.
+  We will test:
+  1. Command gates (file existence, simple commands)
+  2. Progress tracking
+  3. Pass/fail detection
+
+status: pending
+
+tasks:
+  - id: 1
+    description: "Verify gate runner executes"
+    completed: false
+
+  - id: 2
+    description: "Verify progress tracking works"
+    completed: false
+
+verification:
+  all_gates_passed: false
+  last_run: null
+  run_count: 0
+
+  gates:
+    # Gate 1: Simple command that should PASS
+    - name: "Echo Test Passes"
+      type: command
+      command: "echo 'Hello Gate System' && exit 0"
+      expected_exit: 0
+
+    # Gate 2: File existence check - this file exists
+    - name: "Gate Runner Script Exists"
+      type: file_exists
+      command: "_bmad/core/verification/gate-runner.sh"
+      expected_exit: 0
+
+    # Gate 3: Directory listing (should pass)
+    - name: "Can List Verification Directory"
+      type: command
+      command: "ls _bmad/core/verification/"
+      expected_exit: 0
+
+loop_controls:
+  max_iterations: 3
+  max_consecutive_failures: 2
+
+progress: |
+  # Test story progress will be logged here
+
+created: "2026-01-10"
+assigned_to: test
+epic: TEST

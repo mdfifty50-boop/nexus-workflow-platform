@@ -1,0 +1,11 @@
+id: SIMPLE-TEST
+title: Simple Gate Test
+status: pending
+
+verification:
+  all_gates_passed: false
+  gates:
+  - name: "Echo Test"
+    type: command
+    command: "echo hello"
+    expected_exit: 0

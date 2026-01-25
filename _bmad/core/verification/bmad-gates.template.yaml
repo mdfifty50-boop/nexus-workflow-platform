@@ -1,0 +1,110 @@
+# BMAD Gates Configuration
+#
+# Copy this file to your project root as .bmad-gates.yaml
+# Customize the gates and loop controls for your project
+#
+# This file defines project-wide verification settings
+
+---
+version: "1.0"
+
+# === PROJECT INFO ===
+project:
+  name: "Your Project Name"
+  root: "."  # Project root relative to this file
+
+# === DEFAULT GATES ===
+# These gates run for ALL stories unless overridden
+default_gates:
+  # TypeScript/JavaScript projects
+  - name: "TypeScript Compiles"
+    type: command
+    command: "npm run type-check"
+    expected_exit: 0
+    enabled: true
+
+  - name: "Unit Tests Pass"
+    type: command
+    command: "npm test -- --passWithNoTests"
+    expected_exit: 0
+    enabled: true
+
+  - name: "Lint Clean"
+    type: command
+    command: "npm run lint"
+    expected_exit: 0
+    enabled: false  # Enable if you have linting
+
+  - name: "Build Succeeds"
+    type: command
+    command: "npm run build"
+    expected_exit: 0
+    enabled: false  # Enable for production builds
+
+# === LOOP CONTROLS ===
+loop_controls:
+  # Maximum iterations before forced stop
+  max_iterations: 10
+
+  # Stop after N consecutive failures
+  max_consecutive_failures: 3
+
+  # Detect stuck patterns (same error twice = stuck)
+  detect_stuck_pattern: true
+
+  # Time limit per task (minutes)
+  max_time_minutes: 30
+
+  # Token budget per task (approximate)
+  max_tokens_per_task: 100000
+
+# === ESCALATION ===
+escalation:
+  # What to do when limits are reached
+  on_limit_reached: "pause_and_escalate"  # or "abort", "continue_with_warning"
+
+  # Notification method
+  method: "log"  # or "slack", "email", "webhook"
+
+  # Webhook URL for notifications (if method is webhook)
+  webhook_url: ""
+
+  # Slack channel (if method is slack)
+  slack_channel: ""
+
+# === PLAYWRIGHT SETTINGS ===
+playwright:
+  # Base URL for browser testing
+  base_url: "http://localhost:5173"
+
+  # Wait time before checking (seconds)
+  default_wait: 2
+
+  # Screenshot on failure
+  screenshot_on_fail: true
+
+  # Screenshot directory
+  screenshot_dir: ".bmad-screenshots"
+
+# === PATHS ===
+paths:
+  # Progress file location
+  progress_file: "progress.txt"
+
+  # Gate log location
+  gate_log: ".bmad-gate-log.json"
+
+  # Story files pattern
+  story_pattern: "_bmad-output/**/*story*.yaml"
+
+# === BYPASS SETTINGS ===
+# Use with caution - these weaken verification
+bypass:
+  # Allow --no-verify on commits
+  allow_hook_bypass: true
+
+  # Allow manual status changes
+  allow_manual_done: false
+
+  # Skip gates in CI for draft PRs
+  skip_draft_prs: true

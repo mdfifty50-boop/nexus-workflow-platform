@@ -1,0 +1,359 @@
+
+================================================================================
+  AUTO-CLAUDE POST-RESTART SETUP SCRIPT
+================================================================================
+
+This script will:
+  1. Verify build tools are installed
+  2. Install backend dependencies (Python packages)
+  3. Install frontend dependencies (Node packages)
+  4. Optionally run the application
+
+================================================================================
+
+[1/5] Current directory: C:\Users\PC\Documents\Autoclaude 2D workflow office\Auto-Claude
+
+[2/5] Checking for CMake...
+cmake version 4.2.1
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+[OK] CMake found
+
+[3/5] Checking for Visual Studio Build Tools...
+[WARNING] MSVC compiler not in PATH. Setting up VS environment...
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.23
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x64'
+[OK] Visual Studio environment loaded
+
+[4/5] Installing dependencies (this may take 5-10 minutes)...
+
+Installing backend dependencies...
+
+> auto-claude@2.7.2 install:backend
+> node scripts/install-backend.js
+
+Installing Auto Claude backend dependencies...
+
+Found Python 3.12+: py -3.14 -> Python 3.14.1
+
+Removing existing virtual environment...
+
+Creating virtual environment...
+> py -3.14 -m venv .venv
+
+Installing dependencies...
+> "C:\Users\PC\Documents\Autoclaude 2D workflow office\Auto-Claude\apps\backend\.venv\Scripts\pip.exe" install -r requirements.txt
+Ignoring tomli: markers 'python_version < "3.11"' don't match your environment
+Collecting claude-agent-sdk>=0.1.16 (from -r requirements.txt (line 2))
+  Using cached claude_agent_sdk-0.1.18-py3-none-win_amd64.whl.metadata (12 kB)
+Collecting python-dotenv>=1.0.0 (from -r requirements.txt (line 3))
+  Using cached python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+Collecting real_ladybug>=0.13.0 (from -r requirements.txt (line 10))
+  Using cached real_ladybug-0.13.1.tar.gz (9.9 MB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting graphiti-core>=0.5.0 (from -r requirements.txt (line 11))
+  Using cached graphiti_core-0.25.0-py3-none-any.whl.metadata (27 kB)
+Collecting google-generativeai>=0.8.0 (from -r requirements.txt (line 14))
+  Using cached google_generativeai-0.8.6-py3-none-any.whl.metadata (3.9 kB)
+Collecting pydantic>=2.0.0 (from -r requirements.txt (line 17))
+  Using cached pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+Collecting anyio>=4.0.0 (from claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached anyio-4.12.0-py3-none-any.whl.metadata (4.3 kB)
+Collecting mcp>=0.1.0 (from claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached mcp-1.25.0-py3-none-any.whl.metadata (89 kB)
+Collecting diskcache>=5.6.3 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached diskcache-5.6.3-py3-none-any.whl.metadata (20 kB)
+Collecting neo4j>=5.26.0 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached neo4j-6.0.3-py3-none-any.whl.metadata (5.2 kB)
+Collecting numpy>=1.0.0 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached numpy-2.4.0-cp314-cp314-win_amd64.whl.metadata (6.6 kB)
+Collecting openai>=1.91.0 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached openai-2.14.0-py3-none-any.whl.metadata (29 kB)
+Collecting posthog>=3.0.0 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached posthog-7.4.2-py3-none-any.whl.metadata (6.0 kB)
+Collecting tenacity>=9.0.0 (from graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached tenacity-9.1.2-py3-none-any.whl.metadata (1.2 kB)
+Collecting google-ai-generativelanguage==0.6.15 (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_ai_generativelanguage-0.6.15-py3-none-any.whl.metadata (5.7 kB)
+Collecting google-api-core (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_api_core-2.28.1-py3-none-any.whl.metadata (3.3 kB)
+Collecting google-api-python-client (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_api_python_client-2.187.0-py3-none-any.whl.metadata (7.0 kB)
+Collecting google-auth>=2.15.0 (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_auth-2.45.0-py2.py3-none-any.whl.metadata (6.8 kB)
+Collecting protobuf (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached protobuf-6.33.2-cp310-abi3-win_amd64.whl.metadata (593 bytes)
+Collecting tqdm (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting typing-extensions (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting proto-plus<2.0.0dev,>=1.22.3 (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached proto_plus-1.27.0-py3-none-any.whl.metadata (2.2 kB)
+Collecting protobuf (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached protobuf-5.29.5-cp310-abi3-win_amd64.whl.metadata (592 bytes)
+Collecting googleapis-common-protos<2.0.0,>=1.56.2 (from google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached googleapis_common_protos-1.72.0-py3-none-any.whl.metadata (9.4 kB)
+Collecting requests<3.0.0,>=2.18.0 (from google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+Collecting grpcio<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached grpcio-1.76.0-cp314-cp314-win_amd64.whl.metadata (3.8 kB)
+Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached grpcio_status-1.76.0-py3-none-any.whl.metadata (1.1 kB)
+Collecting cachetools<7.0,>=2.0.0 (from google-auth>=2.15.0->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached cachetools-6.2.4-py3-none-any.whl.metadata (5.6 kB)
+Collecting pyasn1-modules>=0.2.1 (from google-auth>=2.15.0->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+Collecting rsa<5,>=3.1.4 (from google-auth>=2.15.0->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+INFO: pip is looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached grpcio_status-1.75.1-py3-none-any.whl.metadata (1.1 kB)
+Collecting googleapis-common-protos<2.0.0,>=1.56.2 (from google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached googleapis_common_protos-1.71.0-py3-none-any.whl.metadata (9.4 kB)
+  Using cached googleapis_common_protos-1.70.0-py3-none-any.whl.metadata (9.3 kB)
+  Using cached googleapis_common_protos-1.69.2-py3-none-any.whl.metadata (9.3 kB)
+INFO: pip is still looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+  Using cached googleapis_common_protos-1.69.1-py2.py3-none-any.whl.metadata (9.3 kB)
+  Using cached googleapis_common_protos-1.69.0-py2.py3-none-any.whl.metadata (5.1 kB)
+  Using cached googleapis_common_protos-1.68.0-py2.py3-none-any.whl.metadata (5.1 kB)
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime. See https://pip.pypa.io/warnings/backtracking for guidance. If you want to abort this run, press Ctrl + C.
+  Using cached googleapis_common_protos-1.67.0-py2.py3-none-any.whl.metadata (5.1 kB)
+  Using cached googleapis_common_protos-1.66.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.65.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.64.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.63.2-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.63.1-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.63.0-py2.py3-none-any.whl.metadata (1.5 kB)
+Collecting protobuf (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached protobuf-4.25.8-cp310-abi3-win_amd64.whl.metadata (541 bytes)
+Collecting googleapis-common-protos<2.0.0,>=1.56.2 (from google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached googleapis_common_protos-1.62.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.61.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.60.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.59.1-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.59.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.58.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.57.1-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.57.0-py2.py3-none-any.whl.metadata (1.5 kB)
+  Using cached googleapis_common_protos-1.56.4-py2.py3-none-any.whl.metadata (1.3 kB)
+  Using cached googleapis_common_protos-1.56.3-py2.py3-none-any.whl.metadata (1.3 kB)
+  Using cached googleapis_common_protos-1.56.2-py2.py3-none-any.whl.metadata (1.3 kB)
+Collecting protobuf (from google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached protobuf-3.20.3-py2.py3-none-any.whl.metadata (720 bytes)
+Collecting google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1 (from google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_api_core-2.28.0-py3-none-any.whl.metadata (3.2 kB)
+  Using cached google_api_core-2.27.0-py3-none-any.whl.metadata (3.2 kB)
+  Using cached google_api_core-2.26.0-py3-none-any.whl.metadata (3.2 kB)
+  Using cached google_api_core-2.25.2-py3-none-any.whl.metadata (3.0 kB)
+Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached grpcio_status-1.75.0-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.74.0-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.73.1-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.73.0-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.72.2-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.72.1-py3-none-any.whl.metadata (1.1 kB)
+  Using cached grpcio_status-1.71.2-py3-none-any.whl.metadata (1.1 kB)
+Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached charset_normalizer-3.4.4-cp314-cp314-win_amd64.whl.metadata (38 kB)
+Collecting idna<4,>=2.5 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached urllib3-2.6.2-py3-none-any.whl.metadata (6.6 kB)
+Collecting certifi>=2017.4.17 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached certifi-2025.11.12-py3-none-any.whl.metadata (2.5 kB)
+Collecting pyasn1>=0.1.3 (from rsa<5,>=3.1.4->google-auth>=2.15.0->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached pyasn1-0.6.1-py3-none-any.whl.metadata (8.4 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=2.0.0->-r requirements.txt (line 17))
+  Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.5 (from pydantic>=2.0.0->-r requirements.txt (line 17))
+  Using cached pydantic_core-2.41.5-cp314-cp314-win_amd64.whl.metadata (7.4 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic>=2.0.0->-r requirements.txt (line 17))
+  Using cached typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting httpx-sse>=0.4 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached httpx_sse-0.4.3-py3-none-any.whl.metadata (9.7 kB)
+Collecting httpx>=0.27.1 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+Collecting jsonschema>=4.20.0 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached jsonschema-4.25.1-py3-none-any.whl.metadata (7.6 kB)
+Collecting pydantic-settings>=2.5.2 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached pydantic_settings-2.12.0-py3-none-any.whl.metadata (3.4 kB)
+Collecting pyjwt>=2.10.1 (from pyjwt[crypto]>=2.10.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+Collecting python-multipart>=0.0.9 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached python_multipart-0.0.21-py3-none-any.whl.metadata (1.8 kB)
+Collecting pywin32>=310 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached pywin32-311-cp314-cp314-win_amd64.whl.metadata (10 kB)
+Collecting sse-starlette>=1.6.1 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached sse_starlette-3.1.2-py3-none-any.whl.metadata (12 kB)
+Collecting starlette>=0.27 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached starlette-0.50.0-py3-none-any.whl.metadata (6.3 kB)
+Collecting uvicorn>=0.31.1 (from mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached uvicorn-0.40.0-py3-none-any.whl.metadata (6.7 kB)
+Collecting httpcore==1.* (from httpx>=0.27.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+Collecting h11>=0.16 (from httpcore==1.*->httpx>=0.27.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting attrs>=22.2.0 (from jsonschema>=4.20.0->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>=4.20.0->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting referencing>=0.28.4 (from jsonschema>=4.20.0->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting rpds-py>=0.7.1 (from jsonschema>=4.20.0->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached rpds_py-0.30.0-cp314-cp314-win_amd64.whl.metadata (4.2 kB)
+Collecting pytz (from neo4j>=5.26.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting distro<2,>=1.7.0 (from openai>=1.91.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting jiter<1,>=0.10.0 (from openai>=1.91.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached jiter-0.12.0-cp314-cp314-win_amd64.whl.metadata (5.3 kB)
+Collecting sniffio (from openai>=1.91.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting six>=1.5 (from posthog>=3.0.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting python-dateutil>=2.2 (from posthog>=3.0.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting backoff>=1.10.0 (from posthog>=3.0.0->graphiti-core>=0.5.0->-r requirements.txt (line 11))
+  Using cached backoff-2.2.1-py3-none-any.whl.metadata (14 kB)
+Collecting cryptography>=3.4.0 (from pyjwt[crypto]>=2.10.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached cryptography-46.0.3-cp311-abi3-win_amd64.whl.metadata (5.7 kB)
+Collecting cffi>=2.0.0 (from cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached cffi-2.0.0-cp314-cp314-win_amd64.whl.metadata (2.6 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=3.4.0->pyjwt[crypto]>=2.10.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached pycparser-2.23-py3-none-any.whl.metadata (993 bytes)
+Collecting colorama (from tqdm->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached colorama-0.4.6-py2.py3-none-any.whl.metadata (17 kB)
+Collecting click>=7.0 (from uvicorn>=0.31.1->mcp>=0.1.0->claude-agent-sdk>=0.1.16->-r requirements.txt (line 2))
+  Using cached click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting httplib2<1.0.0,>=0.19.0 (from google-api-python-client->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached httplib2-0.31.0-py3-none-any.whl.metadata (2.2 kB)
+Collecting google-auth-httplib2<1.0.0,>=0.2.0 (from google-api-python-client->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached google_auth_httplib2-0.3.0-py3-none-any.whl.metadata (3.1 kB)
+Collecting uritemplate<5,>=3.0.1 (from google-api-python-client->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached uritemplate-4.2.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting pyparsing<4,>=3.0.4 (from httplib2<1.0.0,>=0.19.0->google-api-python-client->google-generativeai>=0.8.0->-r requirements.txt (line 14))
+  Using cached pyparsing-3.3.1-py3-none-any.whl.metadata (5.6 kB)
+Using cached claude_agent_sdk-0.1.18-py3-none-win_amd64.whl (72.6 MB)
+Using cached python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+Using cached graphiti_core-0.25.0-py3-none-any.whl (177 kB)
+Using cached google_generativeai-0.8.6-py3-none-any.whl (155 kB)
+Using cached google_ai_generativelanguage-0.6.15-py3-none-any.whl (1.3 MB)
+Using cached google_api_core-2.25.2-py3-none-any.whl (162 kB)
+Using cached googleapis_common_protos-1.72.0-py3-none-any.whl (297 kB)
+Using cached grpcio_status-1.71.2-py3-none-any.whl (14 kB)
+Using cached protobuf-5.29.5-cp310-abi3-win_amd64.whl (434 kB)
+Using cached google_auth-2.45.0-py2.py3-none-any.whl (233 kB)
+Using cached cachetools-6.2.4-py3-none-any.whl (11 kB)
+Using cached grpcio-1.76.0-cp314-cp314-win_amd64.whl (4.8 MB)
+Using cached proto_plus-1.27.0-py3-none-any.whl (50 kB)
+Using cached requests-2.32.5-py3-none-any.whl (64 kB)
+Using cached charset_normalizer-3.4.4-cp314-cp314-win_amd64.whl (107 kB)
+Using cached idna-3.11-py3-none-any.whl (71 kB)
+Using cached rsa-4.9.1-py3-none-any.whl (34 kB)
+Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Using cached urllib3-2.6.2-py3-none-any.whl (131 kB)
+Using cached pydantic-2.12.5-py3-none-any.whl (463 kB)
+Using cached pydantic_core-2.41.5-cp314-cp314-win_amd64.whl (2.0 MB)
+Using cached annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Using cached anyio-4.12.0-py3-none-any.whl (113 kB)
+Using cached certifi-2025.11.12-py3-none-any.whl (159 kB)
+Using cached diskcache-5.6.3-py3-none-any.whl (45 kB)
+Using cached mcp-1.25.0-py3-none-any.whl (233 kB)
+Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+Using cached httpx_sse-0.4.3-py3-none-any.whl (9.0 kB)
+Using cached jsonschema-4.25.1-py3-none-any.whl (90 kB)
+Using cached attrs-25.4.0-py3-none-any.whl (67 kB)
+Using cached jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+Using cached neo4j-6.0.3-py3-none-any.whl (325 kB)
+Using cached numpy-2.4.0-cp314-cp314-win_amd64.whl (12.4 MB)
+Using cached openai-2.14.0-py3-none-any.whl (1.1 MB)
+Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+Using cached jiter-0.12.0-cp314-cp314-win_amd64.whl (204 kB)
+Using cached posthog-7.4.2-py3-none-any.whl (166 kB)
+Using cached backoff-2.2.1-py3-none-any.whl (15 kB)
+Using cached pyasn1-0.6.1-py3-none-any.whl (83 kB)
+Using cached pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+Using cached pydantic_settings-2.12.0-py3-none-any.whl (51 kB)
+Using cached PyJWT-2.10.1-py3-none-any.whl (22 kB)
+Using cached cryptography-46.0.3-cp311-abi3-win_amd64.whl (3.5 MB)
+Using cached cffi-2.0.0-cp314-cp314-win_amd64.whl (185 kB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Using cached python_multipart-0.0.21-py3-none-any.whl (24 kB)
+Using cached pywin32-311-cp314-cp314-win_amd64.whl (9.7 MB)
+Using cached referencing-0.37.0-py3-none-any.whl (26 kB)
+Using cached rpds_py-0.30.0-cp314-cp314-win_amd64.whl (228 kB)
+Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Using cached sse_starlette-3.1.2-py3-none-any.whl (12 kB)
+Using cached starlette-0.50.0-py3-none-any.whl (74 kB)
+Using cached tenacity-9.1.2-py3-none-any.whl (28 kB)
+Using cached tqdm-4.67.1-py3-none-any.whl (78 kB)
+Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Using cached uvicorn-0.40.0-py3-none-any.whl (68 kB)
+Using cached click-8.3.1-py3-none-any.whl (108 kB)
+Using cached colorama-0.4.6-py2.py3-none-any.whl (25 kB)
+Using cached google_api_python_client-2.187.0-py3-none-any.whl (14.6 MB)
+Using cached google_auth_httplib2-0.3.0-py3-none-any.whl (9.5 kB)
+Using cached httplib2-0.31.0-py3-none-any.whl (91 kB)
+Using cached pyparsing-3.3.1-py3-none-any.whl (121 kB)
+Using cached uritemplate-4.2.0-py3-none-any.whl (11 kB)
+Using cached pycparser-2.23-py3-none-any.whl (118 kB)
+Using cached pytz-2025.2-py2.py3-none-any.whl (509 kB)
+Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+Building wheels for collected packages: real_ladybug
+  Building wheel for real_ladybug (pyproject.toml): started
+  Building wheel for real_ladybug (pyproject.toml): finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  Building wheel for real_ladybug (pyproject.toml) did not run successfully.
+  exit code: 1
+  
+  [19 lines of output]
+  C:\Users\PC\AppData\Local\Temp\pip-build-env-yod3vbf6\overlay\Lib\site-packages\setuptools\config\_apply_pyprojecttoml.py:82: SetuptoolsDeprecationWarning: `project.license` as a TOML table is deprecated
+  !!
+  
+          ********************************************************************************
+          Please use a simple string containing a SPDX expression for `project.license`. You can also use `project.license-files`. (Both options available on setuptools>=77.0.0).
+  
+          By 2026-Feb-18, you need to update your project and remove deprecated calls
+          or your builds will no longer be supported.
+  
+          See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+          ********************************************************************************
+  
+  !!
+    corresp(dist, value, root_dir)
+  The version of this build is 0.13.1
+  running bdist_wheel
+  running build
+  running build_ext
+  error: [WinError 2] The system cannot find the file specified
+  [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for real_ladybug
+Failed to build real_ladybug
+error: failed-wheel-build-for-install
+
+Failed to build installable wheels for some pyproject.toml based projects
+
+real_ladybug
+Failed to install dependencies
+
+[ERROR] Backend installation failed
+
+Common fixes:
+  - Make sure you restarted your computer after installing build tools
+  - Try running this script as Administrator
+  - Check the error messages above for specific issues
+
+Press any key to continue . . . 

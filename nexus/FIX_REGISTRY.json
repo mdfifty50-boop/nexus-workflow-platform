@@ -1,0 +1,1058 @@
+{
+  "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
+  "_version": "1.0.24",
+  "_lastUpdated": "2026-01-24",
+  "_totalFixes": 74,
+
+  "fixes": [
+    {
+      "id": "FIX-001",
+      "date": "2026-01-20",
+      "category": "OAuth",
+      "title": "OAuth popup window blocker bypass",
+      "problem": "Browsers blocked OAuth popups because window.open() was called after async operations",
+      "solution": "Open popup windows SYNCHRONOUSLY before async calls, then navigate to OAuth URL after",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-001",
+      "testCommand": "Test OAuth flow - popup should open immediately on click",
+      "critical": true
+    },
+    {
+      "id": "FIX-002",
+      "date": "2026-01-20",
+      "category": "OAuth",
+      "title": "Expired connection detection",
+      "problem": "Expired OAuth tokens showed as 'connected' but failed on execution",
+      "solution": "Added token expiry checking and automatic re-auth prompts",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-002",
+      "testCommand": "Verify expired connections trigger re-auth",
+      "critical": true
+    },
+    {
+      "id": "FIX-003",
+      "date": "2026-01-20",
+      "category": "OAuth",
+      "title": "Parallel OAuth Connect All",
+      "problem": "Users had to connect integrations one-by-one",
+      "solution": "Added 'Connect All' button that opens multiple OAuth windows in parallel",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-003",
+      "testCommand": "Click 'Connect All' with 3+ pending integrations",
+      "critical": false
+    },
+    {
+      "id": "FIX-004",
+      "date": "2026-01-20",
+      "category": "API Keys",
+      "title": "Custom integration API key handling",
+      "problem": "Apps without OAuth (100+ apps) had no way to connect",
+      "solution": "Created CustomIntegrationService with API key input UI",
+      "files": [
+        "nexus/server/services/CustomIntegrationService.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-004",
+      "testCommand": "Try connecting Deepgram or other API-key app",
+      "critical": true
+    },
+    {
+      "id": "FIX-005",
+      "date": "2026-01-20",
+      "category": "UI",
+      "title": "Visual workflow nodes with connecting lines",
+      "problem": "Workflow preview was just a list, not visual",
+      "solution": "Created MiniNodeHorizontal/MiniNodeVertical components with SVG connecting lines",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-005",
+      "testCommand": "Generate workflow - should show connected node diagram",
+      "critical": false
+    },
+    {
+      "id": "FIX-006",
+      "date": "2026-01-20",
+      "category": "Execution",
+      "title": "Real workflow execution via Composio",
+      "problem": "Workflows were simulated, not actually executed",
+      "solution": "Integrated rubeClient.executeTool() for real API calls",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx",
+        "nexus/src/services/RubeClient.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-006",
+      "testCommand": "Execute a workflow with connected integrations",
+      "critical": true
+    },
+    {
+      "id": "FIX-007",
+      "date": "2026-01-20",
+      "category": "Tool Mapping",
+      "title": "TOOL_SLUGS static mapping for common tools",
+      "problem": "Tool names weren't mapping to Composio API slugs",
+      "solution": "Created comprehensive TOOL_SLUGS object with 50+ integrations",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-007",
+      "lineRange": "250-456",
+      "testCommand": "Verify gmail, slack, dropbox, etc. map to correct slugs",
+      "critical": true
+    },
+    {
+      "id": "FIX-008",
+      "date": "2026-01-20",
+      "category": "Tool Mapping",
+      "title": "3-Layer tool resolution system",
+      "problem": "Single mapping wasn't flexible enough for all tools",
+      "solution": "Layer 1: Static TOOL_SLUGS, Layer 2: Dynamic construction, Layer 3: Intelligent defaults",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-008",
+      "testCommand": "Try uncommon tool names - should still resolve",
+      "critical": true
+    },
+    {
+      "id": "FIX-009",
+      "date": "2026-01-20",
+      "category": "OAuth",
+      "title": "OAuth polling with timeout reset",
+      "problem": "OAuth timeout was too short, users couldn't complete auth",
+      "solution": "Added 40 attempts (2 min) with visual countdown and reset button",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-009",
+      "testCommand": "Start OAuth flow - should show poll attempts counter",
+      "critical": false
+    },
+    {
+      "id": "FIX-010",
+      "date": "2026-01-21",
+      "category": "UI",
+      "title": "Custom integrations in Connect All count",
+      "problem": "Connect All button didn't count API-key integrations",
+      "solution": "Merged OAuth and custom integrations into single pending list",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-010",
+      "testCommand": "Workflow with OAuth + API-key apps shows correct count",
+      "critical": false
+    },
+    {
+      "id": "FIX-011",
+      "date": "2026-01-21",
+      "category": "UI",
+      "title": "Other/Custom inline input component",
+      "problem": "Clicking 'Other...' option did nothing",
+      "solution": "Added CustomInputComponent that expands into text input field",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-011",
+      "testCommand": "Click 'Other...' option - should expand to input",
+      "critical": false
+    },
+    {
+      "id": "FIX-012",
+      "date": "2026-01-21",
+      "category": "AI",
+      "title": "Three-phase workflow generation",
+      "problem": "AI was verbose and didn't follow structured phases",
+      "solution": "Phase 1: Acknowledge, Phase 2: Questions, Phase 3: Generate",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-012",
+      "testCommand": "Ask for workflow - AI should follow 3 phases",
+      "critical": true
+    },
+    {
+      "id": "FIX-013",
+      "date": "2026-01-21",
+      "category": "UI",
+      "title": "Remove early API key card from chat",
+      "problem": "API key cards appeared in chat before workflow preview",
+      "solution": "API key cards now ONLY appear inside WorkflowPreviewCard",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-013",
+      "testCommand": "Generate workflow - no API key prompts in chat messages",
+      "critical": false
+    },
+    {
+      "id": "FIX-014",
+      "date": "2026-01-21",
+      "category": "UI",
+      "title": "Custom... option expands to input",
+      "problem": "'Custom...' type options weren't handled",
+      "solution": "Added isCustomOption() helper to detect and handle custom-type options",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-014",
+      "testCommand": "See 'Custom...' option and click it",
+      "critical": false
+    },
+    {
+      "id": "FIX-015",
+      "date": "2026-01-21",
+      "category": "AI",
+      "title": "Concise response style",
+      "problem": "AI responses were too verbose with preamble text",
+      "solution": "Added 'RESPONSE STYLE: BE CONCISE' section with DO/DON'T rules",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-015",
+      "testCommand": "AI responses should be short, no verbose explanations",
+      "critical": true
+    },
+    {
+      "id": "FIX-016",
+      "date": "2026-01-21",
+      "category": "AI",
+      "title": "Context-aware missingInfo questions",
+      "problem": "AI asked redundant questions already answered in conversation",
+      "solution": "Added 'CONTEXT-AWARE QUESTIONS' instructions to check history first",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-016",
+      "testCommand": "Provide info in message, AI shouldn't ask for it again",
+      "critical": true
+    },
+    {
+      "id": "FIX-017",
+      "date": "2026-01-21",
+      "category": "Tool Mapping",
+      "title": "Storage action mappings (save/store/write → upload)",
+      "problem": "'Save to Dropbox' mapped to LIST_FILES which doesn't exist",
+      "solution": "Added explicit save/store/write/create → UPLOAD_FILE mappings",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-017",
+      "lineRange": "382-402",
+      "testCommand": "'Save to Dropbox' should use DROPBOX_UPLOAD_FILE",
+      "critical": true
+    },
+    {
+      "id": "FIX-018",
+      "date": "2026-01-21",
+      "category": "Tool Mapping",
+      "title": "Storage defaults changed to upload",
+      "problem": "Default action for storage services was 'list' instead of 'upload'",
+      "solution": "Changed dropbox/onedrive/box/googledrive defaults to 'upload'",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-018",
+      "lineRange": "612,646-648",
+      "testCommand": "Any storage step without explicit action should upload",
+      "critical": true
+    },
+    {
+      "id": "FIX-019",
+      "date": "2026-01-21",
+      "category": "Validation",
+      "title": "Pre-execution tool slug validation",
+      "problem": "Invalid tool slugs weren't caught until Composio API failed",
+      "solution": "Added validateToolSlug() with auto-correction for known bad patterns",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-019",
+      "lineRange": "853-902",
+      "testCommand": "Tool slugs ending in _LIST_FILES should auto-correct",
+      "critical": true
+    },
+    {
+      "id": "FIX-020",
+      "date": "2026-01-21",
+      "category": "Error Handling",
+      "title": "Fallback tool suggestions on error",
+      "problem": "Tool not found errors gave no helpful guidance",
+      "solution": "Added getFallbackTools() and enhanced error messages with alternatives",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-020",
+      "lineRange": "815-851,3515-3534",
+      "testCommand": "Tool not found error should suggest alternatives",
+      "critical": true
+    },
+    {
+      "id": "FIX-021",
+      "date": "2026-01-21",
+      "category": "UX",
+      "title": "User-friendly parameter prompts",
+      "problem": "Users saw technical parameter names like 'spreadsheet_id' instead of friendly prompts",
+      "solution": "Added comprehensive getParamFixSuggestion() with 15+ toolkits and friendly questions",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-021",
+      "lineRange": "2261-2342,3352-3363",
+      "testCommand": "Missing param error should show 'Which Google Sheet?' not 'spreadsheet_id'",
+      "critical": true
+    },
+    {
+      "id": "FIX-022",
+      "date": "2026-01-21",
+      "category": "Tool Mapping",
+      "title": "Google Sheets create/add action mappings",
+      "problem": "GOOGLESHEETS_CREATE_SHEET tool slug doesn't exist - 'Add to Sheet' workflows failed",
+      "solution": "Added create/add action mappings to googlesheets tool slugs → GOOGLESHEETS_BATCH_UPDATE",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-022",
+      "lineRange": "224-226",
+      "testCommand": "'Add to Sheet' step should use GOOGLESHEETS_BATCH_UPDATE not CREATE_SHEET",
+      "critical": true
+    },
+    {
+      "id": "FIX-023",
+      "date": "2026-01-21",
+      "category": "React Hooks",
+      "title": "executeWorkflow stale closure fix for triggerSampleData",
+      "problem": "Sample data form appeared twice because setTimeout captured old executeWorkflow reference before React re-rendered with updated triggerSampleData state",
+      "solution": "Used ref pattern: executeWorkflowRef always holds latest function, setTimeout calls executeWorkflowRef.current() instead of stale closure",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-023",
+      "lineRange": "2417,3472-3478,3711-3730",
+      "testCommand": "Fill sample data form once - should not reappear after clicking 'Use This Sample Data'",
+      "critical": true
+    },
+    {
+      "id": "FIX-024",
+      "date": "2026-01-21",
+      "category": "Tool Mapping",
+      "title": "Notion tool slug mappings",
+      "problem": "NOTION_SEARCH doesn't exist in Composio API - 'Save to Notion' workflows failed with ComposioToolNotFoundError",
+      "solution": "Fixed search mapping to NOTION_SEARCH_NOTION_PAGE, added save/add/insert/log mappings to NOTION_INSERT_ROW_DATABASE, changed default action from 'search' to 'add'",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-024",
+      "lineRange": "315-328,714",
+      "testCommand": "'Save to Notion' step should use NOTION_INSERT_ROW_DATABASE not NOTION_SEARCH",
+      "critical": true
+    },
+    {
+      "id": "FIX-025",
+      "date": "2026-01-21",
+      "category": "Tool Mapping",
+      "title": "Google Calendar tool slug mappings + toolkit aliases",
+      "problem": "GOOGLECALENDAR_LIST_EVENT doesn't exist - Calendar workflows failed. Also 'calendar' toolkit name didn't map to 'googlecalendar' mappings",
+      "solution": "Added get/fetch/find/today action mappings to googlecalendar → GOOGLECALENDAR_EVENTS_LIST. Added TOOLKIT_ALIASES to convert calendar→googlecalendar, sheets→googlesheets, drive→googledrive, email→gmail",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-025",
+      "lineRange": "234-244,661-673",
+      "testCommand": "'Get Calendar Events' step should use GOOGLECALENDAR_EVENTS_LIST not GOOGLECALENDAR_LIST_EVENT",
+      "critical": true
+    },
+    {
+      "id": "FIX-026",
+      "date": "2026-01-22",
+      "category": "UX",
+      "title": "Parameter answer infinite loop fix + auto-retry + error action handling",
+      "problem": "When user answered missingInfo questions in workflow card, the system regenerated entire workflow instead of updating existing one - causing infinite loop. Also, error recovery buttons (Try Again, Get Help) were incorrectly stored as parameters instead of being handled as actions. Additionally, collectedParams object was being mutated in-place, preventing React from detecting changes and triggering auto-retry.",
+      "solution": "Four-part fix: (1) ChatContainer handles parameter answers locally - updates workflow's missingInfo array, stores value in collectedParams, no AI call. (2) WorkflowPreviewCard watches collectedParams changes - when params change while in error state, auto-resets and retries. (3) Detects action commands (retry/help) and handles them appropriately - retry triggers workflow reset, help sends to AI for guidance. (4) Create NEW object for collectedParams with spread operator and _lastUpdated timestamp to ensure React detects state changes.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/src/services/SmartWorkflowEngine.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-026",
+      "testCommand": "Answer missingInfo question - workflow updates in-place and auto-retries. Click 'Try Again' on error - triggers retry. Click 'Get Help' - sends to AI. Provide email during execution failure - workflow auto-retries.",
+      "critical": true
+    },
+    {
+      "id": "FIX-027",
+      "date": "2026-01-22",
+      "category": "UX",
+      "title": "Send to Myself button uses actual user email",
+      "problem": "Clicking 'Send to Myself' button during workflow execution stored placeholder 'Send to my email address' instead of actual email, causing infinite retry loop - workflow would fail, retry, fail again because the placeholder isn't a valid email.",
+      "solution": "Detect 'Send to my email address' pattern in onMissingInfoSelect handler and replace with actual user email from auth context. If no email available, show error message asking user to enter email manually.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-027",
+      "testCommand": "Create email workflow, run it, when it fails at email step click 'Send to Myself' - should show actual email address in confirmation, not placeholder.",
+      "critical": true
+    },
+    {
+      "id": "FIX-028",
+      "date": "2026-01-22",
+      "category": "UX",
+      "title": "Friendly colors for Missing Information prompts + remove truncation",
+      "problem": "1) Error prompts asking for input used red colors making them look like critical errors. 2) Error messages were truncated to 120 chars, cutting off important information like 'Which Clic...'",
+      "solution": "1) Detect 'Missing Information' prompts and use friendly amber colors instead of red. 2) Remove 120 character truncation so full error message is visible.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-028",
+      "testCommand": "Create workflow that needs parameters, run it - Missing Information prompt should show amber background (not red) and full error text without truncation.",
+      "critical": false
+    },
+    {
+      "id": "FIX-029",
+      "date": "2026-01-22",
+      "category": "Workflow Execution",
+      "title": "Collected params mapped to tool params for retry",
+      "problem": "When user provides missing info (e.g., email), the value was stored under integration name (e.g., {gmail: 'user@email.com'}) but tools expect specific param names (e.g., {to: 'user@email.com'}). This caused auto-retry to fail with same 'missing parameter' error because collected params weren't being used.",
+      "solution": "Added mapCollectedParamsToToolParams() function that maps integration names to primary required params (gmail→to, slack→channel, etc.). Merged these mapped params with defaults before validation and execution.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-029",
+      "testCommand": "Create email workflow, run it, fail at email step, click 'Send to Myself' or enter email - workflow should auto-retry with the email successfully applied (not show same error).",
+      "critical": true
+    },
+    {
+      "id": "FIX-030",
+      "date": "2026-01-22",
+      "category": "UX",
+      "title": "Phone number loop bug - Retry button submits pending input",
+      "problem": "User enters value in error recovery input field (e.g., phone number), clicks 'Retry Execution', but value is lost because input only submitted on Enter key. User expected Retry button to use the typed value.",
+      "solution": "Added pendingErrorInputRef to track input field value on change. Modified Retry button onClick to submit pending value via onMissingInfoSelect before resetting. Auto-retry mechanism then handles the execution.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-030",
+      "testCommand": "Trigger workflow error, type value in input field (don't press Enter), click 'Retry Execution' - value should be submitted and workflow should retry with it.",
+      "critical": true
+    },
+    {
+      "id": "FIX-031",
+      "date": "2026-01-22",
+      "category": "Workflow Execution",
+      "title": "Multi-param integrations use actual param names as collection keys",
+      "problem": "Integrations needing multiple params (e.g., WhatsApp needs 'to' + 'message') used integration name as collection key for ALL values. Second param overwrote first (both mapped to same key like 'to').",
+      "solution": "1) Error message now includes [param:XXX] with actual missing param name. 2) UI extracts this and uses it as collection key instead of integration name. 3) FIX-029 mapping passes through actual param names unchanged.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-031",
+      "testCommand": "Create WhatsApp workflow, run it, provide phone number when asked, provide message when asked - both values should be retained and used (not message overwriting phone).",
+      "critical": true
+    },
+    {
+      "id": "FIX-032",
+      "date": "2026-01-22",
+      "category": "UX",
+      "title": "Dynamic error prompt based on actual missing parameter",
+      "problem": "WhatsApp error recovery always showed 'Who should receive this message?' even when asking for message content, confusing users.",
+      "solution": "Check missingParamName extracted from [param:XXX] in error. If param is 'message/body/text', show 'What message should I send?' with message-specific buttons. Otherwise show phone number prompt.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-032",
+      "testCommand": "Create WhatsApp workflow, provide phone first. On second error (asking for message), prompt should say 'Message Content Needed' and 'What message should I send?' - NOT 'Who should receive?'",
+      "critical": false
+    },
+    {
+      "id": "FIX-033",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "Pre-flight validation system - validates ALL params BEFORE execution",
+      "problem": "Workflows crashed mid-execution when missing required parameters (e.g., WhatsApp phone number, message). This created frustrating retry loops where users had to enter values one at a time after each crash.",
+      "solution": "Created PreFlightService.ts with tool-specific param requirements. Added sequential question UI inside WorkflowPreviewCard that asks ALL required questions BEFORE execution. Execute button is disabled until all questions answered. Eliminates crash-and-retry loops entirely.",
+      "files": [
+        "nexus/src/services/PreFlightService.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-033",
+      "testCommand": "Create WhatsApp workflow - should see 'Quick Setup' UI with sequential questions. Execute button should be disabled until all questions answered. After answering, 'All information collected' should appear and execute button enabled.",
+      "critical": true
+    },
+    {
+      "id": "FIX-034",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "ToolRegistry - Single source of truth for tool mappings",
+      "problem": "Tool slug mappings were scattered across multiple files with no consistent structure. No central place to define support levels, alternatives, or parameter requirements.",
+      "solution": "Created ToolRegistry.ts with rich ToolDefinition interface containing verified Composio slugs, action verbs, param aliases, and 3-tier support levels (native, api_key, alternative). Includes INTEGRATION_ALIASES for name normalization and ALTERNATIVE_MAP for fallback suggestions.",
+      "files": ["nexus/src/services/ToolRegistry.ts"],
+      "codeMarker": "@NEXUS-FIX-034",
+      "testCommand": "Import ToolRegistryService and call resolveToolSlug('dropbox', 'save', 'Save file') - should return DROPBOX_UPLOAD_FILE",
+      "critical": true
+    },
+    {
+      "id": "FIX-035",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "IntentResolver - Natural language intent parsing",
+      "problem": "No system to proactively detect unsupported tools or extract parameters from natural language before workflow generation.",
+      "solution": "Created IntentResolver.ts with ACTION_PATTERNS, INTEGRATION_PATTERNS, and PARAM_PATTERNS. Service extracts integrations, action verbs, and parameters from user input. Checks for unsupported tools before workflow creation.",
+      "files": ["nexus/src/services/IntentResolver.ts"],
+      "codeMarker": "@NEXUS-FIX-035",
+      "testCommand": "Call IntentResolverService.resolve('Send an email to john@email.com via Gmail') - should extract gmail integration and john@email.com parameter",
+      "critical": true
+    },
+    {
+      "id": "FIX-036",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "ErrorClassifier - Intelligent error classification and recovery",
+      "problem": "All errors were treated the same way with no distinction between recoverable and non-recoverable errors. No user-friendly error messages.",
+      "solution": "Created ErrorClassifier.ts with 13 error categories and 7 recovery action types. Service classifies errors, determines recovery strategies, and provides user-friendly messages. Supports auto-retry for transient errors.",
+      "files": ["nexus/src/services/ErrorClassifier.ts"],
+      "codeMarker": "@NEXUS-FIX-036",
+      "testCommand": "Call ErrorClassifierService.classify('Missing required parameters: to') - should return category='missing_param' with collect_param recovery action",
+      "critical": true
+    },
+    {
+      "id": "FIX-037",
+      "date": "2026-01-22",
+      "category": "UI",
+      "title": "UnsupportedToolCard - Smart alternative suggestions UI",
+      "problem": "When users requested unsupported integrations, there was no UI to show alternatives or API key setup options.",
+      "solution": "Created UnsupportedToolCard.tsx component that shows 3-tier resolution: API key setup option (for 100+ apps), alternative integrations grid, and skip option. Integrates with ToolRegistry support resolution.",
+      "files": ["nexus/src/components/chat/UnsupportedToolCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-037",
+      "testCommand": "Render UnsupportedToolCard with resolution.level='api_key' - should show API key setup button. With resolution.level='alternative' - should show alternatives grid.",
+      "critical": false
+    },
+    {
+      "id": "FIX-038",
+      "date": "2026-01-22",
+      "category": "UI",
+      "title": "ParameterCollectionPanel - Pre-flight parameter collection",
+      "problem": "Parameters were collected one-at-a-time during execution, creating crash-and-retry loops. No way to collect ALL params upfront.",
+      "solution": "Created ParameterCollectionPanel.tsx that collects ALL missing parameters before execution. Uses unique nodeId_paramName keys (FIX-031 pattern). Shows progress bar, validation, quick actions, and Enter key navigation.",
+      "files": ["nexus/src/components/chat/ParameterCollectionPanel.tsx"],
+      "codeMarker": "@NEXUS-FIX-038",
+      "testCommand": "Render ParameterCollectionPanel with 3 missing params - all should show. Enter valid values and click Continue - onAllCollected should fire with all 3 collected params.",
+      "critical": true
+    },
+    {
+      "id": "FIX-039",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "WorkflowIntelligenceService - Unified service facade",
+      "problem": "New services (ToolRegistry, IntentResolver, ErrorClassifier) needed to be integrated into WorkflowPreviewCard without disrupting 50+ existing fixes.",
+      "solution": "Created WorkflowIntelligenceService.ts that provides a unified API wrapping all new services. Minimally integrated into WorkflowPreviewCard for enhanced error messages. No changes to existing protected code patterns.",
+      "files": [
+        "nexus/src/services/WorkflowIntelligenceService.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-039",
+      "testCommand": "In WorkflowPreviewCard, trigger an execution error - should see friendlier error message from ErrorClassifier instead of raw API error.",
+      "critical": true
+    },
+    {
+      "id": "FIX-040",
+      "date": "2026-01-22",
+      "category": "Bug Fix",
+      "title": "isPreFlightComplete race condition fix",
+      "problem": "Pre-flight 'All information collected' showed incorrectly after answering first question. Root cause: answeredQuestionIds.size was compared to preFlightResult.questions.length, but preFlightResult re-runs on each answer (filtering out answered questions), causing false positive when sizes matched.",
+      "solution": "Removed answeredQuestionIds tracking entirely. Now use preFlightResult.questions.length === 0 directly since PreFlightService.check() already filters out answered questions via collectedParams. When questions array is empty, all required params are truly collected.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-040",
+      "testCommand": "Create workflow with 2+ required params (e.g., Slack channel + message). Answer first question - UI should still show second question, NOT 'All information collected'. Only after ALL questions answered should 'All information collected' appear.",
+      "critical": true
+    },
+    {
+      "id": "FIX-041",
+      "date": "2026-01-22",
+      "category": "Verification",
+      "title": "VerifiedExecutor - Execute with proof of action",
+      "problem": "Workflows showed 'SUCCESS' when API returned 200 OK, but didn't verify if the action actually happened (e.g., Slack message sent, email delivered). Silent failures occurred where user saw success but nothing happened.",
+      "solution": "Created VerifiedExecutor service that: 1) Executes via Rube MCP, 2) Inspects response for verification indicators (Slack: ts/channel, Gmail: id/threadId, etc.), 3) Returns proof of execution or honest 'unverified' warning. Integrated into WorkflowPreviewCard execution flow.",
+      "files": [
+        "nexus/src/services/VerifiedExecutor.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-041",
+      "testCommand": "Execute Slack workflow - log should show verified proof like 'Message delivered to #channel' not just 'completed'. Check _verified: true in node result.",
+      "critical": true
+    },
+    {
+      "id": "FIX-042",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "UnifiedToolRegistry - Single source of truth for tools",
+      "problem": "Tool definitions were scattered across 9+ files (ToolRegistry.ts, PreFlightService.ts, ParameterResolutionService.ts, WorkflowPreviewCard TOOL_SLUGS, etc.). Adding a new tool required changes in multiple places.",
+      "solution": "Created UnifiedToolRegistry.ts that consolidates all tool contracts with: slug, toolkit, category, actions[], requiredParams[], optionalParams[], supportLevel. Includes action→slug mappings and param aliases in one place.",
+      "files": ["nexus/src/services/UnifiedToolRegistry.ts"],
+      "codeMarker": "@NEXUS-FIX-042",
+      "testCommand": "Call UnifiedToolRegistryService.resolveToolContract('slack', 'send') - should return full ToolContract with slug SLACK_SEND_MESSAGE and all params.",
+      "critical": true
+    },
+    {
+      "id": "FIX-043",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "ParamResolutionPipeline - Complete param resolution with priority",
+      "problem": "GAP 10: mapCollectedParamsToToolParams only mapped PRIMARY param - secondary params were LOST. GAP 11: No defined merge strategy when params came from multiple sources (user, node config, workflow context).",
+      "solution": "Created ParamResolutionPipeline.ts that: 1) Gets ALL params from ToolContract, 2) Finds values with defined priority (user > nodeConfig > context > default), 3) Validates completeness before execution, 4) Maps ALL params correctly.",
+      "files": ["nexus/src/services/ParamResolutionPipeline.ts"],
+      "codeMarker": "@NEXUS-FIX-043",
+      "testCommand": "Call ParamResolutionPipeline.resolve() with contract having 3 params - should resolve ALL params with correct sources, not just the first one.",
+      "critical": true
+    },
+    {
+      "id": "FIX-044",
+      "date": "2026-01-22",
+      "category": "Architecture",
+      "title": "OAuthController - OAuth flow extraction from God Component",
+      "problem": "WorkflowPreviewCard.tsx was 4,774 lines with OAuth handling mixed throughout. 500+ lines of OAuth code made it hard to maintain and test.",
+      "solution": "Created OAuthController.ts that extracts: popup management, connection checking, polling logic, OAuth callback handling. Preserves FIX-001 (popup blocker bypass), FIX-002 (expired detection), FIX-003 (parallel OAuth).",
+      "files": ["nexus/src/services/OAuthController.ts"],
+      "codeMarker": "@NEXUS-FIX-044",
+      "testCommand": "Create OAuthController, call connectAll() - should open popups BEFORE async calls (FIX-001), handle multiple integrations in parallel (FIX-003).",
+      "critical": true
+    },
+    {
+      "id": "FIX-045",
+      "date": "2026-01-22",
+      "category": "OAuth",
+      "title": "Auto-check connections on WorkflowPreviewCard mount",
+      "problem": "WorkflowPreviewCard showed 0/X connections even when Integrations page confirmed connections exist. The authState.connectedIntegrations Set started empty and was only populated when user clicked Execute, not on component mount.",
+      "solution": "Added useEffect that calls checkConnections() automatically when component mounts and has required integrations. Uses ref to ensure only runs once.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-045",
+      "testCommand": "Generate workflow requiring Gmail+Slack (already connected on Integrations page). Should show 2/2 connected immediately without clicking Execute.",
+      "critical": true
+    },
+    {
+      "id": "FIX-046",
+      "date": "2026-01-22",
+      "category": "Integrations",
+      "title": "Integrations page fetches REAL connection status from API",
+      "problem": "Integrations page used hardcoded 'connected: true/false' values for all 12 integrations. Users saw fake connection status that didn't reflect actual OAuth connections.",
+      "solution": "Replaced hardcoded integrations array with dynamic state. Added useEffect to fetch REAL connection status from /api/rube/connection-status/:toolkit for all integrations on mount. Added loading states, refresh button, and OAuth connect handler.",
+      "files": ["nexus/src/pages/Integrations.tsx"],
+      "codeMarker": "@NEXUS-FIX-046",
+      "testCommand": "Navigate to Integrations page - should show 'Checking connection status...' then display REAL connected/not connected status based on Composio OAuth.",
+      "critical": true
+    },
+    {
+      "id": "FIX-047",
+      "date": "2026-01-22",
+      "category": "Execution",
+      "title": "Surface verification failures to users - don't show SUCCESS when unverified",
+      "problem": "WorkflowPreviewCard showed 'Beta Test Passed!' even when VerifiedExecutor returned verified:false. Users saw celebratory UI despite actions potentially not completing. Console showed warning but UI ignored verification state.",
+      "solution": "Added allVerified computed flag to check if ALL nodes have _verified:true. Modified Beta Test celebration UI to show warning state (yellow border, ⚠️ icon, 'Test Completed with Warnings') when verification failed. Added per-node verification indicators (✓ vs ⚠️) and guidance text for unverified results.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-047",
+      "testCommand": "Execute workflow where verification fails - should show warning state not celebration. Check console for 'verification failed' warning.",
+      "critical": true
+    },
+    {
+      "id": "FIX-048",
+      "date": "2026-01-22",
+      "category": "Execution",
+      "title": "Pre-execution channel name to ID resolution for Slack",
+      "problem": "Slack messages failed silently because workflow sent channel name 'general' but: (1) actual general channel was named 'all-nexus', and (2) Slack API expects channel IDs like 'C0A9ERUSTT8', not names. No channel resolution was happening before execution.",
+      "solution": "Added resolveSlackChannel() and resolveParamsBeforeExecution() functions in VerifiedExecutor. Before SLACK_SEND_MESSAGE executes: (1) checks if value already looks like ID, (2) checks cache, (3) calls SLACK_LIST_CHANNELS API, (4) finds channel by exact name OR is_general flag, (5) caches and returns ID. Now 'general' properly resolves to the actual general channel's ID.",
+      "files": ["nexus/src/services/VerifiedExecutor.ts"],
+      "codeMarker": "@NEXUS-FIX-048",
+      "testCommand": "Execute Slack workflow with channel='general' - message should appear in actual general channel. Check console for 'Resolved channel' log.",
+      "critical": true
+    },
+    {
+      "id": "FIX-049",
+      "date": "2026-01-22",
+      "category": "Parameter Resolution",
+      "title": "Support AI's extractedParams format in pre-flight check",
+      "problem": "AI stores inferred parameters in config.extractedParams.param.value format, but PreFlightService only checked node.params.param directly. This caused params the AI inferred to be re-asked in Quick Setup.",
+      "solution": "Extended PreFlightService.check() to also check extractedParams format: checks both node.params[param] (direct) and node.params.extractedParams[param].value (AI format)",
+      "files": ["nexus/src/services/PreFlightService.ts"],
+      "codeMarker": "@NEXUS-FIX-049",
+      "testCommand": "Create Gmail workflow - if AI infers subject from user message, Quick Setup should NOT re-ask for subject",
+      "critical": true
+    },
+    {
+      "id": "FIX-050",
+      "date": "2026-01-22",
+      "category": "Parameter Resolution",
+      "title": "Semantic param alias system - bidirectional mapping",
+      "problem": "AI collects params with semantic names (notification_details, slack_channel, email_body) but PreFlightService and execution require API param names (text, channel, body). Pre-flight showed questions for already-answered params because it couldn't recognize semantic aliases. Execution failed with 'Missing parameter: text' even when notification_details was collected.",
+      "solution": "Two-part fix: (1) PreFlightService.ts: Added PARAM_ALIASES constant mapping API names to semantic aliases (text→['notification_details','message','content']). Extended possibleKeys to check aliases during pre-flight validation. (2) WorkflowPreviewCard.tsx: Added REVERSE_ALIASES in mapCollectedParamsToToolParams() to convert semantic names back to API names at execution time (notification_details→text).",
+      "files": [
+        "nexus/src/services/PreFlightService.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-050",
+      "testCommand": "Create Wave→Slack workflow, answer questions with semantic names (notification_details='test', slack_channel='general'). Pre-flight should pass (questionsCount: 0). Execution should succeed with console showing 'Reverse alias mapping: notification_details → text'.",
+      "critical": true
+    },
+    {
+      "id": "FIX-051",
+      "date": "2026-01-22",
+      "category": "Generic Orchestration",
+      "title": "Orchestration-First resolution for unknown toolkits",
+      "problem": "Generic Orchestration was never invoked for unknown toolkits like Freshbooks because mapNodeToToolSlug() always returned a dynamically constructed slug (e.g., FRESHBOOKS_CREATE_INVOICE). The orchestration path at line 4042 only ran if toolSlug was null, which never happened.",
+      "solution": "Changed executeWorkflow tool resolution logic: (1) If toolkit IS in TOOL_SLUGS → use legacy fast path. (2) If toolkit is NOT in TOOL_SLUGS AND USE_GENERIC_ORCHESTRATION is true → try orchestration FIRST via resolveToolViaOrchestration(). (3) Only fall back to dynamic construction if orchestration fails. This enables ANY of Rube's 500+ tools to work via dynamic discovery.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-051",
+      "testCommand": "Create workflow with unknown toolkit (e.g., Freshbooks). Console should show '[ORCHESTRATION] Unknown toolkit \"freshbooks\" - trying orchestration first'. Verify RUBE_SEARCH_TOOLS is called.",
+      "critical": true
+    },
+    {
+      "id": "FIX-052",
+      "date": "2026-01-22",
+      "category": "Integration Detection",
+      "title": "Add Freshbooks to INTEGRATIONS mapping",
+      "problem": "Freshbooks was not in the INTEGRATIONS object in IntegrationAuthService.ts, causing getIntegrationInfo() to return toolkit='unknown' instead of 'freshbooks'. This broke the orchestration-first logic from FIX-051.",
+      "solution": "Added Freshbooks to INTEGRATIONS object with proper metadata (icon, color, toolkit: 'freshbooks'). Also added detection logic in getIntegrationInfo() BEFORE the generic 'invoice' check so that 'freshbooks invoice' correctly maps to freshbooks, not stripe.",
+      "files": [
+        "nexus/src/services/IntegrationAuthService.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-052",
+      "testCommand": "Create workflow with 'Create a Freshbooks invoice'. Console should show '[ORCHESTRATION] Unknown toolkit \"freshbooks\"' (not 'unknown').",
+      "critical": true
+    },
+    {
+      "id": "FIX-053",
+      "date": "2026-01-22",
+      "category": "Generic Orchestration",
+      "title": "Rube MCP server-side proxy for browser tool discovery",
+      "problem": "Browser cannot directly call Rube MCP tools. GenericToolDiscovery, GenericSchemaResolver, and GenericExecutor all tried to access window.__rubeClient which doesn't exist, causing 'Rube MCP client not available' errors.",
+      "solution": "Created complete server-side API proxy layer with 6 endpoints: (1) /api/rube/search-tools - tool discovery with extended TOOL_CATALOG for 20+ toolkits, (2) /api/rube/get-tool-schemas - schema resolution with COMMON_SCHEMAS for 30+ tools, (3) /api/rube/execute - tool execution with demo responses, (4) /api/rube/connection-status/[toolkit] - OAuth status checking, (5) /api/rube/manage-connections - OAuth flow initiation, (6) /api/rube/status - service health check. Updated all orchestration services to use fetch() API calls instead of window.__rubeClient.",
+      "files": [
+        "nexus/api/rube/search-tools.ts",
+        "nexus/api/rube/get-tool-schemas.ts",
+        "nexus/api/rube/execute.ts",
+        "nexus/api/rube/connection-status/[toolkit].ts",
+        "nexus/api/rube/manage-connections.ts",
+        "nexus/api/rube/status.ts",
+        "nexus/server/routes/rube.ts",
+        "nexus/src/services/orchestration/GenericToolDiscovery.ts",
+        "nexus/src/services/orchestration/GenericSchemaResolver.ts",
+        "nexus/src/services/orchestration/GenericExecutor.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-053",
+      "testCommand": "Create workflow with unknown toolkit (e.g., Freshbooks). Should see API calls to /api/rube/search-tools in network tab. Demo mode should return mock tool discovery results.",
+      "critical": true
+    },
+    {
+      "id": "FIX-054",
+      "date": "2026-01-23",
+      "category": "Pre-Flight",
+      "title": "Reset question index when pre-flight questions array changes",
+      "problem": "When answering Quick Setup questions, after each answer the pre-flight re-runs and filters out answered questions from the array. If currentQuestionIndex was 1 and the array shrinks to length 1, questions[1] is undefined, making currentPreFlightQuestion null, which hides the Quick Setup panel even though unanswered questions remain.",
+      "solution": "Added useEffect that watches preFlightResult.questions.length and currentQuestionIndex. When index exceeds array bounds, resets to 0. This ensures we always show the first unanswered question from the filtered array.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-054",
+      "testCommand": "Create Slack workflow with multiple required params (channel + text). Answer first question. Quick Setup should continue showing second question instead of disappearing.",
+      "critical": true
+    },
+    {
+      "id": "FIX-055",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Wire orchestration params into pre-flight check",
+      "problem": "When creating workflows with unknown toolkits (like FreshBooks), the orchestration system would discover required parameters (via RUBE_GET_TOOL_SCHEMAS) during execution. But by then it's too late - the user wasn't asked for those params in Quick Setup, causing execution to fail with 'missing required parameters' errors.",
+      "solution": "Enhanced pre-flight useEffect to detect unknown toolkits BEFORE execution. For each unknown toolkit node, calls resolveToolViaOrchestration() to discover required params. Converts orchestration questions (CollectionQuestion) to PreFlightQuestion format and merges into preFlightResult. Also stores orchestrationResults for reuse during execution (avoiding re-discovery). Added isLoadingOrchestration state with purple loading indicator UI.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-055",
+      "testCommand": "Create workflow: 'Create FreshBooks invoice when I get a client email'. Quick Setup should show FreshBooks-specific questions (discovered via orchestration) BEFORE execution. After answering all questions, workflow should execute successfully.",
+      "critical": true
+    },
+    {
+      "id": "FIX-056",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Pre-flight race condition - static overwrites orchestration + button enablement",
+      "problem": "Two issues: (1) Pre-flight useEffect called setPreFlightResult(result) synchronously AFTER starting async orchestration discovery. When orchestration completed, the useEffect re-ran and overwrote merged result with static result (0 questions). (2) After users answered ALL orchestration questions, the 'Run Beta Test' button remained disabled because the early return blocked all updates to preFlightResult, leaving questions.length > 0.",
+      "solution": "Two-part fix: (1) Added early return after starting orchestration to prevent static overwrite. (2) Extended early return logic to check if ALL orchestration questions have been answered (by checking collectedParams). If all answered, allow the update with questions:[] to enable the execution button. Console shows 'All orchestration questions answered - updating pre-flight result' when this path triggers.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-056",
+      "testCommand": "Create FreshBooks workflow. Answer both questions (client_id, lines). Console should show 'Skipping client_id - already collected' and 'All orchestration questions answered - updating pre-flight result'. Run Beta Test button should enable. Workflow should execute to step 3.",
+      "critical": true
+    },
+    {
+      "id": "FIX-057",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Strengthen empty string validation for orchestration params",
+      "problem": "In the pre-flight useEffect, the check for whether all orchestration questions were answered used 'paramName in collectedParams'. This returned TRUE even when the value was an empty string '', causing the workflow to proceed with missing required data.",
+      "solution": "Changed validation from 'paramName in collectedParams' to 'collectedParams[paramName] !== undefined && collectedParams[paramName] !== '''. This ensures the button only enables when params have actual non-empty values.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-057",
+      "testCommand": "Create FreshBooks workflow. Clear an input field to empty string. Run Beta Test button should remain disabled until a non-empty value is entered.",
+      "critical": true
+    },
+    {
+      "id": "FIX-058",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Add trigger node discovery to orchestration",
+      "problem": "In the orchestration discovery loop, trigger nodes were completely skipped with 'if (nodeType === 'trigger') return false'. This meant triggers that might need parameters (like webhook filters, schedule patterns, email filters) were never discovered.",
+      "solution": "Removed the early return for trigger nodes. All nodes now go through orchestration discovery. The orchestration API will return 0 questions for triggers that don't need params, so harmless. But triggers that DO need params (rare but possible) are now discovered.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-058",
+      "testCommand": "Create workflow with trigger node that has configurable filters. Console should show '[ORCHESTRATION-DISCOVERY] Checking node: <trigger name> (type: trigger)'. Verify trigger is included in discovery, not skipped.",
+      "critical": false
+    },
+    {
+      "id": "FIX-059",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Orchestration-First Approach - Unify Static/Dynamic Tracks",
+      "problem": "The system had TWO tracks: static TOOL_REQUIREMENTS for ~15 known toolkits and dynamic Rube API orchestration for unknown toolkits. Static track can become stale if Composio updates tool schemas.",
+      "solution": "Added USE_ORCHESTRATION_FIRST feature flag. When enabled, ALL toolkits (known AND unknown) go through orchestration API first. Static TOOL_REQUIREMENTS becomes a fallback used only if orchestration API fails. This ensures tool schemas are always up-to-date with Composio's latest.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-059",
+      "testCommand": "Create workflow with Gmail (known toolkit). Console should log '[ORCHESTRATION-FIRST] Using orchestration for known toolkit: gmail'. Set USE_ORCHESTRATION_FIRST=false to verify fallback to static behavior.",
+      "critical": false,
+      "featureFlag": "USE_ORCHESTRATION_FIRST",
+      "rollback": "Set USE_ORCHESTRATION_FIRST = false in WorkflowPreviewCard.tsx (line ~101)"
+    },
+    {
+      "id": "FIX-060",
+      "date": "2026-01-23",
+      "category": "Orchestration",
+      "title": "Add dry-run capability for true workflow simulation",
+      "problem": "Pre-flight checks tool schemas and required params, but cannot catch runtime validation failures. When a workflow has a typo in email format, wrong data type, or invalid ID reference, the error only surfaces during actual execution.",
+      "solution": "Added validateExecution() method to GenericExecutor that performs dry-run validation: (1) Checks required params are non-empty, (2) Validates email format for email fields, (3) Validates URL format for URL fields, (4) Returns ValidationResult with errors, warnings, and validated params list. Also added dry_run query parameter to /api/rube/execute endpoint. Pre-flight can optionally call this to catch more issues before the user clicks Execute.",
+      "files": [
+        "nexus/src/services/orchestration/GenericExecutor.ts",
+        "nexus/src/services/orchestration/types.ts",
+        "nexus/api/rube/execute.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-060",
+      "testCommand": "Call GenericExecutor.validateExecution('GMAIL_SEND_EMAIL', {to: 'invalid-email'}) - should return validation error. Call with dry_run=true param on /api/rube/execute - should return validation result without executing.",
+      "critical": false,
+      "featureFlag": "Optional - validateExecution() is additive",
+      "rollback": "N/A - additive feature, doesn't change existing behavior"
+    },
+    {
+      "id": "FIX-061",
+      "date": "2026-01-23",
+      "category": "UX",
+      "title": "Keep workflow card at end of chat - embed answered questions",
+      "problem": "When users answered pre-flight questions from the workflow card, confirmation messages ('Got it! Setting X to Y') were added to chat as new messages. This pushed the workflow card UP in the chat, making it no longer the last item. Users had to scroll up to find the workflow card.",
+      "solution": "Two-part fix: (1) ChatContainer.tsx: Removed addMessage() call in onMissingInfoSelect handler - the collected params are already stored in workflow state, no need for chat messages. (2) WorkflowPreviewCard.tsx: Added 'Collected Information' section that displays all collected params inline inside the card. Users can see their answers without separate chat messages, and the workflow card stays at the bottom.",
+      "files": [
+        "nexus/src/components/chat/ChatContainer.tsx",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-061",
+      "testCommand": "Create workflow with required params (e.g., Slack). Answer pre-flight questions. Verify: (1) No 'Got it!' messages appear in chat, (2) 'Collected Information' section shows inside workflow card, (3) Workflow card remains as last item in chat thread.",
+      "critical": false
+    },
+    {
+      "id": "FIX-062",
+      "date": "2026-01-23",
+      "category": "Execution",
+      "title": "Dynamic schema-based parameter validation",
+      "problem": "Tool execution failed for most tools because validateRequiredParams() only had ~30 tools hardcoded. Tools like GOOGLECALENDAR_EVENTS_LIST were not in the map, so required params (calendarId) were not validated. Execution proceeded with incomplete params, Composio rejected them.",
+      "solution": "Two-part fix: (1) Execution path now checks orchestration results FIRST for ALL toolkits (not just unknown ones), ensuring sessionId is available. (2) Parameter validation now fetches the actual schema from Composio via GenericSchemaResolver and uses schema.required array instead of hardcoded map. Falls back to legacy validation if schema fetch fails.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-062",
+      "testCommand": "Create a workflow with Google Calendar (e.g., 'check my calendar'). Execute it. Verify: (1) Console shows 'FIX-062: Got schema for GOOGLECALENDAR_XXX, required: [...]', (2) Missing params are detected and prompt user for input, (3) No 'Tool execution failed' for missing calendarId.",
+      "critical": true
+    },
+    {
+      "id": "FIX-063",
+      "date": "2026-01-23",
+      "category": "Execution",
+      "title": "Use legacy TOOL_SLUGS for known toolkit discovery",
+      "problem": "Rube semantic search returns wrong tools for known toolkits. Example: 'Check Calendar' with calendar toolkit returned CALENDAR_CREATE instead of GOOGLECALENDAR_EVENTS_LIST. This caused execution failures even though we have correct mappings in TOOL_SLUGS.",
+      "solution": "In pre-flight orchestration discovery, for KNOWN toolkits: (1) Call orchestration to get sessionId (needed for FIX-062 schema fetching), (2) Override the orchestration slug with the correct legacy slug from mapNodeToToolSlug(). This gives us best of both worlds: correct tool mappings + dynamic schema validation.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-063",
+      "testCommand": "Create 'Meeting Request Auto-Response' workflow. Execute it. Console should show 'FIX-063: Overriding orchestration slug CALENDAR_CREATE with legacy slug GOOGLECALENDAR_EVENTS_LIST'. Calendar step should now succeed.",
+      "critical": true
+    },
+    {
+      "id": "FIX-064",
+      "date": "2026-01-24",
+      "category": "Pre-flight",
+      "title": "Schema-driven pre-flight parameter collection",
+      "problem": "Three related issues: (1) When FIX-063 overrides the orchestration slug with the legacy slug, pre-flight questions were still generated from the WRONG tool's schema. (2) When Rube API returns 0 tools for a known toolkit, orchestration fails entirely and no questions are generated. (3) isToolkitKnown() didn't resolve aliases like 'calendar' to 'googlecalendar', causing FIX-064-EXT to not trigger.",
+      "solution": "Three-part fix: (1) After FIX-063 slug override, re-fetch schema for LEGACY tool and regenerate questions. (2) FIX-064-EXT: When orchestration FAILS but toolkit is known, directly fetch schema for legacy slug and generate questions. (3) FIX-064-ALIAS: Added KNOWN_ALIASES to isToolkitKnown() to resolve aliases before checking TOOL_SLUGS. All paths ensure pre-flight collects ALL required parameters.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-064",
+      "codeMarkerExt": "@NEXUS-FIX-064-EXT",
+      "codeMarkerAlias": "@NEXUS-FIX-064-ALIAS",
+      "testCommand": "Create any workflow with calendar/googlesheets/etc. Console should show: (1) 'Using orchestration for known toolkit: calendar' (alias resolved), (2) 'FIX-064-EXT: Orchestration failed but toolkit known' (when orch returns 0 tools), (3) 'Generated N questions from schema' with correct params.",
+      "critical": true,
+      "verified": "2026-01-24 - Calendar workflow generates [summary, start, end] questions"
+    },
+    {
+      "id": "FIX-065",
+      "date": "2026-01-24",
+      "category": "UI",
+      "title": "Workflow card missing after clarifying question answer",
+      "problem": "When user answered a clarifying question and workflow was created, the message said 'Workflow updated! Changes reflected above' but no visual card appeared. The refinement path assumed a previous card existed but didn't include the WORKFLOW_PREVIEW marker.",
+      "solution": "Added WORKFLOW_PREVIEW marker to refinement messages so the workflow card always renders, even when there's no prior card (e.g., first answer to clarifying question).",
+      "files": [
+        "nexus/src/components/chat/ChatContainer.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-065",
+      "testCommand": "Ask 'Help me create a workflow to automate email response', answer clarifying question, workflow card should appear.",
+      "critical": true
+    },
+    {
+      "id": "FIX-066",
+      "date": "2026-01-24",
+      "category": "Pre-flight",
+      "title": "Pre-flight questions disappearing after orchestration with no required params",
+      "problem": "When orchestration found tools but those tools had no required parameters (like triggers), allOrchestrationQuestions.length === 0 was incorrectly treated as 'all answered', causing setPreFlightResult to wipe all questions and setShowPreFlight(false) to hide the pre-flight UI. Users saw questions appear for 2-3 seconds then disappear.",
+      "solution": "Changed allAnswered logic to only consider questions answered if orchestration actually HAD questions (length > 0) AND they're all answered. When orchestration has 0 questions, fall through to use static result which preserves AI-generated questions (missingInfo).",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-066",
+      "testCommand": "Create a workflow with email triggers - pre-flight questions should stay visible, not disappear after 2-3 seconds.",
+      "critical": true
+    },
+    {
+      "id": "FIX-067",
+      "date": "2026-01-24",
+      "category": "Debug",
+      "title": "Diagnostic logging for Quick Setup render conditions (removed)",
+      "problem": "Needed to trace why Quick Setup section wasn't rendering. Added verbose logging.",
+      "solution": "Added diagnostic logging to trace render conditions. Confirmed Quick Setup was working. Removed verbose logging after verification.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-067",
+      "testCommand": "N/A - diagnostic fix, logging removed",
+      "critical": false
+    },
+    {
+      "id": "FIX-068",
+      "date": "2026-01-24",
+      "category": "State Sync",
+      "title": "Sync parent collectedParams to local state",
+      "problem": "Quick Questions answers update workflow.collectedParams in parent (ChatContainer), but local collectedParams state in WorkflowPreviewCard is only initialized at mount. This caused Quick Setup to re-ask questions that were already answered in Quick Questions.",
+      "solution": "Added useEffect to sync parent's workflow.collectedParams to local state when it changes, merging new params from parent while preserving ongoing session edits.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-068",
+      "testCommand": "Answer Quick Questions, then check Quick Setup doesn't ask the same questions again.",
+      "critical": true
+    },
+    {
+      "id": "FIX-069",
+      "date": "2026-01-24",
+      "category": "Pre-flight",
+      "title": "Fix allAnswered check to use displayed questions only",
+      "problem": "The allAnswered check built allOrchestrationQuestions from RAW orchestrationResults.questions, which includes params that were filtered out (already collected). This caused allAnswered to fail because those params might be in collectedParams under different keys (from Quick Questions/missingInfo with AI-determined field names). Result: Run Beta Test button stayed disabled after completing Quick Setup.",
+      "solution": "Changed allAnswered check to use preFlightResult.questions (what's actually displayed in Quick Setup) instead of RAW orchestration questions. Now only checks if DISPLAYED questions are answered.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-069",
+      "testCommand": "Complete all Quick Setup questions - Run Beta Test button should become enabled.",
+      "critical": true
+    },
+    {
+      "id": "FIX-070",
+      "date": "2026-01-24",
+      "category": "Schema Caching",
+      "title": "Schema cache versioning and stale detection",
+      "problem": "Production users had stale schema caches in localStorage with empty required[] arrays for action tools like GMAIL_SEND_EMAIL. This caused GenericUXTranslator to generate 0 questions, making Quick Setup empty and Run Beta Test disabled. Schema cache TTL is 24 hours, so bad cache persisted after deployments.",
+      "solution": "Added schema cache versioning (SCHEMA_CACHE_VERSION) that invalidates all cached schemas on deployment. Also added isSchemaStale() detection for known action tools - if GMAIL_SEND_EMAIL has 0 required params, cache is considered stale and re-fetched.",
+      "files": [
+        "nexus/src/services/orchestration/GenericSchemaResolver.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-070",
+      "testCommand": "Clear localStorage, test workflow - Quick Setup questions should appear. Change SCHEMA_CACHE_VERSION, reload - cache should clear.",
+      "critical": true
+    },
+    {
+      "id": "FIX-071",
+      "date": "2026-01-24",
+      "category": "Orchestration",
+      "title": "Fix orchestration filtering causing Quick Setup to disappear",
+      "problem": "Setup questions disappeared after 2 seconds. Nodes with 0 orchestration questions (triggers, tools with no required params) were marked as 'orchestration succeeded', causing staticFallbackQuestions to be filtered out. The AI-inferred questions from missingInfo were lost, leaving allQuestions empty.",
+      "solution": "Changed orchestrationSucceededNodeIds filter to only mark nodes as 'succeeded' if they actually have questions from orchestration (orchResult.questions.length > 0). Nodes with 0 orchestration questions now fall back to static questions, preserving AI-inferred questions.",
+      "files": [
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-071",
+      "testCommand": "Create workflow: 'When I receive email, save to Google Sheets and notify on Slack'. Quick Setup questions should remain visible, not disappear after 2 seconds.",
+      "critical": true
+    },
+    {
+      "id": "FIX-072",
+      "date": "2026-01-24",
+      "category": "OAuth",
+      "title": "White-label OAuth priority and improved callback UX",
+      "problem": "OAuth 'Connect All' button opened popups that redirected to Composio platform dashboard (platform.composio.dev) instead of returning to Nexus. Users saw technical infrastructure URLs instead of seamless OAuth flow. This broke the white-label experience.",
+      "solution": "Three-part fix: (1) rube.ts /manage-connections now uses OAuthProxyService FIRST for white-label OAuth (direct provider URLs like accounts.google.com), falls back to Composio only if white-label fails. (2) ComposioService.initiateConnection() now tries connectedAccounts.initiate() with callback URL before toolkits.authorize(). (3) oauth.ts /callback endpoint shows user-friendly success/error pages with auto-close and postMessage to parent window.",
+      "files": [
+        "nexus/server/routes/rube.ts",
+        "nexus/server/services/ComposioService.ts",
+        "nexus/server/routes/oauth.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-072",
+      "testCommand": "Click 'Connect All' on workflow card. OAuth popup should: (1) Show provider OAuth screen (Google/Slack), NOT composio.dev, (2) After auth, show 'Successfully Connected!' page, (3) Auto-close and return to Nexus with connection established.",
+      "critical": true
+    },
+    {
+      "id": "FIX-073",
+      "date": "2026-01-24",
+      "category": "OAuth",
+      "title": "Integrations page endpoint fix",
+      "problem": "Integrations page called non-existent endpoint '/api/rube/initiate-connection' causing 404 errors when trying to connect apps from the Integrations page.",
+      "solution": "Updated Integrations.tsx to call correct endpoint '/api/rube/manage-connections' with proper request format (toolkits array) and response parsing (extract redirect_url from results[toolkit]).",
+      "files": [
+        "nexus/src/pages/Integrations.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-073",
+      "testCommand": "Go to Integrations page, click 'Connect' on any app. Should open OAuth popup, not show 404 error.",
+      "critical": true
+    },
+    {
+      "id": "FIX-074",
+      "date": "2026-01-24",
+      "category": "Pre-flight",
+      "title": "Backend pre-flight with REAL Composio schema fetching",
+      "problem": "Frontend PreFlightService used hardcoded TOOL_REQUIREMENTS covering only ~15 integrations. Unknown integrations (ClickUp, Monday, etc.) fell through to _default with requiredParams:[], causing workflow execution failures when required params weren't collected.",
+      "solution": "Created backend pre-flight system: (1) PreFlightValidationService.ts fetches REAL schemas from Composio SDK via composio.tools.getRawComposioTools(), (2) FALLBACK_SCHEMAS covers 25+ integrations as backup, (3) Schema caching with 30-minute TTL, (4) /api/preflight/check endpoint, (5) Frontend PreFlightService.checkAsync() calls backend with fallback to local check.",
+      "files": [
+        "nexus/server/services/PreFlightValidationService.ts",
+        "nexus/server/routes/preflight.ts",
+        "nexus/server/index.ts",
+        "nexus/src/services/PreFlightService.ts",
+        "nexus/src/components/chat/WorkflowPreviewCard.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-074",
+      "testCommand": "Create workflow with ClickUp, Monday, or other unknown toolkit. Console should show '[PreFlight API] Service initialized with Composio SDK'. Quick Setup should show correct questions from real schemas.",
+      "critical": true
+    },
+    {
+      "id": "FIX-075",
+      "date": "2026-01-24",
+      "category": "Pre-Flight",
+      "title": "Frontend TOOL_REQUIREMENTS fallback for ClickUp and other integrations",
+      "problem": "Backend pre-flight route returns 404 on Vercel (serverless doesn't expose Express routes). Frontend fallback TOOL_REQUIREMENTS was missing ClickUp, Jira, Linear, Monday, HubSpot, Airtable - causing NO questions to be generated when orchestration also failed to return required params.",
+      "solution": "Added ClickUp, Jira, Linear, Monday, HubSpot, Airtable to frontend PreFlightService.ts TOOL_REQUIREMENTS with proper requiredParams and paramConfig. Now frontend has robust fallback for 20+ integrations even when backend is unavailable.",
+      "files": ["nexus/src/services/PreFlightService.ts"],
+      "codeMarker": "@NEXUS-FIX-075",
+      "testCommand": "Create a ClickUp workflow. If backend pre-flight fails, frontend fallback should still show questions for 'ClickUp List' and 'Task Name'.",
+      "critical": true
+    }
+  ],
+
+  "protectedFiles": [
+    {
+      "path": "nexus/src/components/chat/WorkflowPreviewCard.tsx",
+      "reason": "Contains 15+ critical fixes for workflow execution",
+      "warningThreshold": 100,
+      "note": "DO NOT refactor without running /validate first"
+    },
+    {
+      "path": "nexus/src/components/chat/ChatContainer.tsx",
+      "reason": "Contains UI interaction fixes",
+      "warningThreshold": 50
+    },
+    {
+      "path": "nexus/server/agents/index.ts",
+      "reason": "Contains Nexus AI personality and response format fixes",
+      "warningThreshold": 30
+    },
+    {
+      "path": "nexus/src/services/RubeClient.ts",
+      "reason": "OAuth and API execution infrastructure",
+      "warningThreshold": 20
+    },
+    {
+      "path": "nexus/server/services/CustomIntegrationService.ts",
+      "reason": "100+ app API key handling",
+      "warningThreshold": 20
+    },
+    {
+      "path": "nexus/src/pages/Integrations.tsx",
+      "reason": "Contains FIX-046 for real connection status",
+      "warningThreshold": 20
+    }
+  ],
+
+  "validationRules": {
+    "beforeModifyingProtectedFile": [
+      "1. Read FIX_REGISTRY.json first",
+      "2. Identify which fixes affect that file",
+      "3. Verify those code markers exist BEFORE making changes",
+      "4. After changes, run /validate to confirm no regressions"
+    ],
+    "beforeAnySession": [
+      "1. Read .claude-session.md for current state",
+      "2. Read FIX_REGISTRY.json for protected fixes",
+      "3. If user asks to modify protected file, warn them first"
+    ]
+  }
+}

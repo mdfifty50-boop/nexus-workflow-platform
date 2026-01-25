@@ -1,0 +1,239 @@
+# generated: 2026-01-07
+# project: Nexus
+# project_key: nexus
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-01-07
+project: Nexus
+project_key: nexus
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 1: Foundation - User Authentication & Profiles
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-1: done
+  1-0-set-up-initial-project-from-vite-react-typescript-template: done
+  1-1-user-sign-up-with-email-oauth: done
+  1-2-user-login-with-credentials: done
+  1-3-multi-factor-authentication-mfa-setup: done
+  1-4-user-profile-creation-cross-project-intelligence-backend: done
+  1-5-user-profile-settings-management: done
+  1-6-privacy-controls-for-personalization-data: done
+  1-7-password-reset-via-email: done
+  epic-1-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 2: Multi-Tenant Project Workspaces
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-2: done
+  2-1-create-new-project-workspace: done
+  2-2-project-member-access-row-level-security: done
+  2-3-project-settings-configuration: done
+  2-4-project-analytics-dashboard: done
+  2-5-project-archival-restoration: done
+  2-6-cross-project-workflow-templates: done
+  epic-2-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 3: Conversational Workflow Creation
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-3: done
+  3-1-chat-interface-with-ai-director: done
+  3-2-screenshot-upload-for-visual-workflow-requests: done
+  3-3-context-aware-conversation-history: done
+  3-4-multi-turn-clarification-questions-from-director: done
+  3-5-workflow-proposal-preview-before-execution: done
+  3-6-real-time-typing-indicators: done
+  3-7-message-editing-re-submission: done
+  3-8-conversation-search-across-projects: done
+  epic-3-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 4: BMAD Workflow Orchestration & Execution
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-4: done
+  4-1-create-workflow-record-from-approved-proposal: done
+  4-2-bmad-orchestration-planning-stage: done
+  4-3-workflow-state-persistence-checkpointing: done
+  4-4-workflow-execution-with-bmad-stages: done
+  4-5-multi-agent-coordination-director-supervisor: done
+  4-6-server-side-code-execution-aws-fargate-sandboxing: done
+  4-7-workflow-cancellation-mid-execution: done
+  4-8-workflow-retry-from-last-checkpoint: done
+  epic-4-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 5: Real-Time Workflow Visualization
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-5: done
+  5-1-workflow-node-visualization-setup: done
+  5-2-server-sent-events-sse-for-real-time-updates: done
+  5-3-node-status-color-coding: done
+  5-4-progress-percentage-per-node: done
+  5-5-plain-english-status-messages-per-node: done
+  5-6-workflow-map-horizontal-scroll-mobile-support: done
+  5-7-touch-optimized-node-interaction-44x44px-minimum: done
+  5-8-zoom-controls-for-complex-workflows-20-nodes: done
+  5-9-workflow-preview-during-chat-before-execution: done
+  5-10-responsive-layout-375px-mobile-1024px-desktop: done
+  5-11-workflow-map-export-png-pdf: done
+  epic-5-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 6: Third-Party Integration Management
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-6: done
+  6-1-oauth-2-0-integration-connection-flow: done
+  6-2-integration-health-monitoring-60-min-intervals: done
+  6-3-one-tap-oauth-reconnect: done
+  6-4-crm-integrations-salesforce-hubspot-pipedrive: done
+  6-5-email-integrations-gmail-outlook-smtp: done
+  6-6-calendar-integrations-google-calendar-outlook-calendar: done
+  6-7-integration-usage-analytics: done
+  epic-6-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 7: Meeting Intelligence & SOP Extraction
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-7: done
+  7-1-meeting-recording-upload: done
+  7-2-kuwaiti-arabic-dialect-detection: done
+  7-3-speech-to-text-transcription-whisper-api-2x-real-time: done
+  7-4-kuwaiti-dialect-english-translation: done
+  7-5-sop-extraction-via-claude-api: done
+  7-6-automatic-workflow-generation-from-sops: done
+  7-7-meeting-transcript-search: done
+  epic-7-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 8: Intelligent Error Recovery & Debugging
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-8: done
+  8-1-auto-retry-failed-steps-3-attempts: done
+  8-2-plain-english-error-translation-middleware: done
+  8-3-token-efficient-debugging-cache-repeated-queries: done
+  8-4-error-pattern-recognition-suggested-fixes: done
+  8-5-workflow-skip-failed-step-option: done
+  epic-8-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 9: Token Management & Cost Optimization
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-9: done
+  9-1-real-time-token-usage-tracking: done
+  9-2-dollar-based-cost-display-not-raw-token-counts: done
+  9-3-gamification-efficient-indicators: done
+  9-4-budget-warnings-at-80-threshold: done
+  9-5-token-optimization-recommendations: done
+  9-6-auto-optimization-toggle: done
+  epic-9-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 10: Results Delivery & Evidence
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-10: done
+  10-1-tangible-result-evidence-display: done
+  10-2-result-artifacts-storage-s3: done
+  10-3-structured-output-rendering-tables-charts: done
+  10-4-shareable-result-urls: done
+  10-5-email-push-notifications-on-completion: done
+  epic-10-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 11: Team Collaboration & Permissions
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-11: done
+  11-1-project-member-invitations: done
+  11-2-role-based-access-control-owner-collaborator-viewer: done
+  11-3-shared-workflow-access: done
+  11-4-collaboration-activity-log: done
+  11-5-real-time-collaboration-indicators: done
+  epic-11-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 12: Mobile-First Responsive Experience
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-12: done
+  12-1-mobile-first-layout-375px-baseline: done
+  12-2-bottom-navigation-for-mobile: done
+  12-3-touch-optimized-interactions: done
+  12-4-portrait-and-landscape-orientation-support: done
+  12-5-progressive-web-app-pwa-support: done
+  epic-12-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 13: Accessibility & Inclusive Design
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-13: done
+  13-1-keyboard-navigation-for-all-features: done
+  13-2-screen-reader-support-voiceover-nvda-talkback-jaws: done
+  13-3-color-contrast-4-5-1-minimum: done
+  13-4-reduced-motion-preferences: done
+  epic-13-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 14: Self-Improvement Platform (Meta)
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-14: done
+  14-1-github-repository-integration: done
+  14-2-self-improvement-workflow-execution: done
+  14-3-automatic-pr-creation-with-code-changes: done
+  14-4-code-review-quality-gates: done
+  14-5-staging-deployment-production-pipeline: done
+  epic-14-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 15: User Personalization & Intelligence
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-15: done
+  15-1-personalized-workflow-recommendations: done
+  15-2-adaptive-ui-complexity: done
+  15-3-cross-project-workflow-templates-based-on-user-patterns: done
+  epic-15-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Epic 16: Intelligent Agent Skills
+  # ═══════════════════════════════════════════════════════════════════════════
+  epic-16: done
+  16-1-tool-catalog-knowledge-base-setup: done
+  16-2-dynamic-tool-discovery-engine: done
+  16-3-tool-chain-optimizer-agent: done
+  16-4-integration-schema-analyzer: done
+  16-5-dynamic-integration-connector: done
+  16-6-integration-self-healing-system: done
+  16-7-mcp-server-integration-rube-composio: done
+  16-8-autonomous-execution-controller: done
+  16-9-tool-chain-visualization-workflow-map: done
+  epic-16-retrospective: optional

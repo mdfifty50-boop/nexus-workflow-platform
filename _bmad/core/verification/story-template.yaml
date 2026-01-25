@@ -1,0 +1,85 @@
+# BMAD Story Template with Verification Gates
+#
+# This template shows how to define a story with automated verification.
+# Copy this template and customize for your specific task.
+#
+# KEY PRINCIPLE: Status can ONLY be changed to "done" by the gate-runner,
+# NEVER manually by an agent or human (except to reset to "in_progress").
+
+---
+# === STORY METADATA ===
+id: US-XXX
+title: "Story Title"
+description: |
+  Clear description of what needs to be implemented.
+  Include acceptance criteria in plain language.
+
+# === STATUS (machine-controlled) ===
+# Values: pending, in_progress, done, blocked
+# IMPORTANT: Only gate-runner.sh can set status to "done"
+status: pending
+
+# === TASK BREAKDOWN ===
+tasks:
+  - id: 1
+    description: "First subtask"
+    completed: false
+
+  - id: 2
+    description: "Second subtask"
+    completed: false
+
+# === VERIFICATION GATES ===
+# These gates MUST ALL PASS before status can become "done"
+verification:
+  # Machine-controlled flags (DO NOT EDIT MANUALLY)
+  all_gates_passed: false
+  last_run: null
+  run_count: 0
+
+  # Gate definitions
+  gates:
+    # Gate 1: Code compiles
+    - name: "TypeScript Compiles"
+      type: command
+      command: "cd nexus && npm run type-check"
+      expected_exit: 0
+
+    # Gate 2: Tests pass
+    - name: "Unit Tests Pass"
+      type: command
+      command: "cd nexus && npm test -- --passWithNoTests"
+      expected_exit: 0
+
+    # Gate 3: Feature file exists
+    - name: "Component File Created"
+      type: file_check
+      path: "nexus/src/components/NewFeature.tsx"
+      checks:
+        - exists: true
+        - not_empty: true
+
+    # Gate 4: Visual verification (optional but recommended)
+    - name: "Feature Renders in Browser"
+      type: playwright
+      action: navigate
+      url: "http://localhost:5173/dashboard"
+      assert: "NewFeature component visible in DOM"
+
+# === LOOP CONTROLS ===
+# Override defaults for this specific story
+loop_controls:
+  max_iterations: 10
+  max_consecutive_failures: 3
+  # For complex/risky tasks, use single iteration mode
+  prefer_once_mode: false
+
+# === PROGRESS LOG ===
+# Append-only log of work done (for memory across contexts)
+progress: |
+  # Progress will be appended here by the agent and gate-runner
+
+# === METADATA ===
+created: "2026-01-10"
+assigned_to: agent
+epic: EP-XXX

@@ -1,0 +1,130 @@
+// Human-in-the-Loop Services
+// Loop 26-28: Approval Service and Review Triggers
+
+// Approval Service exports
+export {
+  // Core approval functions
+  createApprovalRequest,
+  approveRequest,
+  rejectRequest,
+  escalateRequest,
+  cancelRequest,
+  getApprovalRequest,
+  getApprovalsByUser,
+  getApprovalsByWorkflow,
+  getPendingApprovals,
+  getApprovals,
+  getAtRiskApprovals,
+  // Workflow functions
+  createApprovalWorkflow,
+  getApprovalWorkflow,
+  approveWorkflowStep,
+  rejectWorkflowStep,
+  // Approver functions
+  getApprover,
+  getAllApprovers,
+  getApproversByRole,
+  getAvailableApprovers,
+  getCurrentApprover,
+  canUserApprove,
+  // Policy functions
+  findMatchingPolicy,
+  getApprovalPolicies,
+  getApprovalPolicy,
+  // Stats functions
+  getApprovalStats,
+  getApproverStats,
+  // SLA functions
+  getTimeToSLABreach,
+  processAutoEscalation,
+  // Utility functions
+  formatApprovalSummary,
+  seedApprovalData,
+  // Types
+  type ApprovalStatus,
+  type ApprovalType,
+  type ApprovalPriority,
+  type RiskLevel,
+  type EscalationReason,
+  type ApprovalMetadata,
+  type ApprovalDecision,
+  type EscalationRecord,
+  type ApprovalSLA,
+  type Approver,
+  type ApprovalRequest,
+  type ApprovalStep,
+  type ApprovalCondition,
+  type ApprovalWorkflow,
+  type ApprovalPolicy,
+  type ApprovalPolicyCondition,
+  type ApprovalStats,
+  type CreateApprovalOptions,
+  type ApprovalFilter,
+} from './approval-service'
+
+// Review Triggers exports
+export {
+  // Core evaluation functions
+  evaluateTrigger,
+  evaluateTriggers,
+  evaluatePolicy,
+  shouldRequireReview,
+  getTriggerReasons,
+  getTriggeredPolicies,
+  // Trigger factory functions
+  createCustomTrigger,
+  createAmountThresholdTrigger,
+  createErrorRateTrigger,
+  createAnomalyTrigger,
+  createSensitiveDataTrigger,
+  createFirstTimeWorkflowTrigger,
+  createScheduleDeviationTrigger,
+  createExternalSystemFailureTrigger,
+  createConfidenceScoreTrigger,
+  // Policy factory functions
+  createCustomPolicy,
+  createDefaultPolicy,
+  createGlobalFallbackPolicy,
+  createHighSecurityPolicy,
+  createStandardPolicy,
+  createMinimalPolicy,
+  // Default policies
+  getDefaultTriggersForType,
+  getDefaultPolicySet,
+  // Policy management
+  enablePolicy,
+  disablePolicy,
+  enableTriggerInPolicy,
+  disableTriggerInPolicy,
+  addTriggerToPolicy,
+  removeTriggerFromPolicy,
+  updatePolicyPriority,
+  sortPoliciesByPriority,
+  filterPoliciesForWorkflowType,
+  mergeWithParentPolicy,
+  // Condition builders
+  andConditions,
+  orConditions,
+  notCondition,
+  fieldEquals,
+  fieldGreaterThan,
+  fieldLessThan,
+  fieldExists,
+  fieldInArray,
+  fieldMatches,
+  // Types
+  type TriggerType,
+  type ComparisonOperator,
+  type LogicalOperator,
+  type TriggerCondition,
+  type CompoundCondition,
+  type TriggerSeverity,
+  type ReviewTrigger,
+  type PolicyPriority,
+  type ReviewPolicy,
+  type TriggerEvaluationResult,
+  type PolicyEvaluationResult,
+  type EvaluationContext,
+  type CreateTriggerOptions,
+  type CreatePolicyOptions,
+} from './review-triggers'

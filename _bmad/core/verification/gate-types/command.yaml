@@ -1,0 +1,52 @@
+# Command Gate Type
+# Executes shell commands and checks exit codes
+
+type: command
+description: Execute a shell command and verify exit code
+
+schema:
+  name:
+    type: string
+    required: true
+    description: Human-readable gate name
+
+  type:
+    type: string
+    required: true
+    const: command
+
+  command:
+    type: string
+    required: true
+    description: Shell command to execute
+
+  expected_exit:
+    type: integer
+    default: 0
+    description: Expected exit code (0 = success)
+
+  timeout:
+    type: integer
+    default: 120
+    description: Timeout in seconds
+
+examples:
+  - name: "TypeScript Compiles"
+    type: command
+    command: "cd nexus && npm run type-check"
+    expected_exit: 0
+
+  - name: "Unit Tests Pass"
+    type: command
+    command: "cd nexus && npm test"
+    expected_exit: 0
+
+  - name: "Lint Clean"
+    type: command
+    command: "cd nexus && npm run lint"
+    expected_exit: 0
+
+  - name: "Build Succeeds"
+    type: command
+    command: "cd nexus && npm run build"
+    expected_exit: 0

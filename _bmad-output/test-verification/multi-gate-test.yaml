@@ -1,0 +1,19 @@
+id: MULTI-GATE-TEST
+title: Multi-Gate Test
+status: pending
+
+verification:
+  all_gates_passed: false
+  gates:
+  - name: "First Gate - Pass"
+    type: command
+    command: "echo 'Gate 1 passed'"
+    expected_exit: 0
+  - name: "Second Gate - Pass"
+    type: command
+    command: "echo 'Gate 2 passed'"
+    expected_exit: 0
+  - name: "File Check - Pass"
+    type: file_exists
+    command: "_bmad/core/verification/gate-runner.sh"
+    expected_exit: 0

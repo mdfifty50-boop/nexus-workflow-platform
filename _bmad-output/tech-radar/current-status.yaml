@@ -1,0 +1,79 @@
+# MCP Ecosystem Tech Radar Status
+# Auto-updated by mcp-ecosystem-monitor workflow
+
+last_updated: 2026-01-11
+next_review: 2026-01-18
+
+mcp_providers:
+  # Active providers in Nexus
+  active:
+    - name: Rube
+      endpoint: https://rube.app/mcp
+      status: active
+      capabilities: OAuth web access
+      score: 75
+      cost_model: per_request
+
+    - name: Composio
+      endpoint: https://mcp.composio.dev
+      status: active
+      capabilities: 500+ app integrations
+      score: 82
+      cost_model: per_request
+
+    - name: Google Cloud MCP
+      endpoint: https://mcp.googleapis.com
+      status: active
+      capabilities: Native Google services (Maps, BigQuery, Compute, K8s, Drive, Gmail)
+      score: 90
+      cost_model: free_for_gcp
+      added_date: 2026-01-11
+
+    - name: Zapier MCP
+      endpoint: https://mcp.zapier.com
+      status: active
+      capabilities: 8,000+ apps, 30,000+ actions
+      score: 95
+      cost_model: task_credits
+      added_date: 2026-01-11
+
+  # Providers being evaluated
+  pending_evaluation: []
+
+  # Providers rejected/deprecated
+  archived: []
+
+# Scoring breakdown
+scoring_criteria:
+  app_coverage: 30%
+  reliability: 25%
+  cost_efficiency: 20%
+  ease_of_integration: 15%
+  security: 10%
+
+# Recent changes
+changelog:
+  - date: 2026-01-11
+    change: Added Google Cloud MCP and Zapier MCP as new providers
+    reason: Google MCP announced Dec 10 2025, provides free native Google services for GCP customers. Zapier MCP provides 16x more app coverage than Composio.
+    impact: high
+
+# Recommendations
+recommendations:
+  - priority: high
+    action: Configure Zapier MCP OAuth for production
+    reason: 8,000+ apps provides best coverage for user workflows
+
+  - priority: medium
+    action: Set up Google Cloud MCP for GCP users
+    reason: Free tier for existing GCP customers, native Google integration
+
+  - priority: low
+    action: Consider deprecating Composio for Zapier-covered apps
+    reason: Zapier covers all Composio apps plus 7,500 more
+
+# Monitoring config
+monitoring:
+  enabled: true
+  schedule: weekly
+  workflow: bmad:bmm:workflows:mcp-ecosystem-monitor

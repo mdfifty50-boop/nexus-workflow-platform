@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nexus-platform
+    runtime: node
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.10.0

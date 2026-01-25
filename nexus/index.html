@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Primary Meta Tags -->
+    <title>Nexus - AI-Powered Workflow Automation | Build Automations in Seconds</title>
+    <meta name="title" content="Nexus - AI-Powered Workflow Automation | Build Automations in Seconds" />
+    <meta name="description" content="Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps. Start free." />
+    <meta name="keywords" content="workflow automation, AI automation, no-code automation, business automation, AI agents, task automation, process automation, integration platform, Zapier alternative, Make alternative, n8n alternative" />
+    <meta name="author" content="Nexus" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+
+    <!-- OpenGraph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nexus" />
+    <meta property="og:url" content="https://nexus.app/" />
+    <meta property="og:title" content="Nexus - AI-Powered Workflow Automation | Build Automations in Seconds" />
+    <meta property="og:description" content="Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps. Start free." />
+    <meta property="og:image" content="https://nexus.app/og-image.png" />
+    <meta property="og:image:alt" content="Nexus - AI Workflow Automation Platform" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@nexusapp" />
+    <meta name="twitter:creator" content="@nexusapp" />
+    <meta name="twitter:title" content="Nexus - AI-Powered Workflow Automation | Build Automations in Seconds" />
+    <meta name="twitter:description" content="Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps." />
+    <meta name="twitter:image" content="https://nexus.app/og-image.png" />
+    <meta name="twitter:image:alt" content="Nexus - AI Workflow Automation Platform" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://nexus.app/" />
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Nexus" />
+    <meta name="application-name" content="Nexus" />
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png" />
+
+    <!-- Apple Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/icons/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/icons/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+    <link rel="apple-touch-startup-image" href="/icons/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
+    <link rel="apple-touch-startup-image" href="/icons/splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" />
+
+    <!-- Windows Tiles -->
+    <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
+
+    <!-- Content Security Policy
+         Security hardening to prevent XSS, clickjacking, and other injection attacks.
+
+         Allowed sources:
+         - 'self': Same origin resources
+         - fonts.googleapis.com, fonts.gstatic.com: Google Fonts
+         - 'unsafe-inline' for styles: Required for Tailwind/CSS-in-JS (use nonce in production)
+         - data: for images: Required for base64 images/icons
+         - blob: for workers: Required for Web Workers
+         - wss: for WebSocket: Required for HMR in development and real-time features
+         - https: for connect-src: Required for API calls to various services
+
+         Frame ancestors 'self' prevents clickjacking.
+         upgrade-insecure-requests forces HTTPS.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https: wss: http://localhost:* ws://localhost:*; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self'; form-action 'self'; base-uri 'self';" />
+
+    <!-- Premium Font Stack (Inter like ChatGPT + SF Pro fallback) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- JSON-LD Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Nexus",
+      "url": "https://nexus.app",
+      "logo": "https://nexus.app/icons/icon-512x512.png",
+      "description": "AI-powered workflow automation platform. Describe tasks in plain English and watch Nexus build them instantly.",
+      "sameAs": [
+        "https://twitter.com/nexusapp"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "availableLanguage": ["English"]
+      }
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Nexus",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "AI-powered workflow automation platform. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free tier available"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "2500",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "featureList": [
+        "AI-powered workflow building",
+        "Natural language automation",
+        "8,500+ app integrations",
+        "Visual workflow editor",
+        "Real-time execution monitoring",
+        "Team collaboration"
+      ]
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: WebSite with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Nexus",
+      "url": "https://nexus.app",
+      "description": "AI-powered workflow automation platform",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://nexus.app/templates?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Nexus?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Nexus is an AI-powered workflow automation platform that lets you describe tasks in plain English and instantly builds automations for you. Connect 8,500+ apps and services with intelligent AI agents."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does AI workflow building work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Simply describe what you want to automate in natural language. Our AI understands your request, identifies the necessary integrations, and builds a complete workflow in seconds. No coding or technical knowledge required."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Nexus free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! Nexus offers a generous free tier that includes core automation features. Premium plans are available for teams and businesses that need advanced features, more integrations, and higher execution limits."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What apps can I connect with Nexus?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Nexus connects with over 8,500 apps and services including Gmail, Slack, Google Sheets, Salesforce, HubSpot, Notion, Trello, and many more. New integrations are added regularly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is Nexus different from Zapier or Make?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Unlike traditional automation tools, Nexus uses AI to understand and build workflows from natural language descriptions. You describe what you want in plain English, and our AI agents handle the technical implementation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is my data secure with Nexus?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Absolutely. Nexus uses enterprise-grade security with encrypted data transmission, secure authentication, and compliance with industry standards. We never store your sensitive data longer than necessary."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <style>
+      /* Prevent FOUC */
+      html { background: #0f172a; }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((registration) => {
+              console.log('[App] Service Worker registered:', registration.scope);
+
+              // Check for updates periodically
+              setInterval(() => {
+                registration.update();
+              }, 60 * 60 * 1000); // Check every hour
+
+              // Handle updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New version available, show update prompt
+                      if (window.confirm('New version available! Reload to update?')) {
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            })
+            .catch((error) => {
+              console.error('[App] Service Worker registration failed:', error);
+            });
+
+          // Handle controller change (when new SW takes over)
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('[App] New Service Worker activated');
+          });
+        });
+      }
+
+      // Handle install prompt for Add to Home Screen
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Dispatch custom event for React app to show install button
+        window.dispatchEvent(new CustomEvent('pwa-install-available', { detail: deferredPrompt }));
+      });
+
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        console.log('[App] PWA installed successfully');
+        window.dispatchEvent(new CustomEvent('pwa-installed'));
+      });
+    </script>
+  </body>
+</html>

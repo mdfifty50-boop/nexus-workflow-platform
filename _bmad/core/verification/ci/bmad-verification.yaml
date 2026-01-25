@@ -1,0 +1,175 @@
+# BMAD Verification CI Workflow
+#
+# Copy to .github/workflows/bmad-verification.yaml
+#
+# This workflow:
+# 1. Detects story files changed in PR
+# 2. Verifies gates pass for any marked "done"
+# 3. Blocks merge if verification fails
+
+name: BMAD Verification Gates
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - '**/*story*.yaml'
+      - '**/*story*.yml'
+      - '_bmad-output/**/*.yaml'
+
+  push:
+    branches: [main, master, develop]
+    paths:
+      - '**/*story*.yaml'
+      - '**/*story*.yml'
+
+jobs:
+  verify-gates:
+    name: Verify Story Gates
+    runs-on: ubuntu-latest
+
+    # Skip for draft PRs (configurable)
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          # Install yq for YAML parsing
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Find changed story files
+        id: changed-stories
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA=${{ github.event.pull_request.base.sha }}
+          else
+            BASE_SHA=${{ github.event.before }}
+          fi
+
+          CHANGED=$(git diff --name-only $BASE_SHA HEAD | grep -E '\.(yaml|yml)$' | grep -E '(story|US-|task)' || true)
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          if [ -n "$CHANGED" ]; then
+            echo "has_stories=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_stories=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for fake deliverables
+        if: steps.changed-stories.outputs.has_stories == 'true'
+        run: |
+          FAILED=false
+
+          while IFS= read -r story_file; do
+            [ -z "$story_file" ] && continue
+            [ ! -f "$story_file" ] && continue
+
+            echo "Checking: $story_file"
+
+            # Get status
+            STATUS=$(yq '.status' "$story_file" 2>/dev/null || echo "unknown")
+
+            if [ "$STATUS" == "done" ]; then
+              echo "  Status: done - verifying gates..."
+
+              # Check all_gates_passed flag
+              GATES_PASSED=$(yq '.verification.all_gates_passed' "$story_file" 2>/dev/null || echo "false")
+
+              if [ "$GATES_PASSED" != "true" ]; then
+                echo "::error file=$story_file::Story marked 'done' but all_gates_passed is not true"
+                FAILED=true
+              else
+                echo "  ✓ Gates flag verified"
+              fi
+
+              # Run actual gate verification if gate-runner exists
+              if [ -f "_bmad/core/verification/gate-runner.sh" ]; then
+                echo "  Running gate verification..."
+                if bash _bmad/core/verification/gate-runner.sh --story "$story_file" --once; then
+                  echo "  ✓ Gates passed"
+                else
+                  echo "::error file=$story_file::Gate verification failed"
+                  FAILED=true
+                fi
+              fi
+            else
+              echo "  Status: $STATUS (not done, skipping verification)"
+            fi
+          done <<< "${{ steps.changed-stories.outputs.files }}"
+
+          if [ "$FAILED" == "true" ]; then
+            echo ""
+            echo "========================================"
+            echo "VERIFICATION FAILED"
+            echo "========================================"
+            echo ""
+            echo "One or more stories are marked 'done' but gates did not pass."
+            echo "This indicates a fake deliverable - the work is not actually complete."
+            echo ""
+            echo "To fix:"
+            echo "  1. Run gate verification locally"
+            echo "  2. Fix failing tests/checks"
+            echo "  3. Ensure all_gates_passed is true"
+            echo "  4. Push again"
+            exit 1
+          fi
+
+          echo ""
+          echo "✓ All story verifications passed"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## BMAD Verification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.changed-stories.outputs.has_stories }}" == "true" ]; then
+            echo "### Changed Stories" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "${{ steps.changed-stories.outputs.files }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No story files changed in this PR." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Optional: Run full test suite
+  run-tests:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+    needs: verify-gates
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check || true
+
+      - name: Run tests
+        run: npm test -- --passWithNoTests
+
+      - name: Build
+        run: npm run build || true

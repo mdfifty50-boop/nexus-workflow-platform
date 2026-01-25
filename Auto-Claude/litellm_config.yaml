@@ -1,0 +1,39 @@
+model_list:
+  # Map Anthropic model names to GLM models for token-efficient workflow
+
+  # Main Sonnet model -> GLM-4.7 (most capable)
+  - model_name: claude-sonnet-4-5-20251101
+    litellm_params:
+      model: openai/glm-4.7
+      api_base: https://api.z.ai/api/paas/v4
+      api_key: os.environ/GLM_API_KEY
+
+  # Fallback Sonnet -> GLM-4.6
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: openai/glm-4.6
+      api_base: https://api.z.ai/api/paas/v4
+      api_key: os.environ/GLM_API_KEY
+
+  # Haiku (lightweight) -> GLM-4.5-Air (free tier, efficient)
+  - model_name: claude-3-5-haiku-20241022
+    litellm_params:
+      model: openai/glm-4.5-air
+      api_base: https://api.z.ai/api/paas/v4
+      api_key: os.environ/GLM_API_KEY
+
+  # Opus (most powerful) -> GLM-4-Plus
+  - model_name: claude-opus-4-5-20251101
+    litellm_params:
+      model: openai/glm-4-plus
+      api_base: https://api.z.ai/api/paas/v4
+      api_key: os.environ/GLM_API_KEY
+
+# General settings
+litellm_settings:
+  drop_params: true  # Drop unsupported params
+  success_callback: ["langfuse"]  # Optional: add logging
+
+# Set to false to see detailed logs
+general_settings:
+  master_key: glm-proxy-key-2026  # Optional: add authentication to proxy

@@ -1,0 +1,74 @@
+# Playwright Gate Type
+# Uses Playwright MCP for browser-based verification
+
+type: playwright
+description: Browser automation verification using Playwright MCP
+
+schema:
+  name:
+    type: string
+    required: true
+    description: Human-readable gate name
+
+  type:
+    type: string
+    required: true
+    const: playwright
+
+  action:
+    type: string
+    required: true
+    enum: [navigate, click, snapshot, wait_for, check_element]
+    description: Playwright action to perform
+
+  url:
+    type: string
+    description: URL to navigate to (for navigate action)
+
+  element:
+    type: string
+    description: Element description or selector
+
+  ref:
+    type: string
+    description: Element ref from snapshot
+
+  assert:
+    type: string
+    description: Assertion to verify (element visible, text contains, etc.)
+
+  timeout:
+    type: integer
+    default: 30
+    description: Timeout in seconds
+
+examples:
+  - name: "Dashboard Loads"
+    type: playwright
+    action: navigate
+    url: "http://localhost:5173/dashboard"
+    assert: "page loads without console errors"
+
+  - name: "Button Visible"
+    type: playwright
+    action: check_element
+    element: "Delete Workflow button"
+    assert: "element is visible and clickable"
+
+  - name: "Feature Renders Correctly"
+    type: playwright
+    action: snapshot
+    assert: "accessibility tree contains 'New Feature Component'"
+
+  - name: "No Console Errors"
+    type: playwright
+    action: navigate
+    url: "http://localhost:5173/dashboard"
+    assert: "console has no error level messages"
+
+mcp_integration:
+  navigate: mcp__playwright__browser_navigate
+  snapshot: mcp__playwright__browser_snapshot
+  click: mcp__playwright__browser_click
+  wait_for: mcp__playwright__browser_wait_for
+  console: mcp__playwright__browser_console_messages

@@ -1,0 +1,73 @@
+name: run-marathon
+description: "Execute 50 continuous optimization loops with parallel task execution, specialized agent hiring, and Ralph Wiggum validation. Each loop: Discussion -> 5+ Parallel Tasks -> Validation -> HR Review -> Repeat"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+
+# Output configuration
+output_folder: "{project-root}/_bmad-output/nexus-optimization-loops"
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/marathon"
+instructions: "{installed_path}/instructions.md"
+tracker_template: "{installed_path}/loop-tracker-template.md"
+
+# Variables and inputs
+variables:
+  # Marathon configuration
+  target_loops: 50
+  min_tasks_per_loop: 5
+  validation_agent: "Ralph Wiggum"
+  director_agent: "BMad Master"
+  hr_agent: "Ava"  # Research-backed HR Talent Strategist (~38% capture)
+
+  # Tracking
+  tracker_file: "{output_folder}/loop-tracker.md"
+
+  # Hired agents system (research-backed, file-persistent)
+  hired_agents_registry: "{project-root}/_agents/AGENTS.md"
+  hired_agents_folder: "{project-root}/_agents/"
+  agent_manifest: "{project-root}/_bmad/_config/agent-manifest.csv"
+
+  # Team roster
+  original_agents:
+    - { icon: "🧙", name: "BMad Master", role: "Director & Orchestrator" }
+    - { icon: "📊", name: "Mary", role: "Business Analyst" }
+    - { icon: "🏗️", name: "Winston", role: "System Architect" }
+    - { icon: "💻", name: "Amelia", role: "Senior Developer" }
+    - { icon: "📋", name: "John", role: "Product Manager" }
+    - { icon: "🚀", name: "Barry", role: "Quick Flow Solo Dev" }
+    - { icon: "🏃", name: "Bob", role: "Scrum Master" }
+    - { icon: "🧪", name: "Murat", role: "Test Architect" }
+    - { icon: "📚", name: "Paige", role: "Technical Writer" }
+    - { icon: "🎨", name: "Sally", role: "UX Designer" }
+
+  # Research-backed hired agents (auto-loaded from _agents/ folder)
+  hired_agents:
+    - { icon: "🎯", name: "Zara", role: "OpenAI UI Engineer", file: "openai-ui-engineer.md", capture: "25-30%" }
+    - { icon: "👔", name: "Ava", role: "OpenAI HR Talent Strategist", file: "openai-hr-talent-strategist.md", capture: "38%" }
+
+  # Commonly hired specialists (Ava recommends from this pool or triggers deep research)
+  specialist_pool:
+    - { icon: "🔒", name: "Victor", role: "Security Architect" }
+    - { icon: "⚡", name: "Dash", role: "Performance Engineer" }
+    - { icon: "🤖", name: "Nova", role: "AI/ML Engineer" }
+    - { icon: "📈", name: "Luna", role: "Growth Hacker" }
+    - { icon: "🌍", name: "Khalid", role: "Localization Specialist" }
+    - { icon: "🎯", name: "Marcus", role: "Competitive Intelligence" }
+    - { icon: "📊", name: "Dana", role: "Data Analyst" }
+    - { icon: "🧑‍🔬", name: "Riley", role: "UX Researcher" }
+    - { icon: "🐛", name: "Ralph Wiggum", role: "QA Validation Specialist" }
+    - { icon: "🚶", name: "Zara", role: "Consumer Behavior Analyst" }
+    - { icon: "🎙️", name: "Omar", role: "Voice Experience Architect" }
+    - { icon: "📲", name: "Kai", role: "Mobile Interaction Designer" }
+    - { icon: "⚡", name: "Riya", role: "Speed & Simplicity Engineer" }
+
+# Default output file
+default_output_file: "{tracker_file}"
+
+standalone: true

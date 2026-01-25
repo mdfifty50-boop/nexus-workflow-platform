@@ -1,0 +1,11 @@
+id: FAIL-TEST
+title: Failing Gate Test
+status: pending
+
+verification:
+  all_gates_passed: false
+  gates:
+  - name: "Always Fails"
+    type: command
+    command: "exit 1"
+    expected_exit: 0

@@ -1,0 +1,958 @@
+{
+  "app": {
+    "name": "نيكسوس",
+    "tagline": "أتمتة سير العمل بالذكاء الاصطناعي",
+    "description": "منصة أتمتة متكاملة تربط تطبيقاتك وتنفذ مهامك تلقائياً"
+  },
+
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "projects": "المشاريع",
+    "workflows": "سير العمل",
+    "templates": "القوالب",
+    "workflowDemo": "عرض سير العمل",
+    "create": "إنشاء",
+    "myApps": "تطبيقاتي",
+    "integrations": "التطبيقات المتصلة",
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "help": "المساعدة",
+    "analytics": "التحليلات",
+    "admin": "لوحة الإدارة"
+  },
+
+  "common": {
+    "submit": "إرسال",
+    "cancel": "إلغاء",
+    "create": "إنشاء",
+    "delete": "حذف",
+    "save": "حفظ",
+    "edit": "تعديل",
+    "execute": "تنفيذ",
+    "run": "تشغيل",
+    "stop": "إيقاف",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "confirm": "تأكيد",
+    "done": "تم",
+    "yes": "نعم",
+    "no": "لا",
+    "ok": "حسناً",
+    "search": "بحث",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "refresh": "تحديث",
+    "loading": "جاري التحميل...",
+    "saving": "جاري الحفظ...",
+    "processing": "جاري المعالجة...",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "more": "المزيد",
+    "less": "أقل",
+    "viewAll": "عرض الكل",
+    "seeMore": "شاهد المزيد",
+    "showLess": "عرض أقل",
+    "getStarted": "ابدأ الآن",
+    "learnMore": "اعرف المزيد",
+    "tryNow": "جرب الآن",
+    "free": "مجاني",
+    "new": "جديد",
+    "beta": "تجريبي",
+    "soon": "قريباً",
+    "popular": "الأكثر شعبية",
+    "recommended": "موصى به",
+    "enabled": "مُفعّل",
+    "disabled": "معطّل",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "all": "الكل",
+    "none": "لا شيء",
+    "copy": "نسخ",
+    "share": "مشاركة",
+    "download": "تحميل",
+    "upload": "رفع",
+    "import": "استيراد",
+    "export": "تصدير",
+    "add": "إضافة",
+    "remove": "إزالة",
+    "update": "تحديث",
+    "reset": "إعادة تعيين",
+    "clear": "مسح",
+    "apply": "تطبيق",
+    "continue": "متابعة",
+    "skip": "تخطي",
+    "retry": "إعادة المحاولة"
+  },
+
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signUp": "إنشاء حساب",
+    "login": "دخول",
+    "logout": "خروج",
+    "register": "تسجيل",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "rememberMe": "تذكرني",
+    "user": "المستخدم",
+    "createAccount": "إنشاء حساب جديد",
+    "alreadyHaveAccount": "لديك حساب بالفعل؟",
+    "dontHaveAccount": "ليس لديك حساب؟",
+    "continueWith": "المتابعة باستخدام",
+    "welcomeBack": "مرحباً بعودتك",
+    "signInToContinue": "سجل الدخول للمتابعة",
+    "joinNexus": "انضم إلى نيكسوس",
+    "startFreeToday": "ابدأ مجاناً اليوم"
+  },
+
+  "errors": {
+    "general": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "network": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
+    "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
+    "notFound": "المورد المطلوب غير موجود.",
+    "validation": "يرجى التحقق من المدخلات والمحاولة مرة أخرى.",
+    "timeout": "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.",
+    "serverError": "خطأ في الخادم. يرجى المحاولة لاحقاً.",
+    "required": "هذا الحقل مطلوب.",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
+    "passwordMismatch": "كلمات المرور غير متطابقة.",
+    "tooShort": "هذا الحقل قصير جداً.",
+    "tooLong": "هذا الحقل طويل جداً.",
+    "loadingFailed": "فشل في تحميل البيانات.",
+    "saveFailed": "فشل في حفظ التغييرات.",
+    "deleteFailed": "فشل في حذف العنصر.",
+    "connectionFailed": "فشل في الاتصال بالخدمة.",
+    "permissionDenied": "ليس لديك صلاحية للوصول لهذا المحتوى.",
+    "sessionExpired": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى."
+  },
+
+  "success": {
+    "saved": "تم حفظ التغييرات بنجاح.",
+    "created": "تم الإنشاء بنجاح.",
+    "deleted": "تم الحذف بنجاح.",
+    "updated": "تم التحديث بنجاح.",
+    "copied": "تم النسخ إلى الحافظة.",
+    "executed": "تم التنفيذ بنجاح.",
+    "connected": "تم الربط بنجاح.",
+    "disconnected": "تم إلغاء الربط بنجاح.",
+    "sent": "تم الإرسال بنجاح.",
+    "imported": "تم الاستيراد بنجاح.",
+    "exported": "تم التصدير بنجاح."
+  },
+
+  "workflow": {
+    "title": "سير العمل",
+    "create": "إنشاء سير عمل",
+    "edit": "تعديل سير العمل",
+    "delete": "حذف سير العمل",
+    "duplicate": "نسخ سير العمل",
+    "execute": "تنفيذ سير العمل",
+    "running": "قيد التشغيل...",
+    "completed": "مكتمل",
+    "failed": "فشل",
+    "pending": "قيد الانتظار",
+    "paused": "متوقف مؤقتاً",
+    "name": "اسم سير العمل",
+    "description": "الوصف",
+    "trigger": "المُحفّز",
+    "actions": "الإجراءات",
+    "nodes": "العُقد",
+    "connections": "الاتصالات",
+    "noWorkflows": "لا يوجد سير عمل بعد. أنشئ أول واحد!",
+    "lastRun": "آخر تشغيل",
+    "nextRun": "التشغيل القادم",
+    "totalRuns": "إجمالي التشغيلات",
+    "successRate": "معدل النجاح",
+    "builder": {
+      "title": "منشئ سير العمل",
+      "addNode": "إضافة عُقدة",
+      "addTrigger": "إضافة مُحفّز",
+      "addAction": "إضافة إجراء",
+      "addCondition": "إضافة شرط",
+      "connectNodes": "ربط العُقد",
+      "testWorkflow": "اختبار سير العمل",
+      "saveWorkflow": "حفظ سير العمل",
+      "publishWorkflow": "نشر سير العمل",
+      "canvas": "لوحة العمل",
+      "properties": "الخصائص",
+      "nodeSettings": "إعدادات العُقدة",
+      "inputData": "بيانات الإدخال",
+      "outputData": "بيانات الإخراج",
+      "dragToConnect": "اسحب للربط",
+      "dropHere": "أفلت هنا"
+    },
+    "triggers": {
+      "schedule": "جدولة زمنية",
+      "webhook": "Webhook",
+      "email": "استلام بريد",
+      "manual": "يدوي",
+      "event": "حدث"
+    },
+    "status": {
+      "draft": "مسودة",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "error": "خطأ"
+    }
+  },
+
+  "template": {
+    "title": "القوالب",
+    "use": "استخدام القالب",
+    "preview": "معاينة",
+    "category": "الفئة",
+    "popular": "الأكثر شعبية",
+    "new": "جديد",
+    "recommended": "موصى به",
+    "all": "جميع القوالب",
+    "noTemplates": "لا توجد قوالب متاحة.",
+    "featured": "مميز",
+    "community": "من المجتمع",
+    "official": "رسمي",
+    "categories": {
+      "sales": "المبيعات",
+      "marketing": "التسويق",
+      "support": "الدعم",
+      "hr": "الموارد البشرية",
+      "finance": "المالية",
+      "productivity": "الإنتاجية",
+      "communication": "التواصل",
+      "data": "البيانات"
+    }
+  },
+
+  "integration": {
+    "title": "التكاملات",
+    "connect": "ربط",
+    "disconnect": "إلغاء الربط",
+    "connected": "متصل",
+    "disconnected": "غير متصل",
+    "configure": "تكوين",
+    "status": "الحالة",
+    "lastSync": "آخر مزامنة",
+    "noIntegrations": "لا توجد تكاملات مرتبطة بعد.",
+    "browse": "تصفح التكاملات",
+    "search": "ابحث عن تكامل...",
+    "categories": {
+      "communication": "التواصل",
+      "productivity": "الإنتاجية",
+      "crm": "إدارة العملاء",
+      "marketing": "التسويق",
+      "analytics": "التحليلات",
+      "storage": "التخزين",
+      "database": "قواعد البيانات",
+      "payment": "الدفع",
+      "social": "التواصل الاجتماعي"
+    },
+    "apps": {
+      "gmail": "البريد الإلكتروني من جوجل",
+      "slack": "سلاك",
+      "sheets": "جداول بيانات جوجل",
+      "drive": "جوجل درايف",
+      "calendar": "تقويم جوجل",
+      "whatsapp": "واتساب",
+      "telegram": "تيليجرام",
+      "notion": "نوشن",
+      "trello": "تريلو",
+      "salesforce": "سيلزفورس"
+    }
+  },
+
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "welcome": "مرحباً بعودتك",
+    "welcomeMessage": "إليك ملخص نشاطك اليوم",
+    "overview": "نظرة عامة",
+    "recentActivity": "النشاط الأخير",
+    "quickActions": "إجراءات سريعة",
+    "stats": "الإحصائيات",
+    "timeSaved": "الوقت الموفر",
+    "workflowsRun": "سير العمل المُشغَّل",
+    "tasksAutomated": "المهام المؤتمتة",
+    "activeIntegrations": "التكاملات النشطة",
+    "recentWorkflows": "سير العمل الأخير",
+    "upcomingSchedules": "الجداول القادمة",
+    "notifications": "الإشعارات",
+    "performance": "الأداء",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "voiceControl": {
+      "title": "التحكم الصوتي",
+      "subtitle": "تكلم بالعربية أو الإنجليزية - سير العمل ينفذ تلقائياً!",
+      "kuwaitiSupport": "دعم اللهجة الكويتية",
+      "continuousListening": "وضع الاستماع المستمر",
+      "autoContextSave": "حفظ السياق التلقائي",
+      "voiceResponses": "ردود صوتية"
+    },
+    "multiAgent": {
+      "title": "سير عمل متعدد الوكلاء",
+      "subtitle": "عدة وكلاء ذكاء اصطناعي يعملون معاً!",
+      "launch": "تشغيل سير العمل المتقدم"
+    }
+  },
+
+  "time": {
+    "justNow": "الآن",
+    "minutesAgo": "منذ دقيقة",
+    "minutesAgo_plural": "منذ {{count}} دقائق",
+    "hoursAgo": "منذ ساعة",
+    "hoursAgo_plural": "منذ {{count}} ساعات",
+    "daysAgo": "منذ يوم",
+    "daysAgo_plural": "منذ {{count}} أيام",
+    "weeksAgo": "منذ أسبوع",
+    "weeksAgo_plural": "منذ {{count}} أسابيع",
+    "monthsAgo": "منذ شهر",
+    "monthsAgo_plural": "منذ {{count}} أشهر",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "tomorrow": "غداً",
+    "thisWeek": "هذا الأسبوع",
+    "lastWeek": "الأسبوع الماضي",
+    "nextWeek": "الأسبوع القادم",
+    "thisMonth": "هذا الشهر",
+    "lastMonth": "الشهر الماضي",
+    "nextMonth": "الشهر القادم"
+  },
+
+  "accessibility": {
+    "skipToContent": "تخطي إلى المحتوى الرئيسي",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
+    "expandSection": "توسيع القسم",
+    "collapseSection": "طي القسم",
+    "loading": "جاري تحميل المحتوى",
+    "dismiss": "إغلاق",
+    "navigateTo": "الانتقال إلى",
+    "currentPage": "الصفحة الحالية",
+    "newWindow": "يفتح في نافذة جديدة",
+    "required": "مطلوب",
+    "optional": "اختياري"
+  },
+
+  "hints": {
+    "proTip": "نصيحة",
+    "viewShortcuts": "عرض الاختصارات",
+    "quickSearch": "بحث سريع",
+    "pressKey": "اضغط",
+    "toOpen": "للفتح"
+  },
+
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إدارة حسابك وتفضيلاتك",
+    "tabs": {
+      "profile": "الملف الشخصي",
+      "notifications": "الإشعارات",
+      "integrations": "التكاملات",
+      "billing": "الفوترة",
+      "security": "الأمان",
+      "api": "مفاتيح API",
+      "language": "اللغة",
+      "voice": "إعدادات الصوت",
+      "appearance": "المظهر",
+      "team": "الفريق"
+    },
+    "profile": {
+      "title": "إعدادات الملف الشخصي",
+      "avatar": "الصورة الرمزية",
+      "changeAvatar": "تغيير الصورة",
+      "avatarHint": "JPG أو PNG أو GIF. الحد الأقصى 2 ميجابايت",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "company": "الشركة",
+      "companyPlaceholder": "اسم شركتك",
+      "timezone": "المنطقة الزمنية",
+      "phone": "رقم الهاتف",
+      "location": "الموقع"
+    },
+    "notifications": {
+      "title": "تفضيلات الإشعارات",
+      "workflowCompleted": "اكتمال سير العمل",
+      "workflowCompletedDesc": "تلقي إشعار عند انتهاء تنفيذ سير العمل",
+      "workflowFailed": "فشل سير العمل",
+      "workflowFailedDesc": "تلقي إشعار عند حدوث خطأ في سير العمل",
+      "weeklySummary": "ملخص أسبوعي",
+      "weeklySummaryDesc": "تلقي ملخص أسبوعي لنشاط سير العمل",
+      "newFeatures": "ميزات جديدة",
+      "newFeaturesDesc": "البقاء على اطلاع بالميزات والتحسينات الجديدة",
+      "email": "إشعارات البريد الإلكتروني",
+      "push": "الإشعارات الفورية",
+      "sms": "إشعارات الرسائل النصية"
+    },
+    "billing": {
+      "title": "الفوترة والاشتراك",
+      "currentPlan": "الخطة الاحترافية",
+      "planPrice": "99 دولار/شهر",
+      "planFeatures": "100 سير عمل/شهر • 25 مستخدم • وصول API",
+      "nextBilling": "تاريخ الفوترة القادم",
+      "nextBillingDate": "1 فبراير 2026",
+      "manageSubscription": "إدارة الاشتراك",
+      "paymentMethod": "طريقة الدفع",
+      "paymentMethodValue": "فيزا تنتهي بـ 4242",
+      "update": "تحديث",
+      "billingHistory": "سجل الفوترة",
+      "billingHistoryDesc": "عرض الفواتير السابقة",
+      "viewHistory": "عرض السجل",
+      "upgrade": "ترقية الخطة",
+      "downgrade": "تخفيض الخطة",
+      "cancel": "إلغاء الاشتراك"
+    },
+    "security": {
+      "title": "إعدادات الأمان",
+      "twoFactor": "المصادقة الثنائية",
+      "twoFactorDesc": "إضافة طبقة أمان إضافية",
+      "enable2FA": "تفعيل المصادقة الثنائية",
+      "changePassword": "تغيير كلمة المرور",
+      "changePasswordDesc": "تحديث كلمة المرور بانتظام",
+      "change": "تغيير",
+      "activeSessions": "الجلسات النشطة",
+      "activeSessionsDesc": "إدارة جلساتك النشطة",
+      "viewSessions": "عرض الجلسات",
+      "loginHistory": "سجل تسجيل الدخول",
+      "revokeAll": "إلغاء جميع الجلسات"
+    },
+    "api": {
+      "title": "مفاتيح API",
+      "generateNew": "إنشاء مفتاح API جديد",
+      "created": "تم الإنشاء",
+      "copy": "نسخ",
+      "revoke": "إلغاء",
+      "name": "اسم المفتاح",
+      "permissions": "الصلاحيات",
+      "expiresAt": "تاريخ الانتهاء",
+      "neverExpires": "لا ينتهي"
+    },
+    "language": {
+      "title": "اللغة والمنطقة",
+      "appLanguage": "لغة التطبيق",
+      "appLanguageDesc": "اختر لغتك المفضلة للواجهة",
+      "currentLanguage": "اللغة الحالية",
+      "selectLanguage": "اختر اللغة",
+      "rtlSupport": "دعم RTL",
+      "rtlSupportDesc": "يتم تفعيل اتجاه النص من اليمين إلى اليسار تلقائياً للغة العربية",
+      "enabled": "مُفعّل",
+      "disabled": "معطّل",
+      "dateFormat": "تنسيق التاريخ",
+      "timeFormat": "تنسيق الوقت",
+      "region": "المنطقة"
+    },
+    "appearance": {
+      "title": "المظهر",
+      "theme": "السمة",
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "تلقائي (حسب النظام)",
+      "accentColor": "اللون المميز",
+      "fontSize": "حجم الخط",
+      "compact": "مدمج",
+      "comfortable": "مريح",
+      "spacious": "واسع"
+    },
+    "voice": {
+      "title": "إعدادات الصوت",
+      "language": "لغة التعرف على الصوت",
+      "dialect": "اللهجة",
+      "standardArabic": "العربية الفصحى",
+      "kuwaitiDialect": "اللهجة الكويتية",
+      "voiceOutput": "الإخراج الصوتي",
+      "voiceSpeed": "سرعة الصوت",
+      "voicePitch": "نبرة الصوت"
+    },
+    "saveChanges": "حفظ التغييرات",
+    "saving": "جاري الحفظ...",
+    "saved": "تم حفظ الإعدادات بنجاح!"
+  },
+
+  "modals": {
+    "changePassword": {
+      "title": "تغيير كلمة المرور",
+      "currentPassword": "كلمة المرور الحالية",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "cancel": "إلغاء",
+      "update": "تحديث كلمة المرور",
+      "updating": "جاري التحديث..."
+    },
+    "enable2FA": {
+      "title": "تفعيل المصادقة الثنائية",
+      "scanQR": "امسح رمز QR هذا باستخدام تطبيق المصادقة (Google Authenticator أو Authy وغيرها)",
+      "enterCode": "أدخل رمز التحقق",
+      "codePlaceholder": "000000",
+      "cancel": "إلغاء",
+      "verify": "تحقق وتفعيل",
+      "verifying": "جاري التحقق..."
+    },
+    "confirm": {
+      "title": "تأكيد الإجراء",
+      "deleteTitle": "تأكيد الحذف",
+      "deleteMessage": "هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "delete": "حذف"
+    },
+    "share": {
+      "title": "مشاركة سير العمل",
+      "copyLink": "نسخ الرابط",
+      "email": "إرسال بالبريد الإلكتروني",
+      "permissions": "الصلاحيات",
+      "viewOnly": "عرض فقط",
+      "canEdit": "يمكنه التعديل",
+      "canExecute": "يمكنه التنفيذ"
+    }
+  },
+
+  "voice": {
+    "listening": "جاري الاستماع...",
+    "processing": "جاري المعالجة...",
+    "speak": "تكلم الآن",
+    "retry": "إعادة المحاولة",
+    "stop": "إيقاف",
+    "noMicrophone": "لم يتم العثور على ميكروفون",
+    "permissionDenied": "تم رفض إذن الميكروفون",
+    "error": "حدث خطأ في التعرف على الصوت",
+    "supported": "متصفحك يدعم التعرف على الصوت",
+    "notSupported": "متصفحك لا يدعم التعرف على الصوت",
+    "arabic": "العربية",
+    "english": "الإنجليزية",
+    "kuwaitiHint": "يمكنك التحدث باللهجة الكويتية"
+  },
+
+  "projects": {
+    "title": "المشاريع",
+    "create": "إنشاء مشروع",
+    "edit": "تعديل المشروع",
+    "delete": "حذف المشروع",
+    "settings": "إعدادات المشروع",
+    "name": "اسم المشروع",
+    "description": "وصف المشروع",
+    "members": "الأعضاء",
+    "workflows": "سير العمل",
+    "noProjects": "لا توجد مشاريع بعد. أنشئ أول مشروع!",
+    "addMember": "إضافة عضو",
+    "removeMember": "إزالة العضو",
+    "role": "الدور",
+    "owner": "المالك",
+    "admin": "مدير",
+    "member": "عضو",
+    "viewer": "مشاهد"
+  },
+
+  "analytics": {
+    "title": "لوحة التحليلات",
+    "subtitle": "تتبع سلوك المستخدم وأداء سير العمل",
+    "overview": "نظرة عامة",
+    "performance": "الأداء",
+    "usage": "الاستخدام",
+    "trends": "الاتجاهات",
+    "executionTime": "وقت التنفيذ",
+    "successRate": "معدل النجاح",
+    "failureRate": "معدل الفشل",
+    "totalExecutions": "إجمالي التنفيذات",
+    "totalWorkflows": "إجمالي سير العمل",
+    "totalEvents": "إجمالي الأحداث",
+    "activeUsers": "المستخدمون النشطون",
+    "avgDuration": "متوسط المدة",
+    "peakUsage": "ذروة الاستخدام",
+    "loadError": "فشل في تحميل بيانات التحليلات",
+    "retry": "إعادة المحاولة",
+    "selectTimeRange": "اختر النطاق الزمني",
+    "7days": "٧ أيام",
+    "30days": "٣٠ يوم",
+    "90days": "٩٠ يوم",
+    "last7Days": "٧ أيام",
+    "last30Days": "٣٠ يوم",
+    "last90Days": "٩٠ يوم",
+    "last": "آخر",
+    "days": "أيام",
+    "dailyActiveUsers": "المستخدمون النشطون يومياً",
+    "weeklyActiveUsers": "المستخدمون النشطون أسبوعياً",
+    "monthlyActiveUsers": "المستخدمون النشطون شهرياً",
+    "wau": "أسبوعياً",
+    "mau": "شهرياً",
+    "workflowExecutions": "تنفيذات سير العمل",
+    "executions": "التنفيذات",
+    "activeUsersOverTime": "المستخدمون النشطون عبر الوقت",
+    "workflowExecutionsOverTime": "تنفيذات سير العمل عبر الوقت",
+    "signupToWorkflowFunnel": "من التسجيل إلى أول سير عمل",
+    "topEvents": "أهم الأحداث",
+    "event": "الحدث",
+    "count": "العدد",
+    "percentage": "النسبة",
+    "popularTemplates": "القوالب الشائعة",
+    "uses": "استخدام",
+    "noTemplates": "لا توجد بيانات استخدام للقوالب",
+    "noData": "لا توجد بيانات متاحة",
+    "integrationUsage": "استخدام التكاملات",
+    "connections": "اتصال",
+    "noIntegrations": "لا توجد بيانات للتكاملات",
+    "conversionFunnel": "قمع التحويل",
+    "recentActivity": "النشاط الأخير",
+    "avgTimeToFirstWorkflow": "متوسط الوقت لأول سير عمل",
+    "hours": "ساعات",
+    "minutes": "د",
+    "successful": "ناجح",
+    "failed": "فاشل",
+    "users": "المستخدمون",
+    "excellent": "ممتاز",
+    "privacyNotice": "يتم جمع بيانات التحليلات مع مراعاة خصوصية المستخدم. لا يتم تخزين أي معلومات شخصية. يمكنك إلغاء الاشتراك في أي وقت من الإعدادات.",
+    "privacySettings": "إعدادات الخصوصية",
+    "analyticsEnabled": "تتبع التحليلات",
+    "performanceTracking": "تتبع الأداء",
+    "errorTracking": "تتبع الأخطاء",
+    "sessionRecording": "تسجيل الجلسات",
+    "personalizedSuggestions": "الاقتراحات المخصصة",
+    "optOut": "إلغاء الاشتراك في التحليلات",
+    "optIn": "الاشتراك في التحليلات",
+    "deleteData": "حذف بياناتي",
+    "exportData": "تصدير بياناتي",
+    "gdprCompliance": "الامتثال للائحة حماية البيانات",
+    "dataRetention": "الاحتفاظ بالبيانات"
+  },
+
+  "help": {
+    "title": "المساعدة والدعم",
+    "documentation": "التوثيق",
+    "tutorials": "الدروس",
+    "faq": "الأسئلة الشائعة",
+    "contact": "تواصل معنا",
+    "feedback": "إرسال ملاحظات",
+    "reportBug": "الإبلاغ عن خطأ",
+    "requestFeature": "طلب ميزة جديدة",
+    "community": "المجتمع",
+    "status": "حالة النظام"
+  },
+
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "message": "عذراً، الصفحة التي تبحث عنها غير موجودة.",
+    "goHome": "العودة للرئيسية",
+    "goBack": "العودة للخلف"
+  },
+
+  "landing": {
+    "hero": {
+      "badge": "مدعوم بالذكاء الاصطناعي Claude",
+      "headline": "استبدل وكالة الأتمتة",
+      "headlineHighlight": "بـ 2,500$ شهرياً",
+      "subheadline": "صِف أي مهمة بلغتك العادية. وكلاؤنا الذكيون ينشئون سير العمل فوراً - بدون برمجة، بدون رسوم وكالات، بدون انتظار أسابيع.",
+      "inputPlaceholder": "ابدأ الكتابة لإنشاء سير العمل الخاص بك...",
+      "createButton": "إنشاء سير العمل",
+      "typeToCreate": "اكتب للإنشاء",
+      "buildingWorkflow": "نيكسوس يبني سير عملك...",
+      "schedule": "الجدولة",
+      "onDemand": "عند الطلب",
+      "daily": "يومياً",
+      "weekly": "أسبوعياً",
+      "noCodeRequired": "لا حاجة للبرمجة",
+      "instantSetup": "إعداد فوري"
+    },
+    "features": {
+      "title": "كل ما تحتاجه للأتمتة",
+      "subtitle": "أدوات قوية مصممة لتبسيط عملك",
+      "aiPowered": {
+        "title": "مدعوم بالذكاء الاصطناعي",
+        "description": "وكلاء ذكاء اصطناعي متعددين يعملون معاً لتنفيذ مهامك المعقدة"
+      },
+      "integrations": {
+        "title": "8,500+ تكامل",
+        "description": "اربط جميع تطبيقاتك المفضلة بسهولة تامة"
+      },
+      "automation": {
+        "title": "أتمتة ذكية",
+        "description": "أنشئ سير عمل معقد بوصف بسيط باللغة الطبيعية"
+      },
+      "security": {
+        "title": "أمان على مستوى المؤسسات",
+        "description": "تشفير من طرف لطرف وامتثال لأعلى معايير الأمان"
+      },
+      "analytics": {
+        "title": "تحليلات متقدمة",
+        "description": "تتبع أداء سير العمل واحصل على رؤى قيمة"
+      },
+      "scale": {
+        "title": "قابلية التوسع",
+        "description": "من مهمة واحدة إلى ملايين التنفيذات - ننمو معك"
+      },
+      "buildInSeconds": "أنشئ خلال ثوانٍ",
+      "integrationsCount": "8,500+ تكامل"
+    },
+    "howItWorks": {
+      "title": "كيف يعمل",
+      "subtitle": "ثلاث خطوات بسيطة للأتمتة الكاملة",
+      "step1": {
+        "title": "صف ما تريد",
+        "description": "اكتب وصفاً بسيطاً بالعربية أو الإنجليزية لما تريد أتمتته"
+      },
+      "step2": {
+        "title": "الذكاء الاصطناعي يبني",
+        "description": "نيكسوس يحلل طلبك ويبني سير العمل المناسب تلقائياً"
+      },
+      "step3": {
+        "title": "استرخِ وشاهد",
+        "description": "سير العمل يعمل تلقائياً حسب الجدول الذي تختاره"
+      }
+    },
+    "useCases": {
+      "title": "حالات الاستخدام",
+      "subtitle": "اكتشف كيف يمكن لنيكسوس مساعدتك",
+      "sales": {
+        "title": "فرق المبيعات",
+        "description": "أتمتة المتابعة مع العملاء وتحديث CRM تلقائياً"
+      },
+      "marketing": {
+        "title": "التسويق",
+        "description": "جدولة المنشورات وتحليل الأداء عبر المنصات"
+      },
+      "support": {
+        "title": "خدمة العملاء",
+        "description": "الرد الآلي والتصعيد الذكي للتذاكر"
+      },
+      "hr": {
+        "title": "الموارد البشرية",
+        "description": "أتمتة عمليات التوظيف وإعداد الموظفين الجدد"
+      },
+      "finance": {
+        "title": "المالية",
+        "description": "معالجة الفواتير وإنشاء التقارير تلقائياً"
+      },
+      "it": {
+        "title": "تقنية المعلومات",
+        "description": "أتمتة العمليات التقنية والمراقبة"
+      }
+    },
+    "testimonials": {
+      "title": "ماذا يقول عملاؤنا",
+      "subtitle": "انضم لآلاف الشركات التي وثقت بنيكسوس"
+    },
+    "pricing": {
+      "badge": "عرض الإطلاق - لفترة محدودة",
+      "badgeSub": "احجز هذا السعر للأبد",
+      "title": "أسعار بسيطة",
+      "titleHighlight": "وشفافة",
+      "subtitle": "ابدأ مجاناً، وقم بالترقية حسب نموك",
+      "launchPrice": "79$",
+      "regularPrice": "99$",
+      "perMonth": "/شهر",
+      "launchLabel": "سعر الإطلاق",
+      "regularLabel": "السعر العادي",
+      "saveBadge": "وفر 20$/شهر",
+      "plans": {
+        "free": {
+          "name": "مجاني",
+          "price": "0$",
+          "period": "للأبد",
+          "workflows": "10 سير عمل/شهر",
+          "perWorkflow": "مجاني",
+          "cta": "ابدأ مجاناً",
+          "features": ["5 تكاملات", "دعم المجتمع", "مستخدم واحد", "قوالب أساسية"]
+        },
+        "starter": {
+          "name": "المبتدئ",
+          "price": "29$",
+          "period": "شهر",
+          "workflows": "100 سير عمل/شهر",
+          "perWorkflow": "0.29$/سير عمل",
+          "cta": "ابدأ التجربة المجانية",
+          "features": ["جميع التكاملات", "دعم بالبريد", "5 مستخدمين", "لوحة التحليلات", "أولوية في قائمة الانتظار"]
+        },
+        "pro": {
+          "name": "احترافي",
+          "price": "79$",
+          "originalPrice": "99$",
+          "period": "شهر",
+          "workflows": "500 سير عمل/شهر",
+          "perWorkflow": "0.16$/سير عمل",
+          "cta": "ابدأ التجربة المجانية",
+          "popular": true,
+          "launchBadge": "عرض الإطلاق",
+          "features": ["كل ما في المبتدئ", "15 مستخدم", "سير عمل مخصص", "وصول API", "تحليلات متقدمة", "مُحفزات Webhook", "دعم ذو أولوية"]
+        },
+        "enterprise": {
+          "name": "المؤسسات",
+          "price": "مخصص",
+          "period": "",
+          "workflows": "سير عمل غير محدود",
+          "perWorkflow": "خصومات على الكميات",
+          "cta": "تواصل مع المبيعات",
+          "features": ["كل ما في الاحترافي", "مستخدمين غير محدودين", "دعم مخصص", "ضمان SLA", "SSO و SAML", "خيار التثبيت المحلي"]
+        }
+      },
+      "comparison": {
+        "agencyTitle": "وكالة الأتمتة",
+        "agencyCost": "2,500$+/شهر",
+        "nexusTitle": "مع نيكسوس",
+        "nexusCost": "79$/شهر",
+        "savingsTitle": "توفيرك",
+        "savingsAmount": "2,400$+/شهر"
+      }
+    },
+    "cta": {
+      "title": "جاهز للبدء؟",
+      "subtitle": "انضم لأكثر من 10,000 شركة تستخدم نيكسوس",
+      "button": "ابدأ مجاناً",
+      "noCard": "لا حاجة لبطاقة ائتمان"
+    },
+    "footer": {
+      "product": "المنتج",
+      "company": "الشركة",
+      "resources": "الموارد",
+      "legal": "قانوني",
+      "about": "من نحن",
+      "careers": "الوظائف",
+      "blog": "المدونة",
+      "docs": "التوثيق",
+      "privacy": "الخصوصية",
+      "terms": "الشروط",
+      "contact": "تواصل معنا",
+      "copyright": "جميع الحقوق محفوظة"
+    },
+    "languageToggle": {
+      "label": "اللغة",
+      "english": "English",
+      "arabic": "العربية"
+    }
+  },
+
+  "kuwaiti": {
+    "greetings": {
+      "hello": "هلا",
+      "welcome": "حياك الله",
+      "howAreYou": "شلونك؟",
+      "fine": "زين",
+      "thanks": "مشكور",
+      "goodbye": "في أمان الله",
+      "goodMorning": "صباح الخير",
+      "goodEvening": "مساء الخير"
+    },
+    "common": {
+      "yes": "إي",
+      "no": "لا",
+      "ok": "أوكي",
+      "good": "زين",
+      "bad": "مو زين",
+      "now": "الحين",
+      "later": "بعدين",
+      "quickly": "بسرعة",
+      "wait": "صبر",
+      "done": "خلص",
+      "understand": "فاهم",
+      "want": "أبي",
+      "dontWant": "ما أبي",
+      "what": "شنو",
+      "why": "ليش",
+      "where": "وين",
+      "when": "متى",
+      "how": "شلون"
+    },
+    "workflow": {
+      "createNew": "أبي أسوي سير عمل يديد",
+      "sendEmail": "رسّل إيميل",
+      "sendWhatsApp": "رسّل واتساب",
+      "everyday": "كل يوم",
+      "everyWeek": "كل أسبوع",
+      "morning": "الصبح",
+      "evening": "المسا",
+      "reminder": "ذكّرني",
+      "notifyMe": "خبّرني"
+    },
+    "responses": {
+      "understood": "تمام، فهمت عليك",
+      "working": "شغّال عليه الحين",
+      "done": "خلصت، تم الموضوع",
+      "error": "صار في مشكلة، خلني أحاول مرة ثانية",
+      "confirm": "أكيد تبي أسوي كذا؟",
+      "askAgain": "ممكن تعيد السؤال؟"
+    }
+  },
+
+  "onboarding": {
+    "steps": {
+      "welcome": "مرحباً",
+      "connect": "الربط",
+      "workflow": "سير العمل",
+      "success": "تم"
+    },
+    "stepOf": "الخطوة {{current}} من {{total}}",
+    "skipAll": "تخطي الإعداد",
+
+    "welcome": {
+      "title": "مرحباً بك في نيكسوس!",
+      "subtitle": "خلنا نجهزك في أقل من 5 دقايق",
+      "greeting": "هلا {{name}}، مستعد للأتمتة؟",
+      "question": "شنو تبي تأتمت؟",
+      "helper": "لا تشيل هم، تقدر تغيّر هالشي بعدين",
+      "options": {
+        "ecommerce": {
+          "title": "التجارة الإلكترونية"
+        },
+        "crm": {
+          "title": "إدارة العملاء والمبيعات"
+        },
+        "support": {
+          "title": "خدمة العملاء"
+        },
+        "custom": {
+          "title": "سير عمل مخصص"
+        }
+      },
+      "examples": {
+        "orders": "الطلبات",
+        "inventory": "المخزون",
+        "shipping": "الشحن",
+        "leads": "العملاء المحتملين",
+        "contacts": "جهات الاتصال",
+        "sales": "المبيعات",
+        "tickets": "التذاكر",
+        "helpdesk": "مكتب المساعدة",
+        "chat": "المحادثة",
+        "email": "البريد",
+        "files": "الملفات",
+        "tasks": "المهام"
+      }
+    },
+
+    "connect": {
+      "title": "اربط أول تطبيق",
+      "subtitle": "هذا يخلي نيكسوس يأتمت شغلك",
+      "recommended": "موصى به لـ {{type}}",
+      "connectButton": "ربط",
+      "connectedCount": "تم ربط {{count}} تطبيق",
+      "connectedCount_plural": "تم ربط {{count}} تطبيقات",
+      "skipForNow": "تخطي الحين، أبي أستكشف أول"
+    },
+
+    "workflow": {
+      "title": "أنشئ أول سير عمل",
+      "subtitle": "وصف لي شنو تبي تأتمت",
+      "nameLabel": "اسم سير العمل",
+      "namePlaceholder": "مثال: إشعار الطلب الجديد",
+      "descriptionLabel": "شنو يسوي سير العمل هذا؟",
+      "descriptionPlaceholder": "مثال: لما يجي طلب جديد، خبّر الفريق في سلاك ورسّل إيميل تأكيد للعميل",
+      "aiPowered": "بالذكاء الاصطناعي",
+      "generateButton": "أنشئ سير العمل",
+      "generating": "جاري الإنشاء...",
+      "previewTitle": "معاينة سير العمل",
+      "generated": "تم الإنشاء",
+      "trigger": "المُحفّز",
+      "continueButton": "متابعة للاختبار"
+    },
+
+    "success": {
+      "title": "خلنا نختبر سير عملك!",
+      "subtitle": "اختبار سريع عشان نتأكد كل شي شغّال",
+      "runTest": "تشغيل الاختبار",
+      "running": "جاري التشغيل...",
+      "goToDashboard": "الذهاب للوحة التحكم",
+      "congratsTitle": "تمام، جاهز!",
+      "congratsSubtitle": "أول سير عمل لك جاهز. يلا نروح للوحة التحكم!",
+      "completedIn": "خلّصت الإعداد مثل المحترفين!"
+    }
+  }
+}

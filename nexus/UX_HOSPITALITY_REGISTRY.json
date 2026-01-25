@@ -1,0 +1,128 @@
+{
+  "version": "1.0.0",
+  "description": "PERMANENT UX Hospitality Fixes - These fixes ensure every user interaction has a clear next step. DO NOT REMOVE even during redesigns.",
+  "protection_level": "PERMANENT",
+  "marker_prefix": "@NEXUS-UX-",
+  "core_principle": "Every state must have a clear, friendly hook to the next action. No dead-ends. VIP hospitality experience.",
+  "fixes": [
+    {
+      "id": "UX-001",
+      "title": "Actionable Error Recovery Buttons",
+      "domain": "error_recovery",
+      "status": "VERIFIED",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "description": "All error states now have clickable action buttons instead of just text. Users can click to retry, reconnect, create resources, or get help - never left wondering what to do next.",
+      "patterns_covered": [
+        "Missing parameters → 'Let Me Explain' + 'Help Me Find It'",
+        "Google Sheets → 'Create New Sheet' + 'Use Existing Sheet'",
+        "Slack channel → Channel quick-select buttons + input",
+        "WhatsApp → 'Enter Phone' + 'Use Contact List'",
+        "Email → 'Enter Email' + 'Send to Myself'",
+        "Auth expired → 'Reconnect Now' + 'Get Help'",
+        "Rate limited → 'Retry in 30s' + 'Schedule for Later'",
+        "Not found → 'Create It' + 'Search Again' + 'Enter Manually'",
+        "Network issue → 'Try Again' + 'Check Connection'",
+        "Permission → 'Grant Permission' + 'Try Different Account'",
+        "Tool not supported → 'Notify When Ready' + 'Try Alternative'",
+        "Server error → 'Retry Now' + 'Save & Retry Later'",
+        "Default error → 'Try Again' + 'Tell Me What Happened' + 'Get Help'"
+      ],
+      "date_implemented": "2026-01-21"
+    },
+    {
+      "id": "UX-002",
+      "title": "Friendly Parameter Collection & Sample Data",
+      "domain": "parameter_collection",
+      "status": "VERIFIED",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "description": "Parameter collection (MissingInfoSection) and sample data forms (TriggerSampleDataPrompt) now have friendly headers, quick-fill buttons, and prominent skip options. No more scary JSON textboxes.",
+      "patterns_covered": [
+        "MissingInfoSection → '🎯 Quick Question' header + progress percentage",
+        "TriggerSampleDataPrompt → '🎯 Let's Test It!' header",
+        "Quick fill with example data button",
+        "'⏭️ Skip (Use Defaults)' button",
+        "Generic triggers → Friendly labels instead of JSON",
+        "'✓ Skip & Continue' green button"
+      ],
+      "date_implemented": "2026-01-21"
+    },
+    {
+      "id": "UX-003",
+      "title": "Exciting OAuth Connection Flow",
+      "domain": "oauth_connection",
+      "status": "VERIFIED",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "description": "OAuth prompts now feel like unlocking superpowers. Friendly status messages, exciting button copy, and reassuring privacy language.",
+      "patterns_covered": [
+        "'🔓 Unlock Your Workflow' header instead of 'Connect your integrations'",
+        "'✨ Almost there...' during polling",
+        "'✅ Ready to go!' for connected state",
+        "'🔄 Complete sign-in in the popup...' for polling",
+        "'🔗 One click to connect' for pending",
+        "'Connect & Unlock →' button for single app",
+        "'Connect All X Apps →' for multiple",
+        "'👆 Complete the sign-in in the popup windows' instructions",
+        "Reassuring privacy text about passwords"
+      ],
+      "date_implemented": "2026-01-21"
+    },
+    {
+      "id": "UX-006",
+      "title": "Celebratory Completion with Clear Next Steps",
+      "domain": "completion_next_steps",
+      "status": "VERIFIED",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "description": "Workflow completion now has proper celebration with emojis, clear summary, and obvious next actions (Deploy, Run Again, View Workflows, Schedule).",
+      "patterns_covered": [
+        "Beta success → 🎉 emoji + 'Beta Test Passed!' header",
+        "Production success → 🚀 emoji + 'Workflow Complete!'",
+        "'What's next?' prompt with multiple actions",
+        "'🚀 Deploy to Production' primary button",
+        "'🔄 Run Again' and '📋 View All Workflows' secondary buttons",
+        "'💡 Want this to run automatically?' scheduling hint"
+      ],
+      "date_implemented": "2026-01-21"
+    }
+  ],
+  "domains": {
+    "parameter_collection": {
+      "description": "When Nexus asks user for input (URLs, names, channels)",
+      "principle": "Never ask for raw input without offering easy alternatives",
+      "fixes": ["UX-002"]
+    },
+    "oauth_connection": {
+      "description": "When user needs to connect an app/service",
+      "principle": "Make connection feel like unlocking a superpower, not a chore",
+      "fixes": ["UX-003"]
+    },
+    "sample_data": {
+      "description": "When beta test needs sample/trigger data",
+      "principle": "Pre-fill with realistic examples, explain clearly, easy skip option",
+      "fixes": ["UX-002"]
+    },
+    "error_recovery": {
+      "description": "When something goes wrong",
+      "principle": "Friendly recovery with clear action buttons, never blame user",
+      "fixes": ["UX-001"]
+    },
+    "execution_progress": {
+      "description": "While workflow is running",
+      "principle": "Keep user engaged with progress, celebrate small wins",
+      "fixes": []
+    },
+    "completion_next_steps": {
+      "description": "After workflow completes",
+      "principle": "Clear celebration + obvious next actions",
+      "fixes": ["UX-006"]
+    }
+  },
+  "ux_rules": [
+    "Every prompt must have at least one clickable action button",
+    "Never show raw technical terms (JSON, API, slug) to users",
+    "Error messages must include a 'Fix This' or 'Try Again' button",
+    "Loading states must show what's happening in friendly language",
+    "Success states must celebrate and suggest next steps",
+    "Input fields must have examples or pre-filled smart defaults",
+    "When asking for external resources (URLs, IDs), offer to create/browse them"
+  ]
+}

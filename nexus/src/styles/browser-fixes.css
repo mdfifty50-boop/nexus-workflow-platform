@@ -1,0 +1,554 @@
+/* =============================================================================
+   BROWSER-SPECIFIC FIXES
+   Cross-browser compatibility CSS for Safari, Firefox, Chrome, and mobile
+   ============================================================================= */
+
+/* =============================================================================
+   SAFARI FIXES (iOS and macOS)
+   ============================================================================= */
+
+/* Safari: Fix scroll-behavior (requires JS polyfill for < Safari 15.4) */
+.browser-safari .scroll-container,
+.browser-safari .overflow-auto,
+.browser-safari [style*="overflow"] {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safari: Fix 100vh on iOS (use --vh custom property set by JS) */
+.is-ios .full-height,
+.is-ios .min-h-screen {
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+
+.is-ios .h-screen {
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Safari: Flexbox gap fallback using margin */
+.no-css-gap .flex-gap-1 > * + * {
+  margin-left: 0.25rem;
+}
+
+.no-css-gap .flex-gap-2 > * + * {
+  margin-left: 0.5rem;
+}
+
+.no-css-gap .flex-gap-3 > * + * {
+  margin-left: 0.75rem;
+}
+
+.no-css-gap .flex-gap-4 > * + * {
+  margin-left: 1rem;
+}
+
+.no-css-gap .flex-col.flex-gap-1 > * + * {
+  margin-left: 0;
+  margin-top: 0.25rem;
+}
+
+.no-css-gap .flex-col.flex-gap-2 > * + * {
+  margin-left: 0;
+  margin-top: 0.5rem;
+}
+
+.no-css-gap .flex-col.flex-gap-3 > * + * {
+  margin-left: 0;
+  margin-top: 0.75rem;
+}
+
+.no-css-gap .flex-col.flex-gap-4 > * + * {
+  margin-left: 0;
+  margin-top: 1rem;
+}
+
+/* Safari: Safe area insets for notched devices */
+.is-ios .safe-area-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+}
+
+.is-ios .safe-area-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
+.is-ios .safe-area-left {
+  padding-left: max(0.5rem, env(safe-area-inset-left, 0.5rem));
+}
+
+.is-ios .safe-area-right {
+  padding-right: max(0.5rem, env(safe-area-inset-right, 0.5rem));
+}
+
+.is-ios .safe-area-all {
+  padding: max(1rem, env(safe-area-inset-top, 1rem))
+           max(0.5rem, env(safe-area-inset-right, 0.5rem))
+           max(1rem, env(safe-area-inset-bottom, 1rem))
+           max(0.5rem, env(safe-area-inset-left, 0.5rem));
+}
+
+/* Safari: Fix for position:fixed on iOS */
+.is-ios .fixed-ios {
+  position: -webkit-sticky;
+  position: fixed;
+}
+
+/* Safari: Fix momentum scrolling */
+.browser-safari .scroll-smooth {
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safari: Fix input zoom on focus (16px minimum prevents zoom) */
+.is-ios input[type="text"],
+.is-ios input[type="email"],
+.is-ios input[type="password"],
+.is-ios input[type="number"],
+.is-ios input[type="tel"],
+.is-ios input[type="url"],
+.is-ios input[type="search"],
+.is-ios textarea,
+.is-ios select {
+  font-size: 16px;
+}
+
+/* Safari: Fix for sticky positioning inside overflow containers */
+.browser-safari .sticky-safari {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Safari: Fix date/time input appearance */
+.browser-safari input[type="date"],
+.browser-safari input[type="time"],
+.browser-safari input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: hsl(var(--input));
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+/* =============================================================================
+   FIREFOX FIXES
+   ============================================================================= */
+
+/* Firefox: Backdrop-filter fallback */
+.browser-firefox .glass,
+.no-backdrop-filter .glass {
+  background: hsla(var(--card) / 0.95);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.browser-firefox [role="dialog"],
+.no-backdrop-filter [role="dialog"] {
+  background: hsla(var(--card) / 0.98);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.browser-firefox .card,
+.no-backdrop-filter .card {
+  background: hsl(var(--card));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Firefox: Custom scrollbar styling */
+.browser-firefox {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary)) hsl(var(--background));
+}
+
+/* Firefox: Input styling consistency */
+.browser-firefox input,
+.browser-firefox textarea,
+.browser-firefox select {
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Firefox: Focus ring fix */
+.browser-firefox button::-moz-focus-inner,
+.browser-firefox [type="button"]::-moz-focus-inner,
+.browser-firefox [type="reset"]::-moz-focus-inner,
+.browser-firefox [type="submit"]::-moz-focus-inner {
+  border-style: none;
+  padding: 0;
+}
+
+.browser-firefox button:-moz-focusring,
+.browser-firefox [type="button"]:-moz-focusring,
+.browser-firefox [type="reset"]:-moz-focusring,
+.browser-firefox [type="submit"]:-moz-focusring {
+  outline: 1px dotted ButtonText;
+}
+
+/* Firefox: Number input spinner removal */
+.browser-firefox input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Firefox: Range input styling */
+.browser-firefox input[type="range"] {
+  -moz-appearance: none;
+  background: transparent;
+}
+
+.browser-firefox input[type="range"]::-moz-range-track {
+  background: hsl(var(--muted));
+  border-radius: 0.25rem;
+  height: 0.5rem;
+}
+
+.browser-firefox input[type="range"]::-moz-range-thumb {
+  -moz-appearance: none;
+  background: hsl(var(--primary));
+  border: none;
+  border-radius: 50%;
+  height: 1.25rem;
+  width: 1.25rem;
+  cursor: pointer;
+}
+
+/* Firefox: Text selection color fix */
+.browser-firefox ::-moz-selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* =============================================================================
+   CHROME/EDGE FIXES (Blink Engine)
+   ============================================================================= */
+
+/* Chrome: Smooth scrollbar behavior */
+.engine-blink ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.engine-blink ::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+  border-radius: 5px;
+}
+
+.engine-blink ::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.engine-blink ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.7);
+  background-clip: content-box;
+}
+
+/* Chrome: Remove autofill background color */
+.engine-blink input:-webkit-autofill,
+.engine-blink input:-webkit-autofill:hover,
+.engine-blink input:-webkit-autofill:focus,
+.engine-blink textarea:-webkit-autofill,
+.engine-blink textarea:-webkit-autofill:hover,
+.engine-blink textarea:-webkit-autofill:focus,
+.engine-blink select:-webkit-autofill,
+.engine-blink select:-webkit-autofill:hover,
+.engine-blink select:-webkit-autofill:focus {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--input)) inset;
+  box-shadow: 0 0 0px 1000px hsl(var(--input)) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Chrome: Number input spinner removal */
+.engine-blink input[type="number"]::-webkit-outer-spin-button,
+.engine-blink input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Chrome: Search input X button removal */
+.engine-blink input[type="search"]::-webkit-search-decoration,
+.engine-blink input[type="search"]::-webkit-search-cancel-button,
+.engine-blink input[type="search"]::-webkit-search-results-button,
+.engine-blink input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
+/* =============================================================================
+   ANDROID FIXES
+   ============================================================================= */
+
+/* Android: Fix tap highlight */
+.is-android {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Android: Fix sticky position */
+.is-android .sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Android: Bottom navigation safe area */
+.is-android .bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
+/* Android: Fix overflow scroll momentum */
+.is-android .scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* =============================================================================
+   MOBILE-SPECIFIC FIXES (Touch Devices)
+   ============================================================================= */
+
+/* Touch: Disable hover effects on touch devices */
+@media (hover: none) {
+  .hover-scale:hover {
+    transform: none;
+  }
+
+  button:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .card-lift:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+
+  .card-3d:hover {
+    transform: none;
+  }
+}
+
+/* Touch: Better touch targets */
+.has-touch button,
+.has-touch a,
+.has-touch [role="button"],
+.has-touch [role="link"],
+.has-touch input[type="checkbox"],
+.has-touch input[type="radio"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Touch: Prevent text selection on interactive elements */
+.has-touch button,
+.has-touch [role="button"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* Touch: Fix sticky hover states */
+@media (hover: none) and (pointer: coarse) {
+  .btn-animate:hover,
+  .btn-bounce:hover,
+  .btn-glow-press:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+}
+
+/* =============================================================================
+   WEBKIT PREFIX FIXES (Safari & older Chrome)
+   ============================================================================= */
+
+/* Webkit: Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Webkit: Backdrop filter with prefix */
+.glass,
+[role="dialog"],
+.card {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Webkit: Flex gap fallback using margin for older Safari */
+@supports not (gap: 1rem) {
+  .flex-gap > * + * {
+    margin-left: 1rem;
+  }
+
+  .flex-col.flex-gap > * + * {
+    margin-left: 0;
+    margin-top: 1rem;
+  }
+
+  .grid-gap > * {
+    margin: 0.5rem;
+  }
+}
+
+/* =============================================================================
+   ANIMATION PREFIXES
+   ============================================================================= */
+
+/* Webkit animation prefix for keyframes */
+@-webkit-keyframes fadeIn {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(10px);
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+}
+
+@-webkit-keyframes slideUp {
+  from {
+    opacity: 0;
+    -webkit-transform: translateY(20px);
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+}
+
+@-webkit-keyframes spin {
+  to {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation with webkit prefix */
+.animate-fade-in {
+  -webkit-animation: fadeIn 0.5s ease-out forwards;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  -webkit-animation: slideUp 0.4s ease-out forwards;
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-spin {
+  -webkit-animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
+}
+
+/* =============================================================================
+   TRANSFORM PREFIXES
+   ============================================================================= */
+
+.transform-gpu {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+}
+
+/* =============================================================================
+   OVERFLOW FIXES
+   ============================================================================= */
+
+/* Fix for horizontal overflow on all browsers */
+.overflow-fix {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Scroll container with momentum */
+.scroll-momentum {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  /* Remove browser-specific styling for print */
+  .browser-safari,
+  .browser-firefox,
+  .engine-blink,
+  .is-ios,
+  .is-android {
+    all: unset;
+  }
+
+  /* Reset backgrounds for print */
+  .glass,
+  .card,
+  [role="dialog"] {
+    background: white !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ensure text is readable */
+  * {
+    color: black !important;
+    background: white !important;
+  }
+}
+
+/* =============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================= */
+
+@media (prefers-contrast: high) {
+  /* Ensure borders are visible */
+  .browser-safari input,
+  .browser-firefox input,
+  .engine-blink input {
+    border: 2px solid currentColor !important;
+  }
+
+  /* Increase focus visibility */
+  *:focus-visible {
+    outline: 3px solid currentColor !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION (All Browsers)
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    -webkit-animation-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    -webkit-animation-iteration-count: 1 !important;
+    animation-iteration-count: 1 !important;
+    -webkit-transition-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

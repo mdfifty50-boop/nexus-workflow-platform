@@ -1,0 +1,493 @@
+/* =============================================================================
+   WORKFLOW ANIMATIONS - Status indicators and execution state animations
+   ============================================================================= */
+
+/* PENDING STATE - Subtle pulse animation */
+.workflow-status-pending {
+  animation: workflowPulse 2s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes workflowPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Pending indicator dot */
+.workflow-pending-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: hsl(var(--muted-foreground));
+  animation: workflowPendingPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(215, 172, 102, 0.7);
+}
+
+@keyframes workflowPendingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(215, 172, 102, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(215, 172, 102, 0);
+  }
+}
+
+/* RUNNING STATE - Spinner with progress glow */
+.workflow-status-running {
+  animation: workflowRunning 0.8s linear infinite;
+}
+
+@keyframes workflowRunning {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Running spinner indicator */
+.workflow-running-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid hsl(var(--muted-foreground) / 0.2);
+  border-top-color: hsl(var(--primary));
+  border-radius: 50%;
+  animation: workflowSpinnerRotate 0.8s linear infinite;
+}
+
+@keyframes workflowSpinnerRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Running progress glow */
+.workflow-running-glow {
+  position: relative;
+  animation: workflowProgressGlow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+@keyframes workflowProgressGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* Running progress bar animation */
+.workflow-progress-bar {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--primary) / 0.5) 50%,
+    hsl(var(--muted-foreground) / 0.3) 100%
+  );
+  background-size: 200% 100%;
+  animation: workflowProgressSlide 2s ease-in-out infinite;
+}
+
+@keyframes workflowProgressSlide {
+  0% {
+    background-position: 200% 0;
+  }
+  50% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* COMPLETE STATE - Checkmark fade-in with celebration */
+.workflow-status-complete {
+  animation: workflowCompleteScale 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes workflowCompleteScale {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Checkmark icon animation */
+.workflow-checkmark {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  display: inline-block;
+}
+
+.workflow-checkmark::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 12px;
+  border: 2px solid hsl(var(--primary));
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translateY(-3px);
+  opacity: 0;
+  animation: workflowCheckmarkDraw 0.5s ease-out 0.2s forwards;
+}
+
+@keyframes workflowCheckmarkDraw {
+  0% {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    width: 6px;
+    height: 12px;
+  }
+}
+
+/* Complete background fade */
+.workflow-complete-bg {
+  animation: workflowCompleteFade 0.6s ease-out;
+}
+
+@keyframes workflowCompleteFade {
+  0% {
+    background-color: hsl(142 76% 36% / 0.2);
+  }
+  100% {
+    background-color: hsl(142 76% 36% / 0);
+  }
+}
+
+/* SUCCESS PULSE - Celebration animation */
+.workflow-status-success {
+  animation: workflowSuccessPulse 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes workflowSuccessPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Success ring animation */
+.workflow-success-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid hsl(142 76% 36%);
+  animation: workflowSuccessRing 0.8s ease-out;
+  opacity: 0;
+}
+
+@keyframes workflowSuccessRing {
+  0% {
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+/* ERROR STATE - Shake and red flash */
+.workflow-status-error {
+  animation: workflowErrorShake 0.5s ease-in-out;
+}
+
+@keyframes workflowErrorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-6px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(6px);
+  }
+}
+
+/* Error indicator dot */
+.workflow-error-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: hsl(var(--destructive));
+  animation: workflowErrorFlash 0.6s ease-in-out;
+}
+
+@keyframes workflowErrorFlash {
+  0%, 100% {
+    background-color: hsl(var(--destructive));
+    box-shadow: 0 0 0 0 hsl(var(--destructive) / 0.7);
+  }
+  50% {
+    background-color: hsl(var(--destructive) / 0.8);
+    box-shadow: 0 0 0 8px hsl(var(--destructive) / 0);
+  }
+}
+
+/* Error background flash */
+.workflow-error-bg {
+  animation: workflowErrorBgFlash 0.6s ease-out;
+}
+
+@keyframes workflowErrorBgFlash {
+  0% {
+    background-color: hsl(0 84% 60% / 0.15);
+  }
+  100% {
+    background-color: hsl(0 84% 60% / 0);
+  }
+}
+
+/* PAUSED STATE - Dimmed with subtle breathing */
+.workflow-status-paused {
+  animation: workflowPausedBreathe 3s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+@keyframes workflowPausedBreathe {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Paused indicator bars */
+.workflow-paused-bars {
+  display: inline-flex;
+  gap: 3px;
+  height: 16px;
+}
+
+.workflow-paused-bars::before,
+.workflow-paused-bars::after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 100%;
+  background-color: hsl(var(--muted-foreground));
+  opacity: 0.6;
+}
+
+/* STATUS BADGE - Container for status animations */
+.workflow-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  border: 1px solid hsl(var(--border));
+}
+
+.workflow-status-badge.pending {
+  background-color: hsl(47 96% 53% / 0.1);
+  color: hsl(47 96% 53%);
+  border-color: hsl(47 96% 53% / 0.3);
+}
+
+.workflow-status-badge.running {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+.workflow-status-badge.complete {
+  background-color: hsl(142 76% 36% / 0.1);
+  color: hsl(142 76% 36%);
+  border-color: hsl(142 76% 36% / 0.3);
+}
+
+.workflow-status-badge.error {
+  background-color: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+  border-color: hsl(var(--destructive) / 0.3);
+}
+
+.workflow-status-badge.paused {
+  background-color: hsl(var(--muted-foreground) / 0.1);
+  color: hsl(var(--muted-foreground));
+  border-color: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* WORKFLOW ITEM CONTAINER - Full workflow execution card */
+.workflow-item-animating {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.workflow-item-animating::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    hsl(var(--primary) / 0.1) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  animation: workflowItemGlimmer 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes workflowItemGlimmer {
+  0%, 100% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(100%);
+  }
+}
+
+/* Skeletons and loading states */
+.workflow-skeleton-pulse {
+  animation: workflowSkeletonPulse 2s ease-in-out infinite;
+}
+
+@keyframes workflowSkeletonPulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Timeline animation for workflow steps */
+.workflow-timeline-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.workflow-timeline-dot.active {
+  animation: workflowTimelineActive 0.6s ease-out;
+}
+
+@keyframes workflowTimelineActive {
+  0% {
+    width: 8px;
+    height: 8px;
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+  }
+  100% {
+    width: 12px;
+    height: 12px;
+    box-shadow: 0 0 0 12px hsl(var(--primary) / 0);
+  }
+}
+
+.workflow-timeline-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: hsl(var(--border));
+  transition: background-color 0.3s ease;
+}
+
+.workflow-timeline-line.active {
+  background: hsl(var(--primary));
+  animation: workflowTimelineGlow 2s ease-in-out infinite;
+}
+
+@keyframes workflowTimelineGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 8px 0 hsl(var(--primary) / 0.8);
+  }
+}
+
+/* Disabled/Inactive state */
+.workflow-status-disabled {
+  opacity: 0.4;
+  filter: grayscale(1);
+  animation: none !important;
+}
+
+/* Transition class for status changes */
+.workflow-status-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Media query for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .workflow-status-pending,
+  .workflow-pending-dot,
+  .workflow-status-running,
+  .workflow-running-spinner,
+  .workflow-running-glow,
+  .workflow-progress-bar,
+  .workflow-status-complete,
+  .workflow-checkmark::after,
+  .workflow-complete-bg,
+  .workflow-status-success,
+  .workflow-success-ring,
+  .workflow-status-error,
+  .workflow-error-dot,
+  .workflow-error-bg,
+  .workflow-status-paused,
+  .workflow-item-animating::before,
+  .workflow-skeleton-pulse,
+  .workflow-timeline-dot.active,
+  .workflow-timeline-line.active {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .workflow-status-pending {
+    opacity: 0.8;
+  }
+
+  .workflow-status-paused {
+    opacity: 0.6;
+  }
+}

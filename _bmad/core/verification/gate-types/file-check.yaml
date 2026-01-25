@@ -1,0 +1,72 @@
+# File Check Gate Type
+# Verifies file existence, content, and structure
+
+type: file_check
+description: Verify files exist and contain expected content
+
+schema:
+  name:
+    type: string
+    required: true
+    description: Human-readable gate name
+
+  type:
+    type: string
+    required: true
+    const: file_check
+
+  path:
+    type: string
+    required: true
+    description: Path to file (absolute or relative to project root)
+
+  checks:
+    type: array
+    items:
+      type: object
+      properties:
+        exists:
+          type: boolean
+          description: File must exist
+        not_empty:
+          type: boolean
+          description: File must have content
+        contains:
+          type: string
+          description: File must contain this string
+        matches_regex:
+          type: string
+          description: File content must match regex
+        min_lines:
+          type: integer
+          description: Minimum number of lines
+        valid_json:
+          type: boolean
+          description: File must be valid JSON
+        valid_yaml:
+          type: boolean
+          description: File must be valid YAML
+
+examples:
+  - name: "Component File Exists"
+    type: file_check
+    path: "nexus/src/components/NewFeature.tsx"
+    checks:
+      - exists: true
+      - not_empty: true
+      - contains: "export default"
+
+  - name: "Test File Created"
+    type: file_check
+    path: "nexus/src/components/__tests__/NewFeature.test.tsx"
+    checks:
+      - exists: true
+      - contains: "describe("
+      - contains: "expect("
+
+  - name: "Config Valid JSON"
+    type: file_check
+    path: "nexus/package.json"
+    checks:
+      - exists: true
+      - valid_json: true

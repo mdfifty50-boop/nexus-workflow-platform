@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "agentvibes": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "--package=agentvibes",
+        "agentvibes-mcp-server"
+      ]
+    },
+    "rube": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://rube.app/mcp"],
+      "env": {"npm_config_yes": "true"}
+    },
+    "youtube-transcript": {
+      "command": "npx",
+      "args": ["-y", "@kimtaeyoon83/mcp-server-youtube-transcript"]
+    }
+  }
+}
