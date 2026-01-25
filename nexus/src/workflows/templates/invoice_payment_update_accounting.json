@@ -1,0 +1,57 @@
+{
+  "id": "invoice_payment_update_accounting",
+  "name": "Invoice Payment to Accounting Update",
+  "description": "When a Stripe payment is received, update Google Sheets accounting ledger and send notification",
+  "requiredIntegrations": ["stripe", "googlesheets", "slack"],
+  "exampleUserInput": "When I receive a payment on Stripe, update my accounting spreadsheet and notify me on Slack",
+  "keywords": ["invoice", "payment", "stripe", "accounting", "spreadsheet", "sheets", "ledger", "notify"],
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Receive Stripe Payment",
+        "type": "trigger",
+        "integrationId": "stripe",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "STRIPE_CREATE_CUSTOMER",
+          "action": "payment_received",
+          "params": {
+            "eventType": "payment_intent.succeeded"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Update Accounting Sheet",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_BATCH_UPDATE",
+          "action": "append",
+          "params": {
+            "sheetName": "Payments",
+            "columns": ["date", "amount", "customer", "invoice_id"]
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Slack Notification",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#payments",
+            "messageTemplate": "payment_received"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["stripe", "googlesheets", "slack"]
+  }
+}

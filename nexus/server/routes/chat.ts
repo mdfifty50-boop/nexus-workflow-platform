@@ -4,6 +4,7 @@ import { getAgent, getAllAgents, routeToAgent, type Agent } from '../agents/inde
 import { getClaudeClient, callClaudeWithCaching } from '../services/claudeProxy.js'
 import { appDetectionService } from '../services/AppDetectionService.js'
 import { customIntegrationService } from '../services/CustomIntegrationService.js'
+import { templateService } from '../services/TemplateService.js'
 
 const router = Router()
 
@@ -106,6 +107,27 @@ router.post('/', async (req, res) => {
 
     // Get the latest user message (used for routing and app detection)
     const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')
+
+    // =========================================================================
+    // Move 6.7: Template-first workflow generation
+    // Check if user input matches a verified template before calling Claude
+    // =========================================================================
+    if (lastUserMessage?.content && typeof lastUserMessage.content === 'string') {
+      const templateMatch = templateService.matchUserInput(lastUserMessage.content)
+      if (templateMatch && templateMatch.score >= 0.4) {
+        console.log(`[Chat] Template match found: ${templateMatch.template.id} (score: ${templateMatch.score})`)
+        const templateResponse = templateService.buildTemplateResponse(templateMatch)
+        return res.json({
+          success: true,
+          output: JSON.stringify(templateResponse),
+          agent: { id: 'nexus', name: 'Nexus', title: 'AI Orchestrator', avatar: '🤖', color: '#6366f1' },
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          model: 'template-match',
+          viaProxy: false,
+          fromTemplate: templateMatch.template.id
+        })
+      }
+    }
 
     // Determine which agent to use
     let agent: Agent

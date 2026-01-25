@@ -1,0 +1,56 @@
+{
+  "id": "whatsapp_lead_followup_to_crm",
+  "name": "WhatsApp Lead Follow-up to CRM",
+  "description": "Automatically log WhatsApp lead conversations to HubSpot CRM and send follow-up messages",
+  "requiredIntegrations": ["whatsapp", "hubspot"],
+  "exampleUserInput": "When I get a WhatsApp message from a lead, save it to my CRM and schedule a follow-up",
+  "keywords": ["whatsapp", "lead", "crm", "hubspot", "follow-up", "followup", "contact"],
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Receive WhatsApp Message",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "receive",
+          "params": {
+            "messageType": "text"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Create or Update HubSpot Contact",
+        "type": "action",
+        "integrationId": "hubspot",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "HUBSPOT_CREATE_CONTACT",
+          "action": "create",
+          "params": {
+            "source": "WhatsApp",
+            "leadStatus": "New"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Follow-up WhatsApp",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "messageTemplate": "follow_up"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["whatsapp", "hubspot"]
+  }
+}
