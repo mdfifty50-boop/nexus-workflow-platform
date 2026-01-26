@@ -1117,7 +1117,8 @@ describe('Golden Path HTTP Integration', () => {
           .send({ answer: 'slack' })
 
         expect(clarifyRes2.status).toBe(200)
-        expect(clarifyRes2.body.status).toBe('plan_ready')
+        // Move 6.16: Now returns ready_to_execute or needs_user_input (not plan_ready)
+        expect(['ready_to_execute', 'needs_user_input']).toContain(clarifyRes2.body.status)
         expect(clarifyRes2.body.executionPlan).toBeDefined()
         expect(clarifyRes2.body.executionPlan.tasks).toBeDefined()
         expect(clarifyRes2.body.executionPlan.tasks.length).toBeGreaterThan(0)
@@ -1130,9 +1131,70 @@ describe('Golden Path HTTP Integration', () => {
           })
         )
       } else {
-        // Plan ready after first answer
-        expect(clarifyRes1.body.status).toBe('plan_ready')
+        // Ready to execute after first answer (Move 6.16 validation passed)
+        expect(['ready_to_execute', 'needs_user_input']).toContain(clarifyRes1.body.status)
         expect(clarifyRes1.body.executionPlan).toBeDefined()
+      }
+    })
+  })
+
+  /**
+   * Move 6.16: Clarify-to-Execute validation loop
+   * Tests that clarification flows through validation and returns ready_to_execute
+   */
+  describe('Move 6.16: Clarify-to-Execute Loop', () => {
+    it('should validate and return ready_to_execute after clarification completes', async () => {
+      // Step 1: Create workflow with broad request
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Lead Follow-up',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          user_input: 'Help me follow up with leads',
+          enableClarification: true,
+        })
+
+      expect(createRes.status).toBe(200)
+      expect(createRes.body.status).toBe('needs_clarification')
+      const workflowId = createRes.body.workflowId
+
+      // Step 2: Answer questions until we get final status
+      let currentStatus = 'needs_clarification'
+      let finalResponse = createRes.body
+      const answers = ['hubspot', 'email']  // CRM and notification preferences
+
+      for (const answer of answers) {
+        if (currentStatus !== 'needs_clarification') break
+
+        const clarifyRes = await request(app)
+          .post(`/api/workflows/${workflowId}/clarify`)
+          .send({ answer })
+
+        expect(clarifyRes.status).toBe(200)
+        currentStatus = clarifyRes.body.status
+        finalResponse = clarifyRes.body
+      }
+
+      // Should reach ready_to_execute or needs_user_input (not plan_ready)
+      expect(['ready_to_execute', 'needs_user_input']).toContain(currentStatus)
+      expect(finalResponse.executionPlan).toBeDefined()
+      expect(finalResponse.executionPlan.tasks.length).toBeGreaterThan(0)
+
+      // Verify SSE events were emitted
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_clarification_answered',
+        })
+      )
+
+      if (currentStatus === 'ready_to_execute') {
+        expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            workflowId,
+            type: 'golden_path_ready_to_execute',
+          })
+        )
       }
     })
   })

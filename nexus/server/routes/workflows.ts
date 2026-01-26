@@ -608,10 +608,28 @@ router.post('/:id/clarify', extractClerkUserId, async (req: Request, res: Respon
     // Check if there are more questions
     const nextQuestion = getNextClarificationQuestion(state)
 
+    // Emit SSE event for answer received
+    broadcastWorkflowUpdate({
+      workflowId: req.params.id,
+      type: 'golden_path_clarification_answered',
+      timestamp: new Date().toISOString(),
+      questionKey: currentQuestion.key,
+      answer,
+    })
+
     if (nextQuestion) {
       // More questions to ask - update workflow and return next question
       await workflowService.updateWorkflow(req.params.id, {
         config: { ...config, clarificationState: state },
+      })
+
+      // Emit SSE event for next question
+      broadcastWorkflowUpdate({
+        workflowId: req.params.id,
+        type: 'golden_path_clarification_asked',
+        timestamp: new Date().toISOString(),
+        question: nextQuestion.question,
+        choices: nextQuestion.choices,
       })
 
       return res.status(200).json({
@@ -628,18 +646,6 @@ router.post('/:id/clarify', extractClerkUserId, async (req: Request, res: Respon
     const category = config.clarificationCategory as string
     const executionPlan = buildPlanFromClarification(category, state.answers)
 
-    // Update workflow with execution plan and clear clarification state
-    await workflowService.updateWorkflow(req.params.id, {
-      config: {
-        ...config,
-        executionPlan,
-        clarificationState: undefined,
-        clarificationCategory: undefined,
-        clarificationComplete: true,
-      },
-      status: 'building',
-    })
-
     // Emit SSE event for clarification complete
     broadcastWorkflowUpdate({
       workflowId: req.params.id,
@@ -649,12 +655,94 @@ router.post('/:id/clarify', extractClerkUserId, async (req: Request, res: Respon
       executionPlan,
     })
 
+    // Move 6.16: Run validation pipeline (same as /execute)
+    const missingParamTasks: Array<{ taskId: string; toolSlug: string; missingParams: string[] }> = []
+    for (const task of executionPlan.tasks) {
+      const paramValidation = validateRequiredParams(task)
+      if (!paramValidation.valid && paramValidation.missingParams) {
+        missingParamTasks.push({
+          taskId: task.id,
+          toolSlug: task.config?.toolSlug || 'UNKNOWN',
+          missingParams: paramValidation.missingParams,
+        })
+      }
+    }
+
+    // Try autofill if we have missing params
+    // Convert answers object to string for autofill regex matching
+    const answersAsString = Object.values(state.answers).join(' ')
+    if (missingParamTasks.length > 0) {
+      const autoFillResult = autoFillParams(executionPlan.tasks, missingParamTasks, answersAsString)
+
+      if (autoFillResult.filled) {
+        broadcastWorkflowUpdate({
+          workflowId: req.params.id,
+          type: 'golden_path_autofill_applied',
+          timestamp: new Date().toISOString(),
+          filledParams: autoFillResult.filledParams.map(p => ({ taskId: p.taskId, param: p.param, source: p.source })),
+        })
+      }
+
+      // Re-validate after autofill to check if all params are now filled
+      const stillMissing: typeof missingParamTasks = []
+      for (const task of executionPlan.tasks) {
+        const paramValidation = validateRequiredParams(task)
+        if (!paramValidation.valid && paramValidation.missingParams) {
+          stillMissing.push({
+            taskId: task.id,
+            toolSlug: task.config?.toolSlug || 'UNKNOWN',
+            missingParams: paramValidation.missingParams,
+          })
+        }
+      }
+
+      // Check if still missing after autofill
+      if (stillMissing.length > 0) {
+        const { userPrompt, exampleAnswer } = generateUserPrompt(stillMissing)
+
+        await workflowService.updateWorkflow(req.params.id, {
+          config: { ...config, executionPlan, clarificationState: undefined, clarificationCategory: undefined },
+          status: 'pending',
+        })
+
+        return res.status(200).json({
+          success: true,
+          status: 'needs_user_input',
+          workflowId: req.params.id,
+          executionPlan,
+          missingParams: stillMissing,
+          userPrompt,
+          exampleAnswer,
+          message: 'Workflow plan ready but needs additional input.',
+        })
+      }
+    }
+
+    // All validation passed - ready to execute
+    await workflowService.updateWorkflow(req.params.id, {
+      config: {
+        ...config,
+        executionPlan,
+        clarificationState: undefined,
+        clarificationCategory: undefined,
+        clarificationComplete: true,
+      },
+      status: 'ready',
+    })
+
+    broadcastWorkflowUpdate({
+      workflowId: req.params.id,
+      type: 'golden_path_ready_to_execute',
+      timestamp: new Date().toISOString(),
+      executionPlan,
+    })
+
     return res.status(200).json({
       success: true,
-      status: 'plan_ready',
+      status: 'ready_to_execute',
       workflowId: req.params.id,
       executionPlan,
-      message: 'Clarification complete. Workflow plan is ready.',
+      message: 'Clarification complete. Workflow is ready to execute.',
     })
   } catch (error: any) {
     console.error('Error processing clarification:', error)
