@@ -803,4 +803,71 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  describe('Move 6.12: User-Friendly Prompt Generator', () => {
+    it('should include userPrompt and exampleAnswer when Gmail "to" param is missing', async () => {
+      // Mock composio to return connected (so we pass preflight)
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      // Create workflow
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Email Test Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with missing 'to' param
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_gmail_missing_to',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Test', body: 'Hello' }, // Missing 'to' param
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+      }
+
+      // Execute - should return needs_user_input with userPrompt
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      // Should return needs_user_input
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+      expect(executeRes.body.status).toBe('needs_user_input')
+
+      // Move 6.12: Should include user-friendly prompt
+      expect(executeRes.body.userPrompt).toBeDefined()
+      expect(executeRes.body.userPrompt.toLowerCase()).toContain('email')
+      expect(executeRes.body.exampleAnswer).toBeDefined()
+      expect(executeRes.body.exampleAnswer).toContain('@')
+
+      // Verify SSE event for prompt generated
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_user_prompt_generated',
+          userPrompt: expect.stringContaining('email'),
+          exampleAnswer: expect.stringContaining('@'),
+        })
+      )
+    })
+  })
 })

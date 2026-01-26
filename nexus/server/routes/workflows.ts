@@ -201,6 +201,67 @@ function generateDemoResult(toolSlug: string): Record<string, unknown> {
 }
 
 /**
+ * Move 6.12: Generate user-friendly prompt for missing fields
+ * Converts technical missing params into ONE natural-language question
+ */
+function generateUserPrompt(missingFields: Array<{ taskId: string; toolSlug: string; missingParams: string[] }>): {
+  userPrompt: string
+  exampleAnswer: string
+} {
+  // Param-specific prompts and examples
+  const paramPrompts: Record<string, { question: string; example: string }> = {
+    // Email params
+    to: { question: 'What email address should I send this to?', example: 'john@example.com' },
+    recipient: { question: 'Who should receive this message?', example: '+1 (555) 123-4567' },
+    subject: { question: 'What should the email subject be?', example: 'Weekly Report' },
+    body: { question: 'What message would you like to send?', example: 'Hi, here is the update...' },
+    // Slack params
+    channel: { question: 'Which Slack channel should I post to?', example: '#general' },
+    message: { question: 'What message would you like to send?', example: 'Hello team!' },
+    // Google Sheets params
+    spreadsheet_id: { question: 'Which Google Sheet should I use? (paste the URL or ID)', example: 'https://docs.google.com/spreadsheets/d/abc123' },
+    range: { question: 'Which cells should I update?', example: 'Sheet1!A1:B10' },
+    // Calendar params
+    title: { question: 'What should the event be called?', example: 'Team Meeting' },
+    start_time: { question: 'When should this start?', example: 'Tomorrow at 2pm' },
+    // HubSpot params
+    email: { question: 'What is the contact\'s email address?', example: 'contact@company.com' },
+    firstname: { question: 'What is the contact\'s first name?', example: 'Jane' },
+    // Generic
+    name: { question: 'What name should I use?', example: 'My Workflow Item' },
+    url: { question: 'What URL should I use?', example: 'https://example.com' },
+  }
+
+  // Get the first missing param to ask about
+  if (missingFields.length === 0 || missingFields[0].missingParams.length === 0) {
+    return {
+      userPrompt: 'I need a bit more information to continue. What would you like to do?',
+      exampleAnswer: 'Send an email to john@example.com',
+    }
+  }
+
+  const firstTask = missingFields[0]
+  const firstParam = firstTask.missingParams[0]
+  const toolName = firstTask.toolSlug.split('_')[0].toLowerCase()
+
+  // Look up specific prompt
+  const specific = paramPrompts[firstParam]
+  if (specific) {
+    return {
+      userPrompt: specific.question,
+      exampleAnswer: specific.example,
+    }
+  }
+
+  // Generate generic prompt based on param name
+  const readableParam = firstParam.replace(/_/g, ' ')
+  return {
+    userPrompt: `What ${readableParam} should I use for ${toolName}?`,
+    exampleAnswer: `your-${firstParam}-here`,
+  }
+}
+
+/**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
  */
@@ -729,6 +790,9 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
         if (stillMissing.length === 0) {
           // Fall through to execution below
         } else {
+          // Move 6.12: Generate user-friendly prompt for missing fields
+          const { userPrompt, exampleAnswer } = generateUserPrompt(stillMissing)
+
           // Still missing some params after autofill
           broadcastWorkflowUpdate({
             workflowId: req.params.id,
@@ -737,15 +801,29 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
             missingFields: stillMissing,
           })
 
+          // Move 6.12: Emit prompt generated event
+          broadcastWorkflowUpdate({
+            workflowId: req.params.id,
+            type: 'golden_path_user_prompt_generated',
+            timestamp: new Date().toISOString(),
+            userPrompt,
+            exampleAnswer,
+          })
+
           return res.status(200).json({
             success: true,
             status: 'needs_user_input',
             workflowId: req.params.id,
             missingFields: stillMissing,
+            userPrompt,
+            exampleAnswer,
             message: 'I need more info before I can run this workflow.',
           })
         }
       } else {
+        // Move 6.12: Generate user-friendly prompt for missing fields
+        const { userPrompt, exampleAnswer } = generateUserPrompt(missingParamTasks)
+
         // Move 6.9: No autofill possible, prompt user for input
         broadcastWorkflowUpdate({
           workflowId: req.params.id,
@@ -754,11 +832,22 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
           missingFields: missingParamTasks,
         })
 
+        // Move 6.12: Emit prompt generated event
+        broadcastWorkflowUpdate({
+          workflowId: req.params.id,
+          type: 'golden_path_user_prompt_generated',
+          timestamp: new Date().toISOString(),
+          userPrompt,
+          exampleAnswer,
+        })
+
         return res.status(200).json({
           success: true,
           status: 'needs_user_input',
           workflowId: req.params.id,
           missingFields: missingParamTasks,
+          userPrompt,
+          exampleAnswer,
           message: 'I need more info before I can run this workflow.',
         })
       }
