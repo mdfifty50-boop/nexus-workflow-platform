@@ -7,27 +7,68 @@ import { broadcastWorkflowUpdate } from './sse.js'
 const router = Router()
 
 // ============================================================================
-// Move 6.6: TOOL_SLUGS mapping for plan validation (subset for validation only)
-// Full mapping in RubeExecutionBridge.ts
+// Move 6.14: ACTION_CATALOG - Single source of truth for validation + autofill
+// Consolidates TOOL_SLUGS, REQUIRED_PARAMS, autofill rules, and human labels
 // ============================================================================
-const TOOL_SLUGS: Record<string, Record<string, string>> = {
-  gmail: { send: 'GMAIL_SEND_EMAIL', fetch: 'GMAIL_FETCH_EMAILS', default: 'GMAIL_SEND_EMAIL' },
-  slack: { send: 'SLACK_SEND_MESSAGE', message: 'SLACK_SEND_MESSAGE', default: 'SLACK_SEND_MESSAGE' },
-  googlesheets: { read: 'GOOGLESHEETS_BATCH_GET', write: 'GOOGLESHEETS_BATCH_UPDATE', default: 'GOOGLESHEETS_BATCH_GET' },
-  sheets: { read: 'GOOGLESHEETS_BATCH_GET', append: 'GOOGLESHEETS_BATCH_UPDATE', default: 'GOOGLESHEETS_BATCH_GET' },
-  googlecalendar: { create: 'GOOGLECALENDAR_CREATE_EVENT', list: 'GOOGLECALENDAR_EVENTS_LIST', default: 'GOOGLECALENDAR_CREATE_EVENT' },
-  calendar: { create: 'GOOGLECALENDAR_CREATE_EVENT', list: 'GOOGLECALENDAR_EVENTS_LIST', default: 'GOOGLECALENDAR_CREATE_EVENT' },
-  github: { issue: 'GITHUB_CREATE_ISSUE', create: 'GITHUB_CREATE_ISSUE', list: 'GITHUB_LIST_REPOSITORY_ISSUES', default: 'GITHUB_CREATE_ISSUE' },
-  notion: { create: 'NOTION_CREATE_PAGE', page: 'NOTION_CREATE_PAGE', update: 'NOTION_UPDATE_PAGE', default: 'NOTION_CREATE_PAGE' },
-  discord: { send: 'DISCORD_SEND_MESSAGE', message: 'DISCORD_SEND_MESSAGE', default: 'DISCORD_SEND_MESSAGE' },
-  trello: { card: 'TRELLO_CREATE_CARD', create: 'TRELLO_CREATE_CARD', default: 'TRELLO_CREATE_CARD' },
-  stripe: { customer: 'STRIPE_CREATE_CUSTOMER', charge: 'STRIPE_CREATE_CHARGE', default: 'STRIPE_CREATE_CUSTOMER' },
-  twitter: { post: 'TWITTER_CREATE_TWEET', tweet: 'TWITTER_CREATE_TWEET', default: 'TWITTER_CREATE_TWEET' },
-  whatsapp: { send: 'WHATSAPP_SEND_MESSAGE', message: 'WHATSAPP_SEND_MESSAGE', default: 'WHATSAPP_SEND_MESSAGE' },
-  hubspot: { contact: 'HUBSPOT_CREATE_CONTACT', create: 'HUBSPOT_CREATE_CONTACT', default: 'HUBSPOT_CREATE_CONTACT' },
-  linear: { create: 'LINEAR_CREATE_ISSUE', issue: 'LINEAR_CREATE_ISSUE', default: 'LINEAR_CREATE_ISSUE' },
-  jira: { create: 'JIRA_CREATE_ISSUE', issue: 'JIRA_CREATE_ISSUE', default: 'JIRA_CREATE_ISSUE' },
+interface ActionDefinition {
+  toolSlug: string
+  integrationId: string
+  requiredParams: string[]
+  autofillRules: Array<{ param: string; type: 'email' | 'phone' | 'default'; value?: string }>
+  humanLabel: string
 }
+
+export const ACTION_CATALOG: Record<string, ActionDefinition> = {
+  // Gmail
+  GMAIL_SEND_EMAIL: { toolSlug: 'GMAIL_SEND_EMAIL', integrationId: 'gmail', requiredParams: ['to'], autofillRules: [{ param: 'to', type: 'email' }], humanLabel: 'Send Email' },
+  GMAIL_FETCH_EMAILS: { toolSlug: 'GMAIL_FETCH_EMAILS', integrationId: 'gmail', requiredParams: [], autofillRules: [], humanLabel: 'Fetch Emails' },
+  // Slack
+  SLACK_SEND_MESSAGE: { toolSlug: 'SLACK_SEND_MESSAGE', integrationId: 'slack', requiredParams: ['channel'], autofillRules: [{ param: 'channel', type: 'default', value: '#general' }], humanLabel: 'Send Slack Message' },
+  // Google Sheets
+  GOOGLESHEETS_BATCH_UPDATE: { toolSlug: 'GOOGLESHEETS_BATCH_UPDATE', integrationId: 'googlesheets', requiredParams: ['spreadsheet_id'], autofillRules: [], humanLabel: 'Update Spreadsheet' },
+  GOOGLESHEETS_BATCH_GET: { toolSlug: 'GOOGLESHEETS_BATCH_GET', integrationId: 'googlesheets', requiredParams: ['spreadsheet_id'], autofillRules: [], humanLabel: 'Read Spreadsheet' },
+  // Calendar
+  GOOGLECALENDAR_CREATE_EVENT: { toolSlug: 'GOOGLECALENDAR_CREATE_EVENT', integrationId: 'googlecalendar', requiredParams: ['summary'], autofillRules: [], humanLabel: 'Create Calendar Event' },
+  GOOGLECALENDAR_EVENTS_LIST: { toolSlug: 'GOOGLECALENDAR_EVENTS_LIST', integrationId: 'googlecalendar', requiredParams: [], autofillRules: [], humanLabel: 'List Calendar Events' },
+  // WhatsApp
+  WHATSAPP_SEND_MESSAGE: { toolSlug: 'WHATSAPP_SEND_MESSAGE', integrationId: 'whatsapp', requiredParams: ['to'], autofillRules: [{ param: 'to', type: 'phone' }], humanLabel: 'Send WhatsApp Message' },
+  // HubSpot
+  HUBSPOT_CREATE_CONTACT: { toolSlug: 'HUBSPOT_CREATE_CONTACT', integrationId: 'hubspot', requiredParams: ['email'], autofillRules: [{ param: 'email', type: 'email' }], humanLabel: 'Create HubSpot Contact' },
+  // Stripe
+  STRIPE_CREATE_CUSTOMER: { toolSlug: 'STRIPE_CREATE_CUSTOMER', integrationId: 'stripe', requiredParams: ['email'], autofillRules: [{ param: 'email', type: 'email' }], humanLabel: 'Create Stripe Customer' },
+  STRIPE_CREATE_CHARGE: { toolSlug: 'STRIPE_CREATE_CHARGE', integrationId: 'stripe', requiredParams: ['amount'], autofillRules: [], humanLabel: 'Create Stripe Charge' },
+  STRIPE_CREATE_INVOICE: { toolSlug: 'STRIPE_CREATE_INVOICE', integrationId: 'stripe', requiredParams: ['customer'], autofillRules: [], humanLabel: 'Create Stripe Invoice' },
+  // Discord
+  DISCORD_SEND_MESSAGE: { toolSlug: 'DISCORD_SEND_MESSAGE', integrationId: 'discord', requiredParams: ['channel_id'], autofillRules: [], humanLabel: 'Send Discord Message' },
+  // Notion
+  NOTION_CREATE_PAGE: { toolSlug: 'NOTION_CREATE_PAGE', integrationId: 'notion', requiredParams: ['parent_id'], autofillRules: [], humanLabel: 'Create Notion Page' },
+  NOTION_UPDATE_PAGE: { toolSlug: 'NOTION_UPDATE_PAGE', integrationId: 'notion', requiredParams: ['page_id'], autofillRules: [], humanLabel: 'Update Notion Page' },
+  // GitHub
+  GITHUB_CREATE_ISSUE: { toolSlug: 'GITHUB_CREATE_ISSUE', integrationId: 'github', requiredParams: ['repo', 'title'], autofillRules: [], humanLabel: 'Create GitHub Issue' },
+  GITHUB_LIST_REPOSITORY_ISSUES: { toolSlug: 'GITHUB_LIST_REPOSITORY_ISSUES', integrationId: 'github', requiredParams: ['repo'], autofillRules: [], humanLabel: 'List GitHub Issues' },
+  // Trello
+  TRELLO_CREATE_CARD: { toolSlug: 'TRELLO_CREATE_CARD', integrationId: 'trello', requiredParams: ['idList'], autofillRules: [], humanLabel: 'Create Trello Card' },
+  // Twitter
+  TWITTER_CREATE_TWEET: { toolSlug: 'TWITTER_CREATE_TWEET', integrationId: 'twitter', requiredParams: ['text'], autofillRules: [], humanLabel: 'Post Tweet' },
+  // Linear
+  LINEAR_CREATE_ISSUE: { toolSlug: 'LINEAR_CREATE_ISSUE', integrationId: 'linear', requiredParams: ['title'], autofillRules: [], humanLabel: 'Create Linear Issue' },
+  // Jira
+  JIRA_CREATE_ISSUE: { toolSlug: 'JIRA_CREATE_ISSUE', integrationId: 'jira', requiredParams: ['summary'], autofillRules: [], humanLabel: 'Create Jira Issue' },
+}
+
+// Build TOOL_SLUGS from ACTION_CATALOG for backwards compatibility
+const TOOL_SLUGS: Record<string, Record<string, string>> = {}
+for (const action of Object.values(ACTION_CATALOG)) {
+  if (!TOOL_SLUGS[action.integrationId]) {
+    TOOL_SLUGS[action.integrationId] = { default: action.toolSlug }
+  }
+  // Map action keywords to slugs
+  const actionName = action.toolSlug.split('_').slice(1).join('_').toLowerCase()
+  TOOL_SLUGS[action.integrationId][actionName] = action.toolSlug
+}
+// Add aliases
+TOOL_SLUGS['sheets'] = TOOL_SLUGS['googlesheets']
+TOOL_SLUGS['calendar'] = TOOL_SLUGS['googlecalendar']
 
 /**
  * Validate and normalize a tool slug for a task
@@ -59,53 +100,26 @@ function validateAndNormalizeToolSlug(task: any): { valid: boolean; normalizedSl
 }
 
 // ============================================================================
-// Move 6.8: REQUIRED_PARAMS for parameter schema validation
-// Maps toolSlug -> array of required param keys
+// Move 6.8/6.14: Validate required params using ACTION_CATALOG
 // ============================================================================
-const REQUIRED_PARAMS: Record<string, string[]> = {
-  // Gmail
-  GMAIL_SEND_EMAIL: ['to'],
-  GMAIL_FETCH_EMAILS: [],
-  // Slack
-  SLACK_SEND_MESSAGE: ['channel'],
-  // Google Sheets
-  GOOGLESHEETS_BATCH_UPDATE: ['spreadsheet_id'],
-  GOOGLESHEETS_BATCH_GET: ['spreadsheet_id'],
-  // WhatsApp (from template)
-  WHATSAPP_SEND_MESSAGE: ['to'],
-  // HubSpot (from template)
-  HUBSPOT_CREATE_CONTACT: ['email'],
-  // Stripe (from template)
-  STRIPE_CREATE_CUSTOMER: ['email'],
-  STRIPE_CREATE_CHARGE: ['amount'],
-  STRIPE_CREATE_INVOICE: ['customer'],
-  // Discord
-  DISCORD_SEND_MESSAGE: ['channel_id'],
-  // Notion
-  NOTION_CREATE_PAGE: ['parent_id'],
-  // GitHub
-  GITHUB_CREATE_ISSUE: ['repo', 'title'],
-}
-
 /**
- * Validate required params for a task
+ * Validate required params for a task using ACTION_CATALOG
  * Returns { valid: true } or { valid: false, missingParams: [...] }
  */
 function validateRequiredParams(task: any): { valid: boolean; missingParams?: string[] } {
   const toolSlug = task.config?.toolSlug
   if (!toolSlug) return { valid: true } // No toolSlug = skip param validation
 
-  const requiredParams = REQUIRED_PARAMS[toolSlug]
-  if (!requiredParams || requiredParams.length === 0) {
-    return { valid: true } // No required params for this tool
+  const action = ACTION_CATALOG[toolSlug]
+  if (!action || action.requiredParams.length === 0) {
+    return { valid: true } // Unknown tool or no required params
   }
 
   const params = task.config?.params || {}
   const missingParams: string[] = []
 
-  for (const param of requiredParams) {
+  for (const param of action.requiredParams) {
     const value = params[param]
-    // Check if param exists and is not empty
     if (value === undefined || value === null || value === '') {
       missingParams.push(param)
     }
@@ -131,7 +145,7 @@ interface AutoFillResult {
 }
 
 /**
- * Try to auto-fill missing params from user_input and safe defaults
+ * Move 6.10/6.14: Auto-fill missing params using ACTION_CATALOG autofillRules
  * Only fills if confidence is high (regex match or safe default)
  */
 function autoFillParams(
@@ -145,38 +159,30 @@ function autoFillParams(
   for (const missing of missingParamTasks) {
     const task = tasks.find((t: any) => t.id === missing.taskId)
     if (!task || !task.config) continue
-
-    // Ensure params object exists
     if (!task.config.params) task.config.params = {}
 
-    for (const param of missing.missingParams) {
-      let filled = false
+    const action = ACTION_CATALOG[missing.toolSlug]
+    if (!action) continue
 
-      // GMAIL_SEND_EMAIL: extract 'to' email from user input
-      if (missing.toolSlug === 'GMAIL_SEND_EMAIL' && param === 'to') {
+    for (const param of missing.missingParams) {
+      const rule = action.autofillRules.find(r => r.param === param)
+      if (!rule) continue
+
+      if (rule.type === 'email') {
         const emailMatch = inputText.match(EMAIL_REGEX)
         if (emailMatch) {
-          task.config.params.to = emailMatch[0]
-          filledParams.push({ taskId: task.id, param: 'to', value: emailMatch[0], source: 'user_input' })
-          filled = true
+          task.config.params[param] = emailMatch[0]
+          filledParams.push({ taskId: task.id, param, value: emailMatch[0], source: 'user_input' })
         }
-      }
-
-      // WHATSAPP_SEND_MESSAGE: extract 'to' phone from user input
-      if (missing.toolSlug === 'WHATSAPP_SEND_MESSAGE' && param === 'to') {
+      } else if (rule.type === 'phone') {
         const phoneMatch = inputText.match(PHONE_REGEX)
         if (phoneMatch) {
-          task.config.params.to = phoneMatch[0]
-          filledParams.push({ taskId: task.id, param: 'to', value: phoneMatch[0], source: 'user_input' })
-          filled = true
+          task.config.params[param] = phoneMatch[0]
+          filledParams.push({ taskId: task.id, param, value: phoneMatch[0], source: 'user_input' })
         }
-      }
-
-      // SLACK_SEND_MESSAGE: default channel to #general (safe default)
-      if (missing.toolSlug === 'SLACK_SEND_MESSAGE' && param === 'channel') {
-        task.config.params.channel = '#general'
-        filledParams.push({ taskId: task.id, param: 'channel', value: '#general', source: 'safe_default' })
-        filled = true
+      } else if (rule.type === 'default' && rule.value) {
+        task.config.params[param] = rule.value
+        filledParams.push({ taskId: task.id, param, value: rule.value, source: 'safe_default' })
       }
     }
   }

@@ -870,4 +870,187 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  /**
+   * Move 6.14: Generic Action Catalog validation tests
+   * Tests non-template multi-step workflow (gmail + slack)
+   */
+  describe('Move 6.14: Generic Action Catalog Validation', () => {
+    it('should fail cleanly with invalid tool slugs', async () => {
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Invalid Slug Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Bad Step', tool: 'gmail' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with invalid tool slug
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_invalid',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'INVALID_TOOL_SLUG_DOES_NOT_EXIST',
+                  params: {},
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+      }
+
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      // Should execute without crashing (unknown tools have no required params)
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+    })
+
+    it('should return needs_user_input with userPrompt for gmail+slack workflow', async () => {
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Gmail + Slack Workflow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [
+            { id: 'step_1', name: 'Send Email', tool: 'gmail' },
+            { id: 'step_2', name: 'Notify Slack', tool: 'slack' },
+          ] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject multi-step execution plan with missing params (no 'to', no 'channel')
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_gmail',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Update', body: 'Hello team' },
+                },
+              },
+              {
+                id: 'task_slack',
+                dependencies: ['task_gmail'],
+                config: {
+                  integration: 'slack',
+                  toolSlug: 'SLACK_SEND_MESSAGE',
+                  params: { message: 'Email sent!' },
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail', 'slack'],
+          },
+        }
+      }
+
+      // Execute without user_input - should need user input for 'to'
+      // (Slack 'channel' gets autofilled to #general)
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.status).toBe('needs_user_input')
+      expect(executeRes.body.userPrompt).toBeDefined()
+      expect(executeRes.body.userPrompt.toLowerCase()).toContain('email')
+    })
+
+    it('should autofill email from user_input for gmail+slack workflow', async () => {
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      // Create workflow with user_input containing email (autofill source)
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Gmail + Slack Autofill Test',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          user_input: 'Send this to john@example.com please',
+          config: { steps: [
+            { id: 'step_1', name: 'Send Email', tool: 'gmail' },
+            { id: 'step_2', name: 'Notify Slack', tool: 'slack' },
+          ] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject multi-step execution plan with missing params
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_gmail',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Update', body: 'Hello' },
+                },
+              },
+              {
+                id: 'task_slack',
+                dependencies: ['task_gmail'],
+                config: {
+                  integration: 'slack',
+                  toolSlug: 'SLACK_SEND_MESSAGE',
+                  params: { message: 'Done!' },
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail', 'slack'],
+          },
+        }
+      }
+
+      // Execute - should autofill 'to' from user_input and 'channel' from safe_default
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      // Should not return needs_user_input since both params autofilled
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+      expect(executeRes.body.status).not.toBe('needs_user_input')
+
+      // Verify autofill SSE event was emitted with both params
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_autofill_applied',
+          filledParams: expect.arrayContaining([
+            expect.objectContaining({ param: 'to', source: 'user_input' }),
+          ]),
+        })
+      )
+    })
+  })
 })
