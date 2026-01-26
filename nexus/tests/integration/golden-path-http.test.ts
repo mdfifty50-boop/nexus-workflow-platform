@@ -1053,4 +1053,87 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  /**
+   * Move 6.15: Workflow Clarifier tests
+   * Tests single-question clarification flow for broad requests
+   */
+  describe('Move 6.15: Workflow Clarifier', () => {
+    it('should return needs_clarification with question for broad onboarding request', async () => {
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Client Onboarding',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          user_input: 'Help me onboard my clients automatically',
+          enableClarification: true,
+        })
+
+      // Should return 200 with needs_clarification status
+      expect(createRes.status).toBe(200)
+      expect(createRes.body.success).toBe(true)
+      expect(createRes.body.status).toBe('needs_clarification')
+
+      // Should include question, choices, and reason
+      expect(createRes.body.question).toBeDefined()
+      expect(createRes.body.question.toLowerCase()).toContain('crm')
+      expect(createRes.body.choices).toBeDefined()
+      expect(Array.isArray(createRes.body.choices)).toBe(true)
+      expect(createRes.body.choices.length).toBeGreaterThanOrEqual(2)
+      expect(createRes.body.reason).toBeDefined()
+
+      // Should return workflow ID for follow-up
+      expect(createRes.body.workflowId).toBeDefined()
+    })
+
+    it('should produce valid plan after clarification answers', async () => {
+      // Step 1: Create workflow with broad request
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Client Onboarding Flow',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          user_input: 'Help me onboard new clients',
+          enableClarification: true,
+        })
+
+      expect(createRes.status).toBe(200)
+      expect(createRes.body.status).toBe('needs_clarification')
+      const workflowId = createRes.body.workflowId
+
+      // Step 2: Answer first question (CRM choice)
+      const clarifyRes1 = await request(app)
+        .post(`/api/workflows/${workflowId}/clarify`)
+        .send({ answer: 'hubspot' })
+
+      // Should either ask another question or produce plan
+      expect(clarifyRes1.status).toBe(200)
+      expect(clarifyRes1.body.success).toBe(true)
+
+      if (clarifyRes1.body.status === 'needs_clarification') {
+        // Answer second question (notification choice)
+        const clarifyRes2 = await request(app)
+          .post(`/api/workflows/${workflowId}/clarify`)
+          .send({ answer: 'slack' })
+
+        expect(clarifyRes2.status).toBe(200)
+        expect(clarifyRes2.body.status).toBe('plan_ready')
+        expect(clarifyRes2.body.executionPlan).toBeDefined()
+        expect(clarifyRes2.body.executionPlan.tasks).toBeDefined()
+        expect(clarifyRes2.body.executionPlan.tasks.length).toBeGreaterThan(0)
+
+        // Verify SSE event for clarification complete
+        expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            workflowId,
+            type: 'golden_path_clarification_complete',
+          })
+        )
+      } else {
+        // Plan ready after first answer
+        expect(clarifyRes1.body.status).toBe('plan_ready')
+        expect(clarifyRes1.body.executionPlan).toBeDefined()
+      }
+    })
+  })
 })

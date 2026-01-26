@@ -267,6 +267,140 @@ function generateUserPrompt(missingFields: Array<{ taskId: string; toolSlug: str
   }
 }
 
+// ============================================================================
+// Move 6.15: Workflow Clarifier (single-question mode)
+// Detects broad requests and asks one clarification question at a time
+// ============================================================================
+
+interface ClarificationQuestion {
+  key: string
+  question: string
+  choices: string[]
+  reason: string
+}
+
+// Clarification questions for broad workflow requests
+const CLARIFICATION_QUESTIONS: Record<string, ClarificationQuestion[]> = {
+  onboard: [
+    { key: 'crm', question: 'Which CRM should I use for the client record?', choices: ['hubspot', 'notion', 'sheets'], reason: 'Needed to store client data.' },
+    { key: 'notification', question: 'How should I notify your team about new clients?', choices: ['slack', 'email', 'discord'], reason: 'Needed for team alerts.' },
+  ],
+  lead: [
+    { key: 'source', question: 'Where do leads come from?', choices: ['whatsapp', 'email', 'form'], reason: 'Needed to capture lead source.' },
+    { key: 'crm', question: 'Which CRM should I save leads to?', choices: ['hubspot', 'notion', 'sheets'], reason: 'Needed to store lead data.' },
+  ],
+  invoice: [
+    { key: 'payment', question: 'Which payment system do you use?', choices: ['stripe', 'manual', 'other'], reason: 'Needed for payment tracking.' },
+    { key: 'accounting', question: 'Where should I update accounting records?', choices: ['sheets', 'notion', 'email'], reason: 'Needed for record keeping.' },
+  ],
+}
+
+interface ClarificationState {
+  pendingQuestions: ClarificationQuestion[]
+  answers: Record<string, string>
+  currentQuestionIndex: number
+}
+
+/**
+ * Detect if a user request is broad and needs clarification
+ * Returns the category if broad, null otherwise
+ */
+function detectBroadRequest(userInput: string): string | null {
+  const input = userInput.toLowerCase()
+  for (const category of Object.keys(CLARIFICATION_QUESTIONS)) {
+    if (input.includes(category)) {
+      return category
+    }
+  }
+  return null
+}
+
+/**
+ * Generate clarification state for a broad request
+ */
+function initClarificationState(category: string): ClarificationState {
+  return {
+    pendingQuestions: [...CLARIFICATION_QUESTIONS[category]],
+    answers: {},
+    currentQuestionIndex: 0,
+  }
+}
+
+/**
+ * Get the next clarification question or null if all answered
+ */
+function getNextClarificationQuestion(state: ClarificationState): ClarificationQuestion | null {
+  if (state.currentQuestionIndex >= state.pendingQuestions.length) {
+    return null
+  }
+  return state.pendingQuestions[state.currentQuestionIndex]
+}
+
+/**
+ * Build execution plan from clarification answers
+ * Returns a minimal plan using the chosen integrations
+ */
+function buildPlanFromClarification(category: string, answers: Record<string, string>): any {
+  const tasks: any[] = []
+  let taskId = 1
+
+  // Build tasks based on category and answers
+  if (category === 'onboard') {
+    const crm = answers.crm || 'notion'
+    const notification = answers.notification || 'slack'
+
+    tasks.push({
+      id: `task_${taskId++}`,
+      name: 'Create Client Record',
+      dependencies: [],
+      config: {
+        integration: crm,
+        toolSlug: ACTION_CATALOG[`${crm.toUpperCase()}_CREATE_${crm === 'hubspot' ? 'CONTACT' : 'PAGE'}`]?.toolSlug || `${crm.toUpperCase()}_CREATE_PAGE`,
+        params: {},
+      },
+    })
+    tasks.push({
+      id: `task_${taskId++}`,
+      name: 'Notify Team',
+      dependencies: [`task_${taskId - 2}`],
+      config: {
+        integration: notification,
+        toolSlug: notification === 'email' ? 'GMAIL_SEND_EMAIL' : `${notification.toUpperCase()}_SEND_MESSAGE`,
+        params: {},
+      },
+    })
+  } else if (category === 'lead') {
+    const crm = answers.crm || 'hubspot'
+    tasks.push({
+      id: `task_${taskId++}`,
+      name: 'Save Lead to CRM',
+      dependencies: [],
+      config: {
+        integration: crm,
+        toolSlug: crm === 'hubspot' ? 'HUBSPOT_CREATE_CONTACT' : `${crm.toUpperCase()}_CREATE_PAGE`,
+        params: {},
+      },
+    })
+  } else if (category === 'invoice') {
+    const accounting = answers.accounting || 'sheets'
+    tasks.push({
+      id: `task_${taskId++}`,
+      name: 'Update Accounting',
+      dependencies: [],
+      config: {
+        integration: accounting === 'sheets' ? 'googlesheets' : accounting,
+        toolSlug: accounting === 'sheets' ? 'GOOGLESHEETS_BATCH_UPDATE' : `${accounting.toUpperCase()}_CREATE_PAGE`,
+        params: {},
+      },
+    })
+  }
+
+  return {
+    tasks,
+    requiredIntegrations: [...new Set(tasks.map(t => t.config.integration))],
+  }
+}
+
 /**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
@@ -322,10 +456,11 @@ router.get('/', extractClerkUserId, async (req: Request, res: Response) => {
 /**
  * POST /api/workflows
  * Create a new workflow from approved proposal (Story 4.1)
+ * Move 6.15: Supports clarification mode for broad requests
  */
 router.post('/', extractClerkUserId, async (req: Request, res: Response) => {
   try {
-    const { name, description, workflow_type, user_input, config, clerk_user_id, executionMode } = req.body
+    const { name, description, workflow_type, user_input, config, clerk_user_id, executionMode, enableClarification } = req.body
     // In dev mode, use a default project_id UUID if not provided
     const isDev = process.env.NODE_ENV !== 'production'
     // Use a fixed UUID for dev mode that can be referenced consistently
@@ -334,6 +469,48 @@ router.post('/', extractClerkUserId, async (req: Request, res: Response) => {
 
     if (!project_id || !name) {
       return res.status(400).json({ success: false, error: 'project_id and name are required' })
+    }
+
+    // Move 6.15: Check if this is a broad request needing clarification
+    if (enableClarification && user_input) {
+      const broadCategory = detectBroadRequest(user_input)
+      if (broadCategory) {
+        const clarificationState = initClarificationState(broadCategory)
+        const firstQuestion = getNextClarificationQuestion(clarificationState)
+
+        if (firstQuestion) {
+          // Create workflow with clarification state
+          const workflowConfig = {
+            ...config,
+            clarificationState,
+            clarificationCategory: broadCategory,
+          }
+
+          const workflow = await workflowService.createWorkflow({
+            project_id,
+            name,
+            description,
+            workflow_type: workflow_type || 'BMAD',
+            user_input: user_input || '',
+            config: workflowConfig,
+            created_by: clerk_user_id,
+          })
+
+          if (!workflow) {
+            return res.status(500).json({ success: false, error: 'Failed to create workflow' })
+          }
+
+          return res.status(200).json({
+            success: true,
+            status: 'needs_clarification',
+            workflowId: workflow.id,
+            question: firstQuestion.question,
+            choices: firstQuestion.choices,
+            reason: firstQuestion.reason,
+            data: workflow,
+          })
+        }
+      }
     }
 
     // Move 6.11: Store executionMode in config for verified templates
@@ -395,6 +572,93 @@ router.get('/:id', extractClerkUserId, async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching workflow:', error)
     res.status(500).json({ success: false, error: error.message || 'Failed to fetch workflow' })
+  }
+})
+
+/**
+ * POST /api/workflows/:id/clarify
+ * Move 6.15: Handle clarification answer and continue planning
+ */
+router.post('/:id/clarify', extractClerkUserId, async (req: Request, res: Response) => {
+  try {
+    const { answer } = req.body
+    const clerkUserId = req.body.clerk_user_id
+    const workflow = await workflowService.getWorkflowById(req.params.id, clerkUserId)
+
+    if (!workflow) {
+      return res.status(404).json({ success: false, error: 'Workflow not found' })
+    }
+
+    const config = workflow.config as any
+    if (!config?.clarificationState) {
+      return res.status(400).json({ success: false, error: 'Workflow is not in clarification mode' })
+    }
+
+    const state = config.clarificationState as ClarificationState
+    const currentQuestion = state.pendingQuestions[state.currentQuestionIndex]
+
+    if (!currentQuestion) {
+      return res.status(400).json({ success: false, error: 'No pending clarification question' })
+    }
+
+    // Record answer and advance
+    state.answers[currentQuestion.key] = answer
+    state.currentQuestionIndex++
+
+    // Check if there are more questions
+    const nextQuestion = getNextClarificationQuestion(state)
+
+    if (nextQuestion) {
+      // More questions to ask - update workflow and return next question
+      await workflowService.updateWorkflow(req.params.id, {
+        config: { ...config, clarificationState: state },
+      })
+
+      return res.status(200).json({
+        success: true,
+        status: 'needs_clarification',
+        workflowId: req.params.id,
+        question: nextQuestion.question,
+        choices: nextQuestion.choices,
+        reason: nextQuestion.reason,
+      })
+    }
+
+    // All questions answered - build execution plan
+    const category = config.clarificationCategory as string
+    const executionPlan = buildPlanFromClarification(category, state.answers)
+
+    // Update workflow with execution plan and clear clarification state
+    await workflowService.updateWorkflow(req.params.id, {
+      config: {
+        ...config,
+        executionPlan,
+        clarificationState: undefined,
+        clarificationCategory: undefined,
+        clarificationComplete: true,
+      },
+      status: 'building',
+    })
+
+    // Emit SSE event for clarification complete
+    broadcastWorkflowUpdate({
+      workflowId: req.params.id,
+      type: 'golden_path_clarification_complete',
+      timestamp: new Date().toISOString(),
+      answers: state.answers,
+      executionPlan,
+    })
+
+    return res.status(200).json({
+      success: true,
+      status: 'plan_ready',
+      workflowId: req.params.id,
+      executionPlan,
+      message: 'Clarification complete. Workflow plan is ready.',
+    })
+  } catch (error: any) {
+    console.error('Error processing clarification:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to process clarification' })
   }
 })
 
