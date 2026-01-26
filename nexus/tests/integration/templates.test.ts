@@ -83,7 +83,7 @@ describe('Verified Workflow Templates (Move 6.7)', () => {
   beforeAll(() => {
     // Load all template files
     const files = readdirSync(templatesDir).filter(f => f.endsWith('.json'))
-    expect(files.length).toBeGreaterThanOrEqual(2)
+    expect(files.length).toBeGreaterThanOrEqual(3)
 
     for (const file of files) {
       const content = readFileSync(join(templatesDir, file), 'utf-8')
@@ -91,12 +91,13 @@ describe('Verified Workflow Templates (Move 6.7)', () => {
     }
   })
 
-  it('should load both templates successfully', () => {
-    expect(templates.length).toBe(2)
+  it('should load all templates successfully', () => {
+    expect(templates.length).toBe(3)
 
     const templateIds = templates.map(t => t.id)
     expect(templateIds).toContain('whatsapp_lead_followup_to_crm')
     expect(templateIds).toContain('invoice_payment_update_accounting')
+    expect(templateIds).toContain('client_onboarding_full')
   })
 
   it('should have requiredIntegrations not empty for all templates', () => {
@@ -141,6 +142,60 @@ describe('Verified Workflow Templates (Move 6.7)', () => {
       for (const integration of taskIntegrations) {
         expect(template.requiredIntegrations).toContain(integration)
       }
+    }
+  })
+})
+
+/**
+ * Move 6.13: Client Onboarding Template Validation
+ */
+describe('Client Onboarding Template (Move 6.13)', () => {
+  let template: WorkflowTemplate
+
+  beforeAll(() => {
+    const templatesDir = join(__dirname, '../../src/workflows/templates')
+    const content = readFileSync(join(templatesDir, 'client_onboarding_full.json'), 'utf-8')
+    template = JSON.parse(content)
+  })
+
+  it('should have correct template ID and name', () => {
+    expect(template.id).toBe('client_onboarding_full')
+    expect(template.name).toBe('Client Onboarding Workflow')
+  })
+
+  it('should have at least 6 tasks for multi-step onboarding', () => {
+    expect(template.executionPlan.tasks.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('should use notion, gmail, and slack integrations', () => {
+    expect(template.requiredIntegrations).toContain('notion')
+    expect(template.requiredIntegrations).toContain('gmail')
+    expect(template.requiredIntegrations).toContain('slack')
+  })
+
+  it('should have keywords matching "help me onboard my clients"', () => {
+    const testInput = 'help me onboard my clients'
+    const matchedKeywords = template.keywords.filter(k =>
+      testInput.toLowerCase().includes(k.toLowerCase())
+    )
+    // Should match at least 2 keywords
+    expect(matchedKeywords.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('should have valid toolSlugs for all tasks', () => {
+    for (const task of template.executionPlan.tasks) {
+      const isValid = /^[A-Z]+_[A-Z_]+$/.test(task.config.toolSlug)
+      expect(isValid).toBe(true)
+    }
+  })
+
+  it('should have proper task dependencies chain', () => {
+    // First task should have no dependencies (trigger)
+    expect(template.executionPlan.tasks[0].dependencies).toEqual([])
+
+    // Subsequent tasks should have dependencies
+    for (let i = 1; i < template.executionPlan.tasks.length; i++) {
+      expect(template.executionPlan.tasks[i].dependencies.length).toBeGreaterThan(0)
     }
   })
 })

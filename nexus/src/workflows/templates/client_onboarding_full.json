@@ -1,0 +1,130 @@
+{
+  "id": "client_onboarding_full",
+  "name": "Client Onboarding Workflow",
+  "description": "Complete client onboarding flow: form capture, CRM entry, info request, contract, welcome email, and team notification. Uses Notion as placeholder for ClickUp/CRM.",
+  "requiredIntegrations": ["notion", "gmail", "slack"],
+  "exampleUserInput": "Help me onboard my clients automatically with forms, contracts, and welcome emails",
+  "keywords": ["onboard", "onboarding", "client", "customer", "welcome", "contract", "form", "crm", "signup", "new client"],
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Capture Form Submission (Trigger)",
+        "type": "trigger",
+        "integrationId": "notion",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "NOTION_CREATE_PAGE",
+          "action": "create",
+          "params": {
+            "description": "Placeholder: Trigger when website form is submitted. In production, replace with webhook or form integration.",
+            "database": "clients"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Create Client in CRM",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "NOTION_CREATE_PAGE",
+          "action": "create",
+          "params": {
+            "description": "Placeholder: Create client record in ClickUp/CRM. Using Notion as CRM placeholder.",
+            "database": "clients",
+            "title": "{{client_name}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Populate Client Fields",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "update",
+          "params": {
+            "description": "Populate client fields: name, email, company, phone, package",
+            "properties": {
+              "name": "{{client_name}}",
+              "email": "{{client_email}}",
+              "company": "{{company_name}}",
+              "phone": "{{phone}}",
+              "package": "{{selected_package}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Request Missing Info via Email",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{client_email}}",
+            "subject": "Welcome! We need a bit more info to get started",
+            "body": "Hi {{client_name}},\n\nThank you for signing up! To complete your onboarding, please provide the following:\n- Company logo\n- Billing address\n- Primary contact\n\nReply to this email with the details.\n\nBest regards"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Contract for Signature",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "description": "Placeholder: In production, integrate DocuSign/HelloSign for e-signatures",
+            "to": "{{client_email}}",
+            "subject": "Your Service Agreement - Please Sign",
+            "body": "Hi {{client_name}},\n\nPlease review and sign your service agreement using the link below:\n\n[Contract Link Placeholder]\n\nOnce signed, we'll activate your account immediately.\n\nBest regards"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Welcome Email + Notify Team",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "description": "Triggered after contract signed. Sends welcome email to client.",
+            "to": "{{client_email}}",
+            "subject": "Welcome Aboard! Your Account is Active",
+            "body": "Hi {{client_name}},\n\nGreat news - your contract has been received and your account is now active!\n\nHere's what happens next:\n1. You'll receive login credentials within 24 hours\n2. Your dedicated account manager will reach out\n3. We'll schedule your kickoff call\n\nWelcome to the team!\n\nBest regards"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Internal Slack Notification",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#new-clients",
+            "message": ":tada: New client onboarded!\n\n*Client:* {{client_name}}\n*Company:* {{company_name}}\n*Package:* {{selected_package}}\n*Email:* {{client_email}}\n\nWelcome email sent. Please assign account manager."
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["notion", "gmail", "slack"]
+  }
+}
