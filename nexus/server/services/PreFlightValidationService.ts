@@ -883,4 +883,4 @@ class PreFlightValidationServiceClass {
 
 // Export singleton instance
 export const preFlightValidationService = new PreFlightValidationServiceClass()
-export default PreFlightValidationService
+export default PreFlightValidationServiceClass

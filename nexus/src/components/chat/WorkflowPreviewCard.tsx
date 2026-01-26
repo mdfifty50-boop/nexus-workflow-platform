@@ -2416,6 +2416,16 @@ function mapCollectedParamsToToolParams(
     // Skip internal tracking fields
     if (key.startsWith('_')) continue
 
+    // Move 6.16b: Handle nodeId.paramName format (task-specific params)
+    // Format: "node_123.to" → extract "to" as the param name
+    const nodeParamMatch = key.match(/^[a-zA-Z0-9_]+\.(\w+)$/)
+    if (nodeParamMatch) {
+      const paramName = nodeParamMatch[1]
+      console.log(`[Move 6.16b] Extracted task-specific param: ${key} → ${paramName} = ${value}`)
+      result[paramName] = value
+      continue
+    }
+
     // Check if this key is an integration name that needs mapping
     const keyLower = key.toLowerCase()
     const mappedParam = integrationToPrimaryParam[keyLower]
@@ -5286,14 +5296,18 @@ export function WorkflowPreviewCard({
                 <div className="space-y-1.5">
                   {Object.entries(collectedParams)
                     .filter(([key]) => !key.startsWith('_')) // Filter out internal keys like _lastUpdated, _retryRequested
-                    .map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400 capitalize">{key.replace(/_/g, ' ')}:</span>
-                        <span className="text-slate-200 font-medium truncate max-w-[180px]" title={value}>
-                          {value}
-                        </span>
-                      </div>
-                    ))}
+                    .map(([key, value]) => {
+                      // Move 6.16b: Extract param name from nodeId.paramName format for display
+                      const displayKey = key.includes('.') ? key.split('.').pop() || key : key
+                      return (
+                        <div key={key} className="flex items-center justify-between text-xs">
+                          <span className="text-slate-400 capitalize">{displayKey.replace(/_/g, ' ')}:</span>
+                          <span className="text-slate-200 font-medium truncate max-w-[180px]" title={value}>
+                            {value}
+                          </span>
+                        </div>
+                      )
+                    })}
                 </div>
               </div>
             </div>
@@ -5353,7 +5367,11 @@ export function WorkflowPreviewCard({
                 // This ensures each param is stored under its own key, not the integration name
                 const paramMatch = errorMsg.match(/\[param:(\w+)\]/)
                 const missingParamName = paramMatch ? paramMatch[1] : null
-                const collectionKey = missingParamName || failedNode?.integration || 'value'
+                // Move 6.16b: Use nodeId.paramName format for task-specific param storage
+                // This prevents param collisions across multiple nodes with same param name
+                const collectionKey = failedNode?.id && missingParamName
+                  ? `${failedNode.id}.${missingParamName}`
+                  : missingParamName || failedNode?.integration || 'value'
 
                 // @NEXUS-UX-001: Actionable error buttons - DO NOT REMOVE (VIP Hospitality)
                 // Generate helpful guidance based on error type with CLICKABLE actions

@@ -1198,4 +1198,116 @@ describe('Golden Path HTTP Integration', () => {
       }
     })
   })
+
+  /**
+   * Move 6.16b: ProvidedParams merge fix
+   * Tests that user-provided params are merged before validation
+   */
+  describe('Move 6.16b: ProvidedParams Merge', () => {
+    it('should return needs_user_input with inputKeys on first execute', async () => {
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Param Merge Test',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with missing 'to' param
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_email',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Test', body: 'Hello' }, // Missing 'to'
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+      }
+
+      // First execute - should return needs_user_input with inputKeys
+      const executeRes1 = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      expect(executeRes1.status).toBe(200)
+      expect(executeRes1.body.status).toBe('needs_user_input')
+      expect(executeRes1.body.missingFields).toBeDefined()
+      expect(executeRes1.body.missingFields[0].inputKeys).toBeDefined()
+      expect(executeRes1.body.missingFields[0].inputKeys).toContain('task_email.to')
+    })
+
+    it('should merge providedParams and proceed to execution', async () => {
+      composioMocks.checkConnection.mockResolvedValue({ connected: true, status: 'active' })
+
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'Param Merge Execute Test',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          config: { steps: [{ id: 'step_1', name: 'Send Email', tool: 'gmail', type: 'action' }] },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with missing 'to' param
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].status = 'building'
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_email',
+                dependencies: [],
+                config: {
+                  integration: 'gmail',
+                  toolSlug: 'GMAIL_SEND_EMAIL',
+                  params: { subject: 'Test', body: 'Hello' }, // Missing 'to'
+                },
+              },
+            ],
+            requiredIntegrations: ['gmail'],
+          },
+        }
+      }
+
+      // Second execute - provide the missing 'to' param via providedParams
+      const executeRes2 = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({
+          providedParams: {
+            task_email: { to: 'test@example.com' },
+          },
+        })
+
+      // Should proceed to execution (completed or started executing)
+      expect(executeRes2.status).toBe(200)
+      expect(executeRes2.body.success).toBe(true)
+      // With providedParams merged, should NOT return needs_user_input for 'to'
+      if (executeRes2.body.status === 'needs_user_input') {
+        // If still needs_user_input, it shouldn't be for 'to'
+        const missingTo = executeRes2.body.missingFields?.some(
+          (f: { missingParams: string[] }) => f.missingParams?.includes('to')
+        )
+        expect(missingTo).toBe(false)
+      }
+    })
+  })
 })

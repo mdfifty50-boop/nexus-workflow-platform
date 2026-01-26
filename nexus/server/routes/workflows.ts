@@ -985,6 +985,25 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
+    // Move 6.16b: Merge user-provided params into tasks BEFORE validation
+    // This fixes the loop where needs_user_input keeps asking for the same field
+    // =========================================================================
+    const providedParams = req.body.providedParams as Record<string, Record<string, unknown>> | undefined
+    if (providedParams) {
+      for (const task of plan.tasks) {
+        const taskParams = providedParams[task.id]
+        if (taskParams) {
+          // Ensure config.params exists
+          if (!task.config) task.config = {}
+          if (!task.config.params) task.config.params = {}
+          // Merge provided params into task params
+          Object.assign(task.config.params, taskParams)
+          console.log(`[Execute] Merged providedParams for ${task.id}:`, taskParams)
+        }
+      }
+    }
+
+    // =========================================================================
     // Move 6.5 + 6.11: Execution Preflight - Check required integrations
     // For verified_template mode, missing integrations trigger demo mode instead of failure
     // =========================================================================
@@ -1111,6 +1130,16 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
+    // Move 6.16b: Helper to add inputKey to missing fields for stable UI binding
+    // =========================================================================
+    const addInputKeys = (fields: typeof missingParamTasks) => {
+      return fields.map(f => ({
+        ...f,
+        inputKeys: f.missingParams.map(param => `${f.taskId}.${param}`),
+      }))
+    }
+
+    // =========================================================================
     // Move 6.10: Try autofill before returning needs_user_input
     // =========================================================================
     if (missingParamTasks.length > 0) {
@@ -1172,7 +1201,7 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
             success: true,
             status: 'needs_user_input',
             workflowId: req.params.id,
-            missingFields: stillMissing,
+            missingFields: addInputKeys(stillMissing),
             userPrompt,
             exampleAnswer,
             message: 'I need more info before I can run this workflow.',
@@ -1203,7 +1232,7 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
           success: true,
           status: 'needs_user_input',
           workflowId: req.params.id,
-          missingFields: missingParamTasks,
+          missingFields: addInputKeys(missingParamTasks),
           userPrompt,
           exampleAnswer,
           message: 'I need more info before I can run this workflow.',
