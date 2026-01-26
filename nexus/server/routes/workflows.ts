@@ -185,6 +185,22 @@ function autoFillParams(
 }
 
 /**
+ * Move 6.11: Generate demo results for verified template execution
+ * Returns mock data based on tool slug for demo mode
+ */
+function generateDemoResult(toolSlug: string): Record<string, unknown> {
+  const demoResults: Record<string, Record<string, unknown>> = {
+    WHATSAPP_SEND_MESSAGE: { messageId: 'demo_msg_001', status: 'sent', recipient: '+1234567890' },
+    HUBSPOT_CREATE_CONTACT: { contactId: 'demo_contact_001', email: 'demo@example.com', created: true },
+    GMAIL_SEND_EMAIL: { messageId: 'demo_email_001', threadId: 'demo_thread_001', status: 'sent' },
+    SLACK_SEND_MESSAGE: { messageId: 'demo_slack_001', channel: '#general', timestamp: Date.now() },
+    GOOGLESHEETS_BATCH_UPDATE: { updatedCells: 10, spreadsheetId: 'demo_sheet_001' },
+    NOTION_CREATE_PAGE: { pageId: 'demo_page_001', url: 'https://notion.so/demo' },
+  }
+  return demoResults[toolSlug] || { status: 'completed', result: 'Demo execution successful' }
+}
+
+/**
  * Workflows API Routes
  * All routes require clerk_user_id in headers
  */
@@ -242,7 +258,7 @@ router.get('/', extractClerkUserId, async (req: Request, res: Response) => {
  */
 router.post('/', extractClerkUserId, async (req: Request, res: Response) => {
   try {
-    const { name, description, workflow_type, user_input, config, clerk_user_id } = req.body
+    const { name, description, workflow_type, user_input, config, clerk_user_id, executionMode } = req.body
     // In dev mode, use a default project_id UUID if not provided
     const isDev = process.env.NODE_ENV !== 'production'
     // Use a fixed UUID for dev mode that can be referenced consistently
@@ -253,13 +269,19 @@ router.post('/', extractClerkUserId, async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'project_id and name are required' })
     }
 
+    // Move 6.11: Store executionMode in config for verified templates
+    const workflowConfig = {
+      ...config,
+      ...(executionMode && { executionMode }),
+    }
+
     const workflow = await workflowService.createWorkflow({
       project_id,
       name,
       description,
       workflow_type: workflow_type || 'BMAD',
       user_input: user_input || '',
-      config,
+      config: workflowConfig,
       created_by: clerk_user_id,
     })
 
@@ -544,9 +566,12 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
     }
 
     // =========================================================================
-    // Move 6.5: Execution Preflight - Check required integrations are connected
+    // Move 6.5 + 6.11: Execution Preflight - Check required integrations
+    // For verified_template mode, missing integrations trigger demo mode instead of failure
     // =========================================================================
     const requiredIntegrations: string[] = plan.requiredIntegrations || []
+    const isVerifiedTemplate = workflow.config?.executionMode === 'verified_template'
+
     if (requiredIntegrations.length > 0) {
       const missingIntegrations: string[] = []
 
@@ -563,19 +588,58 @@ router.post('/:id/execute', extractClerkUserId, async (req: Request, res: Respon
       }
 
       if (missingIntegrations.length > 0) {
-        // Emit SSE event for preflight failure
-        broadcastWorkflowUpdate({
-          workflowId: req.params.id,
-          type: 'golden_path_preflight_failed',
-          timestamp: new Date().toISOString(),
-          missingIntegrations,
-        })
+        // Move 6.11: Verified templates run in demo mode instead of failing
+        if (isVerifiedTemplate) {
+          console.log(`[Workflows] Verified template running in demo mode (missing: ${missingIntegrations.join(', ')})`)
 
-        return res.status(400).json({
-          success: false,
-          error: `Connect ${missingIntegrations.join(', ')} before execution`,
-          missingIntegrations,
-        })
+          // Generate demo results for all tasks
+          const demoResults: Record<string, any> = {}
+          for (const task of plan.tasks) {
+            const toolSlug = task.config?.toolSlug || 'UNKNOWN_TOOL'
+            demoResults[task.id] = {
+              success: true,
+              demo: true,
+              toolSlug,
+              mockOutput: generateDemoResult(toolSlug),
+              message: `[DEMO] ${task.name || task.id} - simulated execution`,
+            }
+          }
+
+          // Emit SSE event for demo mode
+          broadcastWorkflowUpdate({
+            workflowId: req.params.id,
+            type: 'golden_path_demo_mode_used',
+            timestamp: new Date().toISOString(),
+            missingIntegrations,
+            taskCount: plan.tasks.length,
+          })
+
+          // Mark workflow as completed (demo)
+          await workflowService.updateWorkflowStatus(req.params.id, 'completed')
+
+          return res.json({
+            success: true,
+            status: 'completed_demo',
+            demo: true,
+            message: 'Workflow executed in demo mode (integrations not connected)',
+            missingIntegrations,
+            taskResults: demoResults,
+          })
+        } else {
+          // Emit SSE event for preflight failure
+          broadcastWorkflowUpdate({
+            workflowId: req.params.id,
+            type: 'golden_path_preflight_failed',
+            timestamp: new Date().toISOString(),
+            missingIntegrations,
+          })
+
+          return res.status(400).json({
+            success: false,
+            error: `Connect ${missingIntegrations.join(', ')} before execution`,
+            missingIntegrations,
+          })
+        }
       }
     }
 

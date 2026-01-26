@@ -727,4 +727,80 @@ describe('Golden Path HTTP Integration', () => {
       )
     })
   })
+
+  describe('Move 6.11: Verified Template Demo Execution', () => {
+    it('should run in demo mode when verified template has missing integrations', async () => {
+      // Mock composio to return disconnected for whatsapp and hubspot
+      composioMocks.checkConnection.mockResolvedValue({ connected: false, status: 'disconnected' })
+
+      // Create workflow with executionMode: 'verified_template'
+      const createRes = await request(app)
+        .post('/api/workflows')
+        .send({
+          name: 'WhatsApp Lead Follow-up',
+          project_id: '00000000-0000-0000-0000-000000000001',
+          executionMode: 'verified_template',
+          config: {
+            steps: [
+              { id: 'step_1', name: 'WhatsApp Trigger', tool: 'whatsapp', type: 'trigger' },
+              { id: 'step_2', name: 'HubSpot Action', tool: 'hubspot', type: 'action' },
+            ],
+          },
+        })
+
+      expect(createRes.status).toBe(201)
+      const workflowId = createRes.body.data.id
+
+      // Inject execution plan with WhatsApp and HubSpot tasks
+      if (mockWorkflowDB[workflowId]) {
+        mockWorkflowDB[workflowId].config = {
+          ...mockWorkflowDB[workflowId].config,
+          executionMode: 'verified_template',
+          executionPlan: {
+            tasks: [
+              {
+                id: 'task_1',
+                name: 'Receive WhatsApp Message',
+                dependencies: [],
+                config: { toolSlug: 'WHATSAPP_SEND_MESSAGE', params: { messageType: 'text' } },
+              },
+              {
+                id: 'task_2',
+                name: 'Create HubSpot Contact',
+                dependencies: ['task_1'],
+                config: { toolSlug: 'HUBSPOT_CREATE_CONTACT', params: { source: 'WhatsApp' } },
+              },
+            ],
+            requiredIntegrations: ['whatsapp', 'hubspot'],
+          },
+        }
+        mockWorkflowDB[workflowId].status = 'building'
+      }
+
+      // Execute - should run in demo mode (not fail preflight)
+      const executeRes = await request(app)
+        .post(`/api/workflows/${workflowId}/execute`)
+        .send({})
+
+      // Should succeed with demo mode
+      expect(executeRes.status).toBe(200)
+      expect(executeRes.body.success).toBe(true)
+      expect(executeRes.body.status).toBe('completed_demo')
+      expect(executeRes.body.demo).toBe(true)
+      expect(executeRes.body.missingIntegrations).toContain('whatsapp')
+      expect(executeRes.body.missingIntegrations).toContain('hubspot')
+      expect(executeRes.body.taskResults).toBeDefined()
+      expect(executeRes.body.taskResults.task_1.demo).toBe(true)
+      expect(executeRes.body.taskResults.task_2.demo).toBe(true)
+
+      // Verify SSE demo mode event was emitted
+      expect(sseMocks.broadcastWorkflowUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId,
+          type: 'golden_path_demo_mode_used',
+          missingIntegrations: expect.arrayContaining(['whatsapp', 'hubspot']),
+        })
+      )
+    })
+  })
 })
