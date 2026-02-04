@@ -39,10 +39,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        // Simplified chunking to avoid circular dependencies
-        // React and React-dependent libs must be in the same chunk
+        // Fixed chunking to avoid circular dependencies
+        // React MUST be bundled with React-dependent libs to prevent loading order issues
         manualChunks: (id) => {
-          // Heavy libs that can be split safely (no React dependency issues)
+          // Heavy libs that can be split safely (NO React dependency)
           if (id.includes('node_modules/html2canvas')) {
             return 'vendor-html2canvas'
           }
@@ -52,27 +52,12 @@ export default defineConfig({
           if (id.includes('node_modules/dompurify')) {
             return 'vendor-sanitize'
           }
-          // Animation libraries
-          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/@motionone')) {
-            return 'vendor-animation'
-          }
-          // Icon library
+          // Icon library (uses React but loaded async is ok)
           if (id.includes('node_modules/lucide-react')) {
             return 'vendor-icons'
           }
-          // Date libraries
-          if (id.includes('node_modules/date-fns') || id.includes('node_modules/dayjs')) {
-            return 'vendor-dates'
-          }
-          // Radix UI components
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'vendor-radix'
-          }
-          // React core (react + react-dom + react-router)
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
-            return 'vendor-react'
-          }
-          // All other node_modules
+          // Everything else including React goes to main vendor chunk
+          // This prevents circular dependency: vendor-react <-> vendor
           if (id.includes('node_modules')) {
             return 'vendor'
           }
