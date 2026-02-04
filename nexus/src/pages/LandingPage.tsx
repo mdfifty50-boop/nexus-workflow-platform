@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom'
-import { useRef, useState } from 'react'
+import { useRef, useState, lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
 import { PricingSection } from '@/components/PricingSection'
+// @NEXUS-FIX-090: Role-based avatar integration
+import { Avatar } from '@/components/Avatar'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+
+// Lazy load 3D background for performance
+const BackgroundCube = lazy(() => import('@/components/BackgroundCube').then(m => ({ default: m.BackgroundCube })))
 import {
   Zap,
   ArrowRight,
@@ -111,7 +118,7 @@ const features = [
   },
   {
     icon: Workflow,
-    title: '500+ Integrations',
+    title: '800+ Integrations',
     description: 'Connect to all your favorite apps including Gmail, Slack, Notion, Salesforce, and more.',
     color: 'from-purple-500 to-pink-500',
   },
@@ -157,7 +164,7 @@ const testimonials = [
 ]
 
 const stats = [
-  { value: '500+', label: 'Integrations' },
+  { value: '800+', label: 'Integrations' },
   { value: '10M+', label: 'Workflows Run' },
   { value: '99.9%', label: 'Uptime' },
   { value: '<1s', label: 'Avg Response' },
@@ -326,6 +333,8 @@ function FloatingAppIcon({ app, index }: { app: typeof floatingApps[0]; index: n
 }
 
 export function LandingPage() {
+  const { t, i18n } = useTranslation()
+  const isRTL = i18n.language === 'ar'
   const heroRef = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { scrollYProgress } = useScroll({
@@ -341,14 +350,19 @@ export function LandingPage() {
   const orbY2 = useTransform(scrollYProgress, [0, 1], ['0%', '-30%'])
 
   const navLinks = [
-    { href: '#features', label: 'Features' },
-    { href: '#how-it-works', label: 'How it Works' },
-    { href: '#testimonials', label: 'Testimonials' },
-    { href: '#pricing', label: 'Pricing' },
+    { href: '#features', label: t('landing.features.title', 'Features') },
+    { href: '#how-it-works', label: t('landing.howItWorks.title', 'How it Works') },
+    { href: '#testimonials', label: t('landing.testimonials.title', 'Testimonials') },
+    { href: '#pricing', label: t('landing.pricing.title', 'Pricing') },
   ]
 
   return (
     <div className="min-h-screen bg-surface-950 overflow-hidden">
+      {/* 3D Background Cube - Resend-style scroll-reactive animation */}
+      <Suspense fallback={null}>
+        <BackgroundCube />
+      </Suspense>
+
       {/* Fixed Background with parallax */}
       <motion.div style={{ scale: bgScale }} className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-nexus-500/5 via-transparent to-accent-500/5" />
@@ -390,9 +404,12 @@ export function LandingPage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className={`flex items-center gap-2 sm:gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {/* Language Toggle */}
+              <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={false} />
+
               <Link to="/dashboard" className="text-surface-300 hover:text-white transition-colors hidden sm:block text-sm">
-                Sign in
+                {t('auth.signIn', 'Sign in')}
               </Link>
               <Link to="/dashboard" className="hidden sm:block">
                 <motion.button
@@ -400,7 +417,7 @@ export function LandingPage() {
                   whileTap={{ scale: 0.98 }}
                   className="btn-primary text-sm"
                 >
-                  Get Started Free
+                  {t('common.getStarted', 'Get Started Free')}
                 </motion.button>
               </Link>
               {/* Mobile hamburger menu */}
@@ -436,16 +453,20 @@ export function LandingPage() {
                   </a>
                 ))}
                 <div className="pt-4 mt-4 border-t border-white/5 space-y-3">
+                  {/* Mobile Language Toggle */}
+                  <div className="px-4 py-2">
+                    <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={true} />
+                  </div>
                   <Link
                     to="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block px-4 py-3 rounded-xl text-surface-300 hover:text-white hover:bg-white/5 transition-all text-base"
                   >
-                    Sign in
+                    {t('auth.signIn', 'Sign in')}
                   </Link>
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block">
                     <button className="w-full btn-gradient py-3 text-base">
-                      Get Started Free
+                      {t('common.getStarted', 'Get Started Free')}
                     </button>
                   </Link>
                 </div>
@@ -471,30 +492,28 @@ export function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  <span className="text-sm text-surface-300">AI-Powered Workflow Automation</span>
+                  <span className="text-sm text-surface-300">{t('landing.hero.badge', 'AI-Powered Workflow Automation')}</span>
                 </motion.div>
 
-                <motion.h1 variants={fadeInUp} className="text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6">
-                  <span className="text-white">Build workflows </span>
+                <motion.h1 variants={fadeInUp} className={`text-4xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-6 ${isRTL ? 'text-right' : ''}`}>
+                  <span className="text-white">{t('landing.hero.headline', 'Let me handle the boring stuff')}</span>
                   <br />
-                  <span className="gradient-text">in seconds,</span>
-                  <br />
-                  <span className="text-white">not hours</span>
+                  <span className="gradient-text">{t('landing.hero.headlineHighlight', 'You focus on what matters')}</span>
                 </motion.h1>
 
-                <motion.p variants={fadeInUp} className="text-lg md:text-xl text-surface-400 mb-10 max-w-xl leading-relaxed">
-                  Describe what you want in plain English. Nexus AI understands your intent and builds production-ready automations instantly.
+                <motion.p variants={fadeInUp} className={`text-lg md:text-xl text-surface-400 mb-10 max-w-xl leading-relaxed ${isRTL ? 'text-right' : ''}`}>
+                  {t('landing.hero.subheadline', 'Describe what you want in plain English. Nexus AI understands your intent and builds production-ready automations instantly.')}
                 </motion.p>
 
-                <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
+                <motion.div variants={fadeInUp} className={`flex flex-col sm:flex-row gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   <Link to="/chat">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="btn-gradient text-base px-8 py-4 w-full sm:w-auto"
+                      className={`btn-gradient text-base px-8 py-4 w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
-                      Start Building Free
-                      <ArrowRight className="w-5 h-5 ml-2 inline" />
+                      {t('landing.cta.button', 'Start Building Free')}
+                      <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
                     </motion.button>
                   </Link>
                   <motion.button
@@ -504,22 +523,22 @@ export function LandingPage() {
                     className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all cursor-pointer"
                   >
                     <Play className="w-5 h-5" />
-                    Watch Demo
+                    {isRTL ? 'شاهد العرض' : 'Watch Demo'}
                   </motion.button>
                 </motion.div>
 
-                <motion.div variants={fadeInUp} className="mt-12 flex flex-wrap gap-x-8 gap-y-4 text-sm text-surface-400">
-                  <div className="flex items-center gap-2">
+                <motion.div variants={fadeInUp} className={`mt-12 flex flex-wrap gap-x-8 gap-y-4 text-sm text-surface-400 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Check className="w-4 h-4 text-emerald-400" />
-                    <span>No credit card required</span>
+                    <span>{t('landing.cta.noCard', 'No credit card required')}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Check className="w-4 h-4 text-emerald-400" />
-                    <span>500+ integrations</span>
+                    <span>{t('landing.features.integrationsCount', '800+ integrations')}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Check className="w-4 h-4 text-emerald-400" />
-                    <span>5 min setup</span>
+                    <span>{t('landing.hero.instantSetup', '5 min setup')}</span>
                   </div>
                 </motion.div>
               </motion.div>
@@ -552,8 +571,8 @@ export function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Workflow nodes - 2x2 grid on mobile, horizontal on desktop */}
-                  <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-6 md:gap-4 pt-4 pb-4">
+                  {/* Workflow nodes - 2x2 grid on mobile, horizontal on desktop - Force LTR for workflow visualization */}
+                  <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-6 md:gap-4 pt-4 pb-4" dir="ltr">
                     {workflowSteps.map((step, index) => (
                       <WorkflowNode
                         key={step.id}
@@ -665,11 +684,15 @@ export function LandingPage() {
                 whileHover={{ scale: 1.01 }}
                 className="relative bg-gradient-to-br from-surface-800/90 to-surface-900/90 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl shadow-nexus-500/10 group-hover:border-nexus-500/30 transition-all"
               >
-                {/* Chat Header */}
+                {/* Chat Header - @NEXUS-FIX-090 with Avatar */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-surface-800/50">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
+                  <Avatar
+                    role="default"
+                    size="sm"
+                    state="idle"
+                    showName={false}
+                    showTitle={false}
+                  />
                   <div>
                     <h3 className="font-semibold text-white flex items-center gap-2">
                       Nexus Chat
@@ -688,11 +711,16 @@ export function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Nexus response */}
+                  {/* Nexus response - @NEXUS-FIX-090 with Avatar */}
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
+                    <Avatar
+                      role="default"
+                      size="sm"
+                      state="idle"
+                      showName={false}
+                      showTitle={false}
+                      className="flex-shrink-0"
+                    />
                     <div className="flex-1">
                       <div className="bg-surface-700/50 border border-white/5 rounded-2xl rounded-tl-md px-4 py-3">
                         <p className="text-surface-300 text-sm mb-3">Perfect! I'll create a workflow that:</p>
@@ -788,41 +816,41 @@ export function LandingPage() {
       </section>
 
       {/* How it Works Section */}
-      <section id="how-it-works" className="py-24 relative">
+      <section id="how-it-works" className="py-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto px-6">
           <RevealSection className="text-center mb-16">
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6 text-sm text-surface-300">
               <Layers className="w-4 h-4" />
-              Simple 3-Step Process
+              {t('landing.howItWorks.subtitle', 'Simple 3-Step Process')}
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              How Nexus works
+              {t('landing.howItWorks.title', 'How Nexus works')}
             </h2>
             <p className="text-xl text-surface-400 max-w-2xl mx-auto">
-              From idea to automation in under a minute
+              {isRTL ? 'من الفكرة إلى الأتمتة في أقل من دقيقة' : 'From idea to automation in under a minute'}
             </p>
           </RevealSection>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className={`grid md:grid-cols-3 gap-8 ${isRTL ? 'md:grid-flow-col-dense' : ''}`}>
             {[
               {
                 step: '01',
-                title: 'Describe your workflow',
-                description: 'Tell Nexus what you want to automate in plain English. No technical knowledge required.',
+                title: t('landing.howItWorks.step1.title', 'Share your goal'),
+                description: t('landing.howItWorks.step1.description', 'Chat with Nexus about any challenge. AI optimizes workflows for your unique workplace.'),
                 icon: MessageSquare,
                 gradient: 'from-blue-500 to-cyan-500',
               },
               {
                 step: '02',
-                title: 'AI builds it instantly',
-                description: 'Nexus AI understands your intent, selects the right apps, and creates your workflow.',
+                title: t('landing.howItWorks.step2.title', 'Nexus builds it'),
+                description: t('landing.howItWorks.step2.description', 'AI understands your intent and creates the perfect workflow automatically.'),
                 icon: Cpu,
                 gradient: 'from-purple-500 to-pink-500',
               },
               {
                 step: '03',
-                title: 'Deploy with one click',
-                description: 'Review the workflow, connect your apps, and deploy. Your automation is live.',
+                title: t('landing.howItWorks.step3.title', 'Go live instantly'),
+                description: t('landing.howItWorks.step3.description', 'One click to deploy. Your automation runs 24/7.'),
                 icon: Zap,
                 gradient: 'from-emerald-500 to-teal-500',
               },
@@ -857,14 +885,14 @@ export function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 relative">
+      <section id="features" className="py-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto px-6">
           <RevealSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Everything you need to automate
+              {t('landing.features.title', 'Everything you need to automate')}
             </h2>
             <p className="text-xl text-surface-400 max-w-2xl mx-auto">
-              Nexus combines AI intelligence with powerful automation tools to transform how you work.
+              {t('landing.features.subtitle', 'Nexus combines AI intelligence with powerful automation tools to transform how you work.')}
             </p>
           </RevealSection>
 
@@ -888,14 +916,14 @@ export function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 relative">
+      <section id="testimonials" className="py-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto px-6">
           <RevealSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Loved by teams worldwide
+              {t('landing.testimonials.title', 'Loved by teams worldwide')}
             </h2>
             <p className="text-xl text-surface-400">
-              Join thousands of companies automating with Nexus
+              {t('landing.testimonials.subtitle', 'Join thousands of companies automating with Nexus')}
             </p>
           </RevealSection>
 
@@ -933,14 +961,14 @@ export function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 relative">
+      <section id="pricing" className="py-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto px-6">
           <RevealSection className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Simple, transparent pricing
+              {t('landing.pricing.title', 'Simple, transparent pricing')}
             </h2>
             <p className="text-xl text-surface-400">
-              Start free, scale as you grow
+              {t('landing.pricing.subtitle', 'Start free, scale as you grow')}
             </p>
           </RevealSection>
           <RevealSection>
@@ -966,17 +994,19 @@ export function LandingPage() {
                 className="absolute inset-0 bg-gradient-to-r from-nexus-500/10 via-transparent to-accent-500/10 rounded-3xl"
               />
 
-              <div className="relative text-center">
+              <div className="relative text-center" dir={isRTL ? 'rtl' : 'ltr'}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                 >
                   <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                    Ready to automate?
+                    {t('landing.cta.title', 'Ready to automate?')}
                   </h2>
                   <p className="text-xl text-surface-300 mb-8 max-w-xl mx-auto">
-                    Start building intelligent workflows in minutes, not months. Free forever for individuals.
+                    {isRTL
+                      ? 'ابدأ ببناء سير العمل الذكي في دقائق، وليس أشهر. مجاني للأفراد إلى الأبد.'
+                      : 'Start building intelligent workflows in minutes, not months. Free forever for individuals.'}
                   </p>
                   <Link to="/chat">
                     <motion.button
@@ -984,8 +1014,8 @@ export function LandingPage() {
                       whileTap={{ scale: 0.95 }}
                       className="btn-gradient text-lg px-10 py-4"
                     >
-                      Get Started for Free
-                      <ArrowRight className="w-5 h-5 ml-2 inline" />
+                      {t('landing.cta.button', 'Get Started for Free')}
+                      <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
                     </motion.button>
                   </Link>
                 </motion.div>
@@ -996,23 +1026,23 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 sm:py-12 border-t border-white/5">
+      <footer className="py-8 sm:py-12 border-t border-white/5" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col items-center gap-6 text-center md:flex-row md:justify-between md:text-left">
+          <div className={`flex flex-col items-center gap-6 text-center md:flex-row md:justify-between ${isRTL ? 'md:text-right' : 'md:text-left'}`}>
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center">
                 <Zap className="w-4 h-4 text-white" />
               </div>
-              <span className="font-semibold text-white">Nexus</span>
+              <span className="font-semibold text-white">{t('app.name', 'Nexus')}</span>
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-sm text-surface-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms</a>
-              <a href="#" className="hover:text-white transition-colors">Documentation</a>
-              <a href="#" className="hover:text-white transition-colors">Support</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.footer.privacy', 'Privacy')}</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.footer.terms', 'Terms')}</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.footer.docs', 'Documentation')}</a>
+              <a href="#" className="hover:text-white transition-colors">{t('landing.footer.contact', 'Support')}</a>
             </div>
             <p className="text-surface-500 text-sm">
-              © 2024 Nexus AI. All rights reserved.
+              © 2024 {t('app.name', 'Nexus')} AI. {t('landing.footer.copyright', 'All rights reserved')}.
             </p>
           </div>
         </div>

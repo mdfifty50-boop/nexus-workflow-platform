@@ -5,9 +5,10 @@
  * for subscription management in Nexus.
  *
  * Pricing Structure:
- * - Launch Special: $79/month (limited time)
- * - Standard: $99/month
- * - Both include unlimited workflows
+ * - Free: $0/month (10 workflows)
+ * - Starter: $29/month (30 workflows)
+ * - Pro: $79/month (unlimited workflows)
+ * - Business: $149/month (unlimited + premium features)
  */
 
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
@@ -55,45 +56,75 @@ export interface PricingPlan {
 }
 
 export const PRICING_PLANS: Record<string, PricingPlan> = {
-  launch: {
-    id: 'launch',
-    name: 'Launch Special',
-    description: 'Limited time offer - Lock in this rate forever',
-    price: 79,
-    originalPrice: 99,
+  free: {
+    id: 'free',
+    name: 'Free',
+    description: 'Get started with AI automation',
+    price: 0,
     currency: 'USD',
     interval: 'month',
-    badge: 'SAVE 20%',
+    features: [
+      '10 AI workflows per month',
+      'Basic integrations',
+      'Community support',
+      'Single user',
+    ],
+  },
+  starter: {
+    id: 'starter',
+    name: 'Starter',
+    description: 'Perfect for small teams',
+    price: 29,
+    currency: 'USD',
+    interval: 'month',
+    features: [
+      '30 AI workflows per month',
+      '50+ integrations',
+      'Email support',
+      'Up to 3 team members',
+      'Basic analytics',
+    ],
+    stripePriceId: import.meta.env.VITE_STRIPE_STARTER_PRICE_ID,
+  },
+  pro: {
+    id: 'pro',
+    name: 'Pro',
+    description: 'For growing businesses',
+    price: 79,
+    currency: 'USD',
+    interval: 'month',
+    badge: 'MOST POPULAR',
     popular: true,
     features: [
       'Unlimited AI workflows',
-      'All integrations included',
+      'All 800+ integrations',
       'Priority support',
       'Custom AI agents',
-      'Team collaboration',
+      'Up to 10 team members',
+      'Advanced analytics',
       'API access',
-      'Analytics dashboard',
-      'Early access to new features',
     ],
-    stripePriceId: import.meta.env.VITE_STRIPE_LAUNCH_PRICE_ID,
+    stripePriceId: import.meta.env.VITE_STRIPE_PRO_PRICE_ID,
   },
-  standard: {
-    id: 'standard',
-    name: 'Standard',
-    description: 'Full access to Nexus platform',
-    price: 99,
+  business: {
+    id: 'business',
+    name: 'Business',
+    description: 'Enterprise-grade automation',
+    price: 149,
     currency: 'USD',
     interval: 'month',
     features: [
       'Unlimited AI workflows',
-      'All integrations included',
-      'Priority support',
+      'All 800+ integrations',
+      'Dedicated support',
       'Custom AI agents',
-      'Team collaboration',
+      'Unlimited team members',
+      'Enterprise analytics',
       'API access',
-      'Analytics dashboard',
+      'Custom onboarding',
+      'SLA guarantee',
     ],
-    stripePriceId: import.meta.env.VITE_STRIPE_STANDARD_PRICE_ID,
+    stripePriceId: import.meta.env.VITE_STRIPE_BUSINESS_PRICE_ID,
   },
 }
 

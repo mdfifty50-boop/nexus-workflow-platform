@@ -639,8 +639,8 @@
   "landing": {
     "hero": {
       "badge": "Powered by Claude AI",
-      "headline": "Replace Your $2,500/Month",
-      "headlineHighlight": "Automation Agency",
+      "headline": "Let me handle the boring stuff",
+      "headlineHighlight": "You focus on what matters",
       "subheadline": "Describe any task in plain English. Our AI agents create your workflow instantly—no coding, no agency fees, no waiting weeks.",
       "inputPlaceholder": "Start typing to create your workflow...",
       "createButton": "Create Workflow",
@@ -791,7 +791,18 @@
         "nexusCost": "$79/month",
         "savingsTitle": "You Save",
         "savingsAmount": "$2,400+/month"
-      }
+      },
+      "currentPlan": "Current Plan",
+      "getStarted": "Get Started",
+      "choosePlan": "Choose Plan",
+      "whatsIncluded": "What's included:",
+      "proHighlight": "Go Pro at $79/month for unlimited workflows and all 800+ integrations",
+      "secure": "Secure checkout",
+      "cancel": "Cancel anytime",
+      "moneyBack": "30-day money back",
+      "upgradeTitle": "Upgrade to Nexus Pro",
+      "upgradeSubtitle": "Unlock unlimited AI workflows and premium features",
+      "continueCheckout": "Continue to Checkout"
     },
     "cta": {
       "title": "Ready to Get Started?",
