@@ -1,0 +1,261 @@
+{
+  "id": "patient_intake_automation",
+  "name": "Patient Intake Automation",
+  "name_ar": "أتمتة استقبال المريض",
+  "description": "Streamline new patient registration with digital forms sent before the visit. Collect medical history, insurance details, and consent forms automatically via WhatsApp or email.",
+  "description_ar": "تبسيط تسجيل المرضى الجدد بإرسال نماذج رقمية قبل الزيارة. جمع التاريخ الطبي وتفاصيل التأمين ونماذج الموافقة تلقائياً عبر واتساب أو البريد الإلكتروني.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$38,000/year",
+  "requiredIntegrations": ["googleforms", "whatsapp", "googlesheets"],
+  "optionalIntegrations": ["gmail", "googlecalendar", "slack"],
+  "exampleUserInput": "Send intake forms to new patients before their appointment",
+  "exampleUserInput_ar": "أرسل نماذج الاستقبال للمرضى الجدد قبل موعدهم",
+  "keywords": ["intake", "registration", "new patient", "forms", "medical history", "consent", "استقبال", "تسجيل", "مريض جديد", "نماذج", "تاريخ طبي", "موافقة"],
+  "dynamicParameters": {
+    "form_send_days_before": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before appointment to send forms",
+      "label_ar": "أيام قبل الموعد لإرسال النماذج"
+    },
+    "reminder_if_incomplete": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send reminder if forms not completed",
+      "label_ar": "إرسال تذكير إذا لم تُكمل النماذج"
+    },
+    "collect_insurance": {
+      "type": "boolean",
+      "default": true,
+      "label": "Collect insurance information",
+      "label_ar": "جمع معلومات التأمين"
+    },
+    "require_id_upload": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require ID/Civil ID upload",
+      "label_ar": "طلب رفع الهوية/البطاقة المدنية"
+    }
+  },
+  "messages": {
+    "intake_request_en": "👋 *Welcome to {{clinic_name}}!*\n\nHi {{patient_name}},\n\nWe're looking forward to seeing you on {{appointment_date}} at {{appointment_time}}.\n\n📋 *Please complete your intake forms before your visit:*\n{{form_link}}\n\n*This helps us:*\n• Prepare for your visit\n• Reduce wait time\n• Provide better care\n\n*What you'll need:*\n• Civil ID/Passport\n• Insurance card (if applicable)\n• List of current medications\n• Previous medical records (if any)\n\n⏰ Please complete by: {{deadline}}\n\n*Questions?* Reply to this message or call {{clinic_phone}}\n\nThank you!",
+    "intake_request_ar": "👋 *مرحباً بك في {{clinic_name}}!*\n\nمرحباً {{patient_name}}،\n\nنتطلع لرؤيتك يوم {{appointment_date}} الساعة {{appointment_time}}.\n\n📋 *يرجى إكمال نماذج الاستقبال قبل زيارتك:*\n{{form_link}}\n\n*هذا يساعدنا على:*\n• التحضير لزيارتك\n• تقليل وقت الانتظار\n• تقديم رعاية أفضل\n\n*ما ستحتاجه:*\n• البطاقة المدنية/جواز السفر\n• بطاقة التأمين (إن وجدت)\n• قائمة الأدوية الحالية\n• السجلات الطبية السابقة (إن وجدت)\n\n⏰ يرجى الإكمال قبل: {{deadline}}\n\n*أسئلة؟* رد على هذه الرسالة أو اتصل على {{clinic_phone}}\n\nشكراً لك!",
+    "intake_reminder_en": "⏰ *Friendly Reminder*\n\nHi {{patient_name}},\n\nYour appointment is coming up and we noticed your intake forms aren't complete yet.\n\n📋 {{form_link}}\n\nCompleting these now will help us serve you better and reduce your wait time.\n\n*Need help?* Call us at {{clinic_phone}}",
+    "intake_reminder_ar": "⏰ *تذكير ودي*\n\nمرحباً {{patient_name}}،\n\nموعدك قادم ولاحظنا أن نماذج الاستقبال لم تُكتمل بعد.\n\n📋 {{form_link}}\n\nإكمالها الآن سيساعدنا على خدمتك بشكل أفضل وتقليل وقت انتظارك.\n\n*تحتاج مساعدة؟* اتصل بنا على {{clinic_phone}}",
+    "intake_complete_en": "✅ *Forms Received!*\n\nThank you {{patient_name}}! We've received your intake forms.\n\n📅 Your appointment:\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{appointment_date}} at {{appointment_time}}\n📍 {{clinic_name}}\n\n*What to bring:*\n• Original Civil ID/Passport\n• Insurance card\n\nSee you soon!",
+    "intake_complete_ar": "✅ *تم استلام النماذج!*\n\nشكراً {{patient_name}}! استلمنا نماذج الاستقبال الخاصة بك.\n\n📅 موعدك:\n👨‍⚕️ د. {{doctor_name}}\n📅 {{appointment_date}} في {{appointment_time}}\n📍 {{clinic_name}}\n\n*ما يجب إحضاره:*\n• البطاقة المدنية/جواز السفر الأصلي\n• بطاقة التأمين\n\nنراك قريباً!",
+    "staff_incomplete_alert_en": "⚠️ *Incomplete Intake Forms*\n\n*Patient:* {{patient_name}}\n*Appointment:* {{appointment_date}} at {{appointment_time}}\n*Doctor:* Dr. {{doctor_name}}\n*Status:* Forms not completed\n*Phone:* {{patient_phone}}\n\n*Missing:*\n{{missing_sections}}\n\n*Action:* Consider calling patient to assist"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New Appointment Scheduled",
+        "name_ar": "جدولة موعد جديد",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_EVENT_CREATED",
+          "action": "webhook",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "filter": "new_patient"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Generate Intake Form Link",
+        "name_ar": "إنشاء رابط نموذج الاستقبال",
+        "type": "action",
+        "integrationId": "googleforms",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLEFORMS_GET_FORM",
+          "action": "get_prefilled_url",
+          "params": {
+            "form_id": "{{intake_form_id}}",
+            "prefill": {
+              "patient_name": "{{task_1.patient_name}}",
+              "appointment_date": "{{task_1.date}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Intake Request",
+        "name_ar": "إرسال طلب الاستقبال",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.patient_phone}}",
+            "message": "{{messages.intake_request_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Log Form Sent",
+        "name_ar": "تسجيل إرسال النموذج",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{intake_tracking_sheet}}",
+            "range": "Intake!A:F",
+            "values": [["{{task_1.patient_name}}", "{{task_1.patient_phone}}", "{{task_1.date}}", "sent", "{{timestamp}}", ""]]
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Form Response Received",
+        "name_ar": "استلام رد النموذج",
+        "type": "trigger",
+        "integrationId": "googleforms",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLEFORMS_RESPONSE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "form_id": "{{intake_form_id}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Update Intake Status",
+        "name_ar": "تحديث حالة الاستقبال",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{intake_tracking_sheet}}",
+            "filter": "phone = {{task_5.patient_phone}}",
+            "values": {"status": "completed", "completed_at": "{{timestamp}}"}
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Confirmation",
+        "name_ar": "إرسال التأكيد",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_5.patient_phone}}",
+            "message": "{{messages.intake_complete_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Check Incomplete Forms",
+        "name_ar": "فحص النماذج غير المكتملة",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 * * *",
+            "description": "Daily check for incomplete intake forms",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Reminder for Incomplete",
+        "name_ar": "إرسال تذكير لغير المكتمل",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{incomplete_patient_phone}}",
+            "message": "{{messages.intake_reminder_{{patient_language}}}}",
+            "condition": "appointment_in_48h AND status = 'sent'"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googleforms", "whatsapp", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "form_send_days_before",
+      "question": "How many days before the appointment should intake forms be sent?",
+      "question_ar": "كم يوم قبل الموعد يجب إرسال نماذج الاستقبال؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "reminder_if_incomplete",
+      "question": "Send reminder if forms are not completed?",
+      "question_ar": "إرسال تذكير إذا لم تُكتمل النماذج؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "collect_insurance",
+      "question": "Collect insurance information in the form?",
+      "question_ar": "جمع معلومات التأمين في النموذج؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "require_id_upload",
+      "question": "Require patients to upload ID/Civil ID?",
+      "question_ar": "طلب من المرضى رفع الهوية/البطاقة المدنية؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "idType": "Civil ID",
+      "healthcareRegulator": "MOH Kuwait"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "idType": "Iqama/National ID",
+      "healthcareRegulator": "MOH Saudi"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "idType": "Emirates ID",
+      "healthcareRegulator": "DHA/HAAD"
+    }
+  }
+}

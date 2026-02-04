@@ -1,0 +1,263 @@
+{
+  "id": "customer_loyalty_program",
+  "name": "Customer Loyalty Program",
+  "name_ar": "برنامج ولاء العملاء",
+  "description": "Automate your loyalty program with points tracking, tier upgrades, reward notifications, and personalized offers. Increase customer retention and repeat purchases without manual management.",
+  "description_ar": "أتمت برنامج الولاء مع تتبع النقاط وترقية المستويات وإشعارات المكافآت والعروض الشخصية. زيادة الاحتفاظ بالعملاء والمشتريات المتكررة بدون إدارة يدوية.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$28,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["stripe", "slack", "notion"],
+  "exampleUserInput": "Automate my customer loyalty rewards program",
+  "exampleUserInput_ar": "أتمت برنامج مكافآت ولاء العملاء",
+  "keywords": ["loyalty", "rewards", "points", "tier", "VIP", "customer", "retention", "ولاء", "مكافآت", "نقاط", "مستوى", "عميل", "احتفاظ"],
+  "dynamicParameters": {
+    "points_per_currency": {
+      "type": "number",
+      "default": 1,
+      "label": "Points earned per currency unit spent",
+      "label_ar": "النقاط المكتسبة لكل وحدة عملة منفقة"
+    },
+    "tier_thresholds": {
+      "type": "object",
+      "default": {"silver": 500, "gold": 1500, "platinum": 5000},
+      "label": "Points required for each tier",
+      "label_ar": "النقاط المطلوبة لكل مستوى"
+    },
+    "points_expiry_months": {
+      "type": "number",
+      "default": 12,
+      "label": "Points expire after (months)",
+      "label_ar": "انتهاء صلاحية النقاط بعد (شهور)"
+    },
+    "birthday_bonus_points": {
+      "type": "number",
+      "default": 100,
+      "label": "Bonus points on birthday",
+      "label_ar": "نقاط إضافية في عيد الميلاد"
+    }
+  },
+  "messages": {
+    "welcome_member_en": "🎉 *Welcome to {{program_name}}!*\n\nDear {{customer_name}},\n\nYou're now a member of our exclusive loyalty program!\n\n*Your Starting Tier:* {{tier_name}} {{tier_emoji}}\n*Welcome Bonus:* {{bonus_points}} points\n\n*How It Works:*\n• Earn {{points_per_currency}} point for every {{currency}} 1 spent\n• Unlock rewards at milestone points\n• Enjoy exclusive member-only offers\n• Get birthday bonuses and surprises\n\n*Tier Benefits:*\n{{tier_benefits}}\n\nStart earning today! 🛍️\n\n{{business_name}}",
+    "welcome_member_ar": "🎉 *مرحباً بك في {{program_name}}!*\n\nعزيزي {{customer_name}}،\n\nأنت الآن عضو في برنامج الولاء الحصري!\n\n*مستواك الأولي:* {{tier_name}} {{tier_emoji}}\n*مكافأة الترحيب:* {{bonus_points}} نقطة\n\n*كيف يعمل:*\n• اكسب {{points_per_currency}} نقطة لكل {{currency}} 1 منفقة\n• افتح المكافآت عند نقاط المعالم\n• استمتع بعروض حصرية للأعضاء فقط\n• احصل على مكافآت وهدايا عيد الميلاد\n\n*مزايا المستوى:*\n{{tier_benefits}}\n\nابدأ الكسب اليوم! 🛍️\n\n{{business_name}}",
+    "points_earned_en": "⭐ *Points Earned!*\n\nHi {{customer_name}},\n\nYou just earned points! 🎯\n\n*Transaction:* {{order_id}}\n*Amount:* {{currency}} {{amount}}\n*Points Earned:* +{{points_earned}}\n\n*Your Balance:*\n• Total Points: {{total_points}}\n• Tier: {{tier_name}} {{tier_emoji}}\n{{#if next_tier}}• {{points_to_next}} points to {{next_tier}}{{/if}}\n\n{{#if available_rewards}}*Rewards Available:* {{available_rewards}}{{/if}}\n\nThank you for shopping with us! 💝",
+    "points_earned_ar": "⭐ *نقاط مكتسبة!*\n\nمرحباً {{customer_name}}،\n\nلقد كسبت نقاطاً! 🎯\n\n*المعاملة:* {{order_id}}\n*المبلغ:* {{currency}} {{amount}}\n*النقاط المكتسبة:* +{{points_earned}}\n\n*رصيدك:*\n• إجمالي النقاط: {{total_points}}\n• المستوى: {{tier_name}} {{tier_emoji}}\n{{#if next_tier}}• {{points_to_next}} نقطة للوصول إلى {{next_tier}}{{/if}}\n\n{{#if available_rewards}}*المكافآت المتاحة:* {{available_rewards}}{{/if}}\n\nشكراً للتسوق معنا! 💝",
+    "tier_upgrade_en": "🏆 *Congratulations! Tier Upgrade!*\n\nDear {{customer_name}},\n\nYou've been upgraded to {{new_tier}}! {{tier_emoji}}\n\n*Previous Tier:* {{old_tier}}\n*New Tier:* {{new_tier}}\n\n*Your New Benefits:*\n{{#each new_benefits}}\n✨ {{benefit}}\n{{/each}}\n\n*Special Welcome Gift:*\n{{upgrade_gift}}\n\nThank you for your loyalty! We're excited to have you as a {{new_tier}} member.\n\n{{business_name}}",
+    "tier_upgrade_ar": "🏆 *مبروك! ترقية المستوى!*\n\nعزيزي {{customer_name}}،\n\nتمت ترقيتك إلى {{new_tier}}! {{tier_emoji}}\n\n*المستوى السابق:* {{old_tier}}\n*المستوى الجديد:* {{new_tier}}\n\n*مزاياك الجديدة:*\n{{#each new_benefits}}\n✨ {{benefit}}\n{{/each}}\n\n*هدية ترحيب خاصة:*\n{{upgrade_gift}}\n\nشكراً لولائك! نحن متحمسون لوجودك كعضو {{new_tier}}.\n\n{{business_name}}",
+    "reward_available_en": "🎁 *Reward Unlocked!*\n\nHi {{customer_name}},\n\nYou've unlocked a reward! 🎉\n\n*Reward:* {{reward_name}}\n*Points Required:* {{points_required}}\n*Your Points:* {{total_points}}\n\n*To Redeem:*\n{{redemption_instructions}}\n\n*Expires:* {{expiry_date}}\n\nDon't miss out! Redeem your reward today.",
+    "reward_available_ar": "🎁 *مكافأة متاحة!*\n\nمرحباً {{customer_name}}،\n\nلقد فتحت مكافأة! 🎉\n\n*المكافأة:* {{reward_name}}\n*النقاط المطلوبة:* {{points_required}}\n*نقاطك:* {{total_points}}\n\n*للاستبدال:*\n{{redemption_instructions}}\n\n*تنتهي:* {{expiry_date}}\n\nلا تفوت الفرصة! استبدل مكافأتك اليوم.",
+    "points_expiring_en": "⏰ *Points Expiring Soon*\n\nHi {{customer_name}},\n\nSome of your points are expiring soon!\n\n*Expiring Points:* {{expiring_points}}\n*Expiry Date:* {{expiry_date}}\n\n*Your Current Balance:* {{total_points}}\n\n*Use Your Points For:*\n{{#each available_rewards}}\n• {{reward_name}}: {{points_needed}} points\n{{/each}}\n\nVisit us soon to use your points! 🛍️",
+    "monthly_statement_en": "📊 *Monthly Loyalty Statement - {{month}}*\n\nDear {{customer_name}},\n\n*Your Tier:* {{tier_name}} {{tier_emoji}}\n\n*Points Activity:*\n• Opening Balance: {{opening_balance}}\n• Points Earned: +{{points_earned}}\n• Points Redeemed: -{{points_redeemed}}\n• Points Expired: -{{points_expired}}\n• Closing Balance: {{closing_balance}}\n\n*Transactions:*\n{{#each transactions}}\n{{date}}: {{description}} ({{points}})\n{{/each}}\n\n*Next Tier:* {{points_to_next}} points to {{next_tier}}\n\nThank you for being a valued member! 💎"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New Purchase Trigger",
+        "name_ar": "مشغل الشراء الجديد",
+        "type": "trigger",
+        "integrationId": "stripe",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "STRIPE_PAYMENT_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "event_type": "payment_intent.succeeded"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Customer Record",
+        "name_ar": "الحصول على سجل العميل",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{loyalty_sheet}}",
+            "range": "Members!A:L",
+            "filter": "email = {{task_1.customer_email}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Calculate Points",
+        "name_ar": "حساب النقاط",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1", "task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "calculate",
+          "params": {
+            "amount": "{{task_1.amount}}",
+            "points_per_currency": "{{points_per_currency}}",
+            "current_points": "{{task_2.points}}",
+            "current_tier": "{{task_2.tier}}",
+            "tier_thresholds": "{{tier_thresholds}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Update Points Balance",
+        "name_ar": "تحديث رصيد النقاط",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{loyalty_sheet}}",
+            "range": "Members!{{task_2.row}}",
+            "values": "{{task_3.updated_record}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log Transaction",
+        "name_ar": "تسجيل المعاملة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{loyalty_sheet}}",
+            "sheet_name": "Transactions",
+            "values": ["{{date}}", "{{task_1.customer_email}}", "{{task_1.amount}}", "{{task_3.points_earned}}", "earned", "{{task_1.order_id}}"]
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Points Notification",
+        "name_ar": "إرسال إشعار النقاط",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.phone}}",
+            "message": "{{messages.points_earned_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Check Tier Upgrade",
+        "name_ar": "فحص ترقية المستوى",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "task_3.tier_upgraded === true"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Tier Upgrade Message",
+        "name_ar": "إرسال رسالة ترقية المستوى",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.phone}}",
+            "message": "{{messages.tier_upgrade_{{language}}}}",
+            "condition": "task_7.result === true"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Monthly Statement Trigger",
+        "name_ar": "مشغل البيان الشهري",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 1 * *",
+            "description": "1st of each month at 10 AM",
+            "timezone": "{{timezone}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "points_per_currency",
+      "question": "How many points per currency unit spent?",
+      "question_ar": "كم نقطة لكل وحدة عملة منفقة؟",
+      "type": "number",
+      "default": 1
+    },
+    {
+      "id": "tier_structure",
+      "question": "What tier structure do you want?",
+      "question_ar": "ما هيكل المستويات الذي تريده؟",
+      "type": "select",
+      "options": [
+        {"value": "simple", "label": "Simple (Bronze, Silver, Gold)"},
+        {"value": "premium", "label": "Premium (Silver, Gold, Platinum, Diamond)"},
+        {"value": "custom", "label": "Custom / مخصص"}
+      ],
+      "default": "simple"
+    },
+    {
+      "id": "points_expiry_months",
+      "question": "When should points expire? (months)",
+      "question_ar": "متى تنتهي صلاحية النقاط؟ (شهور)",
+      "type": "number",
+      "default": 12
+    },
+    {
+      "id": "birthday_bonus_points",
+      "question": "Bonus points on customer's birthday?",
+      "question_ar": "نقاط إضافية في عيد ميلاد العميل؟",
+      "type": "number",
+      "default": 100
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 
 // =============================================================================
-// TYPES & MOCK DATA
+// TYPES
 // =============================================================================
 
 interface AuditLogEntry {
@@ -43,153 +43,6 @@ type AuditAction =
   | 'integration.connect'
   | 'integration.disconnect'
 
-const MOCK_AUDIT_LOG: AuditLogEntry[] = [
-  {
-    id: '1',
-    timestamp: '2026-01-12T14:32:15Z',
-    user: { id: '1', name: 'Admin User', email: 'admin@nexus.app' },
-    action: 'admin.role_change',
-    resource: 'user',
-    resourceId: 'user_5',
-    details: 'Changed role from "user" to "admin"',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    status: 'success',
-  },
-  {
-    id: '2',
-    timestamp: '2026-01-12T14:28:45Z',
-    user: { id: '2', name: 'John Doe', email: 'john.doe@example.com' },
-    action: 'workflow.execute',
-    resource: 'workflow',
-    resourceId: 'wf_daily_digest',
-    details: 'Executed workflow "Daily Email Digest"',
-    ipAddress: '10.0.0.55',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15',
-    status: 'success',
-  },
-  {
-    id: '3',
-    timestamp: '2026-01-12T14:15:30Z',
-    user: { id: '3', name: 'Sarah Smith', email: 'sarah.smith@company.org' },
-    action: 'workflow.create',
-    resource: 'workflow',
-    resourceId: 'wf_new_123',
-    details: 'Created workflow "Lead Qualification Pipeline"',
-    ipAddress: '172.16.0.22',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
-    status: 'success',
-  },
-  {
-    id: '4',
-    timestamp: '2026-01-12T13:58:22Z',
-    user: { id: '4', name: 'Mike Johnson', email: 'mike.johnson@team.io' },
-    action: 'user.login',
-    resource: 'auth',
-    resourceId: 'session_abc123',
-    details: 'Login attempt failed - invalid password',
-    ipAddress: '203.0.113.45',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148',
-    status: 'failure',
-  },
-  {
-    id: '5',
-    timestamp: '2026-01-12T13:45:10Z',
-    user: { id: '1', name: 'Admin User', email: 'admin@nexus.app' },
-    action: 'settings.update',
-    resource: 'system_settings',
-    resourceId: 'config_main',
-    details: 'Updated notification settings',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    status: 'success',
-  },
-  {
-    id: '6',
-    timestamp: '2026-01-12T12:30:00Z',
-    user: { id: '2', name: 'John Doe', email: 'john.doe@example.com' },
-    action: 'integration.connect',
-    resource: 'integration',
-    resourceId: 'int_slack',
-    details: 'Connected Slack workspace "Acme Corp"',
-    ipAddress: '10.0.0.55',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15',
-    status: 'success',
-  },
-  {
-    id: '7',
-    timestamp: '2026-01-12T11:20:45Z',
-    user: { id: '3', name: 'Sarah Smith', email: 'sarah.smith@company.org' },
-    action: 'api_key.create',
-    resource: 'api_key',
-    resourceId: 'key_prod_xyz',
-    details: 'Created new API key "Production Integration"',
-    ipAddress: '172.16.0.22',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
-    status: 'success',
-  },
-  {
-    id: '8',
-    timestamp: '2026-01-12T10:15:33Z',
-    user: { id: '1', name: 'Admin User', email: 'admin@nexus.app' },
-    action: 'admin.user_create',
-    resource: 'user',
-    resourceId: 'user_6',
-    details: 'Invited new user "newuser@example.com"',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    status: 'success',
-  },
-  {
-    id: '9',
-    timestamp: '2026-01-11T16:45:00Z',
-    user: { id: '2', name: 'John Doe', email: 'john.doe@example.com' },
-    action: 'workflow.delete',
-    resource: 'workflow',
-    resourceId: 'wf_old_456',
-    details: 'Deleted workflow "Old Test Workflow"',
-    ipAddress: '10.0.0.55',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15',
-    status: 'success',
-  },
-  {
-    id: '10',
-    timestamp: '2026-01-11T15:30:22Z',
-    user: { id: '4', name: 'Mike Johnson', email: 'mike.johnson@team.io' },
-    action: 'user.mfa_enable',
-    resource: 'auth',
-    resourceId: 'mfa_config',
-    details: 'Enabled two-factor authentication',
-    ipAddress: '203.0.113.45',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148',
-    status: 'success',
-  },
-  {
-    id: '11',
-    timestamp: '2026-01-11T14:00:00Z',
-    user: { id: '3', name: 'Sarah Smith', email: 'sarah.smith@company.org' },
-    action: 'workflow.execute',
-    resource: 'workflow',
-    resourceId: 'wf_crm_sync',
-    details: 'Execution failed - API rate limit exceeded',
-    ipAddress: '172.16.0.22',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
-    status: 'warning',
-  },
-  {
-    id: '12',
-    timestamp: '2026-01-11T09:15:00Z',
-    user: { id: '1', name: 'Admin User', email: 'admin@nexus.app' },
-    action: 'user.password_change',
-    resource: 'auth',
-    resourceId: 'password_reset',
-    details: 'Password changed successfully',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-    status: 'success',
-  },
-]
-
 // =============================================================================
 // ADMIN AUDIT LOG COMPONENT
 // =============================================================================
@@ -206,16 +59,58 @@ export function AdminAuditLog() {
   const [currentPage, setCurrentPage] = useState(1)
   const logsPerPage = 10
 
-  useEffect(() => {
-    // Simulate API call
-    const loadLogs = async () => {
-      setLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 600))
-      setLogs(MOCK_AUDIT_LOG)
+  // Fetch audit logs from API
+  const fetchLogs = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin-analytics/audit-log?limit=500')
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        // Transform API response to match component's expected format
+        const transformedLogs: AuditLogEntry[] = result.data.map((entry: {
+          id: string
+          timestamp: string
+          user_id: string
+          user_name: string | null
+          user_email: string | null
+          action: string
+          resource: string
+          resource_id: string | null
+          details: string | null
+          ip_address: string | null
+          user_agent: string | null
+          status: 'success' | 'failure' | 'warning'
+        }) => ({
+          id: entry.id,
+          timestamp: entry.timestamp,
+          user: {
+            id: entry.user_id,
+            name: entry.user_name || 'Unknown',
+            email: entry.user_email || '',
+          },
+          action: entry.action as AuditAction,
+          resource: entry.resource,
+          resourceId: entry.resource_id || '',
+          details: entry.details || '',
+          ipAddress: entry.ip_address || '',
+          userAgent: entry.user_agent || '',
+          status: entry.status,
+        }))
+        setLogs(transformedLogs)
+      }
+    } catch (error) {
+      console.error('Error fetching audit logs:', error)
+      // Set empty logs on error
+      setLogs([])
+    } finally {
       setLoading(false)
     }
-    loadLogs()
   }, [])
+
+  useEffect(() => {
+    fetchLogs()
+  }, [fetchLogs])
 
   // Get unique users and actions for filters
   const uniqueUsers = useMemo(() => {

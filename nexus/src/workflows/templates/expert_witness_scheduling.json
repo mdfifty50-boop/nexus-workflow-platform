@@ -1,0 +1,249 @@
+{
+  "id": "expert_witness_scheduling",
+  "name": "Expert Witness Scheduling",
+  "name_ar": "جدولة الشهود الخبراء",
+  "description": "Coordinate expert witness availability with court dates, send meeting invites, track preparation sessions, and manage expert fee payments. Ensures experts are prepared and available when needed.",
+  "description_ar": "تنسيق توفر الشهود الخبراء مع مواعيد المحكمة، إرسال دعوات الاجتماعات، تتبع جلسات التحضير، وإدارة أتعاب الخبراء. يضمن جاهزية الخبراء وتوفرهم عند الحاجة.",
+  "domain": "lawyers",
+  "roiTier": 2,
+  "annualValue": "$28,000/year",
+  "requiredIntegrations": ["googlecalendar", "gmail", "googlesheets"],
+  "optionalIntegrations": ["zoom", "slack", "notion", "stripe"],
+  "exampleUserInput": "Schedule and manage expert witnesses for my cases",
+  "exampleUserInput_ar": "جدول وأدر الشهود الخبراء لقضاياي",
+  "keywords": ["expert", "witness", "testimony", "schedule", "deposition", "trial", "specialist", "خبير", "شاهد", "شهادة", "جدولة", "محاكمة", "متخصص"],
+  "dynamicParameters": {
+    "prep_session_days_before": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before testimony for prep session",
+      "label_ar": "أيام قبل الشهادة لجلسة التحضير",
+      "required": true
+    },
+    "confirmation_days_before": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before for final confirmation",
+      "label_ar": "أيام قبل للتأكيد النهائي",
+      "required": true
+    },
+    "auto_schedule_prep": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule preparation sessions",
+      "label_ar": "جدولة جلسات التحضير تلقائياً"
+    },
+    "track_fees": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track expert fees and payments",
+      "label_ar": "تتبع أتعاب الخبراء والمدفوعات"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Communication Language",
+      "label_ar": "لغة التواصل"
+    }
+  },
+  "messages": {
+    "expert_assigned_en": "👨‍⚕️ *Expert Witness Assigned*\n\nCase: {{case_number}}\nExpert: {{expert_name}}\nSpecialty: {{specialty}}\n\nTestimony Date: {{testimony_date}}\nCourt: {{court_name}}\n\nPrep Session: {{prep_session_date}}\nFee: {{currency}} {{expert_fee}}\n\nCalendar invites sent.",
+    "prep_reminder_en": "📅 *Expert Prep Session Tomorrow*\n\nCase: {{case_number}}\nExpert: {{expert_name}}\n\nDate: {{prep_date}} at {{prep_time}}\nLocation: {{location}}\n\n*Preparation Checklist:*\n• Review expert's report\n• Prepare examination questions\n• Anticipate cross-examination\n• Confirm visual aids ready",
+    "prep_reminder_ar": "📅 *جلسة تحضير الخبير غداً*\n\nالقضية: {{case_number}}\nالخبير: {{expert_name}}\n\nالتاريخ: {{prep_date}} في {{prep_time}}\nالموقع: {{location}}\n\n*قائمة التحضير:*\n• مراجعة تقرير الخبير\n• إعداد أسئلة الاستجواب\n• توقع الاستجواب المضاد\n• التأكد من جاهزية الوسائل البصرية",
+    "testimony_reminder_en": "⚖️ *Expert Testimony in {{days_until}} Days*\n\nCase: {{case_number}}\nExpert: {{expert_name}}\n\nDate: {{testimony_date}}\nTime: {{testimony_time}}\nCourt: {{court_name}}\nRoom: {{courtroom}}\n\n*Final Checklist:*\n• Expert confirmed attendance\n• Documents ready\n• Exhibits prepared\n• Report copies available",
+    "expert_invitation_en": "Dear {{expert_name}},\n\nYou are invited to provide expert testimony in the following matter:\n\nCase: {{case_name}}\nCase Number: {{case_number}}\nDate: {{testimony_date}} at {{testimony_time}}\nCourt: {{court_name}}\n\nPre-testimony preparation session:\nDate: {{prep_date}}\nLocation: {{firm_address}}\n\nPlease confirm your availability by replying to this email.\n\nFee arrangement: {{currency}} {{expert_fee}} ({{fee_terms}})\n\nBest regards,\n{{lawyer_name}}\n{{firm_name}}",
+    "expert_invitation_ar": "عزيزي {{expert_name}}،\n\nأنت مدعو لتقديم شهادة خبير في القضية التالية:\n\nالقضية: {{case_name}}\nرقم القضية: {{case_number}}\nالتاريخ: {{testimony_date}} في {{testimony_time}}\nالمحكمة: {{court_name}}\n\nجلسة التحضير قبل الشهادة:\nالتاريخ: {{prep_date}}\nالموقع: {{firm_address}}\n\nيرجى تأكيد توفرك بالرد على هذا البريد.\n\nترتيبات الأتعاب: {{currency}} {{expert_fee}} ({{fee_terms}})\n\nمع أطيب التحيات،\n{{lawyer_name}}\n{{firm_name}}",
+    "fee_due_en": "💰 *Expert Fee Payment Due*\n\nExpert: {{expert_name}}\nCase: {{case_number}}\nAmount: {{currency}} {{expert_fee}}\nDue Date: {{due_date}}\n\nService: {{service_description}}\nInvoice #: {{invoice_number}}\n\n[Process Payment]({{payment_link}})"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Expert Testimony Event Created",
+        "name_ar": "إنشاء حدث شهادة الخبير",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_EVENT_CREATED",
+          "action": "webhook",
+          "params": {
+            "filter": "expert OR خبير OR testimony OR شهادة"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Extract Expert Details",
+        "name_ar": "استخراج تفاصيل الخبير",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "extract",
+          "params": {
+            "mapping": {
+              "expert_name": "{{task_1.attendees[0].name}}",
+              "expert_email": "{{task_1.attendees[0].email}}",
+              "case_number": "{{task_1.title | extract_case_number}}",
+              "testimony_date": "{{task_1.start}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Schedule Prep Session",
+        "name_ar": "جدولة جلسة التحضير",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "title": "Expert Prep: {{task_2.expert_name}} - Case {{task_2.case_number}}",
+            "start_time": "{{task_2.testimony_date | subtract_days(prep_session_days_before)}}",
+            "duration": "90 minutes",
+            "attendees": ["{{task_2.expert_email}}", "{{lawyer_email}}"],
+            "description": "Preparation session for expert testimony",
+            "condition": "auto_schedule_prep === true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Expert Invitation",
+        "name_ar": "إرسال دعوة الخبير",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.expert_email}}",
+            "subject": "Expert Testimony Request - Case {{task_2.case_number}} / طلب شهادة خبير",
+            "body": "{{messages.expert_invitation_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log to Expert Tracker",
+        "name_ar": "تسجيل في متتبع الخبراء",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_BATCH_UPDATE",
+          "action": "append",
+          "params": {
+            "spreadsheetId": "{{expert_tracker_sheet}}",
+            "sheetName": "Experts",
+            "values": [
+              "{{task_2.case_number}}",
+              "{{task_2.expert_name}}",
+              "{{task_2.expert_email}}",
+              "{{task_2.testimony_date}}",
+              "Invited",
+              "{{expert_fee}}",
+              "Pending"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Prep Session Reminder",
+        "name_ar": "تذكير جلسة التحضير",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "relative",
+          "params": {
+            "before_event": "{{task_3.event_id}}",
+            "offset": "24 hours"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Prep Reminder",
+        "name_ar": "إرسال تذكير التحضير",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#cases",
+            "message": "{{messages.prep_reminder_{{language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "gmail", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "prep_session_days_before",
+      "question": "How many days before testimony for prep session?",
+      "question_ar": "كم يوم قبل الشهادة لجلسة التحضير؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "auto_schedule_prep",
+      "question": "Auto-schedule preparation sessions?",
+      "question_ar": "جدولة جلسات التحضير تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "track_fees",
+      "question": "Track expert fees and payments?",
+      "question_ar": "تتبع أتعاب الخبراء والمدفوعات؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "Communication language?",
+      "question_ar": "لغة التواصل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "expertTypes": ["Medical", "Financial", "Engineering", "Forensic", "Handwriting"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

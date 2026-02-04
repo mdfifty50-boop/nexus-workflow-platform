@@ -1,0 +1,252 @@
+{
+  "id": "delivery_tracking_notification",
+  "name": "Delivery Tracking Notification",
+  "name_ar": "إشعارات تتبع التوصيل",
+  "description": "Keep customers informed with automatic delivery status updates. Send real-time notifications for order confirmation, dispatch, out-for-delivery, and delivery completion via WhatsApp.",
+  "description_ar": "إبقاء العملاء على اطلاع بتحديثات حالة التوصيل التلقائية. إرسال إشعارات فورية لتأكيد الطلب والإرسال والتوصيل واكتمال التسليم عبر واتساب.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$22,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp"],
+  "optionalIntegrations": ["gmail", "slack", "googlemaps"],
+  "exampleUserInput": "Send delivery updates to my customers automatically",
+  "exampleUserInput_ar": "أرسل تحديثات التوصيل لعملائي تلقائياً",
+  "keywords": ["delivery", "tracking", "shipping", "order", "status", "notification", "توصيل", "تتبع", "شحن", "طلب", "حالة", "إشعار"],
+  "dynamicParameters": {
+    "notification_stages": {
+      "type": "multiselect",
+      "options": ["confirmed", "processing", "shipped", "out_for_delivery", "delivered", "delayed"],
+      "default": ["confirmed", "shipped", "out_for_delivery", "delivered"],
+      "label": "Which stages to notify",
+      "label_ar": "المراحل التي يتم الإشعار عنها"
+    },
+    "include_tracking_link": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include tracking link",
+      "label_ar": "تضمين رابط التتبع"
+    },
+    "delivery_time_window": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include estimated delivery window",
+      "label_ar": "تضمين نافذة التوصيل المتوقعة"
+    },
+    "request_feedback_after": {
+      "type": "boolean",
+      "default": true,
+      "label": "Request feedback after delivery",
+      "label_ar": "طلب التقييم بعد التوصيل"
+    }
+  },
+  "messages": {
+    "order_confirmed_en": "✅ *Order Confirmed!*\n\nHi {{customer_name}},\n\nThank you for your order! 🎉\n\n*Order #:* {{order_id}}\n*Date:* {{order_date}}\n\n*Items:*\n{{#each items}}\n• {{name}} x{{quantity}} - {{currency}} {{price}}\n{{/each}}\n\n*Total:* {{currency}} {{total}}\n\n*Delivery Address:*\n{{delivery_address}}\n\n*Estimated Delivery:* {{estimated_delivery}}\n\nWe'll notify you when your order ships! 📦\n\n{{business_name}}",
+    "order_confirmed_ar": "✅ *تم تأكيد الطلب!*\n\nمرحباً {{customer_name}}،\n\nشكراً على طلبك! 🎉\n\n*رقم الطلب:* {{order_id}}\n*التاريخ:* {{order_date}}\n\n*المنتجات:*\n{{#each items}}\n• {{name}} x{{quantity}} - {{currency}} {{price}}\n{{/each}}\n\n*الإجمالي:* {{currency}} {{total}}\n\n*عنوان التوصيل:*\n{{delivery_address}}\n\n*التوصيل المتوقع:* {{estimated_delivery}}\n\nسنعلمك عند شحن طلبك! 📦\n\n{{business_name}}",
+    "order_shipped_en": "📦 *Order Shipped!*\n\nHi {{customer_name}},\n\nGreat news! Your order is on the way! 🚚\n\n*Order #:* {{order_id}}\n*Shipped via:* {{carrier_name}}\n*Tracking #:* {{tracking_number}}\n\n{{#if tracking_link}}📍 *Track your order:* {{tracking_link}}{{/if}}\n\n*Estimated Delivery:* {{estimated_delivery}}\n\n*Package Contents:*\n{{#each items}}\n• {{name}} x{{quantity}}\n{{/each}}\n\nWe'll update you when it's out for delivery!",
+    "order_shipped_ar": "📦 *تم شحن الطلب!*\n\nمرحباً {{customer_name}}،\n\nأخبار رائعة! طلبك في الطريق! 🚚\n\n*رقم الطلب:* {{order_id}}\n*شحن عبر:* {{carrier_name}}\n*رقم التتبع:* {{tracking_number}}\n\n{{#if tracking_link}}📍 *تتبع طلبك:* {{tracking_link}}{{/if}}\n\n*التوصيل المتوقع:* {{estimated_delivery}}\n\n*محتويات الطرد:*\n{{#each items}}\n• {{name}} x{{quantity}}\n{{/each}}\n\nسنحدثك عندما يكون خارجاً للتوصيل!",
+    "out_for_delivery_en": "🚚 *Out for Delivery!*\n\nHi {{customer_name}},\n\nExciting news! Your order is out for delivery! 📍\n\n*Order #:* {{order_id}}\n*Driver:* {{driver_name}}\n{{#if driver_phone}}📞 Driver contact: {{driver_phone}}{{/if}}\n\n*Estimated Arrival:* {{delivery_window}}\n\n{{#if live_tracking}}🗺️ *Live Tracking:* {{tracking_link}}{{/if}}\n\n*Please ensure someone is available to receive the package.*\n\nSee you soon! 🎁",
+    "out_for_delivery_ar": "🚚 *خارج للتوصيل!*\n\nمرحباً {{customer_name}}،\n\nأخبار مثيرة! طلبك خارج للتوصيل! 📍\n\n*رقم الطلب:* {{order_id}}\n*السائق:* {{driver_name}}\n{{#if driver_phone}}📞 تواصل مع السائق: {{driver_phone}}{{/if}}\n\n*الوصول المتوقع:* {{delivery_window}}\n\n{{#if live_tracking}}🗺️ *التتبع المباشر:* {{tracking_link}}{{/if}}\n\n*يرجى التأكد من وجود شخص لاستلام الطرد.*\n\nنراك قريباً! 🎁",
+    "delivered_en": "✨ *Order Delivered!*\n\nHi {{customer_name}},\n\nYour order has been delivered! 🎉\n\n*Order #:* {{order_id}}\n*Delivered at:* {{delivery_time}}\n*Received by:* {{received_by}}\n\n{{#if photo_proof}}📸 Proof of delivery attached{{/if}}\n\n*We hope you love your purchase!*\n\n{{#if request_feedback}}How was your experience? Reply with:\n⭐⭐⭐⭐⭐ Excellent\n⭐⭐⭐⭐ Good\n⭐⭐⭐ Average\n⭐⭐ Poor\n⭐ Bad{{/if}}\n\nThank you for shopping with {{business_name}}! 💝",
+    "delivered_ar": "✨ *تم توصيل الطلب!*\n\nمرحباً {{customer_name}}،\n\nتم توصيل طلبك! 🎉\n\n*رقم الطلب:* {{order_id}}\n*تم التوصيل في:* {{delivery_time}}\n*استلمه:* {{received_by}}\n\n{{#if photo_proof}}📸 إثبات التوصيل مرفق{{/if}}\n\n*نأمل أن يعجبك مشترياتك!*\n\n{{#if request_feedback}}كيف كانت تجربتك؟ رد بـ:\n⭐⭐⭐⭐⭐ ممتاز\n⭐⭐⭐⭐ جيد\n⭐⭐⭐ متوسط\n⭐⭐ ضعيف\n⭐ سيء{{/if}}\n\nشكراً للتسوق مع {{business_name}}! 💝",
+    "delay_notification_en": "⚠️ *Delivery Update*\n\nHi {{customer_name}},\n\nWe wanted to let you know about a delay with your order.\n\n*Order #:* {{order_id}}\n*Reason:* {{delay_reason}}\n\n*Original Delivery:* {{original_date}}\n*New Estimated Delivery:* {{new_date}}\n\nWe sincerely apologize for any inconvenience. We're working to get your order to you as soon as possible.\n\n{{#if compensation}}As a token of our apology: {{compensation}}{{/if}}\n\nQuestions? Reply to this message.\n\n{{business_name}}",
+    "delay_notification_ar": "⚠️ *تحديث التوصيل*\n\nمرحباً {{customer_name}}،\n\nنود إعلامك بتأخير في طلبك.\n\n*رقم الطلب:* {{order_id}}\n*السبب:* {{delay_reason}}\n\n*التوصيل الأصلي:* {{original_date}}\n*التوصيل المتوقع الجديد:* {{new_date}}\n\nنعتذر بشدة عن أي إزعاج. نعمل على إيصال طلبك في أسرع وقت ممكن.\n\n{{#if compensation}}كتعويض عن اعتذارنا: {{compensation}}{{/if}}\n\nأسئلة؟ رد على هذه الرسالة.\n\n{{business_name}}",
+    "daily_dispatch_summary_en": "📊 *Daily Dispatch Summary - {{date}}*\n\n*Orders Processed:*\n• Confirmed: {{confirmed_count}}\n• Shipped: {{shipped_count}}\n• Out for Delivery: {{out_count}}\n• Delivered: {{delivered_count}}\n• Delayed: {{delayed_count}}\n\n*Delivery Performance:*\n• On-time rate: {{ontime_rate}}%\n• Average delivery time: {{avg_time}}\n\n*Pending:*\n{{#each pending}}\n• {{order_id}} - {{status}} ({{customer_name}})\n{{/each}}\n\n*Issues:* {{issues_count}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Order Status Changed",
+        "name_ar": "تغير حالة الطلب",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_UPDATED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{orders_sheet}}",
+            "sheet_name": "Orders",
+            "watch_column": "status"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Order Details",
+        "name_ar": "الحصول على تفاصيل الطلب",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{orders_sheet}}",
+            "range": "Orders!A{{task_1.row}}:P{{task_1.row}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Determine Message Type",
+        "name_ar": "تحديد نوع الرسالة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "map",
+          "params": {
+            "status": "{{task_1.new_status}}",
+            "notification_stages": "{{notification_stages}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Status Notification",
+        "name_ar": "إرسال إشعار الحالة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.customer_phone}}",
+            "message": "{{task_3.message_template}}",
+            "condition": "task_3.should_notify === true"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Email Notification",
+        "name_ar": "إرسال إشعار البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.customer_email}}",
+            "subject": "{{task_3.email_subject}}",
+            "body": "{{task_3.message_template}}",
+            "condition": "task_3.should_notify === true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Log Notification",
+        "name_ar": "تسجيل الإشعار",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4", "task_5"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{orders_sheet}}",
+            "sheet_name": "NotificationLog",
+            "values": ["{{timestamp}}", "{{task_2.order_id}}", "{{task_1.new_status}}", "{{task_2.customer_phone}}", "sent"]
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Daily Summary Trigger",
+        "name_ar": "مشغل الملخص اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 18 * * 0-4",
+            "description": "Daily at 6 PM on workdays",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Daily Summary",
+        "name_ar": "إرسال الملخص اليومي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#operations",
+            "message": "{{messages.daily_dispatch_summary_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "notification_stages",
+      "question": "Which stages should notify customers?",
+      "question_ar": "أي المراحل يجب إشعار العملاء بها؟",
+      "type": "multiselect",
+      "options": [
+        {"value": "confirmed", "label": "Order Confirmed / تأكيد الطلب"},
+        {"value": "processing", "label": "Processing / قيد المعالجة"},
+        {"value": "shipped", "label": "Shipped / تم الشحن"},
+        {"value": "out_for_delivery", "label": "Out for Delivery / خارج للتوصيل"},
+        {"value": "delivered", "label": "Delivered / تم التوصيل"},
+        {"value": "delayed", "label": "Delayed / متأخر"}
+      ],
+      "default": ["confirmed", "shipped", "out_for_delivery", "delivered"]
+    },
+    {
+      "id": "include_tracking_link",
+      "question": "Include tracking link in notifications?",
+      "question_ar": "تضمين رابط التتبع في الإشعارات؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "delivery_time_window",
+      "question": "Include estimated delivery time window?",
+      "question_ar": "تضمين نافذة وقت التوصيل المتوقعة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "request_feedback_after",
+      "question": "Request feedback after delivery?",
+      "question_ar": "طلب التقييم بعد التوصيل؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

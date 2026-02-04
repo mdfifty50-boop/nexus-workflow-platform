@@ -1,0 +1,253 @@
+{
+  "id": "customer_birthday_campaign",
+  "name": "Customer Birthday Campaign",
+  "name_ar": "حملة أعياد ميلاد العملاء",
+  "description": "Automatically send personalized birthday greetings with special offers to customers. Build loyalty and drive repeat purchases with timely, thoughtful messages.",
+  "description_ar": "إرسال تهاني عيد الميلاد الشخصية مع عروض خاصة للعملاء تلقائياً. بناء الولاء وزيادة المشتريات المتكررة برسائل في الوقت المناسب ومدروسة.",
+  "domain": "sme",
+  "roiTier": 2,
+  "annualValue": "$8,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp"],
+  "optionalIntegrations": ["gmail", "mailchimp", "hubspot", "stripe"],
+  "exampleUserInput": "Send birthday wishes and offers to my customers",
+  "exampleUserInput_ar": "أرسل تهاني عيد الميلاد والعروض لعملائي",
+  "keywords": ["birthday", "campaign", "loyalty", "offer", "discount", "customer", "عيد ميلاد", "حملة", "ولاء", "عرض", "خصم", "عميل"],
+  "dynamicParameters": {
+    "days_before": {
+      "type": "number",
+      "default": 0,
+      "label": "Days before birthday to send (0 = on birthday)",
+      "label_ar": "أيام قبل عيد الميلاد للإرسال (0 = في عيد الميلاد)"
+    },
+    "include_offer": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include special birthday offer",
+      "label_ar": "تضمين عرض عيد ميلاد خاص"
+    },
+    "discount_percent": {
+      "type": "number",
+      "default": 15,
+      "label": "Discount percentage for birthday offer",
+      "label_ar": "نسبة الخصم لعرض عيد الميلاد"
+    },
+    "offer_validity_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days the offer is valid",
+      "label_ar": "أيام صلاحية العرض"
+    },
+    "channel": {
+      "type": "select",
+      "options": ["whatsapp", "email", "both"],
+      "default": "whatsapp",
+      "label": "Greeting channel",
+      "label_ar": "قناة التهنئة"
+    }
+  },
+  "messages": {
+    "birthday_greeting_whatsapp_en": "🎂 *Happy Birthday, {{customer_name}}!* 🎉\n\nFrom all of us at {{business_name}}, we wish you a wonderful birthday filled with joy and happiness!\n\n{{#if include_offer}}🎁 *Your Birthday Gift:*\n**{{discount_percent}}% OFF** your next purchase!\n\nUse code: **{{promo_code}}**\nValid until: {{expiry_date}}\n\n[Shop Now]({{shop_link}}){{/if}}\n\nThank you for being a valued customer. We appreciate you! 💝",
+    "birthday_greeting_whatsapp_ar": "🎂 *عيد ميلاد سعيد يا {{customer_name}}!* 🎉\n\nمن جميع فريق {{business_name}}، نتمنى لك عيد ميلاد رائع مليء بالفرح والسعادة!\n\n{{#if include_offer}}🎁 *هديتك لعيد الميلاد:*\n**خصم {{discount_percent}}%** على مشترياتك القادمة!\n\nاستخدم الكود: **{{promo_code}}**\nصالح حتى: {{expiry_date}}\n\n[تسوق الآن]({{shop_link}}){{/if}}\n\nشكراً لكونك عميلاً مميزاً. نقدرك! 💝",
+    "birthday_greeting_email_en": "Subject: 🎂 Happy Birthday, {{customer_name}}! Here's a special gift for you\n\nDear {{customer_name}},\n\nWishing you the happiest of birthdays! 🎉\n\nAs a token of our appreciation for being such a wonderful customer, we'd like to offer you a special birthday gift:\n\n{{#if include_offer}}🎁 {{discount_percent}}% OFF Your Next Purchase\n\nPromo Code: {{promo_code}}\nValid until: {{expiry_date}}\n\nWhether you're treating yourself or using it for something special, we hope this adds a little extra joy to your celebration.\n\n[Claim Your Gift]({{shop_link}}){{/if}}\n\nHave a fantastic birthday!\n\nWarm regards,\nThe {{business_name}} Team",
+    "birthday_greeting_email_ar": "الموضوع: 🎂 عيد ميلاد سعيد يا {{customer_name}}! هديتك الخاصة بانتظارك\n\nعزيزي {{customer_name}}،\n\nnنتمنى لك أسعد عيد ميلاد! 🎉\n\nتقديراً لكونك عميلاً رائعاً، نود أن نقدم لك هدية عيد ميلاد خاصة:\n\n{{#if include_offer}}🎁 خصم {{discount_percent}}% على مشترياتك القادمة\n\nكود الخصم: {{promo_code}}\nصالح حتى: {{expiry_date}}\n\nسواء كنت تدلل نفسك أو تستخدمه لشيء مميز، نأمل أن يضيف المزيد من الفرح لاحتفالك.\n\n[احصل على هديتك]({{shop_link}}){{/if}}\n\nعيد ميلاد سعيد!\n\nمع أطيب التحيات،\nفريق {{business_name}}",
+    "internal_notification_en": "🎂 *Birthday Greeting Sent*\n\nCustomer: {{customer_name}}\nBirthday: {{birthday_date}}\nChannel: {{channel}}\n{{#if include_offer}}Promo Code: {{promo_code}}\nDiscount: {{discount_percent}}%\nExpires: {{expiry_date}}{{/if}}\n\nSent at: {{sent_time}}",
+    "offer_used_en": "✅ *Birthday Offer Redeemed*\n\nCustomer: {{customer_name}}\nPromo Code: {{promo_code}}\nOrder: {{order_id}}\nDiscount Applied: {{currency}} {{discount_amount}}\n\n🎉 Birthday campaign conversion!",
+    "weekly_summary_en": "📊 *Birthday Campaign Weekly Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Greetings Sent:* {{greetings_sent}}\n*Offers Generated:* {{offers_generated}}\n*Offers Redeemed:* {{offers_redeemed}}\n*Conversion Rate:* {{conversion_rate}}%\n*Revenue from Birthday Offers:* {{currency}} {{revenue}}\n\n*Upcoming Birthdays (Next Week):* {{upcoming_count}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Birthday Check",
+        "name_ar": "فحص أعياد الميلاد اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * *",
+            "description": "Daily at 9 AM",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Find Birthday Customers",
+        "name_ar": "إيجاد عملاء عيد الميلاد",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{customers_sheet}}",
+            "range": "Customers!A:H",
+            "filter": "birthday_month = {{current_month}} AND birthday_day = {{target_day}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Generate Promo Codes",
+        "name_ar": "إنشاء أكواد الخصم",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "generate",
+          "params": {
+            "count": "{{task_2.count}}",
+            "format": "BDAY{{customer_id}}{{year}}",
+            "discount": "{{discount_percent}}",
+            "validity_days": "{{offer_validity_days}}",
+            "condition": "include_offer === true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send WhatsApp Greetings",
+        "name_ar": "إرسال تهاني واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_2.customers}}",
+            "message": "{{messages.birthday_greeting_whatsapp_{{language}}}}",
+            "condition": "channel === 'whatsapp' OR channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Email Greetings",
+        "name_ar": "إرسال تهاني البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_2.customers}}",
+            "subject": "🎂 Happy Birthday, {{customer_name}}! / عيد ميلاد سعيد!",
+            "body": "{{messages.birthday_greeting_email_{{language}}}}",
+            "condition": "channel === 'email' OR channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Log Promo Codes",
+        "name_ar": "تسجيل أكواد الخصم",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3", "task_4", "task_5"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "batch_append",
+          "params": {
+            "spreadsheet_id": "{{promo_codes_sheet}}",
+            "values": "{{task_3.promo_codes}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Update Customer Records",
+        "name_ar": "تحديث سجلات العملاء",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4", "task_5"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "batch_update",
+          "params": {
+            "spreadsheet_id": "{{customers_sheet}}",
+            "updates": "{{greeting_log}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Notify Team",
+        "name_ar": "إشعار الفريق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#marketing",
+            "message": "🎂 Sent birthday greetings to {{task_2.count}} customers today!"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "channel",
+      "question": "How should birthday greetings be sent?",
+      "question_ar": "كيف يجب إرسال تهاني عيد الميلاد؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "email", "label": "Email"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "include_offer",
+      "question": "Include special birthday discount offer?",
+      "question_ar": "تضمين عرض خصم عيد الميلاد الخاص؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "discount_percent",
+      "question": "What discount percentage for birthday offer?",
+      "question_ar": "ما نسبة الخصم لعرض عيد الميلاد؟",
+      "type": "number",
+      "default": 15
+    },
+    {
+      "id": "offer_validity_days",
+      "question": "How many days should the offer be valid?",
+      "question_ar": "كم يوم يجب أن يكون العرض صالحاً؟",
+      "type": "number",
+      "default": 7
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

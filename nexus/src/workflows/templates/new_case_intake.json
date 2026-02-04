@@ -1,0 +1,300 @@
+{
+  "id": "new_case_intake",
+  "name": "New Case Intake Automation",
+  "name_ar": "أتمتة استقبال القضايا الجديدة",
+  "description": "Streamline new client case intake: Collect information via form, run conflict check, create case file, assign to attorney, schedule consultation, and send welcome packet. Reduces intake time from hours to minutes.",
+  "description_ar": "تبسيط استقبال قضايا العملاء الجدد: جمع المعلومات عبر نموذج، فحص تعارض المصالح، إنشاء ملف القضية، تعيين المحامي، جدولة الاستشارة، وإرسال حزمة الترحيب.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$42,000/lawyer",
+  "requiredIntegrations": ["gmail", "notion", "googlecalendar"],
+  "optionalIntegrations": ["hubspot", "typeform", "docusign", "whatsapp", "slack"],
+  "exampleUserInput": "Automate new client intake process",
+  "exampleUserInput_ar": "أتمت عملية استقبال العملاء الجدد",
+  "keywords": ["intake", "new client", "case", "onboarding", "conflict check", "consultation", "form", "استقبال", "عميل جديد", "قضية", "استشارة", "نموذج", "تعارض مصالح"],
+  "dynamicParameters": {
+    "case_types": {
+      "type": "multiselect",
+      "options": ["Civil", "Criminal", "Family", "Corporate", "Real Estate", "Labor", "Immigration"],
+      "default": ["Civil", "Corporate"],
+      "label": "Case types handled",
+      "label_ar": "أنواع القضايا"
+    },
+    "conflict_check_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Run automatic conflict check",
+      "label_ar": "تشغيل فحص تعارض المصالح التلقائي"
+    },
+    "auto_schedule_consult": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule initial consultation",
+      "label_ar": "جدولة الاستشارة الأولية تلقائياً"
+    },
+    "consultation_duration": {
+      "type": "select",
+      "options": ["30", "45", "60"],
+      "default": "60",
+      "label": "Consultation duration (minutes)",
+      "label_ar": "مدة الاستشارة (دقائق)"
+    },
+    "welcome_packet": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send digital welcome packet",
+      "label_ar": "إرسال حزمة ترحيب رقمية"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Communication Language",
+      "label_ar": "لغة التواصل"
+    }
+  },
+  "messages": {
+    "intake_received_en": "📋 *New Case Intake Received*\n\nClient: {{client_name}}\nPhone: {{phone}}\nEmail: {{email}}\nCase Type: {{case_type}}\n\nBrief: {{case_brief}}\n\n⏳ Running conflict check...",
+    "intake_received_ar": "📋 *استلام قضية جديدة*\n\nالعميل: {{client_name}}\nالهاتف: {{phone}}\nالبريد: {{email}}\nنوع القضية: {{case_type}}\n\nالملخص: {{case_brief}}\n\n⏳ جارٍ فحص تعارض المصالح...",
+    "conflict_clear_en": "✅ *Conflict Check CLEAR*\n\nNo conflicts found for {{client_name}}.\nCase file created: {{case_number}}\nAssigned to: {{attorney_name}}\n\nProceeding with intake...",
+    "conflict_found_en": "⚠️ *POTENTIAL CONFLICT DETECTED*\n\nClient: {{client_name}}\nPotential Conflict: {{conflict_details}}\n\n🛑 Intake paused. Manual review required.\n\nPlease review and respond:\n• Proceed - No actual conflict\n• Decline - Conflict confirmed",
+    "welcome_email_en": "Dear {{client_name}},\n\nWelcome to {{firm_name}}. We are pleased to assist you with your {{case_type}} matter.\n\nYour case has been assigned to {{attorney_name}}, who will be your primary contact.\n\n📅 Initial Consultation: {{consultation_date}} at {{consultation_time}}\n📍 Location: {{office_address}}\n\nPlease bring:\n• Valid ID (Civil ID/Passport)\n• Any relevant documents\n• List of questions\n\nAttached is our engagement letter and fee agreement for your review.\n\nWe look forward to meeting you.\n\nBest regards,\n{{firm_name}}\n{{phone}}",
+    "welcome_email_ar": "عزيزي {{client_name}}،\n\nمرحباً بكم في {{firm_name}}. يسعدنا مساعدتكم في قضيتكم {{case_type}}.\n\nتم تعيين قضيتكم للمحامي {{attorney_name}}، والذي سيكون جهة الاتصال الرئيسية.\n\n📅 الاستشارة الأولية: {{consultation_date}} في {{consultation_time}}\n📍 الموقع: {{office_address}}\n\nيرجى إحضار:\n• بطاقة هوية سارية (البطاقة المدنية/جواز السفر)\n• أي مستندات ذات صلة\n• قائمة الأسئلة\n\nمرفق خطاب التوكيل واتفاقية الأتعاب للمراجعة.\n\nنتطلع للقائكم.\n\nمع أطيب التحيات،\n{{firm_name}}\n{{phone}}",
+    "consultation_reminder_en": "📅 Reminder: You have a consultation with {{client_name}} tomorrow at {{consultation_time}}.\n\nCase Type: {{case_type}}\nCase Brief: {{case_brief}}\n\nPrepare:\n• Review intake form\n• Check any documents submitted\n• Prepare retainer agreement",
+    "slack_new_case": "🆕 *New Case Assigned*\n\n👤 Client: {{client_name}}\n⚖️ Type: {{case_type}}\n👨‍⚖️ Attorney: {{attorney_name}}\n📅 Consultation: {{consultation_date}}\n\nCase #: {{case_number}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Intake Form Submitted",
+        "name_ar": "تقديم نموذج الاستقبال",
+        "type": "trigger",
+        "integrationId": "typeform",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "TYPEFORM_RESPONSE_SUBMITTED",
+          "action": "webhook",
+          "params": {
+            "formId": "{{intake_form_id}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Extract Client Information",
+        "name_ar": "استخراج معلومات العميل",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "extract",
+          "params": {
+            "mapping": {
+              "client_name": "{{task_1.fields.name}}",
+              "email": "{{task_1.fields.email}}",
+              "phone": "{{task_1.fields.phone}}",
+              "case_type": "{{task_1.fields.case_type}}",
+              "case_brief": "{{task_1.fields.description}}",
+              "opposing_party": "{{task_1.fields.opposing_party}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Run Conflict Check",
+        "name_ar": "فحص تعارض المصالح",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "NOTION_QUERY_DATABASE",
+          "action": "query",
+          "params": {
+            "database_id": "{{clients_database_id}}",
+            "filter": {
+              "or": [
+                {"property": "Client Name", "contains": "{{task_2.opposing_party}}"},
+                {"property": "Opposing Party", "contains": "{{task_2.client_name}}"}
+              ]
+            },
+            "description": "Check for conflicts with opposing party",
+            "condition": "conflict_check_enabled === true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Create Case Record",
+        "name_ar": "إنشاء سجل القضية",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "NOTION_CREATE_PAGE",
+          "action": "create",
+          "params": {
+            "database_id": "{{cases_database_id}}",
+            "properties": {
+              "Case Number": {"title": [{"text": {"content": "{{generated_case_number}}"}}]},
+              "Client Name": {"rich_text": [{"text": {"content": "{{task_2.client_name}}"}}]},
+              "Case Type": {"select": {"name": "{{task_2.case_type}}"}},
+              "Status": {"select": {"name": "New"}},
+              "Intake Date": {"date": {"start": "{{current_date}}"}},
+              "Brief": {"rich_text": [{"text": {"content": "{{task_2.case_brief}}"}}]}
+            },
+            "condition": "task_3.results.length === 0"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Assign to Attorney",
+        "name_ar": "تعيين للمحامي",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "update",
+          "params": {
+            "page_id": "{{task_4.page_id}}",
+            "properties": {
+              "Assigned Attorney": {"people": [{"id": "{{next_available_attorney}}"}]}
+            }
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Schedule Consultation",
+        "name_ar": "جدولة الاستشارة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "title": "Initial Consultation: {{task_2.client_name}} - {{task_2.case_type}}",
+            "duration": "{{consultation_duration}} minutes",
+            "attendees": ["{{task_5.attorney_email}}", "{{task_2.email}}"],
+            "description": "New client consultation.\n\nCase Brief:\n{{task_2.case_brief}}",
+            "condition": "auto_schedule_consult === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Welcome Email",
+        "name_ar": "إرسال بريد الترحيب",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.email}}",
+            "subject": "Welcome to {{firm_name}} - Your Consultation Details / مرحباً بكم - تفاصيل استشارتكم",
+            "body": "{{messages.welcome_email_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Notify Team",
+        "name_ar": "إشعار الفريق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#new-cases",
+            "message": "{{messages.slack_new_case}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "notion", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "case_types",
+      "question": "What types of cases does your firm handle?",
+      "question_ar": "ما أنواع القضايا التي يتعامل معها مكتبكم؟",
+      "type": "multiselect",
+      "options": [
+        {"value": "civil", "label": "Civil / مدني"},
+        {"value": "criminal", "label": "Criminal / جزائي"},
+        {"value": "family", "label": "Family / أحوال شخصية"},
+        {"value": "corporate", "label": "Corporate / شركات"},
+        {"value": "real_estate", "label": "Real Estate / عقارات"},
+        {"value": "labor", "label": "Labor / عمل"}
+      ],
+      "default": ["civil", "corporate"]
+    },
+    {
+      "id": "conflict_check_enabled",
+      "question": "Run automatic conflict check?",
+      "question_ar": "تشغيل فحص تعارض المصالح التلقائي؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "consultation_duration",
+      "question": "How long are initial consultations?",
+      "question_ar": "ما مدة الاستشارات الأولية؟",
+      "type": "select",
+      "options": [
+        {"value": "30", "label": "30 minutes"},
+        {"value": "45", "label": "45 minutes"},
+        {"value": "60", "label": "60 minutes"}
+      ],
+      "default": "60"
+    },
+    {
+      "id": "language",
+      "question": "Client communication language?",
+      "question_ar": "لغة التواصل مع العميل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "caseTypes": {
+        "civil": "مدني",
+        "criminal": "جزائي",
+        "family": "أحوال شخصية",
+        "corporate": "شركات",
+        "real_estate": "عقارات"
+      }
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english"
+    }
+  }
+}

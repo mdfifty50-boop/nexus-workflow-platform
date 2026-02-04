@@ -1,0 +1,245 @@
+{
+  "id": "settlement_deadline_tracker",
+  "name": "Settlement Deadline Tracker",
+  "name_ar": "متتبع مواعيد التسوية",
+  "description": "Track settlement negotiation deadlines, send reminders before expiry, and notify when counter-offers are needed. Prevents missed settlement windows and ensures timely responses in negotiations.",
+  "description_ar": "تتبع مواعيد مفاوضات التسوية، إرسال تذكيرات قبل الانتهاء، والإشعار عند الحاجة لعروض مضادة. يمنع تفويت فرص التسوية ويضمن الردود في الوقت المناسب.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$65,000/lawyer",
+  "requiredIntegrations": ["googlecalendar", "gmail", "slack"],
+  "optionalIntegrations": ["notion", "whatsapp", "teams"],
+  "exampleUserInput": "Track settlement deadlines and remind me before they expire",
+  "exampleUserInput_ar": "تتبع مواعيد التسوية وذكرني قبل انتهائها",
+  "keywords": ["settlement", "deadline", "negotiation", "offer", "counter-offer", "mediation", "arbitration", "تسوية", "موعد", "مفاوضة", "عرض", "عرض مضاد", "وساطة", "تحكيم"],
+  "dynamicParameters": {
+    "advance_reminder_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before deadline for first reminder",
+      "label_ar": "أيام قبل الموعد للتذكير الأول",
+      "required": true
+    },
+    "urgent_reminder_days": {
+      "type": "number",
+      "default": 2,
+      "label": "Days before deadline for urgent reminder",
+      "label_ar": "أيام قبل الموعد للتذكير العاجل",
+      "required": true
+    },
+    "daily_reminder_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send daily reminders in final week",
+      "label_ar": "إرسال تذكيرات يومية في الأسبوع الأخير"
+    },
+    "notify_client": {
+      "type": "boolean",
+      "default": true,
+      "label": "Notify client of approaching deadlines",
+      "label_ar": "إشعار العميل بالمواعيد القريبة"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Notification Language",
+      "label_ar": "لغة الإشعارات"
+    }
+  },
+  "messages": {
+    "settlement_created_en": "⚖️ *Settlement Deadline Created*\n\nCase: {{case_number}}\nClient: {{client_name}}\nOpposing Party: {{opposing_party}}\n\nOffer Amount: {{currency}} {{offer_amount}}\nDeadline: {{deadline}}\nDays Until Expiry: {{days_remaining}}\n\nReminders scheduled.",
+    "advance_reminder_en": "📅 *Settlement Deadline Approaching*\n\nCase: {{case_number}}\nClient: {{client_name}}\n\nCurrent Offer: {{currency}} {{offer_amount}} from {{offering_party}}\nDeadline: {{deadline}} ({{days_remaining}} days)\n\n*Action Required:*\n• Review offer with client\n• Prepare response strategy\n• Schedule client call if needed",
+    "advance_reminder_ar": "📅 *موعد التسوية يقترب*\n\nالقضية: {{case_number}}\nالعميل: {{client_name}}\n\nالعرض الحالي: {{currency}} {{offer_amount}} من {{offering_party}}\nالموعد النهائي: {{deadline}} ({{days_remaining}} أيام)\n\n*الإجراء المطلوب:*\n• مراجعة العرض مع العميل\n• إعداد استراتيجية الرد\n• جدولة اتصال بالعميل إذا لزم الأمر",
+    "urgent_reminder_en": "🚨 *URGENT: Settlement Deadline in {{days_remaining}} Days*\n\nCase: {{case_number}}\nClient: {{client_name}}\n\nOffer: {{currency}} {{offer_amount}}\nExpires: {{deadline}}\n\n⚠️ No response will result in offer expiration.\n\n*Immediate Actions:*\n• Confirm client decision TODAY\n• Prepare acceptance/rejection letter\n• Document decision rationale",
+    "urgent_reminder_ar": "🚨 *عاجل: موعد التسوية خلال {{days_remaining}} أيام*\n\nالقضية: {{case_number}}\nالعميل: {{client_name}}\n\nالعرض: {{currency}} {{offer_amount}}\nينتهي: {{deadline}}\n\n⚠️ عدم الرد سيؤدي لانتهاء صلاحية العرض.\n\n*إجراءات فورية:*\n• تأكيد قرار العميل اليوم\n• إعداد خطاب القبول/الرفض\n• توثيق سبب القرار",
+    "client_notification_en": "Dear {{client_name}},\n\nThis is to remind you that the settlement offer of {{currency}} {{offer_amount}} in your case expires on {{deadline}}.\n\nWe have {{days_remaining}} days to respond. Please let us know your decision so we can proceed accordingly.\n\nIf you haven't already discussed this with us, please call to schedule a brief consultation.\n\nBest regards,\n{{lawyer_name}}\n{{firm_name}}",
+    "client_notification_ar": "عزيزي {{client_name}}،\n\nنذكركم بأن عرض التسوية بمبلغ {{currency}} {{offer_amount}} في قضيتكم ينتهي في {{deadline}}.\n\nلدينا {{days_remaining}} أيام للرد. يرجى إبلاغنا بقراركم حتى نتمكن من المضي قدماً.\n\nإذا لم تناقشوا هذا معنا بعد، يرجى الاتصال لجدولة استشارة قصيرة.\n\nمع أطيب التحيات،\n{{lawyer_name}}\n{{firm_name}}",
+    "deadline_passed_en": "⏰ *Settlement Deadline Expired*\n\nCase: {{case_number}}\nClient: {{client_name}}\n\nThe settlement offer of {{currency}} {{offer_amount}} has expired.\n\nExpired: {{deadline}}\nOffer From: {{offering_party}}\n\n*Next Steps:*\n• Document expiration\n• Notify client\n• Assess litigation path",
+    "counter_offer_sent_en": "📤 *Counter-Offer Sent*\n\nCase: {{case_number}}\nOriginal Offer: {{currency}} {{original_amount}}\nCounter-Offer: {{currency}} {{counter_amount}}\n\nSent to: {{opposing_party}}\nResponse Deadline: {{response_deadline}}\n\nTracking new deadline."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Deadline Check",
+        "name_ar": "فحص المواعيد اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 8 * * 0-4",
+            "description": "Daily at 8 AM (Sunday-Thursday)",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Query Upcoming Deadlines",
+        "name_ar": "استعلام المواعيد القادمة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_LIST_EVENTS",
+          "action": "query",
+          "params": {
+            "calendarId": "{{settlements_calendar}}",
+            "timeMin": "{{today}}",
+            "timeMax": "{{today_plus_advance_reminder_days}}",
+            "filter": "settlement OR تسوية"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Categorize by Urgency",
+        "name_ar": "التصنيف حسب الأولوية",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "categorize",
+          "params": {
+            "input": "{{task_2.events}}",
+            "categories": {
+              "urgent": "days_until <= urgent_reminder_days",
+              "advance": "days_until > urgent_reminder_days AND days_until <= advance_reminder_days",
+              "expired": "days_until < 0"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Advance Reminders",
+        "name_ar": "إرسال التذكيرات المسبقة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.advance}}",
+            "channel": "@{{assigned_lawyer}}",
+            "message": "{{messages.advance_reminder_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Urgent Reminders",
+        "name_ar": "إرسال التذكيرات العاجلة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.urgent}}",
+            "channel": "#settlements",
+            "message": "{{messages.urgent_reminder_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Notify Clients (if enabled)",
+        "name_ar": "إشعار العملاء (إذا مفعل)",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.urgent.clients}}",
+            "subject": "Settlement Decision Required - {{case_number}} / قرار التسوية مطلوب",
+            "body": "{{messages.client_notification_{{language}}}}",
+            "condition": "notify_client === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Process Expired Deadlines",
+        "name_ar": "معالجة المواعيد المنتهية",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.expired}}",
+            "channel": "#settlements",
+            "message": "{{messages.deadline_passed_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "gmail", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "advance_reminder_days",
+      "question": "How many days before deadline for the first reminder?",
+      "question_ar": "كم يوم قبل الموعد للتذكير الأول؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "urgent_reminder_days",
+      "question": "How many days before for urgent reminders?",
+      "question_ar": "كم يوم قبل الموعد للتذكيرات العاجلة؟",
+      "type": "number",
+      "default": 2
+    },
+    {
+      "id": "notify_client",
+      "question": "Notify clients of approaching deadlines?",
+      "question_ar": "إشعار العملاء بالمواعيد القريبة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "What language for notifications?",
+      "question_ar": "ما لغة الإشعارات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

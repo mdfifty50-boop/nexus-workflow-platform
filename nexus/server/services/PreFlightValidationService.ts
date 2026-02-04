@@ -132,11 +132,19 @@ const FALLBACK_SCHEMAS: Record<string, {
   },
 
   // Google Sheets
+  // @NEXUS-FIX-078: Added GOOGLESHEETS_CREATE_SPREADSHEET for "Create New Sheet" button
+  GOOGLESHEETS_CREATE_SPREADSHEET: {
+    required: ['title'],
+    properties: {
+      title: { type: 'string', description: 'Name for the new spreadsheet', displayName: 'Spreadsheet Name', inputType: 'text', quickActions: [{ label: 'Workflow Data', value: 'Workflow Data' }, { label: 'Report', value: 'Report' }] },
+      sheets: { type: 'array', description: 'Initial sheet names (optional)', displayName: 'Sheet Names' }
+    }
+  },
   GOOGLESHEETS_APPEND_DATA: {
     required: ['spreadsheet_id', 'range', 'values'],
     properties: {
-      spreadsheet_id: { type: 'string', description: 'Google Sheet ID or URL', displayName: 'Spreadsheet', inputType: 'url' },
-      range: { type: 'string', description: 'Cell range (e.g., Sheet1!A1)', displayName: 'Range' },
+      spreadsheet_id: { type: 'string', description: 'Google Sheet ID or URL', displayName: 'Spreadsheet', inputType: 'url', quickActions: [{ label: 'Create New Sheet', value: '{{create_new}}' }] },
+      range: { type: 'string', description: 'Cell range (e.g., Sheet1!A1)', displayName: 'Range', quickActions: [{ label: 'Sheet1!A1', value: 'Sheet1!A1' }] },
       values: { type: 'array', description: 'Data rows to append', displayName: 'Data' }
     }
   },
@@ -145,6 +153,14 @@ const FALLBACK_SCHEMAS: Record<string, {
     properties: {
       spreadsheet_id: { type: 'string', description: 'Google Sheet ID or URL', displayName: 'Spreadsheet', inputType: 'url' },
       range: { type: 'string', description: 'Cell range to read', displayName: 'Range' }
+    }
+  },
+  // @NEXUS-FIX-078: Also add sheet creation within existing spreadsheet
+  GOOGLESHEETS_ADD_SHEET: {
+    required: ['spreadsheet_id', 'title'],
+    properties: {
+      spreadsheet_id: { type: 'string', description: 'Google Sheet ID or URL', displayName: 'Spreadsheet', inputType: 'url' },
+      title: { type: 'string', description: 'Name for the new sheet tab', displayName: 'Sheet Name', inputType: 'text' }
     }
   },
 
@@ -351,6 +367,34 @@ const PARAM_ALIASES: Record<string, string[]> = {
   task_id: ['clickup_task', 'task'],
   board_id: ['trello_board', 'monday_board', 'board'],
   project_id: ['asana_project', 'project'],
+}
+
+// @NEXUS-FIX-106: Cross-node question deduplication - DO NOT REMOVE
+// @NEXUS-FIX-107: Normalize spaces to underscores for proper alias matching - DO NOT REMOVE
+// Returns the canonical (primary) parameter name for semantic grouping
+// e.g., 'body', 'content', 'text', 'message' all return 'text' (the canonical)
+// FIX-107: "slack channel" (with space) now matches "slack_channel" (with underscore)
+function getCanonicalParamName(paramName: string): string {
+  // FIX-107: Normalize spaces to underscores before matching
+  const normalized = paramName.toLowerCase().replace(/\s+/g, '_')
+
+  // Define semantic groups with their canonical (primary) name
+  const SEMANTIC_GROUPS: Record<string, string[]> = {
+    text: ['text', 'message', 'content', 'body', 'notification_details', 'notification_content', 'message_text', 'email_body'],
+    to: ['to', 'recipient', 'recipient_email', 'email_to', 'send_to', 'email_address'],
+    channel: ['channel', 'slack_channel', 'channel_name', 'channel_id'],
+    spreadsheet_id: ['spreadsheet_id', 'sheet_id', 'google_sheet', 'spreadsheet_url'],
+    path: ['path', 'file_path', 'folder_path', 'dropbox_path'],
+    subject: ['subject', 'email_subject', 'title'],
+  }
+
+  for (const [canonical, aliases] of Object.entries(SEMANTIC_GROUPS)) {
+    if (aliases.includes(normalized)) {
+      return canonical
+    }
+  }
+
+  return normalized // Return as-is if not in any group
 }
 
 // ============================================================================
@@ -613,18 +657,44 @@ class PreFlightValidationServiceClass {
       return `${integration.toUpperCase()}_TRIGGER`
     }
 
-    // Infer from name
+    // @NEXUS-FIX-078: Better action inference from node names
+    // Infer from name with integration-specific mappings
+
+    // Google Sheets specific mappings
+    if (integration === 'googlesheets') {
+      if (name.includes('log') || name.includes('append') || name.includes('add row') || name.includes('write')) {
+        return 'GOOGLESHEETS_APPEND_DATA'
+      }
+      if (name.includes('read') || name.includes('get') || name.includes('fetch')) {
+        return 'GOOGLESHEETS_GET_DATA'
+      }
+      if (name.includes('create') && (name.includes('sheet') || name.includes('spreadsheet'))) {
+        return 'GOOGLESHEETS_CREATE_SPREADSHEET'
+      }
+    }
+
+    // General mappings
     if (name.includes('send') || name.includes('post')) {
       return `${integration.toUpperCase()}_SEND_MESSAGE`
     }
-    if (name.includes('create') || name.includes('add')) {
+    if (name.includes('create') || name.includes('add') || name.includes('new')) {
+      // More specific create mappings
+      if (integration === 'gmail') return 'GMAIL_SEND_EMAIL'
+      if (integration === 'slack') return 'SLACK_SEND_MESSAGE'
       return `${integration.toUpperCase()}_CREATE_TASK`
     }
-    if (name.includes('update') || name.includes('modify')) {
+    if (name.includes('update') || name.includes('modify') || name.includes('edit')) {
       return `${integration.toUpperCase()}_UPDATE_TASK`
     }
-    if (name.includes('email')) {
+    if (name.includes('email') || name.includes('mail')) {
       return `${integration.toUpperCase()}_SEND_EMAIL`
+    }
+    if (name.includes('log') || name.includes('record') || name.includes('save') || name.includes('store')) {
+      // Generic "log" action - map to appropriate append/create actions
+      if (integration === 'googlesheets') return 'GOOGLESHEETS_APPEND_DATA'
+      if (integration === 'notion') return 'NOTION_CREATE_PAGE'
+      if (integration === 'airtable') return 'AIRTABLE_CREATE_RECORD'
+      return `${integration.toUpperCase()}_CREATE_ITEM`
     }
 
     // Default to create for actions
@@ -839,6 +909,33 @@ class PreFlightValidationServiceClass {
         }
       }
     }
+
+    // @NEXUS-FIX-106: Cross-node question deduplication - DO NOT REMOVE
+    // Deduplicate semantically equivalent questions across different nodes
+    // e.g., Gmail asks for "body", Slack asks for "text", Dropbox asks for "content"
+    // These are all the same semantic question - only ask once
+    const seenCanonicalParams = new Set<string>()
+    const deduplicatedQuestions: typeof questions = []
+    const duplicatesRemoved: string[] = []
+
+    for (const question of questions) {
+      const canonical = getCanonicalParamName(question.paramName)
+
+      if (!seenCanonicalParams.has(canonical)) {
+        seenCanonicalParams.add(canonical)
+        deduplicatedQuestions.push(question)
+      } else {
+        duplicatesRemoved.push(`${question.paramName} (canonical: ${canonical}) from ${question.nodeId}`)
+      }
+    }
+
+    if (duplicatesRemoved.length > 0) {
+      console.log(`[PreFlightValidation] FIX-106: Deduplicated ${duplicatesRemoved.length} semantically equivalent questions: ${duplicatesRemoved.join(', ')}`)
+    }
+
+    // Replace questions with deduplicated list
+    questions.length = 0
+    questions.push(...deduplicatedQuestions)
 
     // Determine schema source
     if (usedComposio && usedFallback) {

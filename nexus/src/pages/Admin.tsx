@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Layout } from '@/components/Layout'
 import { Button } from '@/components/ui/button'
 import { AdminUsageStats } from '@/components/AdminUsageStats'
@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 
 // =============================================================================
-// MOCK DATA - Replace with real API calls
+// TYPES
 // =============================================================================
 
 interface User {
@@ -22,59 +22,6 @@ interface User {
   workflowsCreated: number
 }
 
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'admin@nexus.app',
-    name: 'Admin User',
-    role: 'admin',
-    status: 'active',
-    createdAt: '2025-11-01',
-    lastActive: '2026-01-12',
-    workflowsCreated: 47,
-  },
-  {
-    id: '2',
-    email: 'john.doe@example.com',
-    name: 'John Doe',
-    role: 'user',
-    status: 'active',
-    createdAt: '2025-11-15',
-    lastActive: '2026-01-11',
-    workflowsCreated: 23,
-  },
-  {
-    id: '3',
-    email: 'sarah.smith@company.org',
-    name: 'Sarah Smith',
-    role: 'user',
-    status: 'active',
-    createdAt: '2025-12-01',
-    lastActive: '2026-01-10',
-    workflowsCreated: 15,
-  },
-  {
-    id: '4',
-    email: 'mike.johnson@team.io',
-    name: 'Mike Johnson',
-    role: 'viewer',
-    status: 'inactive',
-    createdAt: '2025-12-10',
-    lastActive: '2025-12-28',
-    workflowsCreated: 3,
-  },
-  {
-    id: '5',
-    email: 'pending@newuser.com',
-    name: 'Pending User',
-    role: 'user',
-    status: 'pending',
-    createdAt: '2026-01-10',
-    lastActive: '-',
-    workflowsCreated: 0,
-  },
-]
-
 // =============================================================================
 // ADMIN PAGE COMPONENT
 // =============================================================================
@@ -83,7 +30,8 @@ export function Admin() {
   const { user } = useAuth()
   const toast = useToast()
   const [activeTab, setActiveTab] = useState<'users' | 'usage' | 'audit' | 'features'>('users')
-  const [users, setUsers] = useState<User[]>(MOCK_USERS)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -92,6 +40,31 @@ export function Admin() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<'user' | 'viewer'>('user')
   const [inviting, setInviting] = useState(false)
+
+  // Fetch users from API
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/admin-analytics/users')
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        setUsers(result.data)
+      } else {
+        console.warn('Failed to fetch users:', result.error)
+        // Keep empty array - no mock data fallback
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      toast.error('Failed to load users', 'Could not connect to the server')
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   // Filter users based on search and filters
   const filteredUsers = users.filter(u => {
@@ -121,11 +94,43 @@ export function Admin() {
     }
   }
 
-  const handleChangeRole = (userId: string, newRole: 'admin' | 'user' | 'viewer') => {
-    setUsers(prev => prev.map(u =>
-      u.id === userId ? { ...u, role: newRole } : u
-    ))
-    toast.success('Role updated', `User role changed to ${newRole}`)
+  const handleChangeRole = async (userId: string, newRole: 'admin' | 'user' | 'viewer') => {
+    try {
+      const response = await fetch(`/api/admin-analytics/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      })
+      const result = await response.json()
+
+      if (result.success) {
+        setUsers(prev => prev.map(u =>
+          u.id === userId ? { ...u, role: newRole } : u
+        ))
+        toast.success('Role updated', `User role changed to ${newRole}`)
+
+        // Log the action
+        await fetch('/api/admin-analytics/audit-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id || 'unknown',
+            userName: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin',
+            userEmail: user?.email,
+            action: 'admin.role_change',
+            resource: 'user',
+            resourceId: userId,
+            details: `Changed role to ${newRole}`,
+            status: 'success'
+          })
+        })
+      } else {
+        toast.error('Failed to update role', result.error || 'Unknown error')
+      }
+    } catch (error) {
+      console.error('Error updating role:', error)
+      toast.error('Failed to update role', 'Could not connect to the server')
+    }
   }
 
   const handleChangeStatus = (userId: string, newStatus: 'active' | 'inactive') => {
@@ -475,7 +480,14 @@ export function Admin() {
                 </tbody>
               </table>
 
-              {filteredUsers.length === 0 && (
+              {loading && (
+                <div className="text-center py-12 text-slate-400">
+                  <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p>Loading users...</p>
+                </div>
+              )}
+
+              {!loading && filteredUsers.length === 0 && (
                 <div className="text-center py-12 text-slate-400">
                   <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

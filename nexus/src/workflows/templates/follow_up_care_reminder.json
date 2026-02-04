@@ -1,0 +1,297 @@
+{
+  "id": "follow_up_care_reminder",
+  "name": "Follow-up Care Reminder",
+  "name_ar": "تذكير رعاية المتابعة",
+  "description": "Ensure patients don't fall through the cracks with automated follow-up care reminders. Schedule post-procedure check-ins, chronic care visits, and preventive care appointments based on care plans.",
+  "description_ar": "ضمان عدم إهمال أي مريض مع تذكيرات رعاية المتابعة الآلية. جدولة فحوصات ما بعد الإجراء وزيارات الرعاية المزمنة ومواعيد الرعاية الوقائية بناءً على خطط الرعاية.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$48,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Remind patients about their follow-up appointments",
+  "exampleUserInput_ar": "ذكّر المرضى بمواعيد متابعتهم",
+  "keywords": ["follow-up", "care", "post-op", "chronic", "preventive", "checkup", "متابعة", "رعاية", "ما بعد العملية", "مزمن", "وقائي", "فحص"],
+  "dynamicParameters": {
+    "post_procedure_followup_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days after procedure for follow-up",
+      "label_ar": "أيام بعد الإجراء للمتابعة"
+    },
+    "chronic_care_interval_months": {
+      "type": "number",
+      "default": 3,
+      "label": "Months between chronic care visits",
+      "label_ar": "أشهر بين زيارات الرعاية المزمنة"
+    },
+    "preventive_care_annual": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send annual preventive care reminders",
+      "label_ar": "إرسال تذكيرات الرعاية الوقائية السنوية"
+    },
+    "auto_schedule_followup": {
+      "type": "boolean",
+      "default": false,
+      "label": "Automatically schedule follow-ups",
+      "label_ar": "جدولة المتابعات تلقائياً"
+    }
+  },
+  "messages": {
+    "post_procedure_en": "👋 *Post-Procedure Check-in*\n\nHi {{patient_name}},\n\nIt's been {{days_since}} days since your {{procedure_name}} with Dr. {{doctor_name}}.\n\n*How are you feeling?*\n1️⃣ Recovering well\n2️⃣ Some concerns I'd like to discuss\n3️⃣ I need to schedule a follow-up\n\nReply 1, 2, or 3.\n\n{{#if care_instructions}}*Reminder - Your Care Instructions:*\n{{care_instructions}}{{/if}}\n\n⚠️ *Contact us immediately if you experience:*\n{{warning_signs}}\n\n📞 Emergency: {{clinic_phone}}",
+    "post_procedure_ar": "👋 *متابعة ما بعد الإجراء*\n\nمرحباً {{patient_name}}،\n\nمر {{days_since}} أيام منذ {{procedure_name}} مع د. {{doctor_name}}.\n\n*كيف تشعر؟*\n1️⃣ التعافي جيد\n2️⃣ لدي بعض المخاوف أود مناقشتها\n3️⃣ أحتاج لجدولة متابعة\n\nرد بـ 1 أو 2 أو 3.\n\n{{#if care_instructions}}*تذكير - تعليمات الرعاية الخاصة بك:*\n{{care_instructions}}{{/if}}\n\n⚠️ *اتصل بنا فوراً إذا شعرت بـ:*\n{{warning_signs}}\n\n📞 الطوارئ: {{clinic_phone}}",
+    "chronic_care_en": "📅 *Chronic Care Visit Due*\n\nHi {{patient_name}},\n\nIt's time for your {{condition}} management check-up.\n\n👨‍⚕️ *Doctor:* Dr. {{doctor_name}}\n📋 *Purpose:* {{visit_purpose}}\n\n*Your last visit was:* {{last_visit_date}}\n\n*Recommended tests before visit:*\n{{recommended_tests}}\n\n*Available appointments:*\n{{available_slots}}\n\nReply with the number of your preferred slot, or call {{clinic_phone}} for more options.",
+    "chronic_care_ar": "📅 *موعد زيارة الرعاية المزمنة*\n\nمرحباً {{patient_name}}،\n\nحان وقت فحص إدارة {{condition}} الخاص بك.\n\n👨‍⚕️ *الطبيب:* د. {{doctor_name}}\n📋 *الغرض:* {{visit_purpose}}\n\n*زيارتك الأخيرة كانت:* {{last_visit_date}}\n\n*الفحوصات الموصى بها قبل الزيارة:*\n{{recommended_tests}}\n\n*المواعيد المتاحة:*\n{{available_slots}}\n\nرد برقم الموعد المفضل، أو اتصل على {{clinic_phone}} لمزيد من الخيارات.",
+    "preventive_care_en": "🩺 *Annual Health Check-up Reminder*\n\nHi {{patient_name}},\n\nIt's been a year since your last comprehensive health check-up at {{clinic_name}}.\n\n*Preventive care helps detect issues early!*\n\n📋 *Recommended screenings based on your profile:*\n{{recommended_screenings}}\n\n*Would you like to schedule your annual check-up?*\n1️⃣ Yes, show available times\n2️⃣ Remind me next month\n3️⃣ I've had a check-up elsewhere\n\nReply 1, 2, or 3.",
+    "preventive_care_ar": "🩺 *تذكير الفحص الصحي السنوي*\n\nمرحباً {{patient_name}}،\n\nمرت سنة منذ آخر فحص صحي شامل في {{clinic_name}}.\n\n*الرعاية الوقائية تساعد في الكشف المبكر عن المشاكل!*\n\n📋 *الفحوصات الموصى بها بناءً على ملفك:*\n{{recommended_screenings}}\n\n*هل تريد جدولة فحصك السنوي؟*\n1️⃣ نعم، أظهر الأوقات المتاحة\n2️⃣ ذكرني الشهر القادم\n3️⃣ أجريت فحصاً في مكان آخر\n\nرد بـ 1 أو 2 أو 3.",
+    "appointment_scheduled_en": "✅ *Follow-up Appointment Scheduled*\n\nYour appointment has been confirmed:\n\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n📍 {{clinic_name}}\n\n*Preparation:*\n{{preparation_instructions}}\n\nWe'll send you a reminder before your visit.",
+    "appointment_scheduled_ar": "✅ *تم جدولة موعد المتابعة*\n\nتم تأكيد موعدك:\n\n👨‍⚕️ د. {{doctor_name}}\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n📍 {{clinic_name}}\n\n*التحضير:*\n{{preparation_instructions}}\n\nسنرسل لك تذكيراً قبل زيارتك.",
+    "concern_received_en": "📝 *We've Noted Your Concern*\n\nThank you, {{patient_name}}. Dr. {{doctor_name}}'s team will contact you within {{response_time}} to discuss your concerns.\n\n*If your condition worsens before then:*\n📞 Call: {{clinic_phone}}\n🚨 Emergency: {{emergency_number}}",
+    "concern_received_ar": "📝 *لاحظنا قلقك*\n\nشكراً {{patient_name}}. سيتصل بك فريق د. {{doctor_name}} خلال {{response_time}} لمناقشة مخاوفك.\n\n*إذا ساءت حالتك قبل ذلك:*\n📞 اتصل: {{clinic_phone}}\n🚨 الطوارئ: {{emergency_number}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Follow-up Check",
+        "name_ar": "فحص المتابعة اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0-4",
+            "description": "Daily check for follow-ups due",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Patients Due for Follow-up",
+        "name_ar": "الحصول على المرضى المستحقين للمتابعة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{care_plans_sheet}}",
+            "range": "Active!A:M",
+            "filter": "next_followup_date <= TODAY()"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Post-Procedure Check-in",
+        "name_ar": "إرسال متابعة ما بعد الإجراء",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.post_procedure_{{patient_language}}}}",
+            "condition": "followup_type = 'post_procedure'"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Chronic Care Reminder",
+        "name_ar": "إرسال تذكير الرعاية المزمنة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.chronic_care_{{patient_language}}}}",
+            "condition": "followup_type = 'chronic_care'"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Preventive Care Reminder",
+        "name_ar": "إرسال تذكير الرعاية الوقائية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.preventive_care_{{patient_language}}}}",
+            "condition": "followup_type = 'preventive' AND preventive_care_annual = true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Handle Patient Response",
+        "name_ar": "معالجة رد المريض",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Schedule Follow-up Appointment",
+        "name_ar": "جدولة موعد المتابعة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "summary": "Follow-up: {{patient_name}} - {{followup_type}}",
+            "condition": "response = 1 OR response = 3"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Appointment Confirmation",
+        "name_ar": "إرسال تأكيد الموعد",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.appointment_scheduled_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Alert Staff About Concern",
+        "name_ar": "تنبيه الموظفين عن القلق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#patient-concerns",
+            "message": "⚠️ Patient concern: {{patient_name}} - {{followup_type}}\nPhone: {{patient_phone}}\nPlease contact within 4 hours.",
+            "condition": "response = 2"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Concern Acknowledgment",
+        "name_ar": "إرسال إقرار بالقلق",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.concern_received_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Update Care Plan",
+        "name_ar": "تحديث خطة الرعاية",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{care_plans_sheet}}",
+            "filter": "patient_id = {{patient_id}}",
+            "values": {"last_contact": "{{timestamp}}", "next_followup_date": "{{next_date}}"}
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "post_procedure_followup_days",
+      "question": "How many days after a procedure should we check in with patients?",
+      "question_ar": "كم يوم بعد الإجراء يجب أن نتابع مع المرضى؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "chronic_care_interval_months",
+      "question": "How many months between chronic care follow-up visits?",
+      "question_ar": "كم شهر بين زيارات متابعة الرعاية المزمنة؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "preventive_care_annual",
+      "question": "Send annual preventive care reminders?",
+      "question_ar": "إرسال تذكيرات الرعاية الوقائية السنوية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "auto_schedule_followup",
+      "question": "Automatically schedule follow-ups or let patients choose?",
+      "question_ar": "جدولة المتابعات تلقائياً أو ترك المرضى يختارون؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "emergencyNumber": "112"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "emergencyNumber": "911"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "emergencyNumber": "998"
+    }
+  }
+}

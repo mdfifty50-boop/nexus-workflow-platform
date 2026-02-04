@@ -1,0 +1,273 @@
+{
+  "id": "appointment_booking_system",
+  "name": "Appointment Booking System",
+  "name_ar": "نظام حجز المواعيد",
+  "description": "Manage appointment bookings with automatic confirmations, reminders, and rescheduling. Reduce no-shows with timely reminders and allow easy online booking.",
+  "description_ar": "إدارة حجوزات المواعيد مع التأكيدات والتذكيرات وإعادة الجدولة التلقائية. تقليل عدم الحضور بتذكيرات في الوقت المناسب والسماح بالحجز السهل عبر الإنترنت.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$18,000/year",
+  "requiredIntegrations": ["googlecalendar", "whatsapp", "gmail"],
+  "optionalIntegrations": ["calendly", "stripe", "slack", "zoom"],
+  "exampleUserInput": "Manage my appointment bookings and send reminders",
+  "exampleUserInput_ar": "أدر حجوزات مواعيدي وأرسل تذكيرات",
+  "keywords": ["appointment", "booking", "reminder", "schedule", "calendar", "no-show", "موعد", "حجز", "تذكير", "جدولة", "تقويم"],
+  "dynamicParameters": {
+    "reminder_hours_before": {
+      "type": "array",
+      "default": [24, 2],
+      "label": "Hours before appointment for reminders",
+      "label_ar": "ساعات قبل الموعد للتذكيرات"
+    },
+    "allow_rescheduling": {
+      "type": "boolean",
+      "default": true,
+      "label": "Allow customers to reschedule",
+      "label_ar": "السماح للعملاء بإعادة الجدولة"
+    },
+    "min_reschedule_hours": {
+      "type": "number",
+      "default": 24,
+      "label": "Minimum hours before for rescheduling",
+      "label_ar": "الحد الأدنى من الساعات قبل إعادة الجدولة"
+    },
+    "require_confirmation": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require customer confirmation",
+      "label_ar": "يتطلب تأكيد العميل"
+    },
+    "auto_cancel_unconfirmed": {
+      "type": "boolean",
+      "default": false,
+      "label": "Auto-cancel unconfirmed appointments",
+      "label_ar": "إلغاء المواعيد غير المؤكدة تلقائياً"
+    }
+  },
+  "messages": {
+    "booking_confirmation_en": "✅ *Appointment Confirmed*\n\nDear {{customer_name}},\n\nYour appointment has been booked:\n\n📅 *Date:* {{appointment_date}}\n⏰ *Time:* {{appointment_time}}\n📍 *Location:* {{location}}\n👤 *With:* {{provider_name}}\n🏷️ *Service:* {{service_name}}\n\n{{#if require_confirmation}}Please reply *CONFIRM* to confirm your appointment.{{/if}}\n\n{{#if allow_rescheduling}}Need to reschedule? Reply *RESCHEDULE* or click: {{reschedule_link}}{{/if}}\n\nSee you soon!\n{{business_name}}",
+    "booking_confirmation_ar": "✅ *تم تأكيد الموعد*\n\nعزيزي {{customer_name}}،\n\nتم حجز موعدك:\n\n📅 *التاريخ:* {{appointment_date}}\n⏰ *الوقت:* {{appointment_time}}\n📍 *الموقع:* {{location}}\n👤 *مع:* {{provider_name}}\n🏷️ *الخدمة:* {{service_name}}\n\n{{#if require_confirmation}}يرجى الرد بـ *تأكيد* لتأكيد موعدك.{{/if}}\n\n{{#if allow_rescheduling}}تحتاج لإعادة الجدولة؟ رد بـ *إعادة جدولة* أو انقر: {{reschedule_link}}{{/if}}\n\nنراك قريباً!\n{{business_name}}",
+    "reminder_24h_en": "⏰ *Appointment Reminder*\n\nHi {{customer_name}},\n\nThis is a reminder for your appointment tomorrow:\n\n📅 {{appointment_date}} at {{appointment_time}}\n📍 {{location}}\n🏷️ {{service_name}}\n\n{{#if require_confirmation}}{{#if not_confirmed}}⚠️ Please reply *CONFIRM* to confirm your attendance.{{else}}✅ Your attendance is confirmed.{{/if}}{{/if}}\n\n{{#if allow_rescheduling}}Can't make it? Reply *CANCEL* or *RESCHEDULE*{{/if}}\n\nSee you tomorrow!",
+    "reminder_24h_ar": "⏰ *تذكير بالموعد*\n\nمرحباً {{customer_name}}،\n\nهذا تذكير بموعدك غداً:\n\n📅 {{appointment_date}} في {{appointment_time}}\n📍 {{location}}\n🏷️ {{service_name}}\n\n{{#if require_confirmation}}{{#if not_confirmed}}⚠️ يرجى الرد بـ *تأكيد* لتأكيد حضورك.{{else}}✅ حضورك مؤكد.{{/if}}{{/if}}\n\n{{#if allow_rescheduling}}لا تستطيع الحضور؟ رد بـ *إلغاء* أو *إعادة جدولة*{{/if}}\n\nنراك غداً!",
+    "reminder_2h_en": "⏰ *Your appointment is in 2 hours*\n\n{{customer_name}}, just a quick reminder:\n\n📅 Today at {{appointment_time}}\n📍 {{location}}\n\nWe're looking forward to seeing you!",
+    "reminder_2h_ar": "⏰ *موعدك بعد ساعتين*\n\n{{customer_name}}، تذكير سريع:\n\n📅 اليوم في {{appointment_time}}\n📍 {{location}}\n\nنتطلع لرؤيتك!",
+    "reschedule_request_en": "📅 *Reschedule Your Appointment*\n\nHi {{customer_name}},\n\nYou've requested to reschedule your appointment.\n\nCurrent: {{current_date}} at {{current_time}}\n\nPlease select a new time:\n{{#each available_slots}}\n{{number}}. {{date}} at {{time}}\n{{/each}}\n\nReply with the slot number or visit: {{booking_link}}",
+    "cancellation_en": "❌ *Appointment Cancelled*\n\nHi {{customer_name}},\n\nYour appointment has been cancelled:\n\n📅 {{appointment_date}} at {{appointment_time}}\n🏷️ {{service_name}}\n\n{{#if refund}}Your payment will be refunded within 3-5 business days.{{/if}}\n\nWe hope to see you again soon! Book anytime: {{booking_link}}\n\n{{business_name}}",
+    "no_show_en": "📭 *Missed Appointment*\n\nHi {{customer_name}},\n\nWe missed you at your appointment today:\n\n📅 {{appointment_date}} at {{appointment_time}}\n🏷️ {{service_name}}\n\nWould you like to reschedule? Reply *RESCHEDULE* or book at: {{booking_link}}\n\nWe hope everything is okay!",
+    "daily_schedule_en": "📋 *Daily Schedule - {{date}}*\n\nTotal Appointments: {{total_count}}\n\n{{#each appointments}}\n{{time}} - {{customer_name}}\n  📱 {{phone}}\n  🏷️ {{service}}\n  {{#if confirmed}}✅{{else}}⏳{{/if}}\n{{/each}}\n\n*Unconfirmed:* {{unconfirmed_count}}\n*Available Slots:* {{available_slots}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New Booking Created",
+        "name_ar": "إنشاء حجز جديد",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_EVENT_CREATED",
+          "action": "webhook",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send Booking Confirmation",
+        "name_ar": "إرسال تأكيد الحجز",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.attendee_phone}}",
+            "message": "{{messages.booking_confirmation_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Email Confirmation",
+        "name_ar": "إرسال تأكيد البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.attendee_email}}",
+            "subject": "Appointment Confirmed - {{appointment_date}} / تأكيد الموعد",
+            "body": "{{messages.booking_confirmation_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Schedule 24h Reminder",
+        "name_ar": "جدولة تذكير 24 ساعة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{appointment_time_minus_24h}}",
+            "action": "send_reminder_24h"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send 24h Reminder",
+        "name_ar": "إرسال تذكير 24 ساعة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{customer_phone}}",
+            "message": "{{messages.reminder_24h_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Schedule 2h Reminder",
+        "name_ar": "جدولة تذكير ساعتين",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{appointment_time_minus_2h}}",
+            "action": "send_reminder_2h"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send 2h Reminder",
+        "name_ar": "إرسال تذكير ساعتين",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{customer_phone}}",
+            "message": "{{messages.reminder_2h_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Handle Confirmation Response",
+        "name_ar": "معالجة رد التأكيد",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "CONFIRM OR تأكيد"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Update Calendar Status",
+        "name_ar": "تحديث حالة التقويم",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_UPDATE_EVENT",
+          "action": "update",
+          "params": {
+            "event_id": "{{task_8.event_id}}",
+            "status": "confirmed"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Morning Schedule Report",
+        "name_ar": "تقرير الجدول الصباحي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 7 * * 0-4",
+            "timezone": "{{timezone}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "require_confirmation",
+      "question": "Require customers to confirm appointments?",
+      "question_ar": "يتطلب من العملاء تأكيد المواعيد؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "allow_rescheduling",
+      "question": "Allow customers to reschedule?",
+      "question_ar": "السماح للعملاء بإعادة الجدولة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "min_reschedule_hours",
+      "question": "Minimum hours before appointment to allow rescheduling?",
+      "question_ar": "الحد الأدنى من الساعات قبل الموعد للسماح بإعادة الجدولة؟",
+      "type": "number",
+      "default": 24
+    },
+    {
+      "id": "auto_cancel_unconfirmed",
+      "question": "Auto-cancel appointments not confirmed 24h before?",
+      "question_ar": "إلغاء المواعيد غير المؤكدة 24 ساعة قبلها تلقائياً؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "17:00"},
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english"
+    }
+  }
+}

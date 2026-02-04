@@ -83,8 +83,10 @@ class NexusAIService {
 
   /**
    * Send a message to Claude and get a response
+   * @param userMessage The user's message
+   * @param context Optional context including chatMode for "Think with me" mode
    */
-  async chat(userMessage: string, _context?: { persona?: string }): Promise<NexusAIResponse> {
+  async chat(userMessage: string, context?: { persona?: string; chatMode?: 'standard' | 'think_with_me' }): Promise<NexusAIResponse> {
     // Add user message to history
     this.conversationHistory.push({
       role: 'user',
@@ -97,7 +99,7 @@ class NexusAIService {
     }
 
     try {
-      console.log('[NexusAIService] Calling Claude AI via /api/chat...')
+      console.log('[NexusAIService] Calling Claude AI via /api/chat...', { chatMode: context?.chatMode })
 
       // Call the backend chat API via Vite proxy (which uses real Claude)
       // Using relative URL so Vite proxy handles it properly
@@ -110,7 +112,8 @@ class NexusAIService {
           messages: this.conversationHistory,
           agentId: 'nexus', // Use the Nexus agent personality
           model: 'claude-sonnet-4-20250514',
-          maxTokens: 4096
+          maxTokens: 4096,
+          chatMode: context?.chatMode || 'standard' // Pass chat mode for "Think with me" feature
         })
       })
 

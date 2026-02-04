@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -15,8 +15,13 @@ import {
   Check,
   ChevronRight,
   ExternalLink,
+  Mic,
+  Cloud,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { WhatsAppWebIntegrationPanel } from '../components/WhatsAppWebIntegration'
+import { VoiceSettingsSection } from '../components/voice'
+import { userPreferencesService } from '@/services'
 
 const settingsSections = [
   { id: 'account', name: 'Account', icon: User },
@@ -24,21 +29,80 @@ const settingsSections = [
   { id: 'security', name: 'Security', icon: Shield },
   { id: 'billing', name: 'Billing', icon: CreditCard },
   { id: 'appearance', name: 'Appearance', icon: Palette },
+  { id: 'voice', name: 'Voice & AI', icon: Mic },
   { id: 'integrations', name: 'API & Integrations', icon: Key },
 ]
 
 export function Settings() {
   const [activeSection, setActiveSection] = useState('account')
-  const [darkMode, setDarkMode] = useState(true)
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(true)
-  const [weeklyDigest, setWeeklyDigest] = useState(false)
+  // Initialize state directly from service (lazy initialization for correct first render)
+  const [darkMode, setDarkMode] = useState(() => userPreferencesService.get('theme') === 'dark')
+  const [emailNotifications, setEmailNotifications] = useState(() => userPreferencesService.get('emailNotifications'))
+  const [pushNotifications, setPushNotifications] = useState(() => userPreferencesService.get('pushNotifications'))
+  const [weeklyDigest, setWeeklyDigest] = useState(() => userPreferencesService.get('weeklyDigest'))
+  const [syncStatus, setSyncStatus] = useState<{ lastSync: Date | null; enabled: boolean }>(() =>
+    userPreferencesService.getSyncStatus()
+  )
+
+  // Update sync status after async cloud check completes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSyncStatus(userPreferencesService.getSyncStatus())
+    }, 1000) // Give time for cloud status check
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Subscribe to preference changes (cross-tab sync)
+  useEffect(() => {
+    return userPreferencesService.subscribe((prefs) => {
+      setDarkMode(prefs.theme === 'dark')
+      setEmailNotifications(prefs.emailNotifications)
+      setPushNotifications(prefs.pushNotifications)
+      setWeeklyDigest(prefs.weeklyDigest)
+      setSyncStatus(userPreferencesService.getSyncStatus())
+    })
+  }, [])
+
+  // Handlers that persist to UserPreferencesService
+  const handleDarkModeChange = async (enabled: boolean) => {
+    setDarkMode(enabled)
+    await userPreferencesService.setTheme(enabled ? 'dark' : 'light')
+  }
+
+  const handleEmailNotificationsChange = async (enabled: boolean) => {
+    setEmailNotifications(enabled)
+    await userPreferencesService.set('emailNotifications', enabled)
+  }
+
+  const handlePushNotificationsChange = async (enabled: boolean) => {
+    setPushNotifications(enabled)
+    await userPreferencesService.set('pushNotifications', enabled)
+  }
+
+  const handleWeeklyDigestChange = async (enabled: boolean) => {
+    setWeeklyDigest(enabled)
+    await userPreferencesService.set('weeklyDigest', enabled)
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
-        <p className="text-sm sm:text-base text-surface-400 mt-1">Manage your account preferences</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
+            <p className="text-sm sm:text-base text-surface-400 mt-1">Manage your account preferences</p>
+          </div>
+          {syncStatus.enabled && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
+              <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-xs text-emerald-300">
+                {syncStatus.lastSync
+                  ? `Synced ${new Date(syncStatus.lastSync).toLocaleTimeString()}`
+                  : 'Cloud sync enabled'}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -97,7 +161,11 @@ export function Settings() {
                       <input
                         type="text"
                         defaultValue="John"
-                        className="input"
+                        className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                        style={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #475569'
+                        }}
                       />
                     </div>
                     <div>
@@ -105,7 +173,11 @@ export function Settings() {
                       <input
                         type="text"
                         defaultValue="Doe"
-                        className="input"
+                        className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                        style={{
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #475569'
+                        }}
                       />
                     </div>
                   </div>
@@ -114,12 +186,22 @@ export function Settings() {
                     <input
                       type="email"
                       defaultValue="john@example.com"
-                      className="input"
+                      className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                      style={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #475569'
+                      }}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">Timezone</label>
-                    <select className="input">
+                    <select
+                      className="w-full px-4 py-3 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all appearance-none cursor-pointer"
+                      style={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #475569'
+                      }}
+                    >
                       <option>Asia/Kuwait (UTC+3)</option>
                       <option>America/New_York (UTC-5)</option>
                       <option>Europe/London (UTC+0)</option>
@@ -161,15 +243,17 @@ export function Settings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setEmailNotifications(!emailNotifications)}
-                    className={clsx(
-                      'w-12 h-7 rounded-full transition-colors relative',
-                      emailNotifications ? 'bg-nexus-500' : 'bg-surface-600'
-                    )}
+                    onClick={() => handleEmailNotificationsChange(!emailNotifications)}
+                    className="w-12 h-7 rounded-full transition-all relative border-2"
+                    style={{
+                      backgroundColor: emailNotifications ? '#0ea5e9' : '#334155',
+                      borderColor: emailNotifications ? '#0ea5e9' : '#64748b'
+                    }}
                   >
                     <motion.div
-                      animate={{ x: emailNotifications ? 22 : 2 }}
-                      className="w-5 h-5 rounded-full bg-white absolute top-1"
+                      animate={{ x: emailNotifications ? 20 : 2 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="w-5 h-5 rounded-full bg-white absolute top-0.5 shadow-sm"
                     />
                   </button>
                 </div>
@@ -185,15 +269,17 @@ export function Settings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setPushNotifications(!pushNotifications)}
-                    className={clsx(
-                      'w-12 h-7 rounded-full transition-colors relative',
-                      pushNotifications ? 'bg-nexus-500' : 'bg-surface-600'
-                    )}
+                    onClick={() => handlePushNotificationsChange(!pushNotifications)}
+                    className="w-12 h-7 rounded-full transition-all relative border-2"
+                    style={{
+                      backgroundColor: pushNotifications ? '#0ea5e9' : '#334155',
+                      borderColor: pushNotifications ? '#0ea5e9' : '#64748b'
+                    }}
                   >
                     <motion.div
-                      animate={{ x: pushNotifications ? 22 : 2 }}
-                      className="w-5 h-5 rounded-full bg-white absolute top-1"
+                      animate={{ x: pushNotifications ? 20 : 2 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="w-5 h-5 rounded-full bg-white absolute top-0.5 shadow-sm"
                     />
                   </button>
                 </div>
@@ -209,15 +295,17 @@ export function Settings() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setWeeklyDigest(!weeklyDigest)}
-                    className={clsx(
-                      'w-12 h-7 rounded-full transition-colors relative',
-                      weeklyDigest ? 'bg-nexus-500' : 'bg-surface-600'
-                    )}
+                    onClick={() => handleWeeklyDigestChange(!weeklyDigest)}
+                    className="w-12 h-7 rounded-full transition-all relative border-2"
+                    style={{
+                      backgroundColor: weeklyDigest ? '#0ea5e9' : '#334155',
+                      borderColor: weeklyDigest ? '#0ea5e9' : '#64748b'
+                    }}
                   >
                     <motion.div
-                      animate={{ x: weeklyDigest ? 22 : 2 }}
-                      className="w-5 h-5 rounded-full bg-white absolute top-1"
+                      animate={{ x: weeklyDigest ? 20 : 2 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="w-5 h-5 rounded-full bg-white absolute top-0.5 shadow-sm"
                     />
                   </button>
                 </div>
@@ -239,7 +327,7 @@ export function Settings() {
                   <p className="text-sm font-medium text-surface-300 mb-3 sm:mb-4">Theme</p>
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <button
-                      onClick={() => setDarkMode(false)}
+                      onClick={() => handleDarkModeChange(false)}
                       className={clsx(
                         'p-3 sm:p-4 rounded-xl border-2 transition-all',
                         !darkMode
@@ -255,7 +343,7 @@ export function Settings() {
                       </div>
                     </button>
                     <button
-                      onClick={() => setDarkMode(true)}
+                      onClick={() => handleDarkModeChange(true)}
                       className={clsx(
                         'p-3 sm:p-4 rounded-xl border-2 transition-all',
                         darkMode
@@ -372,15 +460,39 @@ export function Settings() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">Current Password</label>
-                    <input type="password" className="input" placeholder="••••••••" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                      style={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #475569'
+                      }}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">New Password</label>
-                    <input type="password" className="input" placeholder="••••••••" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                      style={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #475569'
+                      }}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">Confirm Password</label>
-                    <input type="password" className="input" placeholder="••••••••" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
+                      style={{
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #475569'
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-surface-700 flex justify-end">
@@ -410,28 +522,39 @@ export function Settings() {
             </motion.div>
           )}
 
+          {/* Voice & AI Section */}
+          {activeSection === 'voice' && (
+            <VoiceSettingsSection />
+          )}
+
           {/* API & Integrations Section */}
           {activeSection === 'integrations' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="card"
+              className="space-y-6"
             >
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">API Keys</h2>
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-surface-800/50">
-                  <div className="min-w-0">
-                    <p className="text-sm sm:text-base font-medium text-white">Production API Key</p>
-                    <p className="text-xs sm:text-sm text-surface-400 font-mono truncate">nx_prod_**********************</p>
+              {/* WhatsApp Web Integration */}
+              <WhatsAppWebIntegrationPanel />
+
+              {/* API Keys */}
+              <div className="card">
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">API Keys</h2>
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-surface-800/50">
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-base font-medium text-white">Production API Key</p>
+                      <p className="text-xs sm:text-sm text-surface-400 font-mono truncate">nx_prod_**********************</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button className="btn-ghost py-2 text-xs sm:text-sm">Copy</button>
+                      <button className="btn-ghost py-2 text-xs sm:text-sm text-red-400 hover:text-red-300">Revoke</button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button className="btn-ghost py-2 text-xs sm:text-sm">Copy</button>
-                    <button className="btn-ghost py-2 text-xs sm:text-sm text-red-400 hover:text-red-300">Revoke</button>
-                  </div>
+                  <button className="w-full py-3 rounded-xl border border-dashed border-surface-600 text-surface-400 hover:border-nexus-500/50 hover:text-nexus-400 transition-all text-xs sm:text-sm">
+                    + Generate New API Key
+                  </button>
                 </div>
-                <button className="w-full py-3 rounded-xl border border-dashed border-surface-600 text-surface-400 hover:border-nexus-500/50 hover:text-nexus-400 transition-all text-xs sm:text-sm">
-                  + Generate New API Key
-                </button>
               </div>
             </motion.div>
           )}

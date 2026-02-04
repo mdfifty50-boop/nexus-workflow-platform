@@ -1,0 +1,290 @@
+{
+  "id": "visitor_management",
+  "name": "Hospital Visitor Management",
+  "name_ar": "إدارة زوار المستشفى",
+  "description": "Comprehensive visitor management system for hospitals. Handles visitor registration, badge printing, visiting hours enforcement, capacity management, and visitor communication.",
+  "description_ar": "نظام شامل لإدارة الزوار للمستشفيات. يتعامل مع تسجيل الزوار وطباعة الشارات وإنفاذ ساعات الزيارة وإدارة السعة والتواصل مع الزوار.",
+  "domain": "hospital",
+  "roiTier": 2,
+  "annualValue": "$45,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["slack", "twilio"],
+  "exampleUserInput": "Manage hospital visitors with registration and notifications",
+  "exampleUserInput_ar": "إدارة زوار المستشفى مع التسجيل والإشعارات",
+  "keywords": [
+    "visitor", "visiting hours", "check-in", "badge", "hospital access", "guest management",
+    "زائر", "ساعات الزيارة", "تسجيل الدخول", "شارة", "وصول المستشفى", "إدارة الضيوف"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "general_visiting_hours": {
+      "type": "string",
+      "default": "10:00-12:00, 16:00-20:00",
+      "label": "General Visiting Hours",
+      "label_ar": "ساعات الزيارة العامة"
+    },
+    "max_visitors_per_patient": {
+      "type": "number",
+      "default": 2,
+      "label": "Maximum visitors at a time per patient",
+      "label_ar": "أقصى عدد زوار في المرة الواحدة لكل مريض"
+    },
+    "visitor_registration_required": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require visitor pre-registration",
+      "label_ar": "يتطلب التسجيل المسبق للزوار"
+    }
+  },
+  "messages": {
+    "visitor_registration_confirmation": {
+      "_en": "✅ Visitor Registration Confirmed - {{hospital_name}}\n\nDear {{visitor_name}},\n\nYour visit has been registered.\n\n👤 Visiting: {{patient_name}}\n📍 Location: {{department}}, Room {{room_number}}\n📅 Date: {{visit_date}}\n⏰ Time: {{visit_time}}\n\n📋 Registration #: {{registration_number}}\n(Please save this number)\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📍 CHECK-IN INSTRUCTIONS:\n1. Arrive at Main Entrance\n2. Go to Visitor Registration Desk\n3. Show this message or your ID\n4. Receive your visitor badge\n\n🅿️ Parking: {{parking_info}}\n📍 Entrance: {{entrance_location}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ HEALTH SCREENING:\n{{#each screening_questions}}• {{this}}\n{{/each}}\n\nIf you answer YES to any of these, please do not visit.\n\n📞 Questions: {{visitor_services_phone}}",
+      "_ar": "✅ تأكيد تسجيل الزائر - {{hospital_name}}\n\nعزيزي/عزيزتي {{visitor_name}}،\n\nتم تسجيل زيارتك.\n\n👤 زيارة: {{patient_name}}\n📍 الموقع: {{department}}، غرفة {{room_number}}\n📅 التاريخ: {{visit_date}}\n⏰ الوقت: {{visit_time}}\n\n📋 رقم التسجيل: {{registration_number}}\n(يرجى حفظ هذا الرقم)\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📍 تعليمات التسجيل:\n1. الوصول إلى المدخل الرئيسي\n2. الذهاب إلى مكتب تسجيل الزوار\n3. إظهار هذه الرسالة أو هويتك\n4. استلام شارة الزائر\n\n🅿️ مواقف السيارات: {{parking_info}}\n📍 المدخل: {{entrance_location}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ الفحص الصحي:\n{{#each screening_questions}}• {{this}}\n{{/each}}\n\nإذا أجبت بنعم على أي من هذه، يرجى عدم الزيارة.\n\n📞 أسئلة: {{visitor_services_phone}}"
+    },
+    "check_in_confirmation": {
+      "_en": "✅ Checked In - {{hospital_name}}\n\n{{visitor_name}}, welcome!\n\n🎫 Badge #: {{badge_number}}\n👤 Visiting: {{patient_name}}\n📍 Room: {{room_number}}\n⏰ Check-in: {{checkin_time}}\n\n🕐 Visiting Hours End: {{visiting_end}}\n⏱️ Maximum Visit: {{max_visit_minutes}} minutes\n\n📍 Directions:\n{{directions}}\n\n📋 During Your Visit:\n• Keep badge visible at all times\n• Maximum {{max_visitors}} visitors at a time\n• Please speak quietly in hallways\n• Wash/sanitize hands before and after\n\n⚠️ You will receive a reminder {{reminder_minutes}} minutes before visiting hours end.\n\n📞 Nursing Station: {{nursing_station_phone}}",
+      "_ar": "✅ تم التسجيل - {{hospital_name}}\n\n{{visitor_name}}، أهلاً بك!\n\n🎫 رقم الشارة: {{badge_number}}\n👤 زيارة: {{patient_name}}\n📍 الغرفة: {{room_number}}\n⏰ التسجيل: {{checkin_time}}\n\n🕐 ساعات الزيارة تنتهي: {{visiting_end}}\n⏱️ أقصى زيارة: {{max_visit_minutes}} دقيقة\n\n📍 الاتجاهات:\n{{directions}}\n\n📋 خلال زيارتك:\n• احتفظ بالشارة ظاهرة في جميع الأوقات\n• أقصى {{max_visitors}} زوار في المرة الواحدة\n• يرجى التحدث بهدوء في الممرات\n• اغسل/عقم يديك قبل وبعد\n\n⚠️ ستتلقى تذكيراً قبل {{reminder_minutes}} دقيقة من انتهاء ساعات الزيارة.\n\n📞 محطة التمريض: {{nursing_station_phone}}"
+    },
+    "visiting_hours_ending": {
+      "_en": "⏰ Visiting Hours Ending Soon - {{hospital_name}}\n\n{{visitor_name}}, visiting hours end in {{minutes_remaining}} minutes.\n\n🕐 Ends at: {{visiting_end}}\n\nPlease:\n• Begin wrapping up your visit\n• Return visitor badge to the desk\n• Exit through main entrance\n\n📍 Badge Return: {{badge_return_location}}\n\nThank you for visiting. We hope to see you again during visiting hours.\n\n🕐 Next Visiting Hours: {{next_visiting_hours}}",
+      "_ar": "⏰ ساعات الزيارة تنتهي قريباً - {{hospital_name}}\n\n{{visitor_name}}، ساعات الزيارة تنتهي خلال {{minutes_remaining}} دقيقة.\n\n🕐 تنتهي في: {{visiting_end}}\n\nيرجى:\n• البدء في إنهاء زيارتك\n• إعادة شارة الزائر إلى المكتب\n• الخروج من المدخل الرئيسي\n\n📍 إعادة الشارة: {{badge_return_location}}\n\nشكراً لزيارتك. نأمل رؤيتك مرة أخرى خلال ساعات الزيارة.\n\n🕐 ساعات الزيارة القادمة: {{next_visiting_hours}}"
+    },
+    "visitor_capacity_alert": {
+      "_en": "⚠️ Visitor Capacity Reached - {{hospital_name}}\n\n{{visitor_name}}, the maximum number of visitors for {{patient_name}} has been reached.\n\n👥 Current Visitors: {{current_count}}/{{max_visitors}}\n\nOptions:\n1. Wait in the visitor waiting area\n2. Return during next visiting period\n3. Coordinate with current visitors to switch\n\n📍 Waiting Area: {{waiting_area}}\n☕ Cafeteria: {{cafeteria_location}}\n\n📱 We will notify you when a spot becomes available.\n\n📞 Visitor Services: {{visitor_services_phone}}",
+      "_ar": "⚠️ تم الوصول لسعة الزوار - {{hospital_name}}\n\n{{visitor_name}}، تم الوصول للحد الأقصى من الزوار ل{{patient_name}}.\n\n👥 الزوار الحاليون: {{current_count}}/{{max_visitors}}\n\nالخيارات:\n1. الانتظار في منطقة انتظار الزوار\n2. العودة خلال فترة الزيارة القادمة\n3. التنسيق مع الزوار الحاليين للتبديل\n\n📍 منطقة الانتظار: {{waiting_area}}\n☕ الكافتيريا: {{cafeteria_location}}\n\n📱 سنبلغك عندما تتوفر فرصة.\n\n📞 خدمات الزوار: {{visitor_services_phone}}"
+    },
+    "spot_available_notification": {
+      "_en": "✅ Visitor Spot Available - {{hospital_name}}\n\n{{visitor_name}}, a visitor spot is now available for {{patient_name}}!\n\n📍 Room: {{room_number}}\n⏰ Visiting Hours Remaining: {{time_remaining}}\n\nPlease proceed to:\n📍 {{checkin_location}}\n\n⚠️ Please check in within {{timeout_minutes}} minutes to claim your spot.\n\n📞 Visitor Desk: {{visitor_desk_phone}}",
+      "_ar": "✅ مكان زائر متاح - {{hospital_name}}\n\n{{visitor_name}}، مكان زائر متاح الآن ل{{patient_name}}!\n\n📍 الغرفة: {{room_number}}\n⏰ ساعات الزيارة المتبقية: {{time_remaining}}\n\nيرجى التوجه إلى:\n📍 {{checkin_location}}\n\n⚠️ يرجى التسجيل خلال {{timeout_minutes}} دقيقة لحجز مكانك.\n\n📞 مكتب الزوار: {{visitor_desk_phone}}"
+    },
+    "restricted_visit_notification": {
+      "_en": "⚠️ Visit Restrictions - {{hospital_name}}\n\nDear {{visitor_name}},\n\nSpecial restrictions are in place for visiting {{patient_name}}.\n\n📋 Restrictions:\n{{#each restrictions}}• {{this}}\n{{/each}}\n\n{{#if ppe_required}}🥽 Required PPE:\n{{#each ppe_items}}• {{this}}\n{{/each}}\nPPE will be provided at the nursing station.{{/if}}\n\n{{#if time_limit}}⏰ Visit Limited to: {{time_limit}} minutes{{/if}}\n\n{{#if approval_needed}}📋 Approval Required:\nPlease contact the nursing station before your visit.\n📞 {{nursing_station_phone}}{{/if}}\n\nThese measures protect both you and {{patient_name}}.\n\nThank you for your understanding.",
+      "_ar": "⚠️ قيود الزيارة - {{hospital_name}}\n\nعزيزي/عزيزتي {{visitor_name}}،\n\nهناك قيود خاصة لزيارة {{patient_name}}.\n\n📋 القيود:\n{{#each restrictions}}• {{this}}\n{{/each}}\n\n{{#if ppe_required}}🥽 معدات الوقاية المطلوبة:\n{{#each ppe_items}}• {{this}}\n{{/each}}\nستتوفر معدات الوقاية في محطة التمريض.{{/if}}\n\n{{#if time_limit}}⏰ الزيارة محدودة بـ: {{time_limit}} دقيقة{{/if}}\n\n{{#if approval_needed}}📋 موافقة مطلوبة:\nيرجى الاتصال بمحطة التمريض قبل زيارتك.\n📞 {{nursing_station_phone}}{{/if}}\n\nهذه الإجراءات تحميك وتحمي {{patient_name}}.\n\nشكراً لتفهمكم."
+    },
+    "check_out_confirmation": {
+      "_en": "👋 Thank You for Visiting - {{hospital_name}}\n\n{{visitor_name}}, thank you for visiting {{patient_name}} today.\n\n⏱️ Visit Duration: {{visit_duration}}\n🎫 Badge Returned: ✅\n\n🕐 Next Visiting Hours: {{next_visiting_hours}}\n\n{{#if patient_update}}📋 Patient Update:\n{{patient_update}}{{/if}}\n\n💬 We value your feedback:\n{{feedback_link}}\n\n🅿️ Parking Validation: {{parking_validation}}\n\nWishing {{patient_name}} a speedy recovery.\nSee you next time!",
+      "_ar": "👋 شكراً لزيارتك - {{hospital_name}}\n\n{{visitor_name}}، شكراً لزيارتك {{patient_name}} اليوم.\n\n⏱️ مدة الزيارة: {{visit_duration}}\n🎫 تم إعادة الشارة: ✅\n\n🕐 ساعات الزيارة القادمة: {{next_visiting_hours}}\n\n{{#if patient_update}}📋 تحديث المريض:\n{{patient_update}}{{/if}}\n\n💬 نقدر ملاحظاتك:\n{{feedback_link}}\n\n🅿️ التحقق من مواقف السيارات: {{parking_validation}}\n\nnتمنى ل{{patient_name}} الشفاء العاجل.\nإلى اللقاء!"
+    },
+    "daily_visitor_summary": {
+      "_en": "📊 Daily Visitor Summary - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 Visitor Statistics:\n• Total Visitors: {{total_visitors}}\n• Unique Patients Visited: {{patients_visited}}\n• Average Visit Duration: {{avg_duration}}\n• Peak Hour: {{peak_hour}} ({{peak_count}} visitors)\n\n📊 By Department:\n{{#each department_stats}}\n{{name}}: {{count}} visitors\n{{/each}}\n\n⚠️ Incidents:\n{{#if incidents}}{{#each incidents}}• {{this}}\n{{/each}}{{else}}None reported{{/if}}\n\n🔒 Restricted Visits: {{restricted_count}}\n⏰ After-Hours Requests: {{afterhours_requests}}\n\n📈 Compared to Yesterday: {{comparison}}\n\n🔗 Full Report: {{report_link}}",
+      "_ar": "📊 ملخص الزوار اليومي - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 إحصائيات الزوار:\n• إجمالي الزوار: {{total_visitors}}\n• المرضى الفريدون الذين تمت زيارتهم: {{patients_visited}}\n• متوسط مدة الزيارة: {{avg_duration}}\n• ساعة الذروة: {{peak_hour}} ({{peak_count}} زائر)\n\n📊 حسب القسم:\n{{#each department_stats}}\n{{name}}: {{count}} زائر\n{{/each}}\n\n⚠️ الحوادث:\n{{#if incidents}}{{#each incidents}}• {{this}}\n{{/each}}{{else}}لا شيء تم الإبلاغ عنه{{/if}}\n\n🔒 الزيارات المقيدة: {{restricted_count}}\n⏰ طلبات ما بعد الدوام: {{afterhours_requests}}\n\n📈 مقارنة بالأمس: {{comparison}}\n\n🔗 التقرير الكامل: {{report_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "process_registration",
+        "name": "Process visitor registration",
+        "name_ar": "معالجة تسجيل الزائر",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Visitor_Registrations!A:Z"
+        }
+      },
+      {
+        "id": "send_registration_confirmation",
+        "name": "Send registration confirmation",
+        "name_ar": "إرسال تأكيد التسجيل",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["process_registration"],
+        "params": {
+          "template": "visitor_registration_confirmation"
+        }
+      },
+      {
+        "id": "process_checkin",
+        "name": "Process visitor check-in",
+        "name_ar": "معالجة تسجيل دخول الزائر",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "visitor_checking_in",
+        "params": {
+          "range": "Visitor_Log!A:Z"
+        }
+      },
+      {
+        "id": "check_capacity",
+        "name": "Check visitor capacity",
+        "name_ar": "التحقق من سعة الزوار",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["process_checkin"],
+        "params": {
+          "range": "Visitor_Count!A:Z"
+        }
+      },
+      {
+        "id": "send_checkin_confirmation",
+        "name": "Send check-in confirmation",
+        "name_ar": "إرسال تأكيد تسجيل الدخول",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "capacity_available",
+        "params": {
+          "template": "check_in_confirmation"
+        }
+      },
+      {
+        "id": "send_capacity_alert",
+        "name": "Send capacity reached alert",
+        "name_ar": "إرسال تنبيه الوصول للسعة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "capacity_reached",
+        "params": {
+          "template": "visitor_capacity_alert"
+        }
+      },
+      {
+        "id": "check_restrictions",
+        "name": "Check for visit restrictions",
+        "name_ar": "التحقق من قيود الزيارة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Patient_Restrictions!A:Z"
+        }
+      },
+      {
+        "id": "send_restriction_notification",
+        "name": "Send restriction notification",
+        "name_ar": "إرسال إشعار القيود",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "has_restrictions",
+        "params": {
+          "template": "restricted_visit_notification"
+        }
+      },
+      {
+        "id": "send_end_reminder",
+        "name": "Send visiting hours ending reminder",
+        "name_ar": "إرسال تذكير انتهاء ساعات الزيارة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "visiting_ending_soon",
+        "params": {
+          "template": "visiting_hours_ending"
+        }
+      },
+      {
+        "id": "notify_spot_available",
+        "name": "Notify waiting visitors of spot available",
+        "name_ar": "إبلاغ الزوار المنتظرين بتوفر مكان",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "spot_became_available",
+        "params": {
+          "template": "spot_available_notification"
+        }
+      },
+      {
+        "id": "process_checkout",
+        "name": "Process visitor check-out",
+        "name_ar": "معالجة خروج الزائر",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "visitor_checking_out",
+        "params": {
+          "range": "Visitor_Log!A:Z"
+        }
+      },
+      {
+        "id": "send_checkout_confirmation",
+        "name": "Send check-out thank you",
+        "name_ar": "إرسال شكر الخروج",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["process_checkout"],
+        "params": {
+          "template": "check_out_confirmation"
+        }
+      },
+      {
+        "id": "generate_daily_summary",
+        "name": "Generate daily visitor summary",
+        "name_ar": "إنشاء ملخص الزوار اليومي",
+        "tool": "GMAIL_SEND_EMAIL",
+        "condition": "is_daily_report_time",
+        "params": {
+          "template": "daily_visitor_summary"
+        }
+      },
+      {
+        "id": "notify_security",
+        "name": "Notify security of issues",
+        "name_ar": "إبلاغ الأمن بالمشاكل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_security_issue",
+        "params": {
+          "channel": "#security"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "visiting_hours",
+      "question": "What are the general visiting hours?",
+      "question_ar": "ما هي ساعات الزيارة العامة؟",
+      "type": "text",
+      "default": "10:00-12:00, 16:00-20:00"
+    },
+    {
+      "id": "max_visitors",
+      "question": "Maximum visitors at a time per patient?",
+      "question_ar": "أقصى عدد زوار في المرة الواحدة لكل مريض؟",
+      "type": "number",
+      "default": 2
+    },
+    {
+      "id": "data_source",
+      "question": "What is the URL of the visitor management spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات إدارة الزوار؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "pre_registration",
+      "question": "Is visitor pre-registration required?",
+      "question_ar": "هل التسجيل المسبق للزوار مطلوب؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "visitor_services_phone",
+      "question": "What is the visitor services phone number?",
+      "question_ar": "ما هو رقم هاتف خدمات الزوار؟",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "visitorPolicies": "MOH Visitor Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "visitorPolicies": "CBAHI Visitor Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "visitorPolicies": "JCI Patient Rights - Visitors"
+    }
+  }
+}

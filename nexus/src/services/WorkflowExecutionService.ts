@@ -9,10 +9,22 @@
  */
 
 import { composioClient } from './ComposioClient'
-import { workflowExecutionEngine } from './WorkflowExecutionEngine'
-import type { ExecutionConfig } from './WorkflowExecutionEngine'
-// ComposioToolResult type reserved for future use
-// import type { ComposioToolResult } from './ComposioClient'
+// WorkflowExecutionEngine archived - using simplified execution path
+// To restore: move from src/_archived/WorkflowExecutionEngine.ts
+
+// ExecutionConfig type for compatibility (simplified)
+export interface ExecutionConfig {
+  autonomyLevel: 'supervised' | 'semi-autonomous' | 'autonomous' | 'ultimate'
+  maxCostUsd: number
+  maxDurationMs: number
+  retryAttempts: number
+  parallelExecution: boolean
+  requirePaymentApproval: boolean
+  requireBookingApproval: boolean
+  retryBaseDelayMs: number
+  retryMaxDelayMs: number
+  enableLogging: boolean
+}
 
 export interface WorkflowNode {
   id: string
@@ -375,105 +387,30 @@ class WorkflowExecutionServiceClass {
   }
 
   /**
-   * Execute a full workflow using the WorkflowExecutionEngine
-   * with retry logic, exponential backoff, and Supabase logging
+   * Execute a full workflow using enhanced engine (ARCHIVED)
+   *
+   * The WorkflowExecutionEngine has been archived for MVP simplification.
+   * This method now falls back to the standard executeWorkflow method.
+   * To restore full engine: move from src/_archived/WorkflowExecutionEngine.ts
    */
   async executeWorkflowWithEngine(
     nodes: WorkflowNode[],
     edges: { source: string; target: string }[],
-    options?: {
+    _options?: {
       projectId?: string
       workflowDbId?: string
       config?: Partial<ExecutionConfig>
     },
     callbacks?: ExecutionCallbacks
   ): Promise<ExecutionResult[]> {
-    await this.initialize()
-
-    // Convert to GeneratedWorkflow format
-    const workflow = {
-      id: options?.workflowDbId || `workflow_${Date.now()}`,
-      name: 'Visual Workflow',
-      description: 'Workflow from visual builder',
-      nodes: nodes.map(node => ({
-        id: node.id,
-        type: node.data.type as 'trigger' | 'action' | 'condition' | 'output',
-        tool: this.findToolMapping(node.data.label.toLowerCase())?.toolSlug || node.data.label,
-        toolIcon: '🔧',
-        name: node.data.label,
-        description: `${node.data.type} node: ${node.data.label}`,
-        config: {},
-        position: { x: 0, y: 0 }
-      })),
-      connections: edges.map(e => ({ from: e.source, to: e.target })),
-      requiredIntegrations: [],
-      estimatedTimeSaved: 'Unknown',
-      complexity: 'medium' as const
-    }
-
-    // Update engine config if provided
-    if (options?.config) {
-      workflowExecutionEngine.updateConfig(options.config)
-    }
-
-    // Subscribe to events if callbacks provided
-    let unsubscribe: (() => void) | null = null
-    if (callbacks) {
-      unsubscribe = workflowExecutionEngine.subscribe(event => {
-        if (event.type === 'node_started') {
-          callbacks.onNodeStart?.(event.nodeId, event.nodeName)
-        } else if (event.type === 'node_completed') {
-          callbacks.onNodeComplete?.(event.nodeId, {
-            nodeId: event.nodeId,
-            success: event.result.status === 'success',
-            data: event.result.output,
-            error: event.result.error,
-            executionTimeMs: event.result.durationMs,
-            toolSlug: event.result.toolSlug,
-            isSimulated: false
-          })
-        } else if (event.type === 'node_failed') {
-          callbacks.onNodeError?.(event.nodeId, event.error)
-        }
-      })
-    }
-
-    try {
-      callbacks?.onLog?.(`Starting workflow with ${nodes.length} nodes using enhanced engine`)
-
-      const result = await workflowExecutionEngine.executeWorkflow(workflow, {}, {
-        projectId: options?.projectId,
-        workflowDbId: options?.workflowDbId
-      })
-
-      callbacks?.onLog?.('Workflow execution complete')
-
-      // Convert results to ExecutionResult format
-      const results: ExecutionResult[] = []
-      for (const [nodeId, nodeResult] of result.nodeResults) {
-        results.push({
-          nodeId,
-          success: nodeResult.status === 'success',
-          data: nodeResult.output,
-          error: nodeResult.error,
-          executionTimeMs: nodeResult.durationMs,
-          toolSlug: nodeResult.toolSlug,
-          isSimulated: false
-        })
-      }
-
-      return results
-
-    } finally {
-      if (unsubscribe) {
-        unsubscribe()
-      }
-    }
+    // Archived: Using simplified execution path
+    // To restore full engine features, move from src/_archived/WorkflowExecutionEngine.ts
+    console.log('[WorkflowExecutionService] Enhanced engine archived, using standard execution')
+    return this.executeWorkflow(nodes, edges, callbacks)
   }
 }
 
 // Export singleton instance
 export const workflowExecutionService = new WorkflowExecutionServiceClass()
 
-// Re-export types from engine for convenience
-export type { ExecutionConfig } from './WorkflowExecutionEngine'
+// ExecutionConfig is now defined locally (engine archived)

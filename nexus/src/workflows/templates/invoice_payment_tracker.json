@@ -1,0 +1,263 @@
+{
+  "id": "invoice_payment_tracker",
+  "name": "Invoice Payment Tracker",
+  "name_ar": "متتبع دفع الفواتير",
+  "description": "Track invoice status, send automatic payment reminders at intervals, and alert on overdue payments. Integrates with accounting software to maintain accurate records and improve cash flow.",
+  "description_ar": "تتبع حالة الفواتير، إرسال تذكيرات الدفع التلقائية على فترات، والتنبيه على الدفعات المتأخرة. التكامل مع برامج المحاسبة للحفاظ على سجلات دقيقة وتحسين التدفق النقدي.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$28,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail", "whatsapp"],
+  "optionalIntegrations": ["quickbooks", "xero", "slack", "stripe"],
+  "exampleUserInput": "Remind customers about unpaid invoices automatically",
+  "exampleUserInput_ar": "ذكّر العملاء بالفواتير غير المدفوعة تلقائياً",
+  "keywords": ["invoice", "payment", "reminder", "overdue", "accounts receivable", "billing", "فاتورة", "دفع", "تذكير", "متأخر", "حسابات", "فوترة"],
+  "dynamicParameters": {
+    "reminder_intervals": {
+      "type": "array",
+      "default": [7, 14, 30],
+      "label": "Days after due date for reminders",
+      "label_ar": "أيام بعد تاريخ الاستحقاق للتذكيرات"
+    },
+    "first_reminder_before": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before due date for first reminder",
+      "label_ar": "أيام قبل تاريخ الاستحقاق للتذكير الأول"
+    },
+    "reminder_channel": {
+      "type": "select",
+      "options": ["email", "whatsapp", "both"],
+      "default": "both",
+      "label": "Reminder notification channel",
+      "label_ar": "قناة إشعار التذكير"
+    },
+    "escalation_days": {
+      "type": "number",
+      "default": 45,
+      "label": "Days overdue before escalation",
+      "label_ar": "أيام التأخير قبل التصعيد"
+    },
+    "include_payment_link": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include payment link in reminders",
+      "label_ar": "تضمين رابط الدفع في التذكيرات"
+    }
+  },
+  "messages": {
+    "upcoming_reminder_en": "Dear {{customer_name}},\n\nThis is a friendly reminder that invoice {{invoice_number}} for {{currency}} {{amount}} is due on {{due_date}} ({{days_until}} days).\n\n*Invoice Details:*\nInvoice #: {{invoice_number}}\nAmount: {{currency}} {{amount}}\nDue Date: {{due_date}}\n\n{{#if payment_link}}[Pay Now]({{payment_link}}){{/if}}\n\nIf you've already made this payment, please disregard this message.\n\nThank you for your business!\n{{business_name}}",
+    "upcoming_reminder_ar": "عزيزي {{customer_name}}،\n\nهذا تذكير ودي بأن الفاتورة {{invoice_number}} بمبلغ {{currency}} {{amount}} مستحقة في {{due_date}} ({{days_until}} أيام).\n\n*تفاصيل الفاتورة:*\nرقم الفاتورة: {{invoice_number}}\nالمبلغ: {{currency}} {{amount}}\nتاريخ الاستحقاق: {{due_date}}\n\n{{#if payment_link}}[ادفع الآن]({{payment_link}}){{/if}}\n\nإذا قمت بالدفع بالفعل، يرجى تجاهل هذه الرسالة.\n\nشكراً لتعاملك معنا!\n{{business_name}}",
+    "overdue_reminder_en": "Dear {{customer_name}},\n\nInvoice {{invoice_number}} is now {{days_overdue}} days overdue.\n\n*Outstanding:*\nInvoice #: {{invoice_number}}\nAmount: {{currency}} {{amount}}\nDue Date: {{due_date}}\nDays Overdue: {{days_overdue}}\n\nPlease arrange payment at your earliest convenience to avoid service interruption.\n\n{{#if payment_link}}[Pay Now]({{payment_link}}){{/if}}\n\nIf you're experiencing difficulties, please contact us to discuss payment options.\n\n{{business_name}}",
+    "overdue_reminder_ar": "عزيزي {{customer_name}}،\n\nالفاتورة {{invoice_number}} متأخرة الآن {{days_overdue}} يوم.\n\n*المستحق:*\nرقم الفاتورة: {{invoice_number}}\nالمبلغ: {{currency}} {{amount}}\nتاريخ الاستحقاق: {{due_date}}\nأيام التأخير: {{days_overdue}}\n\nيرجى ترتيب الدفع في أقرب وقت ممكن لتجنب انقطاع الخدمة.\n\n{{#if payment_link}}[ادفع الآن]({{payment_link}}){{/if}}\n\nإذا كنت تواجه صعوبات، يرجى التواصل معنا لمناقشة خيارات الدفع.\n\n{{business_name}}",
+    "final_notice_en": "⚠️ FINAL NOTICE\n\nDear {{customer_name}},\n\nDespite previous reminders, invoice {{invoice_number}} remains unpaid for {{days_overdue}} days.\n\nAmount Due: {{currency}} {{amount}}\n\nThis is our final notice before we proceed with collection procedures.\n\nPlease settle this invoice within 7 days or contact us immediately to discuss.\n\n{{business_name}}",
+    "payment_received_en": "✅ *Payment Received - Thank You!*\n\nDear {{customer_name}},\n\nWe have received your payment:\n\nInvoice #: {{invoice_number}}\nAmount: {{currency}} {{amount}}\nReceived: {{payment_date}}\nMethod: {{payment_method}}\n\nThank you for your prompt payment!\n\n{{business_name}}",
+    "payment_received_ar": "✅ *تم استلام الدفع - شكراً!*\n\nعزيزي {{customer_name}}،\n\nلقد استلمنا دفعتك:\n\nرقم الفاتورة: {{invoice_number}}\nالمبلغ: {{currency}} {{amount}}\nتاريخ الاستلام: {{payment_date}}\nطريقة الدفع: {{payment_method}}\n\nشكراً لدفعك السريع!\n\n{{business_name}}",
+    "internal_alert_en": "🚨 *Overdue Invoice Alert*\n\nCustomer: {{customer_name}}\nInvoice: {{invoice_number}}\nAmount: {{currency}} {{amount}}\nDays Overdue: {{days_overdue}}\n\nReminders Sent: {{reminder_count}}\nLast Contact: {{last_contact}}\n\n{{#if escalation}}⚠️ Escalation threshold reached{{/if}}",
+    "weekly_ar_summary_en": "📊 *Weekly Accounts Receivable Summary*\n\n*Outstanding Invoices:*\nTotal: {{currency}} {{total_outstanding}}\nCount: {{outstanding_count}}\n\n*By Status:*\n• Current: {{currency}} {{current_amount}} ({{current_count}})\n• 1-30 Days: {{currency}} {{days_30_amount}} ({{days_30_count}})\n• 31-60 Days: {{currency}} {{days_60_amount}} ({{days_60_count}})\n• 60+ Days: {{currency}} {{days_60_plus_amount}} ({{days_60_plus_count}})\n\n*Collected This Week:* {{currency}} {{collected}}\n*Collection Rate:* {{collection_rate}}%"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Invoice Check",
+        "name_ar": "فحص الفواتير اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0-4",
+            "description": "Daily at 9 AM on workdays",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Invoice Sheet",
+        "name_ar": "قراءة جدول الفواتير",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{invoices_sheet}}",
+            "range": "Invoices!A:L"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Categorize Invoices",
+        "name_ar": "تصنيف الفواتير",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "categorize",
+          "params": {
+            "data": "{{task_2.values}}",
+            "categories": {
+              "upcoming": "days_until_due <= first_reminder_before AND days_until_due > 0",
+              "due_today": "days_until_due === 0",
+              "overdue_7": "days_overdue >= 7 AND days_overdue < 14",
+              "overdue_14": "days_overdue >= 14 AND days_overdue < 30",
+              "overdue_30": "days_overdue >= 30 AND days_overdue < escalation_days",
+              "escalation": "days_overdue >= escalation_days"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Upcoming Reminders",
+        "name_ar": "إرسال تذكيرات قادمة",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.upcoming}}",
+            "subject": "Invoice {{invoice_number}} Due Soon - {{business_name}} / فاتورة مستحقة قريباً",
+            "body": "{{messages.upcoming_reminder_{{language}}}}",
+            "condition": "reminder_channel === 'email' OR reminder_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send WhatsApp Reminders",
+        "name_ar": "إرسال تذكيرات واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.overdue}}",
+            "message": "{{messages.overdue_reminder_{{language}}}}",
+            "condition": "reminder_channel === 'whatsapp' OR reminder_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Final Notices",
+        "name_ar": "إرسال الإشعارات النهائية",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.escalation}}",
+            "subject": "⚠️ FINAL NOTICE: Invoice {{invoice_number}} - {{business_name}}",
+            "body": "{{messages.final_notice_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Alert Team",
+        "name_ar": "تنبيه الفريق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#accounts-receivable",
+            "message": "{{messages.internal_alert_en}}",
+            "condition": "task_3.escalation.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Log Reminders Sent",
+        "name_ar": "تسجيل التذكيرات المرسلة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4", "task_5", "task_6"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "batch_update",
+          "params": {
+            "spreadsheet_id": "{{invoices_sheet}}",
+            "updates": "{{reminder_log}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "first_reminder_before",
+      "question": "Days before due date for first reminder?",
+      "question_ar": "أيام قبل تاريخ الاستحقاق للتذكير الأول؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "reminder_channel",
+      "question": "How to send payment reminders?",
+      "question_ar": "كيف ترسل تذكيرات الدفع؟",
+      "type": "select",
+      "options": [
+        {"value": "email", "label": "Email Only"},
+        {"value": "whatsapp", "label": "WhatsApp Only"},
+        {"value": "both", "label": "Both (Recommended) / كلاهما"}
+      ],
+      "default": "both"
+    },
+    {
+      "id": "escalation_days",
+      "question": "Days overdue before escalation?",
+      "question_ar": "أيام التأخير قبل التصعيد؟",
+      "type": "number",
+      "default": 45
+    },
+    {
+      "id": "include_payment_link",
+      "question": "Include payment link in reminders?",
+      "question_ar": "تضمين رابط الدفع في التذكيرات؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "paymentMethods": ["KNET", "Bank Transfer", "Cash"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "paymentMethods": ["Mada", "Bank Transfer", "SADAD"]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "paymentMethods": ["Card", "Bank Transfer", "Apple Pay"]
+    }
+  }
+}

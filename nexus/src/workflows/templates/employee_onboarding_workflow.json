@@ -1,0 +1,273 @@
+{
+  "id": "employee_onboarding_workflow",
+  "name": "Employee Onboarding Workflow",
+  "name_ar": "سير عمل تأهيل الموظفين",
+  "description": "Streamline new employee onboarding with automated task assignments, document collection, equipment setup, and training schedules. Ensure consistent onboarding experience for every hire.",
+  "description_ar": "تبسيط تأهيل الموظفين الجدد مع تعيين المهام الآلي وجمع المستندات وإعداد المعدات وجداول التدريب. ضمان تجربة تأهيل متسقة لكل موظف جديد.",
+  "domain": "sme",
+  "roiTier": 2,
+  "annualValue": "$12,000/year",
+  "requiredIntegrations": ["gmail", "googlesheets", "slack"],
+  "optionalIntegrations": ["notion", "googlecalendar", "googledrive", "zoom"],
+  "exampleUserInput": "Automate my employee onboarding process",
+  "exampleUserInput_ar": "أتمت عملية تأهيل الموظفين",
+  "keywords": ["onboarding", "employee", "hire", "training", "HR", "documents", "تأهيل", "موظف", "توظيف", "تدريب", "موارد بشرية", "مستندات"],
+  "dynamicParameters": {
+    "onboarding_duration_days": {
+      "type": "number",
+      "default": 30,
+      "label": "Onboarding period (days)",
+      "label_ar": "فترة التأهيل (أيام)"
+    },
+    "require_documents": {
+      "type": "multiselect",
+      "options": ["id_copy", "passport", "bank_details", "education_certificates", "experience_letters", "photos"],
+      "default": ["id_copy", "bank_details"],
+      "label": "Required documents",
+      "label_ar": "المستندات المطلوبة"
+    },
+    "assign_buddy": {
+      "type": "boolean",
+      "default": true,
+      "label": "Assign onboarding buddy",
+      "label_ar": "تعيين صديق للتأهيل"
+    },
+    "schedule_training": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule training sessions",
+      "label_ar": "جدولة جلسات التدريب تلقائياً"
+    },
+    "check_in_frequency": {
+      "type": "select",
+      "options": ["daily", "weekly", "bi-weekly"],
+      "default": "weekly",
+      "label": "Manager check-in frequency",
+      "label_ar": "تكرار متابعة المدير"
+    }
+  },
+  "messages": {
+    "welcome_email_en": "Subject: Welcome to {{company_name}}! 🎉\n\nDear {{employee_name}},\n\nWelcome to the team! We're thrilled to have you join {{company_name}}.\n\n*Your First Day:* {{start_date}}\n*Time:* {{start_time}}\n*Location:* {{office_location}}\n*Report to:* {{manager_name}}\n\n*Before Your First Day:*\nPlease complete the following:\n{{#each pending_tasks}}\n☐ {{task}}\n{{/each}}\n\n*Documents Needed:*\n{{#each required_documents}}\n• {{document}}\n{{/each}}\n\n{{#if buddy}}Your onboarding buddy {{buddy_name}} will reach out to you shortly.{{/if}}\n\nIf you have any questions, feel free to reach out to {{hr_contact}}.\n\nLooking forward to working with you!\n\nBest regards,\n{{hr_name}}\n{{company_name}}",
+    "welcome_email_ar": "الموضوع: مرحباً بك في {{company_name}}! 🎉\n\nعزيزي {{employee_name}}،\n\nمرحباً بك في الفريق! يسعدنا انضمامك إلى {{company_name}}.\n\n*يومك الأول:* {{start_date}}\n*الوقت:* {{start_time}}\n*الموقع:* {{office_location}}\n*التبليغ إلى:* {{manager_name}}\n\n*قبل يومك الأول:*\nيرجى إكمال التالي:\n{{#each pending_tasks}}\n☐ {{task}}\n{{/each}}\n\n*المستندات المطلوبة:*\n{{#each required_documents}}\n• {{document}}\n{{/each}}\n\n{{#if buddy}}صديق التأهيل {{buddy_name}} سيتواصل معك قريباً.{{/if}}\n\nإذا كان لديك أي أسئلة، تواصل مع {{hr_contact}}.\n\nنتطلع للعمل معك!\n\nمع أطيب التحيات،\n{{hr_name}}\n{{company_name}}",
+    "manager_notification_en": "👋 *New Team Member Starting*\n\nEmployee: {{employee_name}}\nPosition: {{position}}\nStart Date: {{start_date}}\nDepartment: {{department}}\n\n*Your Onboarding Tasks:*\n{{#each manager_tasks}}\n☐ {{task}} (Due: {{due_date}})\n{{/each}}\n\n*Scheduled Meetings:*\n• Welcome meeting: {{welcome_meeting}}\n• Week 1 check-in: {{week1_checkin}}\n\nOnboarding tracker: {{tracker_link}}",
+    "buddy_assignment_en": "👋 *Buddy Assignment*\n\nHi {{buddy_name}},\n\nYou've been assigned as the onboarding buddy for {{employee_name}}, our new {{position}}.\n\n*Start Date:* {{start_date}}\n*Contact:* {{employee_email}} | {{employee_phone}}\n\n*Your Role:*\n• Introduce them to the team\n• Show them around the office\n• Answer day-to-day questions\n• Have lunch together in week 1\n• Be available for questions\n\nPlease reach out to {{employee_name}} before their first day to introduce yourself.\n\nThank you for helping! 🙏",
+    "document_reminder_en": "📋 *Document Reminder*\n\nHi {{employee_name}},\n\nJust a friendly reminder that we still need the following documents:\n\n{{#each missing_documents}}\n☐ {{document}}\n{{/each}}\n\nPlease submit these before your start date ({{start_date}}).\n\nUpload here: {{upload_link}}\n\nQuestions? Contact {{hr_contact}}",
+    "day_one_checklist_en": "📋 *Day 1 Checklist - {{employee_name}}*\n\n*Morning:*\n☐ Greet at reception\n☐ Give office tour\n☐ Set up workstation\n☐ Issue access card/keys\n☐ IT setup (email, systems)\n\n*Afternoon:*\n☐ Team introduction\n☐ Manager welcome meeting\n☐ Review first week plan\n☐ Assign first tasks\n\n*End of Day:*\n☐ Check-in: How was day 1?\n☐ Answer questions\n☐ Confirm week 1 schedule",
+    "weekly_checkin_en": "📊 *Week {{week_number}} Check-In - {{employee_name}}*\n\nHow is {{employee_name}} doing?\n\n*Completed:*\n{{#each completed}}\n✅ {{task}}\n{{/each}}\n\n*Pending:*\n{{#each pending}}\n☐ {{task}}\n{{/each}}\n\n*This Week's Focus:*\n{{#each this_week}}\n• {{focus}}\n{{/each}}\n\nProgress: {{progress_percent}}%",
+    "onboarding_complete_en": "🎉 *Onboarding Complete!*\n\nCongratulations {{employee_name}}!\n\nYou've successfully completed your onboarding at {{company_name}}.\n\n*Summary:*\n• Training completed: {{training_count}}\n• Documents submitted: ✅\n• System access: ✅\n• Team introductions: ✅\n\n*Next Steps:*\n• Regular 1:1s with {{manager_name}}\n• 90-day review scheduled: {{review_date}}\n\nWelcome to the team! 🙌"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New Hire Added",
+        "name_ar": "إضافة موظف جديد",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{employees_sheet}}",
+            "sheet_name": "New Hires"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Create Onboarding Record",
+        "name_ar": "إنشاء سجل التأهيل",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{onboarding_tracker_sheet}}",
+            "values": [
+              "{{task_1.employee_name}}",
+              "{{task_1.position}}",
+              "{{task_1.start_date}}",
+              "{{task_1.manager}}",
+              "Pending",
+              "{{current_date}}"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Welcome Email",
+        "name_ar": "إرسال بريد الترحيب",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.employee_email}}",
+            "subject": "Welcome to {{company_name}}! 🎉 / مرحباً بك!",
+            "body": "{{messages.welcome_email_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Notify Manager",
+        "name_ar": "إشعار المدير",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "@{{task_1.manager_slack}}",
+            "message": "{{messages.manager_notification_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Assign Buddy",
+        "name_ar": "تعيين صديق التأهيل",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "@{{buddy_slack}}",
+            "message": "{{messages.buddy_assignment_en}}",
+            "condition": "assign_buddy === true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Create Drive Folder",
+        "name_ar": "إنشاء مجلد Drive",
+        "type": "action",
+        "integrationId": "googledrive",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLEDRIVE_CREATE_FOLDER",
+          "action": "create",
+          "params": {
+            "name": "{{task_1.employee_name}} - Onboarding",
+            "parent_folder": "{{hr_folder}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Schedule Training",
+        "name_ar": "جدولة التدريب",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "batch_create",
+          "params": {
+            "events": "{{training_schedule}}",
+            "calendar_id": "{{training_calendar}}",
+            "condition": "schedule_training === true"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Document Reminder (Day 3)",
+        "name_ar": "تذكير المستندات (اليوم 3)",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "delay_days": 3,
+            "action": "check_missing_documents"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Announce New Hire",
+        "name_ar": "الإعلان عن الموظف الجديد",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#general",
+            "message": "👋 Please welcome {{task_1.employee_name}} to the team! They're joining us as {{task_1.position}} starting {{task_1.start_date}}. Let's make them feel at home! 🎉"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "googlesheets", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "onboarding_duration_days",
+      "question": "How long is the onboarding period?",
+      "question_ar": "كم مدة فترة التأهيل؟",
+      "type": "number",
+      "default": 30
+    },
+    {
+      "id": "assign_buddy",
+      "question": "Assign an onboarding buddy to new hires?",
+      "question_ar": "تعيين صديق تأهيل للموظفين الجدد؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "schedule_training",
+      "question": "Auto-schedule training sessions?",
+      "question_ar": "جدولة جلسات التدريب تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "check_in_frequency",
+      "question": "How often should manager check-ins occur?",
+      "question_ar": "كم مرة يجب أن تحدث متابعات المدير؟",
+      "type": "select",
+      "options": [
+        {"value": "daily", "label": "Daily / يومياً"},
+        {"value": "weekly", "label": "Weekly / أسبوعياً"},
+        {"value": "bi-weekly", "label": "Bi-weekly / كل أسبوعين"}
+      ],
+      "default": "weekly"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "bilingual",
+      "probationPeriod": 100
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "arabic",
+      "probationPeriod": 90
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "defaultLanguage": "english",
+      "probationPeriod": 90
+    }
+  }
+}

@@ -1,0 +1,347 @@
+{
+  "id": "no_show_follow_up",
+  "name": "No-Show Follow-up System",
+  "name_ar": "نظام متابعة عدم الحضور",
+  "description": "Automatically follow up with patients who miss appointments. Understand the reason, offer rescheduling, and identify patterns to reduce future no-shows. Track no-show rates and implement prevention strategies.",
+  "description_ar": "متابعة تلقائية مع المرضى الذين يفوتون المواعيد. فهم السبب وعرض إعادة الجدولة وتحديد الأنماط لتقليل عدم الحضور في المستقبل. تتبع معدلات عدم الحضور وتنفيذ استراتيجيات الوقاية.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$40,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Follow up with patients who missed their appointments",
+  "exampleUserInput_ar": "تابع مع المرضى الذين فاتوا مواعيدهم",
+  "keywords": ["no-show", "missed", "appointment", "follow-up", "reschedule", "absence", "عدم حضور", "فات", "موعد", "متابعة", "إعادة جدولة", "غياب"],
+  "dynamicParameters": {
+    "follow_up_hours_after": {
+      "type": "number",
+      "default": 2,
+      "label": "Hours after missed appointment to follow up",
+      "label_ar": "ساعات بعد الموعد الفائت للمتابعة"
+    },
+    "track_no_show_patterns": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track no-show patterns for analysis",
+      "label_ar": "تتبع أنماط عدم الحضور للتحليل"
+    },
+    "apply_no_show_fee": {
+      "type": "boolean",
+      "default": false,
+      "label": "Apply no-show fee for repeated absences",
+      "label_ar": "تطبيق رسوم عدم الحضور للغياب المتكرر"
+    },
+    "max_no_shows_before_action": {
+      "type": "number",
+      "default": 3,
+      "label": "No-shows before requiring deposit/action",
+      "label_ar": "عدم الحضور قبل طلب إيداع/إجراء"
+    }
+  },
+  "messages": {
+    "missed_appointment_en": "📅 *We Missed You Today*\n\nHi {{patient_name}},\n\nWe noticed you couldn't make it to your appointment today with Dr. {{doctor_name}} at {{appointment_time}}.\n\nWe hope everything is okay!\n\n*Why couldn't you make it?*\n1️⃣ Forgot about the appointment\n2️⃣ Something came up / emergency\n3️⃣ Transportation issues\n4️⃣ Feeling unwell today\n5️⃣ No longer need the appointment\n6️⃣ Other reason\n\nReply with a number (1-6).\n\n*We can help you reschedule for a better time!*",
+    "missed_appointment_ar": "📅 *افتقدناك اليوم*\n\nمرحباً {{patient_name}}،\n\nلاحظنا أنك لم تتمكن من الحضور لموعدك اليوم مع د. {{doctor_name}} الساعة {{appointment_time}}.\n\nنأمل أن كل شيء على ما يرام!\n\n*لماذا لم تتمكن من الحضور؟*\n1️⃣ نسيت الموعد\n2️⃣ طرأ شيء / طوارئ\n3️⃣ مشاكل في المواصلات\n4️⃣ لا أشعر بخير اليوم\n5️⃣ لم أعد بحاجة للموعد\n6️⃣ سبب آخر\n\nرد برقم (1-6).\n\n*يمكننا مساعدتك في إعادة الجدولة لوقت أفضل!*",
+    "reschedule_offer_en": "📅 *Let's Reschedule*\n\nNo worries, {{patient_name}}! We understand things happen.\n\n*Available appointments this week:*\n{{available_slots}}\n\nReply with the number of your preferred slot, or:\n• Reply CALL for us to call you\n• Reply WEEK for next week's availability\n\n*Your health is important - please don't delay your care!*",
+    "reschedule_offer_ar": "📅 *لنعيد الجدولة*\n\nلا بأس {{patient_name}}! نفهم أن الأمور تحدث.\n\n*المواعيد المتاحة هذا الأسبوع:*\n{{available_slots}}\n\nرد برقم الموعد المفضل، أو:\n• رد بـ اتصال لنتصل بك\n• رد بـ أسبوع لمعرفة مواعيد الأسبوع القادم\n\n*صحتك مهمة - يرجى عدم تأخير رعايتك!*",
+    "rescheduled_confirmation_en": "✅ *Appointment Rescheduled*\n\nGreat, {{patient_name}}! Your new appointment is confirmed:\n\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{new_date}}\n⏰ {{new_time}}\n📍 {{clinic_name}}\n\n*We've added extra reminders for this appointment:*\n• 24 hours before\n• 2 hours before\n• 30 minutes before\n\nWe look forward to seeing you! 💙",
+    "rescheduled_confirmation_ar": "✅ *تمت إعادة جدولة الموعد*\n\nرائع، {{patient_name}}! تم تأكيد موعدك الجديد:\n\n👨‍⚕️ د. {{doctor_name}}\n📅 {{new_date}}\n⏰ {{new_time}}\n📍 {{clinic_name}}\n\n*أضفنا تذكيرات إضافية لهذا الموعد:*\n• قبل 24 ساعة\n• قبل ساعتين\n• قبل 30 دقيقة\n\nنتطلع لرؤيتك! 💙",
+    "repeated_no_show_en": "📋 *Important Notice*\n\nHi {{patient_name}},\n\nWe've noticed this is your {{no_show_count}}{{ordinal}} missed appointment.\n\nWe understand life gets busy, but missed appointments affect other patients who could have used that time slot.\n\n{{#if apply_no_show_fee}}*Policy Notice:* As per our no-show policy, a {{no_show_fee}} fee may apply for future missed appointments without 24-hour notice.{{/if}}\n\n*To continue booking appointments, please:*\n1️⃣ Confirm your next appointment\n{{#if require_deposit}}2️⃣ Provide a small booking deposit (refunded when you attend){{/if}}\n\n*Questions?* Call us at {{clinic_phone}}\n\nWe value you as a patient and want to help you get the care you need! 💙",
+    "repeated_no_show_ar": "📋 *إشعار مهم*\n\nمرحباً {{patient_name}}،\n\nلاحظنا أن هذا هو الموعد {{no_show_count}} الذي فاتك.\n\nنفهم أن الحياة مشغولة، لكن المواعيد الفائتة تؤثر على مرضى آخرين كان بإمكانهم استخدام ذلك الوقت.\n\n{{#if apply_no_show_fee}}*إشعار السياسة:* وفقاً لسياسة عدم الحضور، قد يتم تطبيق رسوم {{no_show_fee}} للمواعيد الفائتة مستقبلاً بدون إشعار 24 ساعة.{{/if}}\n\n*للاستمرار في حجز المواعيد، يرجى:*\n1️⃣ تأكيد موعدك القادم\n{{#if require_deposit}}2️⃣ تقديم إيداع حجز صغير (يُسترد عند حضورك){{/if}}\n\n*أسئلة؟* اتصل بنا على {{clinic_phone}}\n\nنقدرك كمريض ونريد مساعدتك في الحصول على الرعاية التي تحتاجها! 💙",
+    "unwell_response_en": "🩺 *We Hope You Feel Better Soon*\n\nSorry to hear you're not feeling well, {{patient_name}}.\n\n*Do you need:*\n1️⃣ A telehealth consultation today\n2️⃣ To reschedule for when you're better\n3️⃣ Advice on whether to see emergency care\n\nReply 1, 2, or 3.\n\nTake care of yourself! 💙",
+    "unwell_response_ar": "🩺 *نتمنى لك الشفاء العاجل*\n\nنأسف لسماع أنك لا تشعر بخير، {{patient_name}}.\n\n*هل تحتاج:*\n1️⃣ استشارة عن بعد اليوم\n2️⃣ إعادة جدولة عندما تتحسن\n3️⃣ نصيحة حول ما إذا كنت بحاجة لرعاية طوارئ\n\nرد بـ 1 أو 2 أو 3.\n\naعتنِ بنفسك! 💙",
+    "staff_no_show_alert_en": "❌ *No-Show Recorded*\n\n*Patient:* {{patient_name}}\n*Appointment:* {{appointment_date}} at {{appointment_time}}\n*Doctor:* Dr. {{doctor_name}}\n*Reason:* {{no_show_reason}}\n*Phone:* {{patient_phone}}\n\n*No-Show History:* {{no_show_count}} total\n*Status:* {{follow_up_status}}\n\n{{#if high_risk}}⚠️ *High-risk patient - escalate follow-up*{{/if}}",
+    "weekly_no_show_report_en": "📊 *Weekly No-Show Report*\n\n*Period:* {{report_period}}\n*Total Appointments:* {{total_appointments}}\n*No-Shows:* {{no_show_count}} ({{no_show_rate}}%)\n\n*By Reason:*\n• Forgot: {{forgot_count}}\n• Emergency: {{emergency_count}}\n• Transportation: {{transport_count}}\n• Unwell: {{unwell_count}}\n• Other: {{other_count}}\n\n*Trend:* {{trend_indicator}} vs last week\n\n*Rescheduled:* {{rescheduled_count}} ({{reschedule_rate}}%)\n\n*Lost Revenue:* {{lost_revenue}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Appointment Marked No-Show",
+        "name_ar": "تحديد الموعد كعدم حضور",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_UPDATED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{appointments_sheet}}",
+            "filter": "status = 'no_show'"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Patient No-Show History",
+        "name_ar": "الحصول على تاريخ عدم حضور المريض",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{appointments_sheet}}",
+            "range": "History!A:H",
+            "filter": "patient_id = {{patient_id}} AND status = 'no_show'"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send No-Show Follow-up",
+        "name_ar": "إرسال متابعة عدم الحضور",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.missed_appointment_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Handle Reason Response",
+        "name_ar": "معالجة رد السبب",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3|4|5|6"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log No-Show Reason",
+        "name_ar": "تسجيل سبب عدم الحضور",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{appointments_sheet}}",
+            "filter": "appointment_id = {{appointment_id}}",
+            "values": {"no_show_reason": "{{reason_text}}", "follow_up_date": "{{timestamp}}"}
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Reschedule Options",
+        "name_ar": "إرسال خيارات إعادة الجدولة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.reschedule_offer_{{patient_language}}}}",
+            "condition": "response != 5"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Unwell Response",
+        "name_ar": "إرسال رد المريض",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.unwell_response_{{patient_language}}}}",
+            "condition": "response = 4"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Handle Slot Selection",
+        "name_ar": "معالجة اختيار الوقت",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "slot_number|CALL|WEEK|اتصال|أسبوع"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Create Rescheduled Appointment",
+        "name_ar": "إنشاء موعد معاد جدولته",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "summary": "{{patient_name}} - Dr. {{doctor_name}} (Rescheduled)",
+            "description": "Rescheduled from no-show on {{original_date}}",
+            "condition": "slot_selected = true"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Reschedule Confirmation",
+        "name_ar": "إرسال تأكيد إعادة الجدولة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.rescheduled_confirmation_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Send Repeated No-Show Warning",
+        "name_ar": "إرسال تحذير عدم الحضور المتكرر",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.repeated_no_show_{{patient_language}}}}",
+            "condition": "no_show_count >= {{max_no_shows_before_action}}"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Alert Staff",
+        "name_ar": "تنبيه الموظفين",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#appointments",
+            "message": "{{messages.staff_no_show_alert_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_13",
+        "name": "Weekly No-Show Report",
+        "name_ar": "تقرير عدم الحضور الأسبوعي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0",
+            "description": "Weekly no-show report on Sunday",
+            "timezone": "{{timezone}}",
+            "condition": "track_no_show_patterns = true"
+          }
+        }
+      },
+      {
+        "id": "task_14",
+        "name": "Send Weekly Report",
+        "name_ar": "إرسال التقرير الأسبوعي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_13"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#clinic-reports",
+            "message": "{{messages.weekly_no_show_report_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "follow_up_hours_after",
+      "question": "How many hours after a missed appointment to follow up?",
+      "question_ar": "كم ساعة بعد الموعد الفائت للمتابعة؟",
+      "type": "number",
+      "default": 2
+    },
+    {
+      "id": "track_no_show_patterns",
+      "question": "Track no-show patterns for analysis and reporting?",
+      "question_ar": "تتبع أنماط عدم الحضور للتحليل والتقارير؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "apply_no_show_fee",
+      "question": "Apply no-show fee for repeated absences?",
+      "question_ar": "تطبيق رسوم عدم الحضور للغياب المتكرر؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "max_no_shows_before_action",
+      "question": "How many no-shows before requiring deposit/action?",
+      "question_ar": "كم عدم حضور قبل طلب إيداع/إجراء؟",
+      "type": "number",
+      "default": 3
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "averageNoShowRate": "15-20%"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "averageNoShowRate": "20-25%"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "averageNoShowRate": "15-20%"
+    }
+  }
+}

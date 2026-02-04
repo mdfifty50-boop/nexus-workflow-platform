@@ -1,0 +1,297 @@
+{
+  "id": "insurance_verification",
+  "name": "Insurance Verification Automation",
+  "name_ar": "أتمتة التحقق من التأمين",
+  "description": "Automatically verify patient insurance eligibility and coverage before appointments. Reduce claim denials, estimate patient costs, and notify patients of any coverage issues proactively.",
+  "description_ar": "التحقق تلقائياً من أهلية وتغطية تأمين المريض قبل المواعيد. تقليل رفض المطالبات وتقدير تكاليف المريض وإخطار المرضى بأي مشاكل في التغطية بشكل استباقي.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$55,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["slack", "googlecalendar"],
+  "exampleUserInput": "Verify insurance for upcoming appointments",
+  "exampleUserInput_ar": "تحقق من التأمين للمواعيد القادمة",
+  "keywords": ["insurance", "verification", "eligibility", "coverage", "claim", "pre-authorization", "تأمين", "تحقق", "أهلية", "تغطية", "مطالبة", "موافقة مسبقة"],
+  "dynamicParameters": {
+    "verify_days_before": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before appointment to verify insurance",
+      "label_ar": "أيام قبل الموعد للتحقق من التأمين"
+    },
+    "notify_patient_issues": {
+      "type": "boolean",
+      "default": true,
+      "label": "Notify patient of coverage issues",
+      "label_ar": "إخطار المريض بمشاكل التغطية"
+    },
+    "auto_submit_preauth": {
+      "type": "boolean",
+      "default": false,
+      "label": "Automatically submit pre-authorization requests",
+      "label_ar": "تقديم طلبات الموافقة المسبقة تلقائياً"
+    },
+    "estimate_patient_cost": {
+      "type": "boolean",
+      "default": true,
+      "label": "Provide cost estimate to patient",
+      "label_ar": "تقديم تقدير التكلفة للمريض"
+    }
+  },
+  "messages": {
+    "verification_complete_en": "✅ *Insurance Verified*\n\nHi {{patient_name}},\n\nGood news! Your insurance has been verified for your upcoming appointment.\n\n📋 *Appointment Details:*\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{appointment_date}} at {{appointment_time}}\n📍 {{clinic_name}}\n\n💳 *Insurance Information:*\n• Provider: {{insurance_provider}}\n• Policy: {{policy_number}}\n• Coverage: {{coverage_status}}\n{{#if copay}}• Estimated Copay: {{copay}}{{/if}}\n{{#if deductible}}• Deductible Status: {{deductible_status}}{{/if}}\n\n*Please bring:*\n• Insurance card\n• Civil ID\n\nSee you soon!",
+    "verification_complete_ar": "✅ *تم التحقق من التأمين*\n\nمرحباً {{patient_name}}،\n\nأخبار جيدة! تم التحقق من تأمينك لموعدك القادم.\n\n📋 *تفاصيل الموعد:*\n👨‍⚕️ د. {{doctor_name}}\n📅 {{appointment_date}} في {{appointment_time}}\n📍 {{clinic_name}}\n\n💳 *معلومات التأمين:*\n• الشركة: {{insurance_provider}}\n• رقم الوثيقة: {{policy_number}}\n• التغطية: {{coverage_status}}\n{{#if copay}}• المبلغ المشترك المقدر: {{copay}}{{/if}}\n{{#if deductible}}• حالة التحمل: {{deductible_status}}{{/if}}\n\n*يرجى إحضار:*\n• بطاقة التأمين\n• البطاقة المدنية\n\nنراك قريباً!",
+    "coverage_issue_en": "⚠️ *Insurance Coverage Notice*\n\nHi {{patient_name}},\n\nWe've reviewed your insurance for your upcoming appointment and noticed the following:\n\n❗ *Issue:* {{coverage_issue}}\n\n📋 *Options:*\n1️⃣ Proceed as self-pay (Estimated: {{self_pay_amount}})\n2️⃣ Update insurance information\n3️⃣ Reschedule while I resolve this\n4️⃣ Speak with our billing team\n\nReply 1, 2, 3, or 4.\n\n📞 Questions? Call {{billing_phone}}",
+    "coverage_issue_ar": "⚠️ *إشعار تغطية التأمين*\n\nمرحباً {{patient_name}}،\n\nراجعنا تأمينك لموعدك القادم ولاحظنا التالي:\n\n❗ *المشكلة:* {{coverage_issue}}\n\n📋 *الخيارات:*\n1️⃣ المتابعة بالدفع الذاتي (المقدر: {{self_pay_amount}})\n2️⃣ تحديث معلومات التأمين\n3️⃣ إعادة الجدولة أثناء حل هذا\n4️⃣ التحدث مع فريق الفوترة لدينا\n\nرد بـ 1 أو 2 أو 3 أو 4.\n\n📞 أسئلة؟ اتصل على {{billing_phone}}",
+    "preauth_required_en": "📋 *Pre-Authorization Required*\n\nHi {{patient_name}},\n\nYour insurance requires pre-authorization for {{procedure_name}}.\n\n*Status:* {{preauth_status}}\n{{#if preauth_submitted}}*Submitted:* {{submission_date}}{{/if}}\n{{#if preauth_approved}}✅ *Approved!* Reference: {{auth_number}}{{/if}}\n{{#if preauth_pending}}⏳ *Pending* - Expected response: {{expected_date}}{{/if}}\n\n*Your appointment:*\n📅 {{appointment_date}} at {{appointment_time}}\n\nWe'll update you when we hear back from your insurance.",
+    "preauth_required_ar": "📋 *الموافقة المسبقة مطلوبة*\n\nمرحباً {{patient_name}}،\n\nتأمينك يتطلب موافقة مسبقة لـ {{procedure_name}}.\n\n*الحالة:* {{preauth_status}}\n{{#if preauth_submitted}}*تم التقديم:* {{submission_date}}{{/if}}\n{{#if preauth_approved}}✅ *تمت الموافقة!* المرجع: {{auth_number}}{{/if}}\n{{#if preauth_pending}}⏳ *معلق* - الرد المتوقع: {{expected_date}}{{/if}}\n\n*موعدك:*\n📅 {{appointment_date}} في {{appointment_time}}\n\nسنحدثك عندما نسمع من تأمينك.",
+    "update_insurance_en": "📝 *Update Insurance Information*\n\nPlease provide your updated insurance details:\n\n1. Insurance company name\n2. Policy/Member ID number\n3. Photo of insurance card (front and back)\n\nYou can reply with the details or upload photos.\n\n*Need help?* Call {{billing_phone}}",
+    "update_insurance_ar": "📝 *تحديث معلومات التأمين*\n\nيرجى تقديم تفاصيل التأمين المحدثة:\n\n1. اسم شركة التأمين\n2. رقم الوثيقة/العضوية\n3. صورة بطاقة التأمين (الأمام والخلف)\n\nيمكنك الرد بالتفاصيل أو رفع الصور.\n\n*تحتاج مساعدة؟* اتصل على {{billing_phone}}",
+    "staff_verification_alert_en": "⚠️ *Insurance Verification Failed*\n\n*Patient:* {{patient_name}}\n*Appointment:* {{appointment_date}} at {{appointment_time}}\n*Doctor:* Dr. {{doctor_name}}\n*Insurance:* {{insurance_provider}}\n*Issue:* {{verification_issue}}\n\n*Action Required:* Contact patient to resolve before appointment"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Verification Check",
+        "name_ar": "فحص التحقق اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 8 * * 0-4",
+            "description": "Daily insurance verification for upcoming appointments",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Appointments Needing Verification",
+        "name_ar": "الحصول على المواعيد التي تحتاج تحقق",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{appointments_sheet}}",
+            "range": "Upcoming!A:N",
+            "filter": "appointment_date <= TODAY() + {{verify_days_before}} AND insurance_verified = false"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Verify Insurance Eligibility",
+        "name_ar": "التحقق من أهلية التأمين",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "verify_insurance",
+          "params": {
+            "patient_id": "{{patient_id}}",
+            "insurance_provider": "{{insurance_provider}}",
+            "policy_number": "{{policy_number}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Update Verification Status",
+        "name_ar": "تحديث حالة التحقق",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{appointments_sheet}}",
+            "filter": "patient_id = {{patient_id}}",
+            "values": {"insurance_verified": true, "verification_date": "{{timestamp}}", "coverage_status": "{{coverage_status}}"}
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Verification Confirmation",
+        "name_ar": "إرسال تأكيد التحقق",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.verification_complete_{{patient_language}}}}",
+            "condition": "coverage_status = 'active'"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Coverage Issue Notice",
+        "name_ar": "إرسال إشعار مشكلة التغطية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.coverage_issue_{{patient_language}}}}",
+            "condition": "coverage_status != 'active' AND notify_patient_issues = true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Alert Staff of Issues",
+        "name_ar": "تنبيه الموظفين بالمشاكل",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#billing-alerts",
+            "message": "{{messages.staff_verification_alert_en}}",
+            "condition": "coverage_status != 'active'"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Handle Patient Response",
+        "name_ar": "معالجة رد المريض",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3|4"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Insurance Update Request",
+        "name_ar": "إرسال طلب تحديث التأمين",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.update_insurance_{{patient_language}}}}",
+            "condition": "response = 2"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Check Pre-Auth Requirements",
+        "name_ar": "فحص متطلبات الموافقة المسبقة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "check_preauth",
+          "params": {
+            "procedure_code": "{{procedure_code}}",
+            "insurance_provider": "{{insurance_provider}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Send Pre-Auth Notification",
+        "name_ar": "إرسال إشعار الموافقة المسبقة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_10"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.preauth_required_{{patient_language}}}}",
+            "condition": "preauth_required = true"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "verify_days_before",
+      "question": "How many days before the appointment should insurance be verified?",
+      "question_ar": "كم يوم قبل الموعد يجب التحقق من التأمين؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "notify_patient_issues",
+      "question": "Notify patients directly about coverage issues?",
+      "question_ar": "إخطار المرضى مباشرة بمشاكل التغطية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "auto_submit_preauth",
+      "question": "Automatically submit pre-authorization requests when required?",
+      "question_ar": "تقديم طلبات الموافقة المسبقة تلقائياً عند الحاجة؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "estimate_patient_cost",
+      "question": "Provide cost estimates to patients?",
+      "question_ar": "تقديم تقديرات التكلفة للمرضى؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "majorInsurers": ["AFYA", "Gulf Insurance", "Wataniya", "Warba"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "CCHI",
+      "majorInsurers": ["Bupa Arabia", "Tawuniya", "Medgulf", "AXA Cooperative"]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "majorInsurers": ["Daman", "Oman Insurance", "AXA", "Cigna"]
+    }
+  }
+}

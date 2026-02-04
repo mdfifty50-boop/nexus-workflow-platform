@@ -1,0 +1,295 @@
+{
+  "id": "signature_chase_workflow",
+  "name": "Signature Chase Workflow",
+  "name_ar": "متابعة التوقيعات",
+  "description": "Automated follow-up for unsigned documents: sends WhatsApp reminders after X days, escalates after Y days, and notifies lawyer when signed. Perfect for law firms tracking contracts, agreements, and legal documents.",
+  "description_ar": "متابعة آلية للمستندات غير الموقعة: إرسال تذكيرات واتساب بعد X أيام، تصعيد بعد Y أيام، وإشعار المحامي عند التوقيع.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$27,450/lawyer",
+  "requiredIntegrations": ["docusign", "whatsapp", "slack", "gmail"],
+  "optionalIntegrations": ["knet"],
+  "exampleUserInput": "Follow up on unsigned documents and remind clients to sign",
+  "exampleUserInput_ar": "تابع المستندات غير الموقعة وذكّر العملاء بالتوقيع",
+  "keywords": ["signature", "sign", "unsigned", "chase", "follow up", "followup", "remind", "reminder", "docusign", "contract", "agreement", "document", "legal", "lawyer", "law firm", "escalate", "pending signature", "توقيع", "عقد", "محامي", "متابعة"],
+  "dynamicParameters": {
+    "reminder_days": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before first reminder",
+      "label_ar": "أيام قبل التذكير الأول",
+      "required": true
+    },
+    "escalation_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before escalation",
+      "label_ar": "أيام قبل التصعيد",
+      "required": true
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    },
+    "message_tone": {
+      "type": "select",
+      "options": ["formal", "friendly", "urgent"],
+      "default": "friendly",
+      "label": "Message Tone",
+      "label_ar": "نبرة الرسالة"
+    },
+    "escalation_recipients": {
+      "type": "array",
+      "default": ["supervisor"],
+      "options": ["supervisor", "partner", "client_manager"],
+      "label": "Escalation Recipients",
+      "label_ar": "مستلمو التصعيد"
+    },
+    "include_payment_link": {
+      "type": "boolean",
+      "default": false,
+      "label": "Include payment link with signature request",
+      "label_ar": "إضافة رابط الدفع مع طلب التوقيع",
+      "description": "If enabled, includes KNET payment link (when KNET integration is available)"
+    }
+  },
+  "messages": {
+    "reminder_en": "Hi {{signer_name}}, this is a friendly reminder that you have a document waiting for your signature: \"{{document_name}}\". Please sign at your earliest convenience. If you have any questions, please contact {{lawyer_name}} at {{lawyer_email}}. Thank you!",
+    "reminder_ar": "مرحباً {{signer_name}}، هذا تذكير ودي بأن لديك مستند ينتظر توقيعك: \"{{document_name}}\". يرجى التوقيع في أقرب وقت ممكن. إذا كان لديك أي استفسار، يرجى التواصل مع {{lawyer_name}} على {{lawyer_email}}. شكراً!",
+    "reminder_bilingual": "Hi {{signer_name}} / مرحباً {{signer_name}}\n\nThis is a friendly reminder that you have a document waiting for your signature:\nهذا تذكير ودي بأن لديك مستند ينتظر توقيعك:\n\n📄 {{document_name}}\n\nPlease sign at your earliest convenience.\nيرجى التوقيع في أقرب وقت ممكن.\n\nContact / للتواصل: {{lawyer_name}} - {{lawyer_email}}\n\nThank you! / شكراً!",
+    "escalation_en": "Dear {{lawyer_name}},\n\nThe following document requires your attention as it has been unsigned for {{days_unsigned}} days:\n\n📄 Document: {{document_name}}\n👤 Signer: {{signer_name}}\n📧 Signer Email: {{signer_email}}\n📱 Signer Phone: {{signer_phone}}\n📅 Sent Date: {{sent_date}}\n\nAutomated reminders have been sent but no response received.\n\nRecommended Actions:\n1. Direct phone call to signer\n2. Alternative signer consideration\n3. Document revision if needed\n\nPlease take appropriate action.\n\nBest regards,\nNexus Signature Tracker",
+    "escalation_ar": "عزيزي {{lawyer_name}}،\n\nالمستند التالي يتطلب انتباهك حيث لم يتم توقيعه منذ {{days_unsigned}} أيام:\n\n📄 المستند: {{document_name}}\n👤 الموقّع: {{signer_name}}\n📧 البريد الإلكتروني: {{signer_email}}\n📱 الهاتف: {{signer_phone}}\n📅 تاريخ الإرسال: {{sent_date}}\n\nتم إرسال تذكيرات آلية ولم يتم الرد.\n\nالإجراءات المقترحة:\n1. اتصال هاتفي مباشر\n2. النظر في موقّع بديل\n3. مراجعة المستند إذا لزم الأمر\n\nيرجى اتخاذ الإجراء المناسب.\n\nمع التحية،\nنيكسس لتتبع التوقيعات",
+    "signed_notification_en": "Good news, {{lawyer_name}}!\n\nThe following document has been signed:\n\n📄 Document: {{document_name}}\n👤 Signed by: {{signer_name}}\n📅 Signed at: {{signed_date}}\n⏱️ Time to signature: {{days_to_sign}} days\n\nThe signed document is now available in DocuSign and can be downloaded.\n\nBest regards,\nNexus Signature Tracker",
+    "signed_notification_ar": "أخبار سارة، {{lawyer_name}}!\n\nتم توقيع المستند التالي:\n\n📄 المستند: {{document_name}}\n👤 الموقّع: {{signer_name}}\n📅 تاريخ التوقيع: {{signed_date}}\n⏱️ الوقت للتوقيع: {{days_to_sign}} أيام\n\nالمستند الموقّع متاح الآن في DocuSign ويمكن تحميله.\n\nمع التحية،\nنيكسس لتتبع التوقيعات"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Monitor Document Status (Trigger)",
+        "name_ar": "مراقبة حالة المستند",
+        "type": "trigger",
+        "integrationId": "docusign",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "DOCUSIGN_GET_ENVELOPE_STATUS",
+          "action": "monitor",
+          "params": {
+            "description": "Polls DocuSign for envelopes that have been 'sent' but not 'completed' for more than the configured days",
+            "status": "sent",
+            "minDaysUnsigned": "{{reminder_days}}",
+            "defaultDays": 3
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send WhatsApp Reminder",
+        "name_ar": "إرسال تذكير واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{signer_phone}}",
+            "message": "{{messages.reminder_{{language}}}}",
+            "description": "Sends friendly WhatsApp reminder to signer in configured language"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Log Reminder Sent",
+        "name_ar": "تسجيل التذكير المرسل",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#signature-tracking",
+            "message": ":bell: Reminder sent to {{signer_name}} for document: \"{{document_name}}\"\n*Days pending:* {{days_unsigned}}\n*Signer phone:* {{signer_phone}}\n*Assigned lawyer:* {{lawyer_name}}\n*Language:* {{language}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Check Escalation Threshold",
+        "name_ar": "التحقق من حد التصعيد",
+        "type": "condition",
+        "integrationId": "docusign",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "DOCUSIGN_GET_ENVELOPE_STATUS",
+          "action": "check",
+          "params": {
+            "description": "Checks if document has exceeded escalation threshold",
+            "escalationDays": "{{escalation_days}}",
+            "defaultEscalationDays": 7,
+            "condition": "days_unsigned >= escalation_days"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Escalate to Lawyer",
+        "name_ar": "تصعيد للمحامي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_email}}",
+            "subject": "⚠️ ESCALATION: Document Unsigned for {{days_unsigned}} Days - {{document_name}}",
+            "body": "{{messages.escalation_{{language}}}}",
+            "description": "Sends escalation email to lawyer when threshold exceeded"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Escalation Alert in Slack",
+        "name_ar": "تنبيه التصعيد في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#signature-tracking",
+            "message": ":rotating_light: *ESCALATION / تصعيد* :rotating_light:\n\nDocument \"{{document_name}}\" has been unsigned for *{{days_unsigned}} days*.\nالمستند لم يُوقَّع منذ {{days_unsigned}} أيام.\n\n*Signer / الموقّع:* {{signer_name}}\n*Lawyer / المحامي:* {{lawyer_name}}\n*Status / الحالة:* Escalation email sent / تم إرسال بريد التصعيد\n\nManual intervention required. / يتطلب تدخل يدوي."
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Monitor for Signature Completion",
+        "name_ar": "مراقبة اكتمال التوقيع",
+        "type": "trigger",
+        "integrationId": "docusign",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "DOCUSIGN_GET_ENVELOPE_STATUS",
+          "action": "webhook",
+          "params": {
+            "description": "Webhook trigger when document status changes to 'completed'",
+            "event": "envelope_completed",
+            "status": "completed"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Notify Lawyer of Signature",
+        "name_ar": "إشعار المحامي بالتوقيع",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_email}}",
+            "subject": "✅ Document Signed / تم التوقيع: {{document_name}}",
+            "body": "{{messages.signed_notification_{{language}}}}",
+            "description": "Notifies lawyer when document is signed"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Celebrate in Slack",
+        "name_ar": "احتفال في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#signature-tracking",
+            "message": ":white_check_mark: *Document Signed! / تم التوقيع!*\n\n📄 *{{document_name}}*\n👤 Signed by / الموقّع: {{signer_name}}\n📅 Date / التاريخ: {{signed_date}}\n⏱️ Total time / المدة: {{days_to_sign}} days / أيام\n👨‍⚖️ Lawyer / المحامي: {{lawyer_name}}\n\n:tada: Great work team! / عمل رائع!"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Download Signed Document",
+        "name_ar": "تحميل المستند الموقّع",
+        "type": "action",
+        "integrationId": "docusign",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "DOCUSIGN_DOWNLOAD_DOCUMENT",
+          "action": "download",
+          "params": {
+            "envelopeId": "{{envelope_id}}",
+            "description": "Downloads the completed signed document for archival",
+            "saveToPath": "{{client_folder}}/signed/{{document_name}}_signed.pdf"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["docusign", "whatsapp", "slack", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_days",
+      "question": "How many days should pass before sending the first reminder?",
+      "question_ar": "كم يوماً يجب الانتظار قبل إرسال التذكير الأول؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "escalation_days",
+      "question": "After how many days should we escalate to you?",
+      "question_ar": "بعد كم يوماً يتم التصعيد إليك؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "language",
+      "question": "What language should reminders be sent in?",
+      "question_ar": "بأي لغة يجب إرسال التذكيرات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "paymentMethod": "knet"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "paymentMethod": "mada"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "paymentMethod": "card"
+    }
+  }
+}

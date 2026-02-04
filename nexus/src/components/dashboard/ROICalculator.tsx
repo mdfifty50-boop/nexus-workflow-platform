@@ -202,7 +202,7 @@ function HeroStat({
   trend,
   color = 'primary'
 }: {
-  icon: React.ElementType
+  icon: React.ComponentType<{ className?: string }>
   label: string
   value: number
   suffix?: string
@@ -211,13 +211,13 @@ function HeroStat({
   color?: 'primary' | 'green' | 'blue' | 'purple'
 }) {
   const animatedValue = useAnimatedCounter(Math.floor(value))
-  const colorClasses = {
+  const colorClasses: Record<'primary' | 'green' | 'blue' | 'purple', string> = {
     primary: 'from-primary/20 to-primary/5 border-primary/30',
     green: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30',
     blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30',
     purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30'
   }
-  const iconColorClasses = {
+  const iconColorClasses: Record<'primary' | 'green' | 'blue' | 'purple', string> = {
     primary: 'text-primary',
     green: 'text-emerald-500',
     blue: 'text-blue-500',

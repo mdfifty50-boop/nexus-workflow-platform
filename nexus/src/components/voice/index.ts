@@ -1,17 +1,8 @@
 /**
  * Voice Components
  *
- * Export all voice-related components for easy import
+ * Components for AI voice configuration and management.
  */
 
-export { ContinuousMic } from './ContinuousMic'
-export { VoiceWorkflow } from './VoiceWorkflow'
-export { MicButtonStates } from './MicButtonStates'
-
-export type { Dialect, Language, DialectDetectionResult } from '@/lib/voice/dialect-detector'
-export {
-  detectDialect,
-  getDialectDisplayName,
-  getDialectFlag,
-  SUPPORTED_DIALECTS,
-} from '@/lib/voice/dialect-detector'
+export { VoiceConfigurationPanel } from './VoiceConfigurationPanel'
+export { VoiceSettingsSection } from './VoiceSettingsSection'

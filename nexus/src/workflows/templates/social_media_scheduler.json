@@ -1,0 +1,253 @@
+{
+  "id": "social_media_scheduler",
+  "name": "Social Media Content Scheduler",
+  "name_ar": "جدولة محتوى وسائل التواصل",
+  "description": "Schedule and auto-publish content across multiple social platforms. Plan posts in advance, maintain consistent posting schedule, and track engagement. Perfect for small business marketing.",
+  "description_ar": "جدولة ونشر المحتوى تلقائياً عبر منصات التواصل المتعددة. خطط المنشورات مسبقاً، حافظ على جدول نشر منتظم، وتتبع التفاعل. مثالي لتسويق الأعمال الصغيرة.",
+  "domain": "sme",
+  "roiTier": 2,
+  "annualValue": "$12,000/year",
+  "requiredIntegrations": ["googlesheets", "twitter"],
+  "optionalIntegrations": ["instagram", "linkedin", "facebook", "slack", "googledrive"],
+  "exampleUserInput": "Schedule my social media posts automatically",
+  "exampleUserInput_ar": "جدول منشوراتي على وسائل التواصل تلقائياً",
+  "keywords": ["social media", "schedule", "post", "marketing", "twitter", "instagram", "linkedin", "وسائل التواصل", "جدولة", "نشر", "تسويق"],
+  "dynamicParameters": {
+    "platforms": {
+      "type": "multiselect",
+      "options": ["twitter", "instagram", "linkedin", "facebook"],
+      "default": ["twitter", "instagram"],
+      "label": "Social platforms to post to",
+      "label_ar": "منصات التواصل للنشر عليها"
+    },
+    "posting_times": {
+      "type": "multiselect",
+      "options": ["9:00", "12:00", "15:00", "18:00", "21:00"],
+      "default": ["9:00", "18:00"],
+      "label": "Preferred posting times",
+      "label_ar": "أوقات النشر المفضلة"
+    },
+    "auto_hashtags": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-generate relevant hashtags",
+      "label_ar": "توليد الهاشتاقات ذات الصلة تلقائياً"
+    },
+    "notify_on_publish": {
+      "type": "boolean",
+      "default": true,
+      "label": "Notify when post is published",
+      "label_ar": "إشعار عند نشر المنشور"
+    },
+    "engagement_report": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send weekly engagement report",
+      "label_ar": "إرسال تقرير التفاعل الأسبوعي"
+    }
+  },
+  "messages": {
+    "post_scheduled_en": "📅 *Post Scheduled*\n\nPlatform(s): {{platforms}}\nScheduled Time: {{scheduled_time}}\n\n*Content Preview:*\n\"{{content_preview}}...\"\n\n{{#if has_image}}📷 Image attached{{/if}}\n{{#if hashtags}}#️⃣ Hashtags: {{hashtags}}{{/if}}\n\nYou can edit or cancel in the content calendar.",
+    "post_scheduled_ar": "📅 *تم جدولة المنشور*\n\nالمنصة(المنصات): {{platforms}}\nوقت النشر: {{scheduled_time}}\n\n*معاينة المحتوى:*\n\"{{content_preview}}...\"\n\n{{#if has_image}}📷 صورة مرفقة{{/if}}\n{{#if hashtags}}#️⃣ الهاشتاقات: {{hashtags}}{{/if}}\n\nيمكنك التعديل أو الإلغاء من تقويم المحتوى.",
+    "post_published_en": "✅ *Post Published*\n\nPlatform: {{platform}}\nTime: {{publish_time}}\n\n*Content:*\n\"{{content}}\"\n\n{{#if post_url}}🔗 View post: {{post_url}}{{/if}}",
+    "post_published_ar": "✅ *تم نشر المنشور*\n\nالمنصة: {{platform}}\nالوقت: {{publish_time}}\n\n*المحتوى:*\n\"{{content}}\"\n\n{{#if post_url}}🔗 عرض المنشور: {{post_url}}{{/if}}",
+    "weekly_report_en": "📊 *Weekly Social Media Report*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Posts Published:* {{posts_count}}\n\n*By Platform:*\n{{#each platforms}}\n**{{name}}**\n• Posts: {{posts}}\n• Impressions: {{impressions}}\n• Engagements: {{engagements}}\n• Top Post: \"{{top_post}}\" ({{top_engagement}})\n{{/each}}\n\n*Best Performing Time:* {{best_time}}\n*Best Performing Day:* {{best_day}}",
+    "weekly_report_ar": "📊 *تقرير وسائل التواصل الأسبوعي*\n\nالفترة: {{week_start}} - {{week_end}}\n\n*المنشورات المنشورة:* {{posts_count}}\n\n*حسب المنصة:*\n{{#each platforms}}\n**{{name}}**\n• المنشورات: {{posts}}\n• المشاهدات: {{impressions}}\n• التفاعلات: {{engagements}}\n• أفضل منشور: \"{{top_post}}\" ({{top_engagement}})\n{{/each}}\n\n*أفضل وقت للنشر:* {{best_time}}\n*أفضل يوم للنشر:* {{best_day}}",
+    "content_reminder_en": "📝 *Content Calendar Reminder*\n\nYou have {{pending_posts}} posts scheduled for this week.\n\nUpcoming:\n{{#each upcoming}}\n• {{platform}} - {{date}} {{time}}: \"{{preview}}...\"\n{{/each}}\n\n{{#if empty_days}}⚠️ No posts scheduled for: {{empty_days}}{{/if}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Check Content Calendar",
+        "name_ar": "فحص تقويم المحتوى",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "*/15 * * * *",
+            "description": "Check every 15 minutes for scheduled posts",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Content Sheet",
+        "name_ar": "قراءة جدول المحتوى",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{content_calendar_sheet}}",
+            "range": "Schedule!A:I"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Find Due Posts",
+        "name_ar": "إيجاد المنشورات المستحقة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "filter",
+          "params": {
+            "data": "{{task_2.values}}",
+            "filter": "scheduled_time <= now AND status = 'pending'"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Generate Hashtags",
+        "name_ar": "توليد الهاشتاقات",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "generate_hashtags",
+          "params": {
+            "content": "{{task_3.posts}}",
+            "max_hashtags": 5,
+            "condition": "auto_hashtags === true"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Post to Twitter",
+        "name_ar": "النشر على تويتر",
+        "type": "action",
+        "integrationId": "twitter",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "TWITTER_CREATE_TWEET",
+          "action": "post",
+          "params": {
+            "text": "{{task_3.content}} {{task_4.hashtags}}",
+            "media": "{{task_3.image_url}}",
+            "condition": "platforms.includes('twitter')"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Post to LinkedIn",
+        "name_ar": "النشر على لينكدإن",
+        "type": "action",
+        "integrationId": "linkedin",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "LINKEDIN_CREATE_POST",
+          "action": "post",
+          "params": {
+            "text": "{{task_3.content}} {{task_4.hashtags}}",
+            "media": "{{task_3.image_url}}",
+            "condition": "platforms.includes('linkedin')"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Update Sheet Status",
+        "name_ar": "تحديث حالة الجدول",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_5", "task_6"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{content_calendar_sheet}}",
+            "range": "Schedule!H{{row}}",
+            "values": [["published", "{{current_datetime}}"]]
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Publish Notification",
+        "name_ar": "إرسال إشعار النشر",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#social-media",
+            "message": "{{messages.post_published_en}}",
+            "condition": "notify_on_publish === true"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "twitter"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "platforms",
+      "question": "Which platforms should posts go to?",
+      "question_ar": "على أي منصات يجب نشر المنشورات؟",
+      "type": "multiselect",
+      "options": [
+        {"value": "twitter", "label": "Twitter/X"},
+        {"value": "instagram", "label": "Instagram"},
+        {"value": "linkedin", "label": "LinkedIn"},
+        {"value": "facebook", "label": "Facebook"}
+      ],
+      "default": ["twitter", "instagram"]
+    },
+    {
+      "id": "auto_hashtags",
+      "question": "Auto-generate relevant hashtags?",
+      "question_ar": "توليد الهاشتاقات ذات الصلة تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "notify_on_publish",
+      "question": "Notify when posts are published?",
+      "question_ar": "إشعار عند نشر المنشورات؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "engagement_report",
+      "question": "Send weekly engagement report?",
+      "question_ar": "إرسال تقرير التفاعل الأسبوعي؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "bilingual",
+      "peakHours": ["10:00", "13:00", "21:00"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "arabic",
+      "peakHours": ["10:00", "14:00", "22:00"]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "defaultLanguage": "english",
+      "peakHours": ["9:00", "13:00", "20:00"]
+    }
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "id": "lab_results_notification",
+  "name": "Lab Results Notification",
+  "name_ar": "إشعار نتائج المختبر",
+  "description": "Automatically notify patients when their lab results are ready. Include doctor's review status, any urgent flags, and next steps. Streamline communication while maintaining HIPAA/privacy compliance.",
+  "description_ar": "إشعار المرضى تلقائياً عند جاهزية نتائج المختبر. يتضمن حالة مراجعة الطبيب وأي تنبيهات عاجلة والخطوات التالية. تبسيط التواصل مع الحفاظ على الامتثال للخصوصية.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$35,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["slack", "googlecalendar"],
+  "exampleUserInput": "Notify patients when their lab results are ready",
+  "exampleUserInput_ar": "أخطر المرضى عندما تكون نتائج مختبرهم جاهزة",
+  "keywords": ["lab", "results", "test", "blood", "notification", "report", "مختبر", "نتائج", "فحص", "دم", "إشعار", "تقرير"],
+  "dynamicParameters": {
+    "require_doctor_review": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require doctor review before notification",
+      "label_ar": "طلب مراجعة الطبيب قبل الإشعار"
+    },
+    "include_result_summary": {
+      "type": "boolean",
+      "default": false,
+      "label": "Include result summary in message",
+      "label_ar": "تضمين ملخص النتائج في الرسالة"
+    },
+    "urgent_flag_immediate": {
+      "type": "boolean",
+      "default": true,
+      "label": "Immediately notify for urgent results",
+      "label_ar": "إشعار فوري للنتائج العاجلة"
+    },
+    "offer_telehealth_followup": {
+      "type": "boolean",
+      "default": true,
+      "label": "Offer telehealth follow-up option",
+      "label_ar": "عرض خيار المتابعة عن بعد"
+    }
+  },
+  "messages": {
+    "results_ready_en": "🔬 *Lab Results Ready*\n\nHi {{patient_name}},\n\nYour lab results from {{test_date}} are now available.\n\n📋 *Test:* {{test_name}}\n👨‍⚕️ *Reviewed by:* Dr. {{doctor_name}}\n✅ *Status:* {{result_status}}\n\n{{#if normal_results}}✅ Your results are within normal range.{{/if}}\n{{#if requires_followup}}📅 Dr. {{doctor_name}} would like to discuss your results.{{/if}}\n\n*To view your full results:*\n• Visit our patient portal: {{portal_link}}\n• Or request a copy at your next visit\n\n*Options:*\n1️⃣ Schedule follow-up appointment\n2️⃣ Request telehealth consultation\n3️⃣ I have no questions\n\nReply 1, 2, or 3.\n\n📞 Questions? Call {{clinic_phone}}",
+    "results_ready_ar": "🔬 *نتائج المختبر جاهزة*\n\nمرحباً {{patient_name}}،\n\nنتائج مختبرك من {{test_date}} متاحة الآن.\n\n📋 *الفحص:* {{test_name}}\n👨‍⚕️ *راجعها:* د. {{doctor_name}}\n✅ *الحالة:* {{result_status}}\n\n{{#if normal_results}}✅ نتائجك ضمن المعدل الطبيعي.{{/if}}\n{{#if requires_followup}}📅 د. {{doctor_name}} يود مناقشة نتائجك.{{/if}}\n\n*لعرض نتائجك الكاملة:*\n• زيارة بوابة المريض: {{portal_link}}\n• أو طلب نسخة في زيارتك القادمة\n\n*الخيارات:*\n1️⃣ حجز موعد متابعة\n2️⃣ طلب استشارة عن بعد\n3️⃣ ليس لدي أسئلة\n\nرد بـ 1 أو 2 أو 3.\n\n📞 أسئلة؟ اتصل على {{clinic_phone}}",
+    "urgent_results_en": "🚨 *Important: Lab Results Require Attention*\n\nHi {{patient_name}},\n\nYour recent lab results require prompt medical attention.\n\n📋 *Test:* {{test_name}}\n⚠️ *Status:* Requires follow-up\n\n*Please contact us as soon as possible:*\n📞 {{clinic_phone}}\n\nDr. {{doctor_name}} is available to discuss your results.\n\n*If this is an emergency, please go to the nearest emergency room or call emergency services.*",
+    "urgent_results_ar": "🚨 *مهم: نتائج المختبر تتطلب انتباهاً*\n\nمرحباً {{patient_name}}،\n\nنتائج مختبرك الأخيرة تتطلب اهتماماً طبياً عاجلاً.\n\n📋 *الفحص:* {{test_name}}\n⚠️ *الحالة:* تتطلب متابعة\n\n*يرجى الاتصال بنا في أقرب وقت ممكن:*\n📞 {{clinic_phone}}\n\nد. {{doctor_name}} متاح لمناقشة نتائجك.\n\n*إذا كانت هذه حالة طوارئ، يرجى الذهاب لأقرب غرفة طوارئ أو الاتصال بخدمات الطوارئ.*",
+    "followup_scheduled_en": "📅 *Follow-up Scheduled*\n\nYour appointment to discuss lab results has been scheduled:\n\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n📍 {{clinic_name}}\n\n*Please bring:*\n• ID/Civil ID\n• Insurance card\n• List of current medications\n\nSee you then!",
+    "followup_scheduled_ar": "📅 *تم جدولة المتابعة*\n\nتم جدولة موعدك لمناقشة نتائج المختبر:\n\n👨‍⚕️ د. {{doctor_name}}\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n📍 {{clinic_name}}\n\n*يرجى إحضار:*\n• الهوية/البطاقة المدنية\n• بطاقة التأمين\n• قائمة الأدوية الحالية\n\nنراك حينها!",
+    "doctor_review_alert_en": "📋 *Lab Results Awaiting Review*\n\n*Patient:* {{patient_name}}\n*Test:* {{test_name}}\n*Date:* {{test_date}}\n*Status:* {{result_status}}\n{{#if abnormal}}⚠️ *Abnormal values detected*{{/if}}\n\n*Action Required:* Review and approve for patient notification",
+    "doctor_review_alert_ar": "📋 *نتائج مختبر تنتظر المراجعة*\n\n*المريض:* {{patient_name}}\n*الفحص:* {{test_name}}\n*التاريخ:* {{test_date}}\n*الحالة:* {{result_status}}\n{{#if abnormal}}⚠️ *تم الكشف عن قيم غير طبيعية*{{/if}}\n\n*إجراء مطلوب:* المراجعة والموافقة على إشعار المريض"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Lab Results Added",
+        "name_ar": "إضافة نتائج المختبر",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{lab_results_sheet}}",
+            "sheet": "Results"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Check if Urgent",
+        "name_ar": "التحقق من الاستعجال",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "evaluate",
+          "params": {
+            "condition": "result_status = 'urgent' OR abnormal_flag = true"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Alert Doctor for Urgent",
+        "name_ar": "تنبيه الطبيب للعاجل",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{doctor_phone}}",
+            "message": "{{messages.doctor_review_alert_en}}",
+            "condition": "is_urgent = true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Urgent Patient Notification",
+        "name_ar": "إرسال إشعار عاجل للمريض",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.urgent_results_{{patient_language}}}}",
+            "condition": "is_urgent = true AND urgent_flag_immediate = true"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Notify Doctor for Review",
+        "name_ar": "إشعار الطبيب للمراجعة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#lab-results",
+            "message": "{{messages.doctor_review_alert_en}}",
+            "condition": "require_doctor_review = true AND is_urgent = false"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Doctor Approves Results",
+        "name_ar": "موافقة الطبيب على النتائج",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_UPDATED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{lab_results_sheet}}",
+            "filter": "status = 'approved'"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Results Notification",
+        "name_ar": "إرسال إشعار النتائج",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.results_ready_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Handle Patient Response",
+        "name_ar": "معالجة رد المريض",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Schedule Follow-up",
+        "name_ar": "جدولة المتابعة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "summary": "Lab Results Follow-up - {{patient_name}}",
+            "condition": "response = 1 OR response = 2"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Confirmation",
+        "name_ar": "إرسال التأكيد",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.followup_scheduled_{{patient_language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "require_doctor_review",
+      "question": "Require doctor review before notifying patients?",
+      "question_ar": "طلب مراجعة الطبيب قبل إشعار المرضى؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "include_result_summary",
+      "question": "Include result summary in notification message?",
+      "question_ar": "تضمين ملخص النتائج في رسالة الإشعار؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "urgent_flag_immediate",
+      "question": "Send immediate notification for urgent results?",
+      "question_ar": "إرسال إشعار فوري للنتائج العاجلة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "offer_telehealth_followup",
+      "question": "Offer telehealth option for follow-up discussions?",
+      "question_ar": "عرض خيار الاستشارة عن بعد لمناقشات المتابعة؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "privacyCompliance": "Kuwait Health Data Protection"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "privacyCompliance": "Saudi PDPL"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "privacyCompliance": "UAE Data Protection Law"
+    }
+  }
+}

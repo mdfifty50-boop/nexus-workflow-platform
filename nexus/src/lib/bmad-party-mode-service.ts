@@ -14,7 +14,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { detectIndustryFromTopic, applyIndustryOverlay, type IndustryPersona } from './industry-personas'
 
 // Claude Code Proxy URL (uses Max subscription for free)
-const PROXY_URL = 'http://localhost:4567'
+// Production-ready: Use env var or fallback to localhost for development
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:4567'
 
 // =============================================================================
 // AGENT PERSONA DEFINITIONS

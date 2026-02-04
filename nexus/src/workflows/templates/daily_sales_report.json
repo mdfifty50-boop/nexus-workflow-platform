@@ -1,0 +1,277 @@
+{
+  "id": "daily_sales_report",
+  "name": "Daily Sales Report",
+  "name_ar": "تقرير المبيعات اليومي",
+  "description": "Automatically compile and send daily sales summaries with key metrics, comparisons, and insights. Track revenue, orders, top products, and team performance without manual reporting.",
+  "description_ar": "تجميع وإرسال ملخصات المبيعات اليومية تلقائياً مع المقاييس الرئيسية والمقارنات والرؤى. تتبع الإيرادات والطلبات وأفضل المنتجات وأداء الفريق بدون تقارير يدوية.",
+  "domain": "sme",
+  "roiTier": 2,
+  "annualValue": "$14,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail"],
+  "optionalIntegrations": ["slack", "whatsapp", "stripe", "shopify"],
+  "exampleUserInput": "Send me daily sales reports automatically",
+  "exampleUserInput_ar": "أرسل لي تقارير المبيعات اليومية تلقائياً",
+  "keywords": ["sales", "report", "daily", "revenue", "analytics", "KPI", "مبيعات", "تقرير", "يومي", "إيرادات", "تحليلات"],
+  "dynamicParameters": {
+    "report_time": {
+      "type": "time",
+      "default": "18:00",
+      "label": "Time to send daily report",
+      "label_ar": "وقت إرسال التقرير اليومي"
+    },
+    "include_comparison": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include comparison to previous day/week",
+      "label_ar": "تضمين المقارنة مع اليوم/الأسبوع السابق"
+    },
+    "include_top_products": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include top products",
+      "label_ar": "تضمين أفضل المنتجات"
+    },
+    "include_team_performance": {
+      "type": "boolean",
+      "default": false,
+      "label": "Include team/salesperson performance",
+      "label_ar": "تضمين أداء الفريق/مندوب المبيعات"
+    },
+    "delivery_channel": {
+      "type": "select",
+      "options": ["email", "slack", "whatsapp", "all"],
+      "default": "email",
+      "label": "Report delivery channel",
+      "label_ar": "قناة تسليم التقرير"
+    }
+  },
+  "messages": {
+    "daily_report_en": "📊 *Daily Sales Report - {{date}}*\n\n*Revenue:* {{currency}} {{total_revenue}}\n{{#if include_comparison}}vs Yesterday: {{yesterday_change}}% {{yesterday_arrow}}\nvs Last Week: {{week_change}}% {{week_arrow}}{{/if}}\n\n*Orders:* {{total_orders}}\n*Average Order:* {{currency}} {{avg_order}}\n*New Customers:* {{new_customers}}\n\n{{#if include_top_products}}*Top Products:*\n{{#each top_products}}\n{{rank}}. {{name}} - {{qty}} sold ({{currency}} {{revenue}})\n{{/each}}{{/if}}\n\n{{#if include_team_performance}}*Team Performance:*\n{{#each team}}\n• {{name}}: {{currency}} {{sales}} ({{orders}} orders)\n{{/each}}{{/if}}\n\n*Payment Methods:*\n{{#each payment_methods}}\n• {{method}}: {{currency}} {{amount}} ({{percent}}%)\n{{/each}}\n\n{{#if notable}}💡 *Notable:* {{notable}}{{/if}}",
+    "daily_report_ar": "📊 *تقرير المبيعات اليومي - {{date}}*\n\n*الإيرادات:* {{currency}} {{total_revenue}}\n{{#if include_comparison}}مقارنة بالأمس: {{yesterday_change}}% {{yesterday_arrow}}\nمقارنة بالأسبوع الماضي: {{week_change}}% {{week_arrow}}{{/if}}\n\n*الطلبات:* {{total_orders}}\n*متوسط الطلب:* {{currency}} {{avg_order}}\n*عملاء جدد:* {{new_customers}}\n\n{{#if include_top_products}}*أفضل المنتجات:*\n{{#each top_products}}\n{{rank}}. {{name}} - {{qty}} مباع ({{currency}} {{revenue}})\n{{/each}}{{/if}}\n\n{{#if include_team_performance}}*أداء الفريق:*\n{{#each team}}\n• {{name}}: {{currency}} {{sales}} ({{orders}} طلب)\n{{/each}}{{/if}}\n\n*طرق الدفع:*\n{{#each payment_methods}}\n• {{method}}: {{currency}} {{amount}} ({{percent}}%)\n{{/each}}\n\n{{#if notable}}💡 *ملحوظة:* {{notable}}{{/if}}",
+    "weekly_summary_en": "📈 *Weekly Sales Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Total Revenue:* {{currency}} {{weekly_revenue}}\nvs Last Week: {{week_change}}%\n\n*Daily Breakdown:*\n{{#each days}}\n{{day}}: {{currency}} {{revenue}} ({{orders}} orders)\n{{/each}}\n\n*Best Day:* {{best_day}} ({{currency}} {{best_revenue}})\n*Weakest Day:* {{worst_day}} ({{currency}} {{worst_revenue}})\n\n*Weekly Growth:* {{growth_rate}}%",
+    "alert_slow_day_en": "⚠️ *Slow Sales Alert*\n\nAs of {{time}}, today's sales are {{percent_below}}% below average.\n\nCurrent: {{currency}} {{current_sales}}\nExpected by now: {{currency}} {{expected_sales}}\n\nConsider promotional activity to boost sales.",
+    "milestone_en": "🎉 *Sales Milestone Reached!*\n\n{{milestone_type}}: {{currency}} {{milestone_amount}}\n\nAchieved on: {{date}}\nTime: {{time}}\n\nCongratulations to the team! 🏆"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Report Trigger",
+        "name_ar": "مشغل التقرير اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 {{report_hour}} * * 0-4",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Sales Data",
+        "name_ar": "قراءة بيانات المبيعات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{sales_sheet}}",
+            "range": "Sales!A:M",
+            "filter": "date = {{today}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Get Historical Data",
+        "name_ar": "الحصول على البيانات التاريخية",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{sales_sheet}}",
+            "range": "Sales!A:M",
+            "filter": "date >= {{week_ago}} AND date <= {{yesterday}}",
+            "condition": "include_comparison === true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Calculate Metrics",
+        "name_ar": "حساب المقاييس",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2", "task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "calculate",
+          "params": {
+            "today_data": "{{task_2.values}}",
+            "historical_data": "{{task_3.values}}",
+            "metrics": ["total_revenue", "order_count", "avg_order", "top_products", "team_performance", "payment_breakdown"]
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Generate Report",
+        "name_ar": "إنشاء التقرير",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "template",
+          "params": {
+            "template": "daily_report_{{language}}",
+            "data": "{{task_4.metrics}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Email Report",
+        "name_ar": "إرسال تقرير البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{report_recipients}}",
+            "subject": "📊 Daily Sales Report - {{date}} - {{currency}} {{task_4.total_revenue}}",
+            "body": "{{task_5.report}}",
+            "condition": "delivery_channel === 'email' OR delivery_channel === 'all'"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Slack Report",
+        "name_ar": "إرسال تقرير Slack",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#sales",
+            "message": "{{task_5.report}}",
+            "condition": "delivery_channel === 'slack' OR delivery_channel === 'all'"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send WhatsApp Report",
+        "name_ar": "إرسال تقرير واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{owner_phone}}",
+            "message": "{{task_5.report}}",
+            "condition": "delivery_channel === 'whatsapp' OR delivery_channel === 'all'"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Log Report",
+        "name_ar": "تسجيل التقرير",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{sales_sheet}}",
+            "sheet_name": "Daily Summaries",
+            "values": [
+              "{{date}}",
+              "{{task_4.total_revenue}}",
+              "{{task_4.order_count}}",
+              "{{task_4.avg_order}}",
+              "{{task_4.new_customers}}",
+              "{{task_4.yesterday_change}}",
+              "{{task_4.week_change}}"
+            ]
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "report_time",
+      "question": "What time should the daily report be sent?",
+      "question_ar": "في أي وقت يجب إرسال التقرير اليومي؟",
+      "type": "time",
+      "default": "18:00"
+    },
+    {
+      "id": "delivery_channel",
+      "question": "Where should reports be delivered?",
+      "question_ar": "أين يجب تسليم التقارير؟",
+      "type": "select",
+      "options": [
+        {"value": "email", "label": "Email"},
+        {"value": "slack", "label": "Slack"},
+        {"value": "whatsapp", "label": "WhatsApp"},
+        {"value": "all", "label": "All channels / جميع القنوات"}
+      ],
+      "default": "email"
+    },
+    {
+      "id": "include_comparison",
+      "question": "Include comparison with previous periods?",
+      "question_ar": "تضمين المقارنة مع الفترات السابقة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "include_team_performance",
+      "question": "Include team/salesperson performance?",
+      "question_ar": "تضمين أداء الفريق/مندوب المبيعات؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

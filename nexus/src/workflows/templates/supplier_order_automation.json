@@ -1,0 +1,255 @@
+{
+  "id": "supplier_order_automation",
+  "name": "Supplier Order Automation",
+  "name_ar": "أتمتة طلبات الموردين",
+  "description": "Streamline supplier communications with automated purchase orders, order confirmations, delivery tracking, and invoice matching. Reduce procurement time and errors.",
+  "description_ar": "تبسيط التواصل مع الموردين مع أوامر الشراء الآلية وتأكيدات الطلبات وتتبع التوصيل ومطابقة الفواتير. تقليل وقت الشراء والأخطاء.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$22,000/year",
+  "requiredIntegrations": ["gmail", "googlesheets"],
+  "optionalIntegrations": ["slack", "whatsapp", "notion", "quickbooks"],
+  "exampleUserInput": "Automate my supplier orders and tracking",
+  "exampleUserInput_ar": "أتمت طلبات الموردين والتتبع",
+  "keywords": ["supplier", "purchase order", "procurement", "vendor", "order tracking", "مورد", "أمر شراء", "شراء", "تتبع الطلب"],
+  "dynamicParameters": {
+    "auto_send_po": {
+      "type": "boolean",
+      "default": false,
+      "label": "Auto-send purchase orders to suppliers",
+      "label_ar": "إرسال أوامر الشراء للموردين تلقائياً"
+    },
+    "require_approval": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require approval before sending PO",
+      "label_ar": "يتطلب موافقة قبل إرسال أمر الشراء"
+    },
+    "approval_threshold": {
+      "type": "number",
+      "default": 1000,
+      "label": "Amount requiring approval",
+      "label_ar": "المبلغ الذي يتطلب موافقة"
+    },
+    "track_delivery": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track delivery status",
+      "label_ar": "تتبع حالة التوصيل"
+    },
+    "match_invoices": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-match invoices to POs",
+      "label_ar": "مطابقة الفواتير مع أوامر الشراء تلقائياً"
+    }
+  },
+  "messages": {
+    "po_created_en": "📋 *Purchase Order Created*\n\nPO Number: {{po_number}}\nSupplier: {{supplier_name}}\nDate: {{date}}\n\n*Items:*\n{{#each items}}\n• {{name}} - Qty: {{qty}} - {{currency}} {{price}}\n{{/each}}\n\n*Subtotal:* {{currency}} {{subtotal}}\n*VAT ({{vat_rate}}%):* {{currency}} {{vat}}\n*Total:* {{currency}} {{total}}\n\n{{#if require_approval}}⏳ Pending approval{{else}}✅ Sent to supplier{{/if}}",
+    "po_created_ar": "📋 *تم إنشاء أمر الشراء*\n\nرقم الأمر: {{po_number}}\nالمورد: {{supplier_name}}\nالتاريخ: {{date}}\n\n*العناصر:*\n{{#each items}}\n• {{name}} - الكمية: {{qty}} - {{currency}} {{price}}\n{{/each}}\n\n*المجموع الفرعي:* {{currency}} {{subtotal}}\n*ضريبة القيمة المضافة ({{vat_rate}}%):* {{currency}} {{vat}}\n*الإجمالي:* {{currency}} {{total}}\n\n{{#if require_approval}}⏳ بانتظار الموافقة{{else}}✅ أرسل للمورد{{/if}}",
+    "approval_request_en": "🔔 *PO Approval Required*\n\nPO Number: {{po_number}}\nSupplier: {{supplier_name}}\nTotal: {{currency}} {{total}}\n\n*Items:*\n{{#each items}}\n• {{name}} ({{qty}})\n{{/each}}\n\nRequested by: {{requester}}\n\n[Approve] [Reject] [Request Changes]",
+    "po_email_en": "Dear {{supplier_contact}},\n\nPlease find attached Purchase Order {{po_number}}.\n\n*Order Summary:*\nPO Number: {{po_number}}\nDate: {{date}}\nExpected Delivery: {{expected_delivery}}\nTotal: {{currency}} {{total}}\n\nPlease confirm receipt and expected delivery date.\n\nBest regards,\n{{company_name}}\n{{contact_info}}",
+    "po_email_ar": "عزيزي {{supplier_contact}}،\n\nيرجى الاطلاع على أمر الشراء المرفق {{po_number}}.\n\n*ملخص الطلب:*\nرقم الأمر: {{po_number}}\nالتاريخ: {{date}}\nالتسليم المتوقع: {{expected_delivery}}\nالإجمالي: {{currency}} {{total}}\n\nيرجى تأكيد الاستلام وتاريخ التسليم المتوقع.\n\nمع أطيب التحيات،\n{{company_name}}\n{{contact_info}}",
+    "delivery_update_en": "📦 *Delivery Update - PO {{po_number}}*\n\nSupplier: {{supplier_name}}\nStatus: {{delivery_status}}\n\n{{#if tracking_number}}Tracking: {{tracking_number}}{{/if}}\n{{#if estimated_arrival}}Expected: {{estimated_arrival}}{{/if}}\n\n{{#if delivered}}✅ Delivered on {{delivery_date}}{{/if}}",
+    "invoice_matched_en": "✅ *Invoice Matched to PO*\n\nPO Number: {{po_number}}\nInvoice Number: {{invoice_number}}\n\n*Comparison:*\nPO Amount: {{currency}} {{po_amount}}\nInvoice Amount: {{currency}} {{invoice_amount}}\nDifference: {{currency}} {{difference}}\n\n{{#if match}}✅ Amounts match - Ready for payment{{else}}⚠️ Discrepancy detected - Review required{{/if}}",
+    "weekly_summary_en": "📊 *Weekly Procurement Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Orders:*\n• Created: {{orders_created}}\n• Pending Approval: {{pending_approval}}\n• Sent: {{orders_sent}}\n• Received: {{orders_received}}\n\n*Spend:*\nTotal Ordered: {{currency}} {{total_ordered}}\nTotal Received: {{currency}} {{total_received}}\n\n*Pending Deliveries:* {{pending_deliveries}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New PO Request",
+        "name_ar": "طلب أمر شراء جديد",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{purchase_orders_sheet}}",
+            "sheet_name": "Requests"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Generate PO Number",
+        "name_ar": "إنشاء رقم أمر الشراء",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "generate",
+          "params": {
+            "format": "PO-{{year}}{{month}}-{{sequence}}",
+            "increment": true
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Calculate Totals",
+        "name_ar": "حساب الإجماليات",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "calculate",
+          "params": {
+            "items": "{{task_1.items}}",
+            "vat_rate": "{{vat_rate}}",
+            "output": "totals"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Check Approval Required",
+        "name_ar": "فحص الموافقة المطلوبة",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "require_approval === true AND task_3.total > approval_threshold"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Request Approval",
+        "name_ar": "طلب الموافقة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#approvals",
+            "message": "{{messages.approval_request_en}}",
+            "condition": "task_4.result === true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Create PO Record",
+        "name_ar": "إنشاء سجل أمر الشراء",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_2", "task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{purchase_orders_sheet}}",
+            "sheet_name": "Orders",
+            "values": [
+              "{{task_2.po_number}}",
+              "{{current_date}}",
+              "{{task_1.supplier}}",
+              "{{task_3.subtotal}}",
+              "{{task_3.vat}}",
+              "{{task_3.total}}",
+              "{{task_4.requires_approval ? 'Pending' : 'Approved'}}"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send PO to Supplier",
+        "name_ar": "إرسال أمر الشراء للمورد",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.supplier_email}}",
+            "subject": "Purchase Order {{task_2.po_number}} - {{company_name}}",
+            "body": "{{messages.po_email_{{language}}}}",
+            "condition": "task_4.result === false OR auto_send_po === true"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Notify Team",
+        "name_ar": "إشعار الفريق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#procurement",
+            "message": "{{messages.po_created_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "require_approval",
+      "question": "Require approval before sending POs?",
+      "question_ar": "يتطلب موافقة قبل إرسال أوامر الشراء؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "approval_threshold",
+      "question": "Amount requiring approval?",
+      "question_ar": "المبلغ الذي يتطلب موافقة؟",
+      "type": "number",
+      "default": 1000
+    },
+    {
+      "id": "track_delivery",
+      "question": "Track delivery status?",
+      "question_ar": "تتبع حالة التوصيل؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "match_invoices",
+      "question": "Auto-match invoices to purchase orders?",
+      "question_ar": "مطابقة الفواتير مع أوامر الشراء تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "vatRate": 0,
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "vatRate": 15,
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "vatRate": 5,
+      "defaultLanguage": "english"
+    }
+  }
+}

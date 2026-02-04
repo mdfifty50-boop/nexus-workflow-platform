@@ -109,4 +109,6 @@ export interface UseChatStateReturn {
   loadSession: (sessionId: string) => void
   getSessions: () => ChatSession[]
   setIsLoading: (loading: boolean) => void
+  /** Delete a session by ID (Plan B: User Account System) */
+  deleteSession?: (sessionId: string) => void
 }

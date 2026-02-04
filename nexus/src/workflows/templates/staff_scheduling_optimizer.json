@@ -1,0 +1,281 @@
+{
+  "id": "staff_scheduling_optimizer",
+  "name": "Staff Scheduling Optimizer",
+  "name_ar": "مُحسّن جدولة الموظفين",
+  "description": "Simplify employee scheduling with automated shift assignments, availability tracking, and conflict detection. Notify staff of their schedules and handle swap requests seamlessly.",
+  "description_ar": "تبسيط جدولة الموظفين مع تعيينات الورديات الآلية وتتبع التوفر واكتشاف التعارضات. إشعار الموظفين بجداولهم والتعامل مع طلبات التبديل بسلاسة.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$24,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["slack", "gmail", "notion"],
+  "exampleUserInput": "Help me schedule my staff shifts automatically",
+  "exampleUserInput_ar": "ساعدني في جدولة ورديات موظفيني تلقائياً",
+  "keywords": ["schedule", "shift", "staff", "employee", "roster", "availability", "جدول", "وردية", "موظف", "قائمة", "توفر"],
+  "dynamicParameters": {
+    "schedule_advance_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days in advance to publish schedule",
+      "label_ar": "أيام مسبقة لنشر الجدول"
+    },
+    "allow_swap_requests": {
+      "type": "boolean",
+      "default": true,
+      "label": "Allow shift swap requests",
+      "label_ar": "السماح بطلبات تبديل الورديات"
+    },
+    "overtime_threshold_hours": {
+      "type": "number",
+      "default": 40,
+      "label": "Weekly hours before overtime",
+      "label_ar": "ساعات أسبوعية قبل العمل الإضافي"
+    },
+    "minimum_rest_hours": {
+      "type": "number",
+      "default": 8,
+      "label": "Minimum hours between shifts",
+      "label_ar": "الحد الأدنى للساعات بين الورديات"
+    }
+  },
+  "messages": {
+    "weekly_schedule_en": "📅 *Your Schedule - Week of {{week_start}}*\n\nHi {{employee_name}},\n\nHere's your schedule for the upcoming week:\n\n{{#each shifts}}\n*{{day}}* {{date}}\n🕐 {{start_time}} - {{end_time}}\n📍 {{location}}\n{{#if role}}👤 Role: {{role}}{{/if}}\n\n{{/each}}\n\n*Total Hours:* {{total_hours}}\n{{#if overtime}}⚠️ Includes {{overtime_hours}} overtime hours{{/if}}\n\n*Need to swap?* Reply SWAP to request a shift change.\n\n{{business_name}}",
+    "weekly_schedule_ar": "📅 *جدولك - أسبوع {{week_start}}*\n\nمرحباً {{employee_name}}،\n\nهذا جدولك للأسبوع القادم:\n\n{{#each shifts}}\n*{{day}}* {{date}}\n🕐 {{start_time}} - {{end_time}}\n📍 {{location}}\n{{#if role}}👤 الدور: {{role}}{{/if}}\n\n{{/each}}\n\n*إجمالي الساعات:* {{total_hours}}\n{{#if overtime}}⚠️ يشمل {{overtime_hours}} ساعات عمل إضافي{{/if}}\n\n*تحتاج تبديل؟* رد SWAP لطلب تغيير الوردية.\n\n{{business_name}}",
+    "shift_reminder_en": "⏰ *Shift Reminder*\n\nHi {{employee_name}},\n\nReminder: You have a shift tomorrow!\n\n📅 *Date:* {{shift_date}}\n🕐 *Time:* {{start_time}} - {{end_time}}\n📍 *Location:* {{location}}\n{{#if role}}👤 *Role:* {{role}}{{/if}}\n\n{{#if notes}}📝 *Notes:* {{notes}}{{/if}}\n\nSee you there! 👋",
+    "shift_reminder_ar": "⏰ *تذكير بالوردية*\n\nمرحباً {{employee_name}}،\n\nتذكير: لديك وردية غداً!\n\n📅 *التاريخ:* {{shift_date}}\n🕐 *الوقت:* {{start_time}} - {{end_time}}\n📍 *الموقع:* {{location}}\n{{#if role}}👤 *الدور:* {{role}}{{/if}}\n\n{{#if notes}}📝 *ملاحظات:* {{notes}}{{/if}}\n\nنراك هناك! 👋",
+    "swap_request_en": "🔄 *Shift Swap Request*\n\n*From:* {{requester_name}}\n*Original Shift:* {{original_date}} ({{original_time}})\n*Requested Swap:* {{swap_date}} ({{swap_time}})\n*With:* {{swap_with_name}}\n\n*Reason:* {{reason}}\n\n*To Approve:* Reply APPROVE {{request_id}}\n*To Deny:* Reply DENY {{request_id}}\n\n{{#if auto_approve_deadline}}Auto-approved if no response by {{deadline}}{{/if}}",
+    "swap_request_ar": "🔄 *طلب تبديل وردية*\n\n*من:* {{requester_name}}\n*الوردية الأصلية:* {{original_date}} ({{original_time}})\n*التبديل المطلوب:* {{swap_date}} ({{swap_time}})\n*مع:* {{swap_with_name}}\n\n*السبب:* {{reason}}\n\n*للموافقة:* رد APPROVE {{request_id}}\n*للرفض:* رد DENY {{request_id}}\n\n{{#if auto_approve_deadline}}موافقة تلقائية إذا لم يكن هناك رد بحلول {{deadline}}{{/if}}",
+    "swap_approved_en": "✅ *Swap Approved*\n\nHi {{employee_name}},\n\nYour shift swap has been approved!\n\n*Old Shift:* {{old_date}} {{old_time}}\n*New Shift:* {{new_date}} {{new_time}}\n\nYour calendar has been updated.\n\n{{business_name}}",
+    "swap_approved_ar": "✅ *تمت الموافقة على التبديل*\n\nمرحباً {{employee_name}}،\n\nتمت الموافقة على تبديل ورديتك!\n\n*الوردية القديمة:* {{old_date}} {{old_time}}\n*الوردية الجديدة:* {{new_date}} {{new_time}}\n\nتم تحديث تقويمك.\n\n{{business_name}}",
+    "coverage_alert_en": "⚠️ *Coverage Alert*\n\n*Date:* {{date}}\n*Shift:* {{shift_time}}\n*Location:* {{location}}\n\n*Issue:* {{coverage_issue}}\n\n*Current Coverage:*\n• Required: {{required_staff}}\n• Scheduled: {{scheduled_staff}}\n• Gap: {{gap_count}}\n\n*Available Staff:*\n{{#each available}}\n• {{name}} ({{hours_this_week}} hrs this week)\n{{/each}}\n\n*Action Required:* Assign additional staff or approve overtime",
+    "coverage_alert_ar": "⚠️ *تنبيه التغطية*\n\n*التاريخ:* {{date}}\n*الوردية:* {{shift_time}}\n*الموقع:* {{location}}\n\n*المشكلة:* {{coverage_issue}}\n\n*التغطية الحالية:*\n• المطلوب: {{required_staff}}\n• المجدول: {{scheduled_staff}}\n• الفجوة: {{gap_count}}\n\n*الموظفون المتاحون:*\n{{#each available}}\n• {{name}} ({{hours_this_week}} ساعة هذا الأسبوع)\n{{/each}}\n\n*مطلوب إجراء:* تعيين موظفين إضافيين أو الموافقة على العمل الإضافي",
+    "availability_request_en": "📋 *Availability Request*\n\nHi {{employee_name}},\n\nPlease submit your availability for the week of {{week_start}}.\n\n*Current Preferences:*\n{{#each current_prefs}}\n• {{day}}: {{preference}}\n{{/each}}\n\n*To Update:*\nReply with your availability:\n- AVAILABLE [day]\n- UNAVAILABLE [day]\n- PREFER [day] [time]\n\n*Deadline:* {{deadline}}\n\nThank you!",
+    "manager_weekly_summary_en": "📊 *Weekly Scheduling Summary*\n\n*Week:* {{week_start}} - {{week_end}}\n\n*Coverage:*\n{{#each days}}\n{{day}}: {{scheduled}}/{{required}} staff {{status_emoji}}\n{{/each}}\n\n*Staff Hours:*\n{{#each staff}}\n• {{name}}: {{hours}} hrs {{#if overtime}}({{overtime}} OT){{/if}}\n{{/each}}\n\n*Pending Requests:*\n• Swap Requests: {{swap_count}}\n• Time Off: {{timeoff_count}}\n• Availability Updates: {{availability_count}}\n\n*Alerts:*\n{{#each alerts}}\n⚠️ {{alert}}\n{{/each}}\n\n*Total Labor Hours:* {{total_hours}}\n*Overtime Hours:* {{total_overtime}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Weekly Schedule Generation",
+        "name_ar": "إنشاء الجدول الأسبوعي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 * * 4",
+            "description": "Thursday at 10 AM for next week",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Staff Availability",
+        "name_ar": "قراءة توفر الموظفين",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{schedule_sheet}}",
+            "range": "Availability!A:H"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Read Shift Requirements",
+        "name_ar": "قراءة متطلبات الورديات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{schedule_sheet}}",
+            "range": "ShiftTemplates!A:F"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Generate Schedule",
+        "name_ar": "إنشاء الجدول",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2", "task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "optimize",
+          "params": {
+            "availability": "{{task_2.values}}",
+            "requirements": "{{task_3.values}}",
+            "overtime_threshold": "{{overtime_threshold_hours}}",
+            "min_rest": "{{minimum_rest_hours}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Save Schedule",
+        "name_ar": "حفظ الجدول",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "batch_update",
+          "params": {
+            "spreadsheet_id": "{{schedule_sheet}}",
+            "sheet_name": "WeeklySchedule",
+            "values": "{{task_4.schedule}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Create Calendar Events",
+        "name_ar": "إنشاء أحداث التقويم",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "batch_create",
+          "params": {
+            "events": "{{task_4.calendar_events}}",
+            "calendar_id": "{{staff_calendar}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Schedule Notifications",
+        "name_ar": "إرسال إشعارات الجدول",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_4.staff_notifications}}",
+            "message": "{{messages.weekly_schedule_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Daily Shift Reminder",
+        "name_ar": "تذكير الوردية اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 18 * * *",
+            "description": "Daily at 6 PM for next day",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Shift Reminders",
+        "name_ar": "إرسال تذكيرات الورديات",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{tomorrow_shifts}}",
+            "message": "{{messages.shift_reminder_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Handle Swap Request",
+        "name_ar": "معالجة طلب التبديل",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "SWAP",
+            "condition": "allow_swap_requests === true"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "schedule_advance_days",
+      "question": "How many days in advance to publish schedule?",
+      "question_ar": "كم يوم مسبقاً لنشر الجدول؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "allow_swap_requests",
+      "question": "Allow employees to request shift swaps?",
+      "question_ar": "السماح للموظفين بطلب تبديل الورديات؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "overtime_threshold_hours",
+      "question": "Weekly hours before overtime applies?",
+      "question_ar": "الساعات الأسبوعية قبل العمل الإضافي؟",
+      "type": "number",
+      "default": 40
+    },
+    {
+      "id": "minimum_rest_hours",
+      "question": "Minimum rest hours between shifts?",
+      "question_ar": "الحد الأدنى لساعات الراحة بين الورديات؟",
+      "type": "number",
+      "default": 8
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "maxWeeklyHours": 48,
+      "overtimeRate": 1.25
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "maxWeeklyHours": 48,
+      "overtimeRate": 1.5
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "maxWeeklyHours": 48,
+      "overtimeRate": 1.25
+    }
+  }
+}

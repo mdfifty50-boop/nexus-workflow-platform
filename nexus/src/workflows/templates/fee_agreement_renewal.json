@@ -1,0 +1,270 @@
+{
+  "id": "fee_agreement_renewal",
+  "name": "Fee Agreement Renewal",
+  "name_ar": "تجديد اتفاقية الأتعاب",
+  "description": "Track fee agreement expiration dates, send renewal reminders to both lawyers and clients, and facilitate digital re-signing. Ensures continuous representation without gaps in coverage.",
+  "description_ar": "تتبع تواريخ انتهاء اتفاقيات الأتعاب، إرسال تذكيرات التجديد للمحامين والعملاء، وتسهيل إعادة التوقيع رقمياً. يضمن استمرار التمثيل دون فجوات.",
+  "domain": "lawyers",
+  "roiTier": 2,
+  "annualValue": "$16,000/year",
+  "requiredIntegrations": ["notion", "gmail", "googlecalendar"],
+  "optionalIntegrations": ["docusign", "whatsapp", "slack", "stripe"],
+  "exampleUserInput": "Remind me when fee agreements are about to expire",
+  "exampleUserInput_ar": "ذكرني عندما توشك اتفاقيات الأتعاب على الانتهاء",
+  "keywords": ["fee", "agreement", "retainer", "renewal", "contract", "expiry", "engagement", "أتعاب", "اتفاقية", "توكيل", "تجديد", "عقد", "انتهاء"],
+  "dynamicParameters": {
+    "advance_notice_days": {
+      "type": "number",
+      "default": 30,
+      "label": "Days before expiry for first notice",
+      "label_ar": "أيام قبل الانتهاء للإشعار الأول",
+      "required": true
+    },
+    "urgent_notice_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before expiry for urgent notice",
+      "label_ar": "أيام قبل الانتهاء للإشعار العاجل",
+      "required": true
+    },
+    "auto_send_renewal": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-send renewal agreement to client",
+      "label_ar": "إرسال اتفاقية التجديد للعميل تلقائياً"
+    },
+    "digital_signature": {
+      "type": "boolean",
+      "default": true,
+      "label": "Use digital signature (DocuSign)",
+      "label_ar": "استخدام التوقيع الرقمي (DocuSign)"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Communication Language",
+      "label_ar": "لغة التواصل"
+    }
+  },
+  "messages": {
+    "lawyer_reminder_en": "📋 *Fee Agreement Expiring*\n\nClient: {{client_name}}\nMatter: {{matter_description}}\n\n*Current Agreement:*\nStart Date: {{agreement_start}}\nExpiry Date: {{agreement_expiry}}\nDays Remaining: {{days_remaining}}\n\n*Fee Structure:*\n{{fee_structure}}\n\n*Recommended Action:*\n• Review current terms\n• Prepare renewal with any adjustments\n• Schedule call with client if needed",
+    "client_advance_notice_en": "Dear {{client_name}},\n\nThis is a courtesy reminder that your fee agreement with {{firm_name}} for the matter of {{matter_description}} will expire on {{agreement_expiry}}.\n\nWe value our professional relationship and would like to continue representing you. A member of our team will reach out to discuss renewal terms.\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\n{{firm_name}}",
+    "client_advance_notice_ar": "عزيزي {{client_name}}،\n\nهذا تذكير بأن اتفاقية الأتعاب الخاصة بك مع {{firm_name}} للمسألة {{matter_description}} ستنتهي في {{agreement_expiry}}.\n\nنقدر علاقتنا المهنية ونود الاستمرار في تمثيلكم. سيتواصل معكم أحد أعضاء فريقنا لمناقشة شروط التجديد.\n\nإذا كان لديكم أي أسئلة، يرجى عدم التردد في التواصل معنا.\n\nمع أطيب التحيات،\n{{firm_name}}",
+    "renewal_email_en": "Dear {{client_name}},\n\nThank you for your continued trust in {{firm_name}}.\n\nAttached is the renewal fee agreement for your matter: {{matter_description}}\n\n*Renewal Terms:*\nPeriod: {{renewal_period}}\nRetainer: {{currency}} {{retainer_amount}}\nHourly Rate: {{currency}} {{hourly_rate}}\n\n{{#if digital_signature}}Please click the link below to review and sign electronically:\n[Sign Agreement]({{docusign_link}}){{else}}Please review, sign, and return the attached agreement.{{/if}}\n\nIf you have any questions about the terms, please contact {{lawyer_name}}.\n\nWe look forward to continuing to serve you.\n\nBest regards,\n{{firm_name}}",
+    "renewal_email_ar": "عزيزي {{client_name}}،\n\nشكراً لثقتكم المستمرة بـ {{firm_name}}.\n\nمرفق اتفاقية تجديد الأتعاب للمسألة: {{matter_description}}\n\n*شروط التجديد:*\nالفترة: {{renewal_period}}\nالتوكيل: {{currency}} {{retainer_amount}}\nسعر الساعة: {{currency}} {{hourly_rate}}\n\n{{#if digital_signature}}يرجى النقر على الرابط أدناه للمراجعة والتوقيع إلكترونياً:\n[توقيع الاتفاقية]({{docusign_link}}){{else}}يرجى المراجعة والتوقيع وإعادة الاتفاقية المرفقة.{{/if}}\n\nإذا كان لديكم أي أسئلة حول الشروط، يرجى التواصل مع {{lawyer_name}}.\n\nنتطلع للاستمرار في خدمتكم.\n\nمع أطيب التحيات،\n{{firm_name}}",
+    "urgent_reminder_en": "🚨 *URGENT: Fee Agreement Expires in {{days_remaining}} Days*\n\nClient: {{client_name}}\nMatter: {{matter_description}}\nExpiry: {{agreement_expiry}}\n\n⚠️ Without renewal, representation will lapse.\n\n*Status:*\n{{#if renewal_sent}}Renewal sent: {{renewal_sent_date}}{{else}}Renewal NOT sent yet{{/if}}\n{{#if signed}}✅ Client signed{{else}}❌ Awaiting signature{{/if}}\n\n*Immediate Action Required*",
+    "renewal_signed_en": "✅ *Fee Agreement Renewed*\n\nClient: {{client_name}}\nMatter: {{matter_description}}\n\n*New Agreement:*\nStart: {{new_start_date}}\nExpiry: {{new_expiry_date}}\nRetainer: {{currency}} {{retainer_amount}}\n\nSigned: {{signed_date}}\n\nRepresentation continues without interruption.",
+    "expired_alert_en": "⛔ *FEE AGREEMENT EXPIRED*\n\nClient: {{client_name}}\nMatter: {{matter_description}}\nExpired: {{agreement_expiry}}\n\n🚨 Representation has lapsed.\n\n*Immediate Actions:*\n• Suspend work on matter\n• Contact client urgently\n• Do not incur further costs\n• Document interruption"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Expiry Check",
+        "name_ar": "فحص الانتهاء اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 8 * * 0-4",
+            "description": "Daily at 8 AM (Sunday-Thursday)",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Query Expiring Agreements",
+        "name_ar": "استعلام الاتفاقيات المنتهية",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "NOTION_QUERY_DATABASE",
+          "action": "query",
+          "params": {
+            "database_id": "{{agreements_database}}",
+            "filter": {
+              "and": [
+                {"property": "Status", "select": {"equals": "Active"}},
+                {"property": "Expiry Date", "date": {"before": "{{today_plus_advance_days}}"}}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Categorize by Urgency",
+        "name_ar": "التصنيف حسب الأولوية",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "categorize",
+          "params": {
+            "input": "{{task_2.results}}",
+            "categories": {
+              "expired": "days_until < 0",
+              "urgent": "days_until >= 0 AND days_until <= urgent_notice_days",
+              "advance": "days_until > urgent_notice_days AND days_until <= advance_notice_days"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Advance Notices",
+        "name_ar": "إرسال الإشعارات المسبقة",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.advance}}",
+            "subject": "Fee Agreement Renewal Notice - {{matter_description}} / إشعار تجديد اتفاقية الأتعاب",
+            "body": "{{messages.client_advance_notice_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Prepare Renewal Agreements",
+        "name_ar": "إعداد اتفاقيات التجديد",
+        "type": "action",
+        "integrationId": "docusign",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "DOCUSIGN_CREATE_ENVELOPE",
+          "action": "create",
+          "params": {
+            "template_id": "{{renewal_template_id}}",
+            "recipients": "{{task_3.advance}}",
+            "custom_fields": {
+              "client_name": "{{client_name}}",
+              "matter": "{{matter_description}}",
+              "retainer": "{{retainer_amount}}",
+              "hourly_rate": "{{hourly_rate}}"
+            },
+            "condition": "auto_send_renewal === true AND digital_signature === true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Urgent Reminders",
+        "name_ar": "إرسال التذكيرات العاجلة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.urgent}}",
+            "channel": "@{{assigned_lawyer}}",
+            "message": "{{messages.urgent_reminder_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Alert on Expired",
+        "name_ar": "تنبيه على المنتهية",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.expired}}",
+            "channel": "#urgent-legal",
+            "message": "{{messages.expired_alert_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Update Tracking",
+        "name_ar": "تحديث التتبع",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_4", "task_5", "task_6", "task_7"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "batch_update",
+          "params": {
+            "updates": "{{notification_log}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["notion", "gmail", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "advance_notice_days",
+      "question": "How many days before expiry to send first notice?",
+      "question_ar": "كم يوم قبل الانتهاء لإرسال الإشعار الأول؟",
+      "type": "number",
+      "default": 30
+    },
+    {
+      "id": "auto_send_renewal",
+      "question": "Auto-send renewal agreements to clients?",
+      "question_ar": "إرسال اتفاقيات التجديد للعملاء تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "digital_signature",
+      "question": "Use digital signatures (DocuSign)?",
+      "question_ar": "استخدام التوقيعات الرقمية (DocuSign)؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "Communication language?",
+      "question_ar": "لغة التواصل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "typicalRetainerPeriod": "12 months"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "typicalRetainerPeriod": "12 months"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "typicalRetainerPeriod": "12 months"
+    }
+  }
+}

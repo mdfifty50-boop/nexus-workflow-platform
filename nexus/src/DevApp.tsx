@@ -41,12 +41,22 @@ import MeetingRoomDemo from '@/pages/MeetingRoomDemo'
 import VoiceDemo from '@/pages/VoiceDemo'
 import { ChatDemo } from '@/pages/ChatDemo'
 
+// WhatsApp Business Pages (AiSensy Integration)
+import { WhatsApp } from '@/pages/WhatsApp'
+import { WhatsAppInbox } from '@/pages/whatsapp/Inbox'
+import { WhatsAppBroadcasts } from '@/pages/whatsapp/Broadcasts'
+import { WhatsAppContacts } from '@/pages/whatsapp/Contacts'
+import { WhatsAppChatbots } from '@/pages/whatsapp/Chatbots'
+import { WhatsAppAnalytics } from '@/pages/whatsapp/Analytics'
+import { WhatsAppCatalogue } from '@/pages/whatsapp/Catalogue'
+
 // Development App - runs without Clerk authentication
 // Uses mock auth for local testing
 
 function DevApp() {
   return (
-    <BaseErrorBoundary variant="full-page" severity="critical">
+    <>
+      <BaseErrorBoundary variant="full-page" severity="critical">
       <BrowserRouter>
         <DevAuthProvider>
           <WorkflowProvider>
@@ -112,7 +122,17 @@ function DevApp() {
             <Route path="/meeting-room-demo" element={<MeetingRoomDemo />} />
             <Route path="/voice-demo" element={<VoiceDemo />} />
             <Route path="/chat-demo" element={<ChatDemo />} />
+            <Route path="/chat-legacy" element={<ChatDemo />} />
             <Route path="/chat" element={<ChatDemo />} />
+
+            {/* WhatsApp Business Routes - AiSensy Integration */}
+            <Route path="/whatsapp" element={<ProtectedRoute><WhatsApp /></ProtectedRoute>} />
+            <Route path="/whatsapp/inbox" element={<ProtectedRoute><WhatsAppInbox /></ProtectedRoute>} />
+            <Route path="/whatsapp/broadcasts" element={<ProtectedRoute><WhatsAppBroadcasts /></ProtectedRoute>} />
+            <Route path="/whatsapp/contacts" element={<ProtectedRoute><WhatsAppContacts /></ProtectedRoute>} />
+            <Route path="/whatsapp/chatbots" element={<ProtectedRoute><WhatsAppChatbots /></ProtectedRoute>} />
+            <Route path="/whatsapp/analytics" element={<ProtectedRoute><WhatsAppAnalytics /></ProtectedRoute>} />
+            <Route path="/whatsapp/catalogue" element={<ProtectedRoute><WhatsAppCatalogue /></ProtectedRoute>} />
 
             {/* Redirects for legacy routes */}
             <Route path="/agents" element={<Navigate to="/dashboard" replace />} />
@@ -128,6 +148,7 @@ function DevApp() {
         </DevAuthProvider>
       </BrowserRouter>
     </BaseErrorBoundary>
+    </>
   )
 }
 

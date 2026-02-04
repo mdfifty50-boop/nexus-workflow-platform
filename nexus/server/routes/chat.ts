@@ -1,5 +1,6 @@
-import { Router } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
+import rateLimit from 'express-rate-limit'
 import { getAgent, getAllAgents, routeToAgent, type Agent } from '../agents/index.js'
 import { getClaudeClient, callClaudeWithCaching } from '../services/claudeProxy.js'
 import { appDetectionService } from '../services/AppDetectionService.js'
@@ -7,6 +8,67 @@ import { customIntegrationService } from '../services/CustomIntegrationService.j
 import { templateService } from '../services/TemplateService.js'
 
 const router = Router()
+
+// =============================================================================
+// PRODUCTION: Rate limiting for AI chat endpoint (prevents cost explosion)
+// =============================================================================
+// Limits: 20 requests per minute per user (generous for normal use, blocks abuse)
+// Uses user ID from request header or falls back to IP address
+const chatRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: process.env.NODE_ENV === 'production' ? 20 : 100, // Stricter in production
+  standardHeaders: true, // Return rate limit info in headers
+  legacyHeaders: false,
+  keyGenerator: (req: Request): string => {
+    // Try to get user ID from various sources
+    const userId = req.headers['x-user-id'] as string ||
+                   req.headers['x-clerk-user-id'] as string ||
+                   (req as any).auth?.userId
+    return userId || req.ip || 'anonymous'
+  },
+  handler: (_req: Request, res: Response) => {
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests. Please slow down.',
+      hint: 'Wait a moment before sending more messages.',
+      retryAfter: 60
+    })
+  },
+  skip: (req: Request): boolean => {
+    // Skip rate limiting in development if explicitly disabled
+    return process.env.DISABLE_RATE_LIMIT === 'true'
+  }
+})
+
+// "Think with me" mode directive - focused problem-solving
+// @NEXUS-FIX-101: Think with me mode directive - DO NOT REMOVE
+const THINK_WITH_ME_DIRECTIVE = `## MODE: THINK WITH ME (ACTIVE)
+
+You are in FOCUSED PROBLEM-SOLVING mode. Your approach MUST be:
+
+1. **ASK FIRST, ALWAYS**: Before ANY workflow suggestion, ask 2-3 precise questions
+2. **BE DIRECT**: No fluff, no pleasantries, no extra words. Get straight to the core question
+3. **ONE QUESTION AT A TIME**: Don't overwhelm. Ask the most critical question first
+4. **BUILD UNDERSTANDING**: Each question should build on previous answers
+5. **HIGH BAR FOR CONFIDENCE**: Only suggest workflow when confidence > 0.85
+
+**Question style examples:**
+- "What triggers this - time-based, event-based, or manual?"
+- "Where does the data currently live?"
+- "What's the expected output format?"
+
+**DO NOT in this mode:**
+- Generate workflow cards until you have HIGH confidence (>0.85)
+- Add conversational words ("Great question!", "I understand...", "I'd love to help!")
+- Ask more than 2-3 questions per response
+- Show workflow until you fully understand the problem
+
+**Response format in THINK WITH ME mode:**
+- First response: Ask about the core problem
+- Follow-ups: Dig deeper based on answers
+- Only when confident: Generate the optimal workflow
+
+`
 
 // Static team context that rarely changes - good candidate for caching
 const TEAM_CONTEXT = `You are part of the BMAD team at Nexus. Your colleagues are:
@@ -32,8 +94,16 @@ Current conversation context: The user is working in the Nexus workflow automati
  *
  * This reduces input token costs by ~90% on cache hits
  * First request pays 25% extra for cache write, subsequent requests save 90%
+ *
+ * @param agent - The agent to use
+ * @param userContext - Optional user context for inference
+ * @param chatMode - Chat mode: 'standard' or 'think_with_me'
  */
-function buildCachedSystemPrompt(agent: Agent, userContext?: string): Anthropic.Messages.TextBlockParam[] {
+function buildCachedSystemPrompt(
+  agent: Agent,
+  userContext?: string,
+  chatMode: 'standard' | 'think_with_me' = 'standard'
+): Anthropic.Messages.TextBlockParam[] {
   // Inject user context into personality if placeholder exists
   let personalityWithContext = agent.personality
   if (userContext && agent.personality.includes('{{USER_CONTEXT}}')) {
@@ -41,6 +111,12 @@ function buildCachedSystemPrompt(agent: Agent, userContext?: string): Anthropic.
   } else if (userContext) {
     // Append user context if no placeholder exists
     personalityWithContext = agent.personality + `\n\n## USER CONTEXT (for inference)\n${userContext}`
+  }
+
+  // @NEXUS-FIX-101: Prepend "Think with me" directive when in that mode
+  if (chatMode === 'think_with_me') {
+    personalityWithContext = THINK_WITH_ME_DIRECTIVE + personalityWithContext
+    console.log('[Chat] "Think with me" mode ACTIVE - focused problem-solving enabled')
   }
 
   return [
@@ -72,7 +148,8 @@ router.get('/agents', (req, res) => {
 })
 
 // POST /api/chat - Chat with an agent
-router.post('/', async (req, res) => {
+// Rate limited to prevent cost explosion from abuse
+router.post('/', chatRateLimiter, async (req, res) => {
   try {
     // We'll check for API key later only if needed for multimodal
     const client = getClaudeClient()
@@ -84,7 +161,8 @@ router.post('/', async (req, res) => {
       model = 'claude-sonnet-4-20250514',
       maxTokens = 4096,
       images, // Array of image objects: { type: 'image', source: { type: 'base64', media_type, data } }
-      userContext // User context for auto-inference (from UserContextService)
+      userContext, // User context for auto-inference (from UserContextService)
+      chatMode = 'standard' // "Think with me" mode: 'standard' | 'think_with_me'
     } = req.body
 
     const hasImages = images && Array.isArray(images) && images.length > 0
@@ -214,7 +292,8 @@ router.post('/', async (req, res) => {
       : userContext
 
     // Build system prompt with caching support (inject user context for inference)
-    const systemBlocks = buildCachedSystemPrompt(agent, enrichedUserContext)
+    // Pass chatMode to enable "Think with me" focused problem-solving mode
+    const systemBlocks = buildCachedSystemPrompt(agent, enrichedUserContext, chatMode)
 
     // Text-only: Use caching-enabled call (tries proxy first, then API with caching)
     if (!hasImages) {

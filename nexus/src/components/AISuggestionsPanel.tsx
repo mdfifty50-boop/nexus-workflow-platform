@@ -5,13 +5,57 @@ import { WorkflowPreviewModal } from './WorkflowPreviewModal'
 import { getSuggestionWorkflow, type SuggestionWorkflow } from '@/lib/workflow-templates'
 import { usePersonalization } from '@/contexts/PersonalizationContext'
 import { ProactiveSuggestionsService, type ProactiveSuggestion } from '@/services/ProactiveSuggestionsService'
+import { useAISuggestions as useBackendAISuggestions, type AISuggestion as BackendAISuggestion } from '@/hooks/useAISuggestions'
 
 // ============================================
-// SERVICE INTEGRATION: ProactiveSuggestionsService
-// Enhances AI suggestions with rule-based engine
+// SERVICE INTEGRATION: Backend API + ProactiveSuggestionsService
+// Quality-first approach: Backend for high-confidence AI suggestions
+// Rule-based fallback for local patterns
 // ============================================
 
-// Convert ProactiveSuggestion to AISuggestion format
+// Convert backend API suggestion to local format
+function convertFromBackendSuggestion(backend: BackendAISuggestion): AISuggestion {
+  const typeMap: Record<string, 'workflow' | 'optimization' | 'integration' | 'tip'> = {
+    workflow_optimization: 'optimization',
+    new_workflow: 'workflow',
+    integration_suggestion: 'integration',
+    usage_pattern: 'tip',
+    cost_saving: 'tip',
+    error_prevention: 'tip',
+  }
+
+  const priorityToEffort: Record<string, 'low' | 'medium' | 'high'> = {
+    critical: 'low',
+    high: 'low',
+    medium: 'medium',
+    low: 'high',
+  }
+
+  return {
+    id: backend.id,
+    type: typeMap[backend.suggestion_type] || 'tip',
+    title: backend.title,
+    description: backend.description,
+    impact: backend.metadata?.reasoning || `${Math.round(backend.confidence * 100)}% confidence`,
+    effort: priorityToEffort[backend.priority] || 'medium',
+    priority: backend.priority === 'critical' ? 'high' : backend.priority,
+    estimatedTimeSaved: backend.metadata?.estimated_time_saved_minutes
+      ? `${Math.round(backend.metadata.estimated_time_saved_minutes / 60)}+ hours/week`
+      : undefined,
+    agentId: 'nexus',
+    action: backend.metadata?.workflow_spec ? {
+      label: 'Build Workflow',
+      path: '/chat',
+    } : {
+      label: 'Learn More',
+    },
+    createdAt: new Date(backend.created_at),
+    dismissed: backend.status === 'rejected',
+    backendId: backend.id, // Track for feedback
+  }
+}
+
+// Convert ProactiveSuggestion to AISuggestion format (fallback)
 function convertToAISuggestion(proactive: ProactiveSuggestion): AISuggestion {
   // Map actionType to action config
   const actionConfig = {
@@ -65,6 +109,7 @@ export interface AISuggestion {
   }
   dismissed?: boolean
   createdAt: Date
+  backendId?: string // Links to backend API for feedback
 }
 
 interface AISuggestionCardProps {
@@ -311,7 +356,8 @@ export function AISuggestionsPanel({
 }
 
 // Smart Suggestions Generator Hook
-// ENHANCED: Now uses ProactiveSuggestionsService for rule-based suggestions
+// ENHANCED: Now integrates with backend API for high-quality AI suggestions
+// Falls back to ProactiveSuggestionsService for local rule-based suggestions
 interface UserContext {
   recentWorkflows: string[]
   connectedIntegrations: string[]
@@ -328,6 +374,14 @@ export function useAISuggestions(context: UserContext) {
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([])
   const lastContextRef = useRef<string | null>(null)
   const initializedRef = useRef(false)
+
+  // Use backend API hook for high-quality AI suggestions
+  const {
+    suggestions: backendSuggestions,
+    loading: backendLoading,
+    actOnSuggestion,
+    hasSuggestions: hasBackendSuggestions,
+  } = useBackendAISuggestions()
 
   // Memoize the service context to prevent unnecessary recalculations
   const serviceContext = useMemo(() => ({
@@ -351,19 +405,45 @@ export function useAISuggestions(context: UserContext) {
   useEffect(() => {
     // Prevent infinite loops by checking if context actually changed
     const contextKey = JSON.stringify(context)
-    if (lastContextRef.current === contextKey) {
-      return // Context hasn't changed, skip update
+    if (lastContextRef.current === contextKey && !hasBackendSuggestions) {
+      return // Context hasn't changed and no new backend data, skip update
     }
     lastContextRef.current = contextKey
 
-    // Only generate suggestions once per unique context
-    if (initializedRef.current && contextKey === lastContextRef.current) {
+    // ============================================
+    // QUALITY-FIRST: Prefer backend AI suggestions (85%+ confidence)
+    // Fall back to local rule-based suggestions
+    // ============================================
+
+    // Convert backend suggestions to local format
+    const convertedBackendSuggestions = backendSuggestions
+      .filter(s => s.status === 'pending' || s.status === 'shown')
+      .slice(0, 3)
+      .map(convertFromBackendSuggestion)
+
+    // If we have high-quality backend suggestions, use those primarily
+    if (convertedBackendSuggestions.length >= 2) {
+      // Get a few local suggestions to supplement
+      const serviceSuggestions = ProactiveSuggestionsService.getSuggestions(serviceContext, 2)
+      const convertedLocal = serviceSuggestions.map(convertToAISuggestion)
+
+      // Dedupe by title similarity
+      const backendTitles = new Set(convertedBackendSuggestions.map(s => s.title.toLowerCase()))
+      const uniqueLocal = convertedLocal.filter(s => !backendTitles.has(s.title.toLowerCase()))
+
+      setSuggestions([...convertedBackendSuggestions, ...uniqueLocal].slice(0, 6))
+      initializedRef.current = true
+      return
+    }
+
+    // Only generate local suggestions once per unique context if no backend data
+    if (initializedRef.current && contextKey === lastContextRef.current && !hasBackendSuggestions) {
       return
     }
     initializedRef.current = true
 
     // ============================================
-    // SERVICE INTEGRATION: Get suggestions from ProactiveSuggestionsService
+    // FALLBACK: Get suggestions from ProactiveSuggestionsService
     // Uses rule-based engine with temporal and regional context
     // ============================================
     const serviceSuggestions = ProactiveSuggestionsService.getSuggestions(serviceContext, 5)
@@ -469,27 +549,49 @@ export function useAISuggestions(context: UserContext) {
       })
     }
 
-    // Merge and dedupe suggestions (service takes priority)
-    const serviceIds = new Set(convertedSuggestions.map(s => s.id))
-    const uniqueLocalSuggestions = localSuggestions.filter(s => !serviceIds.has(s.id))
-    const allSuggestions = [...convertedSuggestions, ...uniqueLocalSuggestions]
+    // Merge suggestions: backend first (high quality), then service, then local
+    const allSuggestions = [
+      ...convertedBackendSuggestions,
+      ...convertedSuggestions,
+      ...localSuggestions,
+    ]
+
+    // Dedupe by id
+    const seen = new Set<string>()
+    const deduped = allSuggestions.filter(s => {
+      if (seen.has(s.id)) return false
+      seen.add(s.id)
+      return true
+    })
 
     // Limit to top 6 suggestions
-    setSuggestions(allSuggestions.slice(0, 6))
-  }, [context, serviceContext])
+    setSuggestions(deduped.slice(0, 6))
+  }, [context, serviceContext, backendSuggestions, hasBackendSuggestions])
 
-  const dismissSuggestion = useCallback((id: string) => {
+  const dismissSuggestion = useCallback(async (id: string) => {
+    // Find the suggestion to check if it has a backend ID
+    const suggestion = suggestions.find(s => s.id === id)
+
+    // Update local state immediately
     setSuggestions(prev =>
       prev.map(s => s.id === id ? { ...s, dismissed: true } : s)
     )
-    // Persist dismissal
+
+    // If it's a backend suggestion, record the rejection for learning
+    if (suggestion?.backendId) {
+      await actOnSuggestion(suggestion.backendId, 'rejected')
+    }
+
+    // Persist local dismissal
     const dismissed = JSON.parse(localStorage.getItem('nexus_dismissed_suggestions') || '[]')
     localStorage.setItem('nexus_dismissed_suggestions', JSON.stringify([...dismissed, id]))
-  }, [])
+  }, [suggestions, actOnSuggestion])
 
   return {
     suggestions,
     dismissSuggestion,
+    loading: backendLoading,
+    actOnSuggestion, // Expose for implementing suggestions
   }
 }
 

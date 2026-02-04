@@ -16,6 +16,8 @@ import { Router, Request, Response } from 'express'
 import { oauthProxyService } from '../services/OAuthProxyService'
 import { composioService } from '../services/ComposioService'
 import { toolDiscoveryService } from '../services/ToolDiscoveryService'
+// @NEXUS-FIX-095: Import WhatsApp Baileys service for direct message routing
+import { whatsAppBaileysService } from '../services/WhatsAppBaileysService'
 
 const router = Router()
 
@@ -539,8 +541,96 @@ router.post('/execute', async (req: Request, res: Response) => {
           const connectionStatus = await composioService.checkConnection(toolkit)
 
           if (!connectionStatus.connected || !connectionStatus.accountId) {
-            console.log(`[Rube] No active connection for ${toolkit}, falling back to default`)
-            // Fall back to default execution (may still fail with entity mismatch)
+            console.log(`[Rube] No active connection for ${toolkit}, checking alternatives`)
+
+            // @NEXUS-FIX-095: Route WhatsApp through Baileys when Composio not connected - DO NOT REMOVE
+            // Problem: User connects WhatsApp via QR code (Baileys), but execution tries Composio
+            // Solution: Check for Baileys session and use it for WhatsApp messages
+            if (toolkit === 'whatsapp' && tool.tool_slug === 'WHATSAPP_SEND_MESSAGE') {
+              console.log(`[Rube FIX-095] WhatsApp tool detected, checking Baileys sessions`)
+
+              // Get all ready Baileys sessions
+              const allSessions = whatsAppBaileysService.getAllSessions()
+              const readySession = allSessions.find(s => s.state === 'ready')
+
+              if (readySession) {
+                console.log(`[Rube FIX-095] Found ready Baileys session: ${readySession.id}, sending via WhatsApp Web`)
+                const startTime = Date.now()
+
+                // Extract params from tool arguments
+                // @NEXUS-FIX-096: Add debug logging and more parameter aliases for WhatsApp - DO NOT REMOVE
+                const args = tool.arguments || {}
+                console.log(`[Rube FIX-096] WhatsApp tool arguments:`, JSON.stringify(args, null, 2))
+
+                // Check multiple possible keys for phone number (frontend may use different keys)
+                const to = (args.to as string) ||
+                           (args.phone as string) ||
+                           (args.recipient as string) ||
+                           (args.whatsapp as string) ||
+                           (args.phone_number as string) ||
+                           (args.number as string)
+                const message = (args.message as string) ||
+                                (args.text as string) ||
+                                (args.body as string) ||
+                                (args.content as string)
+
+                console.log(`[Rube FIX-096] Extracted: to=${to}, message=${message?.substring(0, 50)}...`)
+
+                if (!to || !message) {
+                  console.log(`[Rube FIX-096] Missing params! Available keys: ${Object.keys(args).join(', ')}`)
+                  return {
+                    tool_slug: tool.tool_slug,
+                    success: false,
+                    error: `Missing required params: to=${to ? 'OK' : 'MISSING'}, message=${message ? 'OK' : 'MISSING'}. Available: ${Object.keys(args).join(', ')}`,
+                    data: null,
+                    executionTimeMs: Date.now() - startTime,
+                  }
+                }
+
+                // Send via Baileys
+                // @NEXUS-FIX-098: Correctly handle WhatsAppMessage return type - DO NOT REMOVE
+                // Problem: sendMessage returns WhatsAppMessage (with id, status) not {success, messageId, error}
+                // Solution: Try/catch for errors, check returned message for success
+                try {
+                  const sentMessage = await whatsAppBaileysService.sendMessage(readySession.id, to, message)
+
+                  // If we get here without throwing, message was sent successfully
+                  // WhatsAppMessage has: id, sessionId, from, to, body, timestamp, fromMe, status
+                  return {
+                    tool_slug: tool.tool_slug,
+                    success: true,
+                    error: null,
+                    data: {
+                      messageId: sentMessage.id,
+                      to: sentMessage.to,
+                      status: sentMessage.status, // 'sent', 'delivered', etc.
+                      via: 'whatsapp-web',
+                      timestamp: sentMessage.timestamp,
+                    },
+                    executionTimeMs: Date.now() - startTime,
+                  }
+                } catch (sendError) {
+                  console.error(`[Rube FIX-098] WhatsApp send failed:`, sendError)
+                  return {
+                    tool_slug: tool.tool_slug,
+                    success: false,
+                    error: (sendError as Error).message || 'Failed to send WhatsApp message',
+                    data: null,
+                    executionTimeMs: Date.now() - startTime,
+                  }
+                }
+              } else {
+                console.log(`[Rube FIX-095] No ready Baileys session found, sessions: ${allSessions.map(s => `${s.id}:${s.state}`).join(', ')}`)
+                return {
+                  tool_slug: tool.tool_slug,
+                  success: false,
+                  error: 'WhatsApp not connected. Please scan the QR code to link your WhatsApp.',
+                  data: null,
+                }
+              }
+            }
+
+            // Fall back to default Composio execution (may still fail with entity mismatch)
             const result = await composioService.executeTool(
               tool.tool_slug,
               tool.arguments || {}

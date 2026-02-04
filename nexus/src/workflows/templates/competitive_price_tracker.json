@@ -1,0 +1,245 @@
+{
+  "id": "competitive_price_tracker",
+  "name": "Competitive Price Tracker",
+  "name_ar": "متتبع أسعار المنافسين",
+  "description": "Monitor competitor prices automatically and get alerts when prices change. Track price trends, identify opportunities, and maintain competitive positioning with data-driven pricing decisions.",
+  "description_ar": "مراقبة أسعار المنافسين تلقائياً والحصول على تنبيهات عند تغير الأسعار. تتبع اتجاهات الأسعار وتحديد الفرص والحفاظ على الموقف التنافسي مع قرارات التسعير المبنية على البيانات.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$35,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail"],
+  "optionalIntegrations": ["slack", "whatsapp", "notion"],
+  "exampleUserInput": "Track my competitors' prices and alert me when they change",
+  "exampleUserInput_ar": "تتبع أسعار منافسيني ونبهني عند تغيرها",
+  "keywords": ["price", "competitor", "market", "pricing", "monitor", "track", "سعر", "منافس", "سوق", "تسعير", "مراقبة", "تتبع"],
+  "dynamicParameters": {
+    "check_frequency": {
+      "type": "select",
+      "options": ["hourly", "twice_daily", "daily", "weekly"],
+      "default": "daily",
+      "label": "How often to check prices",
+      "label_ar": "كم مرة يتم فحص الأسعار"
+    },
+    "price_change_threshold": {
+      "type": "number",
+      "default": 5,
+      "label": "Alert when price changes by (%)",
+      "label_ar": "التنبيه عند تغير السعر بنسبة (%)"
+    },
+    "track_products": {
+      "type": "number",
+      "default": 20,
+      "label": "Number of products to track",
+      "label_ar": "عدد المنتجات للتتبع"
+    },
+    "include_trend_analysis": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include weekly trend analysis",
+      "label_ar": "تضمين تحليل الاتجاهات الأسبوعي"
+    }
+  },
+  "messages": {
+    "price_alert_en": "💰 *Price Change Alert*\n\n*Product:* {{product_name}}\n*Competitor:* {{competitor_name}}\n\n*Previous Price:* {{currency}} {{old_price}}\n*New Price:* {{currency}} {{new_price}}\n*Change:* {{change_percent}}% {{direction_arrow}}\n\n*Your Price:* {{currency}} {{your_price}}\n*Price Gap:* {{gap_percent}}%\n\n{{#if opportunity}}💡 *Opportunity:* {{opportunity_text}}{{/if}}\n\n*Recommendation:* {{recommendation}}",
+    "price_alert_ar": "💰 *تنبيه تغير السعر*\n\n*المنتج:* {{product_name}}\n*المنافس:* {{competitor_name}}\n\n*السعر السابق:* {{currency}} {{old_price}}\n*السعر الجديد:* {{currency}} {{new_price}}\n*التغير:* {{change_percent}}% {{direction_arrow}}\n\n*سعرك:* {{currency}} {{your_price}}\n*فجوة السعر:* {{gap_percent}}%\n\n{{#if opportunity}}💡 *فرصة:* {{opportunity_text}}{{/if}}\n\n*التوصية:* {{recommendation}}",
+    "daily_summary_en": "📊 *Daily Price Intelligence - {{date}}*\n\n*Products Monitored:* {{total_products}}\n*Competitors Tracked:* {{competitor_count}}\n\n*Price Changes Today:*\n{{#each changes}}\n• {{product}}: {{competitor}} {{direction}} {{percent}}%\n{{/each}}\n\n*Your Competitive Position:*\n• Lowest price: {{lowest_count}} products\n• Competitive: {{competitive_count}} products\n• Above market: {{above_count}} products\n\n*Opportunities:* {{opportunity_count}}\n*Threats:* {{threat_count}}\n\n📈 Full report: {{report_link}}",
+    "daily_summary_ar": "📊 *معلومات الأسعار اليومية - {{date}}*\n\n*المنتجات المراقبة:* {{total_products}}\n*المنافسين المتتبعين:* {{competitor_count}}\n\n*تغيرات الأسعار اليوم:*\n{{#each changes}}\n• {{product}}: {{competitor}} {{direction}} {{percent}}%\n{{/each}}\n\n*موقفك التنافسي:*\n• أدنى سعر: {{lowest_count}} منتج\n• تنافسي: {{competitive_count}} منتج\n• فوق السوق: {{above_count}} منتج\n\n*الفرص:* {{opportunity_count}}\n*التهديدات:* {{threat_count}}\n\n📈 التقرير الكامل: {{report_link}}",
+    "weekly_trend_en": "📈 *Weekly Price Trend Report*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Market Movement:*\n• Average price change: {{avg_change}}%\n• Most volatile: {{volatile_product}}\n• Most stable: {{stable_product}}\n\n*Competitor Activity:*\n{{#each competitors}}\n• {{name}}: {{changes}} changes ({{direction}})\n{{/each}}\n\n*Your Performance:*\n• Win rate: {{win_rate}}%\n• Market share trend: {{share_trend}}\n\n*Recommendations:*\n{{#each recommendations}}\n• {{action}}\n{{/each}}",
+    "opportunity_alert_en": "🎯 *Pricing Opportunity Detected*\n\n*Product:* {{product_name}}\n\n*Situation:*\n{{situation_text}}\n\n*Competitors' Prices:*\n{{#each competitor_prices}}\n• {{name}}: {{currency}} {{price}}\n{{/each}}\n\n*Your Current Price:* {{currency}} {{your_price}}\n*Suggested Price:* {{currency}} {{suggested_price}}\n\n*Potential Impact:*\n• Revenue increase: {{currency}} {{revenue_increase}}\n• Margin change: {{margin_change}}%\n\n*Action Required:* {{action}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Scheduled Price Check",
+        "name_ar": "فحص الأسعار المجدول",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "{{check_frequency_cron}}",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Product List",
+        "name_ar": "قراءة قائمة المنتجات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{price_tracking_sheet}}",
+            "range": "Products!A:G"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Read Previous Prices",
+        "name_ar": "قراءة الأسعار السابقة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{price_tracking_sheet}}",
+            "range": "PriceHistory!A:J"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Analyze Price Changes",
+        "name_ar": "تحليل تغيرات الأسعار",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2", "task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "analyze",
+          "params": {
+            "products": "{{task_2.values}}",
+            "history": "{{task_3.values}}",
+            "threshold": "{{price_change_threshold}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Price Alerts",
+        "name_ar": "إرسال تنبيهات الأسعار",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{alert_recipients}}",
+            "subject": "💰 Price Alert: {{task_4.change_count}} changes detected",
+            "body": "{{messages.price_alert_{{language}}}}",
+            "condition": "task_4.changes.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send WhatsApp Alert",
+        "name_ar": "إرسال تنبيه واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{owner_phone}}",
+            "message": "{{messages.price_alert_{{language}}}}",
+            "condition": "task_4.significant_changes.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Log Price History",
+        "name_ar": "تسجيل تاريخ الأسعار",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "batch_append",
+          "params": {
+            "spreadsheet_id": "{{price_tracking_sheet}}",
+            "sheet_name": "PriceHistory",
+            "values": "{{task_4.new_prices}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Daily Summary",
+        "name_ar": "الملخص اليومي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{report_recipients}}",
+            "subject": "📊 Daily Price Intelligence - {{date}}",
+            "body": "{{messages.daily_summary_{{language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "check_frequency",
+      "question": "How often should prices be checked?",
+      "question_ar": "كم مرة يجب فحص الأسعار؟",
+      "type": "select",
+      "options": [
+        {"value": "hourly", "label": "Hourly / كل ساعة"},
+        {"value": "twice_daily", "label": "Twice Daily / مرتين يومياً"},
+        {"value": "daily", "label": "Daily / يومياً"},
+        {"value": "weekly", "label": "Weekly / أسبوعياً"}
+      ],
+      "default": "daily"
+    },
+    {
+      "id": "price_change_threshold",
+      "question": "Alert when price changes by what percentage?",
+      "question_ar": "التنبيه عند تغير السعر بنسبة كم؟",
+      "type": "number",
+      "default": 5
+    },
+    {
+      "id": "track_products",
+      "question": "How many products to track?",
+      "question_ar": "كم منتج للتتبع؟",
+      "type": "number",
+      "default": 20
+    },
+    {
+      "id": "include_trend_analysis",
+      "question": "Include weekly trend analysis?",
+      "question_ar": "تضمين تحليل الاتجاهات الأسبوعي؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

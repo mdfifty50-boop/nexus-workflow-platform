@@ -1,0 +1,292 @@
+{
+  "id": "cash_flow_monitor",
+  "name": "Cash Flow Monitor",
+  "name_ar": "مراقب التدفق النقدي",
+  "description": "Monitor bank accounts and cash flow in real-time. Get alerts for low balances, large transactions, and unusual activity. Generate daily/weekly cash flow reports automatically.",
+  "description_ar": "مراقبة الحسابات المصرفية والتدفق النقدي في الوقت الفعلي. الحصول على تنبيهات للأرصدة المنخفضة والمعاملات الكبيرة والنشاط غير العادي. إنشاء تقارير التدفق النقدي اليومية/الأسبوعية تلقائياً.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$32,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail", "slack"],
+  "optionalIntegrations": ["quickbooks", "xero", "plaid", "whatsapp"],
+  "exampleUserInput": "Monitor my cash flow and alert me about low balances",
+  "exampleUserInput_ar": "راقب تدفقي النقدي ونبهني عن الأرصدة المنخفضة",
+  "keywords": ["cash flow", "balance", "bank", "finance", "treasury", "alert", "تدفق نقدي", "رصيد", "بنك", "مالية", "خزينة", "تنبيه"],
+  "dynamicParameters": {
+    "low_balance_threshold": {
+      "type": "number",
+      "default": 5000,
+      "label": "Low balance alert threshold",
+      "label_ar": "حد تنبيه الرصيد المنخفض"
+    },
+    "large_transaction_threshold": {
+      "type": "number",
+      "default": 1000,
+      "label": "Large transaction alert threshold",
+      "label_ar": "حد تنبيه المعاملات الكبيرة"
+    },
+    "monitor_frequency": {
+      "type": "select",
+      "options": ["hourly", "twice_daily", "daily"],
+      "default": "twice_daily",
+      "label": "Balance check frequency",
+      "label_ar": "تكرار فحص الرصيد"
+    },
+    "report_frequency": {
+      "type": "select",
+      "options": ["daily", "weekly", "both"],
+      "default": "daily",
+      "label": "Cash flow report frequency",
+      "label_ar": "تكرار تقرير التدفق النقدي"
+    },
+    "forecast_days": {
+      "type": "number",
+      "default": 30,
+      "label": "Days to forecast cash flow",
+      "label_ar": "أيام للتنبؤ بالتدفق النقدي"
+    }
+  },
+  "messages": {
+    "low_balance_alert_en": "🚨 *Low Balance Alert*\n\nAccount: {{account_name}}\nCurrent Balance: {{currency}} {{current_balance}}\nThreshold: {{currency}} {{threshold}}\n\n⚠️ Balance is below your set threshold.\n\n*Recent Activity:*\n{{#each recent_transactions}}\n• {{date}}: {{description}} ({{type}} {{currency}} {{amount}})\n{{/each}}\n\n*Pending Payments:*\n{{#each pending_payments}}\n• {{due_date}}: {{description}} ({{currency}} {{amount}})\n{{/each}}\n\n*Action Required:* Review and transfer funds if needed.",
+    "low_balance_alert_ar": "🚨 *تنبيه رصيد منخفض*\n\nالحساب: {{account_name}}\nالرصيد الحالي: {{currency}} {{current_balance}}\nالحد: {{currency}} {{threshold}}\n\n⚠️ الرصيد أقل من الحد المحدد.\n\n*النشاط الأخير:*\n{{#each recent_transactions}}\n• {{date}}: {{description}} ({{type}} {{currency}} {{amount}})\n{{/each}}\n\n*المدفوعات المعلقة:*\n{{#each pending_payments}}\n• {{due_date}}: {{description}} ({{currency}} {{amount}})\n{{/each}}\n\n*مطلوب إجراء:* مراجعة وتحويل الأموال إذا لزم الأمر.",
+    "large_transaction_alert_en": "💰 *Large Transaction Alert*\n\nAccount: {{account_name}}\nTransaction: {{transaction_type}}\nAmount: {{currency}} {{amount}}\nDate: {{transaction_date}}\n\n*Details:*\nDescription: {{description}}\nReference: {{reference}}\n{{#if counterparty}}Counterparty: {{counterparty}}{{/if}}\n\n*Balance After:* {{currency}} {{balance_after}}\n\n{{#if unusual}}⚠️ This transaction is unusual based on your history.{{/if}}",
+    "daily_report_en": "📊 *Daily Cash Flow Report - {{date}}*\n\n*Account Balances:*\n{{#each accounts}}\n• {{name}}: {{currency}} {{balance}} {{change_indicator}}\n{{/each}}\n\n*Total Cash:* {{currency}} {{total_balance}}\nvs Yesterday: {{daily_change_percent}}%\n\n*Today's Activity:*\nInflows: +{{currency}} {{inflows}}\nOutflows: -{{currency}} {{outflows}}\nNet: {{currency}} {{net_flow}}\n\n*Top Transactions:*\n{{#each top_transactions}}\n• {{description}}: {{type}} {{currency}} {{amount}}\n{{/each}}\n\n*Upcoming (Next 7 Days):*\nExpected In: {{currency}} {{expected_in}}\nExpected Out: {{currency}} {{expected_out}}",
+    "daily_report_ar": "📊 *تقرير التدفق النقدي اليومي - {{date}}*\n\n*أرصدة الحسابات:*\n{{#each accounts}}\n• {{name}}: {{currency}} {{balance}} {{change_indicator}}\n{{/each}}\n\n*إجمالي النقد:* {{currency}} {{total_balance}}\nمقارنة بالأمس: {{daily_change_percent}}%\n\n*نشاط اليوم:*\nالتدفقات الداخلة: +{{currency}} {{inflows}}\nالتدفقات الخارجة: -{{currency}} {{outflows}}\nالصافي: {{currency}} {{net_flow}}\n\n*أكبر المعاملات:*\n{{#each top_transactions}}\n• {{description}}: {{type}} {{currency}} {{amount}}\n{{/each}}\n\n*القادم (الأيام الـ7 القادمة):*\nالمتوقع دخوله: {{currency}} {{expected_in}}\nالمتوقع خروجه: {{currency}} {{expected_out}}",
+    "weekly_summary_en": "📈 *Weekly Cash Flow Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Opening Balance:* {{currency}} {{opening}}\n*Closing Balance:* {{currency}} {{closing}}\n*Net Change:* {{currency}} {{net_change}} ({{change_percent}}%)\n\n*Weekly Breakdown:*\n{{#each daily_breakdown}}\n{{day}}: In {{currency}} {{in}} | Out {{currency}} {{out}} | Net {{net}}\n{{/each}}\n\n*By Category:*\n{{#each categories}}\n• {{name}}: {{currency}} {{amount}} ({{percent}}%)\n{{/each}}\n\n*Cash Flow Forecast (Next {{forecast_days}} Days):*\nProjected Balance: {{currency}} {{projected_balance}}\n{{#if deficit_warning}}⚠️ Potential deficit on {{deficit_date}}{{/if}}",
+    "forecast_alert_en": "⚠️ *Cash Flow Forecast Warning*\n\nBased on current trends and scheduled payments:\n\n*Projected Issue:* Balance may go negative on {{deficit_date}}\n\n*Current Balance:* {{currency}} {{current}}\n*Expected Outflows:* {{currency}} {{expected_out}}\n*Expected Inflows:* {{currency}} {{expected_in}}\n*Projected Balance:* {{currency}} {{projected}}\n\n*Recommendations:*\n{{#each recommendations}}\n• {{recommendation}}\n{{/each}}\n\n*Action Required:* Review upcoming payments and receivables."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Scheduled Balance Check",
+        "name_ar": "فحص الرصيد المجدول",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "{{monitor_frequency_cron}}",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Account Data",
+        "name_ar": "قراءة بيانات الحساب",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{cash_flow_sheet}}",
+            "range": "Balances!A:F"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Read Transactions",
+        "name_ar": "قراءة المعاملات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{cash_flow_sheet}}",
+            "range": "Transactions!A:H",
+            "filter": "date >= {{today_minus_7}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Analyze Cash Flow",
+        "name_ar": "تحليل التدفق النقدي",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2", "task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "analyze",
+          "params": {
+            "balances": "{{task_2.values}}",
+            "transactions": "{{task_3.values}}",
+            "low_threshold": "{{low_balance_threshold}}",
+            "large_threshold": "{{large_transaction_threshold}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Check Low Balance",
+        "name_ar": "فحص الرصيد المنخفض",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "task_4.low_balance_accounts.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Low Balance Alert",
+        "name_ar": "إرسال تنبيه الرصيد المنخفض",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#finance",
+            "message": "{{messages.low_balance_alert_en}}",
+            "condition": "task_5.result === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send WhatsApp Alert",
+        "name_ar": "إرسال تنبيه واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{owner_phone}}",
+            "message": "{{messages.low_balance_alert_{{language}}}}",
+            "condition": "task_5.result === true"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Check Large Transactions",
+        "name_ar": "فحص المعاملات الكبيرة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "channel": "#finance",
+            "messages": "{{task_4.large_transactions}}",
+            "template": "{{messages.large_transaction_alert_en}}",
+            "condition": "task_4.large_transactions.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Daily Report Trigger",
+        "name_ar": "مشغل التقرير اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 18 * * 0-4",
+            "description": "Daily at 6 PM on workdays",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Generate Daily Report",
+        "name_ar": "إنشاء التقرير اليومي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{report_recipients}}",
+            "subject": "📊 Daily Cash Flow Report - {{date}} - {{currency}} {{total_balance}}",
+            "body": "{{messages.daily_report_{{language}}}}",
+            "condition": "report_frequency === 'daily' OR report_frequency === 'both'"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "low_balance_threshold",
+      "question": "Alert when balance falls below?",
+      "question_ar": "التنبيه عندما ينخفض الرصيد عن؟",
+      "type": "number",
+      "default": 5000
+    },
+    {
+      "id": "large_transaction_threshold",
+      "question": "Alert for transactions above?",
+      "question_ar": "التنبيه للمعاملات فوق؟",
+      "type": "number",
+      "default": 1000
+    },
+    {
+      "id": "monitor_frequency",
+      "question": "How often to check balances?",
+      "question_ar": "كم مرة يتم فحص الأرصدة؟",
+      "type": "select",
+      "options": [
+        {"value": "hourly", "label": "Hourly / كل ساعة"},
+        {"value": "twice_daily", "label": "Twice Daily / مرتين يومياً"},
+        {"value": "daily", "label": "Daily / يومياً"}
+      ],
+      "default": "twice_daily"
+    },
+    {
+      "id": "report_frequency",
+      "question": "How often to send reports?",
+      "question_ar": "كم مرة يتم إرسال التقارير؟",
+      "type": "select",
+      "options": [
+        {"value": "daily", "label": "Daily / يومياً"},
+        {"value": "weekly", "label": "Weekly / أسبوعياً"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "daily"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

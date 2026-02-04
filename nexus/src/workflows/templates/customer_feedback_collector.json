@@ -1,0 +1,294 @@
+{
+  "id": "customer_feedback_collector",
+  "name": "Customer Feedback Collector",
+  "name_ar": "جامع آراء العملاء",
+  "description": "Automatically request feedback after purchases or service completion. Collect ratings, reviews, and suggestions. Route negative feedback for immediate attention and positive reviews to public platforms.",
+  "description_ar": "طلب الملاحظات تلقائياً بعد الشراء أو إتمام الخدمة. جمع التقييمات والمراجعات والاقتراحات. توجيه الملاحظات السلبية للاهتمام الفوري والمراجعات الإيجابية للمنصات العامة.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$20,000/year",
+  "requiredIntegrations": ["gmail", "googlesheets", "whatsapp"],
+  "optionalIntegrations": ["slack", "google", "trustpilot", "hubspot"],
+  "exampleUserInput": "Collect customer feedback after every sale",
+  "exampleUserInput_ar": "اجمع آراء العملاء بعد كل عملية بيع",
+  "keywords": ["feedback", "review", "rating", "NPS", "customer satisfaction", "survey", "ملاحظات", "تقييم", "مراجعة", "رضا العملاء", "استبيان"],
+  "dynamicParameters": {
+    "feedback_delay_hours": {
+      "type": "number",
+      "default": 24,
+      "label": "Hours after purchase to request feedback",
+      "label_ar": "ساعات بعد الشراء لطلب الملاحظات"
+    },
+    "feedback_channel": {
+      "type": "select",
+      "options": ["whatsapp", "email", "both"],
+      "default": "whatsapp",
+      "label": "Feedback request channel",
+      "label_ar": "قناة طلب الملاحظات"
+    },
+    "negative_threshold": {
+      "type": "number",
+      "default": 3,
+      "label": "Rating threshold for escalation (1-5)",
+      "label_ar": "حد التقييم للتصعيد (1-5)"
+    },
+    "request_public_review": {
+      "type": "boolean",
+      "default": true,
+      "label": "Ask satisfied customers for public reviews",
+      "label_ar": "طلب مراجعات عامة من العملاء الراضين"
+    },
+    "follow_up_negative": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-follow up on negative feedback",
+      "label_ar": "متابعة تلقائية للملاحظات السلبية"
+    }
+  },
+  "messages": {
+    "feedback_request_whatsapp_en": "Hi {{customer_name}} 👋\n\nThank you for your recent purchase from {{business_name}}!\n\nWe'd love to hear about your experience. It only takes 30 seconds:\n\n⭐ How would you rate us? (1-5)\n\nReply with a number, and we'll ask a quick follow-up question.\n\nYour feedback helps us serve you better!",
+    "feedback_request_whatsapp_ar": "مرحباً {{customer_name}} 👋\n\nشكراً لشرائك الأخير من {{business_name}}!\n\nنود سماع رأيك في تجربتك. يستغرق 30 ثانية فقط:\n\n⭐ كيف تقيمنا؟ (1-5)\n\nرد برقم، وسنطرح سؤال متابعة سريع.\n\nملاحظاتك تساعدنا لخدمتك بشكل أفضل!",
+    "feedback_request_email_en": "Dear {{customer_name}},\n\nThank you for choosing {{business_name}}!\n\nWe hope you're enjoying your recent purchase. We'd love to hear your feedback - it only takes a minute.\n\n[Rate Your Experience]\n\n⭐⭐⭐⭐⭐ Excellent\n⭐⭐⭐⭐ Good\n⭐⭐⭐ Average\n⭐⭐ Below Average\n⭐ Poor\n\nYour feedback helps us improve and serve you better.\n\nWarm regards,\n{{business_name}}",
+    "feedback_request_email_ar": "عزيزي {{customer_name}}،\n\nشكراً لاختيارك {{business_name}}!\n\nنأمل أنك سعيد بمشترياتك الأخيرة. نود سماع ملاحظاتك - يستغرق دقيقة واحدة فقط.\n\n[قيم تجربتك]\n\n⭐⭐⭐⭐⭐ ممتاز\n⭐⭐⭐⭐ جيد\n⭐⭐⭐ متوسط\n⭐⭐ دون المتوسط\n⭐ سيء\n\nملاحظاتك تساعدنا للتحسين وخدمتك بشكل أفضل.\n\nمع تحياتنا،\n{{business_name}}",
+    "thank_positive_en": "Thank you so much for the great rating! 🎉\n\nWe're thrilled you had a positive experience.\n\n{{#if request_public_review}}Would you mind sharing your experience on Google? It helps other customers find us:\n\n{{google_review_link}}\n\nThank you for your support!{{/if}}",
+    "thank_positive_ar": "شكراً جزيلاً على التقييم الرائع! 🎉\n\nنحن سعداء بتجربتك الإيجابية.\n\n{{#if request_public_review}}هل تمانع في مشاركة تجربتك على Google؟ يساعد العملاء الآخرين في إيجادنا:\n\n{{google_review_link}}\n\nشكراً لدعمك!{{/if}}",
+    "follow_up_negative_en": "We're sorry to hear that your experience wasn't perfect. 😔\n\nYour feedback is important to us. Could you tell us what went wrong?\n\nOur team will personally look into this and get back to you within 24 hours.\n\n{{#if manager_contact}}Or reach our manager directly: {{manager_contact}}{{/if}}",
+    "follow_up_negative_ar": "نأسف لسماع أن تجربتك لم تكن مثالية. 😔\n\nملاحظاتك مهمة لنا. هل يمكنك إخبارنا بما حدث؟\n\nسيقوم فريقنا بمراجعة الأمر شخصياً والعودة إليك خلال 24 ساعة.\n\n{{#if manager_contact}}أو تواصل مع مديرنا مباشرة: {{manager_contact}}{{/if}}",
+    "team_alert_negative_en": "🚨 *Negative Feedback Alert*\n\nCustomer: {{customer_name}}\nPhone: {{customer_phone}}\nRating: {{rating}}/5 ⭐\nOrder: {{order_id}}\n\n*Feedback:*\n\"{{feedback_text}}\"\n\n*Action Required:* Follow up within 24 hours",
+    "weekly_summary_en": "📊 *Weekly Feedback Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Responses:* {{total_responses}}\n*Average Rating:* {{avg_rating}}/5 ⭐\n*NPS Score:* {{nps_score}}\n\n*Rating Distribution:*\n⭐⭐⭐⭐⭐ {{five_star}} ({{five_star_pct}}%)\n⭐⭐⭐⭐ {{four_star}} ({{four_star_pct}}%)\n⭐⭐⭐ {{three_star}} ({{three_star_pct}}%)\n⭐⭐ {{two_star}} ({{two_star_pct}}%)\n⭐ {{one_star}} ({{one_star_pct}}%)\n\n*Public Reviews Generated:* {{reviews_generated}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Order Completed Trigger",
+        "name_ar": "مشغل إتمام الطلب",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{orders_sheet}}",
+            "sheet_name": "Completed Orders"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Wait Feedback Delay",
+        "name_ar": "انتظار تأخير الملاحظات",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_DELAY",
+          "action": "wait",
+          "params": {
+            "hours": "{{feedback_delay_hours}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send WhatsApp Request",
+        "name_ar": "إرسال طلب واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.customer_phone}}",
+            "message": "{{messages.feedback_request_whatsapp_{{language}}}}",
+            "condition": "feedback_channel === 'whatsapp' OR feedback_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Email Request",
+        "name_ar": "إرسال طلب بريد إلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.customer_email}}",
+            "subject": "How was your experience with {{business_name}}? / كيف كانت تجربتك؟",
+            "body": "{{messages.feedback_request_email_{{language}}}}",
+            "condition": "feedback_channel === 'email' OR feedback_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Receive Feedback Response",
+        "name_ar": "استلام رد الملاحظات",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "from": "{{task_1.customer_phone}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Process Rating",
+        "name_ar": "معالجة التقييم",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "parse",
+          "params": {
+            "input": "{{task_5.message}}",
+            "extract": "rating_number"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Log to Sheet",
+        "name_ar": "التسجيل في الجدول",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{feedback_sheet}}",
+            "values": [
+              "{{current_datetime}}",
+              "{{task_1.customer_name}}",
+              "{{task_1.customer_phone}}",
+              "{{task_1.order_id}}",
+              "{{task_6.rating}}",
+              "{{task_5.message}}"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Handle Positive Feedback",
+        "name_ar": "معالجة الملاحظات الإيجابية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.customer_phone}}",
+            "message": "{{messages.thank_positive_{{language}}}}",
+            "condition": "task_6.rating >= 4"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Handle Negative Feedback",
+        "name_ar": "معالجة الملاحظات السلبية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.customer_phone}}",
+            "message": "{{messages.follow_up_negative_{{language}}}}",
+            "condition": "task_6.rating <= negative_threshold AND follow_up_negative === true"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Alert Team on Negative",
+        "name_ar": "تنبيه الفريق على السلبي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#customer-feedback",
+            "message": "{{messages.team_alert_negative_en}}",
+            "condition": "task_6.rating <= negative_threshold"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "googlesheets", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "feedback_delay_hours",
+      "question": "How many hours after purchase to request feedback?",
+      "question_ar": "كم ساعة بعد الشراء لطلب الملاحظات؟",
+      "type": "number",
+      "default": 24
+    },
+    {
+      "id": "feedback_channel",
+      "question": "How to request feedback?",
+      "question_ar": "كيف تطلب الملاحظات؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "email", "label": "Email"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "negative_threshold",
+      "question": "What rating should trigger escalation?",
+      "question_ar": "أي تقييم يجب أن يفعل التصعيد؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "request_public_review",
+      "question": "Ask satisfied customers for public reviews?",
+      "question_ar": "طلب مراجعات عامة من العملاء الراضين؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "bilingual",
+      "preferredChannel": "whatsapp",
+      "reviewPlatform": "google"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "arabic",
+      "preferredChannel": "whatsapp",
+      "reviewPlatform": "google"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "defaultLanguage": "english",
+      "preferredChannel": "whatsapp",
+      "reviewPlatform": "google"
+    }
+  }
+}

@@ -3,7 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 // Nexus Workflow Execution Service
 // Integrates with Claude Code Proxy (Max subscription) or direct API
 
-const PROXY_URL = 'http://localhost:4567'
+// Production-ready: Use env var or fallback to localhost for development
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:4567'
 
 export interface NexusWorkflowConfig {
   type: 'Nexus' | 'Simple' | 'Scheduled'

@@ -19,7 +19,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 
-const PROXY_URL = 'http://localhost:4568'
+// Production-ready: Use env var or fallback to localhost for development
+const PROXY_URL = process.env.CLAUDE_PROXY_URL || 'http://localhost:4568'
 const PROXY_CHECK_INTERVAL = 30000 // 30 seconds
 
 let proxyAvailable: boolean | null = null

@@ -1,0 +1,295 @@
+{
+  "id": "wait_time_communication",
+  "name": "Wait Time Communication",
+  "name_ar": "التواصل حول وقت الانتظار",
+  "description": "Real-time patient communication system for wait times in ER, clinics, and departments. Keeps patients informed, reduces anxiety, and improves satisfaction through proactive updates.",
+  "description_ar": "نظام تواصل فوري مع المرضى حول أوقات الانتظار في الطوارئ والعيادات والأقسام. يبقي المرضى على اطلاع ويقلل القلق ويحسن الرضا من خلال التحديثات الاستباقية.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$65,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "twilio"],
+  "optionalIntegrations": ["slack", "gmail"],
+  "exampleUserInput": "Send wait time updates to patients waiting in the ER",
+  "exampleUserInput_ar": "إرسال تحديثات وقت الانتظار للمرضى المنتظرين في الطوارئ",
+  "keywords": [
+    "wait time", "patient queue", "waiting room", "patient communication", "ER wait", "queue management",
+    "وقت الانتظار", "طابور المرضى", "غرفة الانتظار", "تواصل المريض", "انتظار الطوارئ", "إدارة الطابور"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "departments": {
+      "type": "array",
+      "default": ["Emergency Department", "Outpatient Clinic", "Radiology", "Laboratory", "Pharmacy"],
+      "label": "Departments with wait time tracking",
+      "label_ar": "الأقسام مع تتبع وقت الانتظار"
+    },
+    "update_interval_minutes": {
+      "type": "number",
+      "default": 15,
+      "label": "Minutes between wait time updates",
+      "label_ar": "دقائق بين تحديثات وقت الانتظار"
+    },
+    "long_wait_threshold_minutes": {
+      "type": "number",
+      "default": 60,
+      "label": "Minutes before considered long wait",
+      "label_ar": "دقائق قبل اعتباره انتظار طويل"
+    }
+  },
+  "messages": {
+    "check_in_confirmation": {
+      "_en": "✅ Check-in Confirmed - {{hospital_name}}\n\nDear {{patient_name}},\n\nYou're now checked in at {{department}}.\n\n📋 Queue Number: {{queue_number}}\n⏰ Current Wait Time: Approximately {{estimated_wait}} minutes\n👥 Patients Ahead: {{patients_ahead}}\n\nWe'll send you updates every {{update_interval}} minutes or when your turn is near.\n\n💡 Tips:\n• Stay within the waiting area\n• Keep your phone nearby\n• Notify staff if you need to step out\n\n📍 Waiting Area: {{waiting_area_location}}\n🚽 Restrooms: {{restroom_location}}\n☕ Cafeteria: {{cafeteria_location}}",
+      "_ar": "✅ تأكيد التسجيل - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nأنت الآن مسجل في {{department}}.\n\n📋 رقم الطابور: {{queue_number}}\n⏰ وقت الانتظار الحالي: حوالي {{estimated_wait}} دقيقة\n👥 المرضى أمامك: {{patients_ahead}}\n\nسنرسل لك تحديثات كل {{update_interval}} دقيقة أو عندما يقترب دورك.\n\n💡 نصائح:\n• ابقَ في منطقة الانتظار\n• احتفظ بهاتفك بالقرب منك\n• أبلغ الموظفين إذا كنت بحاجة للخروج\n\n📍 منطقة الانتظار: {{waiting_area_location}}\n🚽 دورات المياه: {{restroom_location}}\n☕ الكافتيريا: {{cafeteria_location}}"
+    },
+    "wait_time_update": {
+      "_en": "🔄 Wait Time Update - {{hospital_name}}\n\n{{department}}\n\n📋 Your Queue Number: {{queue_number}}\n⏰ Updated Wait Time: {{estimated_wait}} minutes\n👥 Patients Ahead: {{patients_ahead}}\n\n{{#if wait_decreased}}✨ Good news! The wait time has decreased.{{/if}}\n{{#if wait_increased}}⏳ We apologize - there's been a slight delay. Thank you for your patience.{{/if}}\n\n📍 Current Status: {{current_status}}\n\nNext update in {{update_interval}} minutes.",
+      "_ar": "🔄 تحديث وقت الانتظار - {{hospital_name}}\n\n{{department}}\n\n📋 رقم طابورك: {{queue_number}}\n⏰ وقت الانتظار المحدث: {{estimated_wait}} دقيقة\n👥 المرضى أمامك: {{patients_ahead}}\n\n{{#if wait_decreased}}✨ أخبار جيدة! انخفض وقت الانتظار.{{/if}}\n{{#if wait_increased}}⏳ نعتذر - هناك تأخير بسيط. شكراً لصبرك.{{/if}}\n\n📍 الحالة الحالية: {{current_status}}\n\nالتحديث القادم خلال {{update_interval}} دقيقة."
+    },
+    "your_turn_soon": {
+      "_en": "⏰ Your Turn is Coming Soon! - {{hospital_name}}\n\n{{department}}\n\n🔔 {{patient_name}}, please be ready!\n\n📋 Queue Number: {{queue_number}}\n⏱️ Estimated time: {{estimated_minutes}} minutes\n👥 Patients ahead: {{patients_ahead}}\n\n📍 Please proceed to: {{proceed_to_location}}\n\n⚠️ If you're not present when called, you may lose your turn.\n\n{{#if bring_items}}📋 Please have ready:\n{{#each bring_items}}• {{this}}\n{{/each}}{{/if}}",
+      "_ar": "⏰ دورك يقترب! - {{hospital_name}}\n\n{{department}}\n\n🔔 {{patient_name}}، يرجى الاستعداد!\n\n📋 رقم الطابور: {{queue_number}}\n⏱️ الوقت المقدر: {{estimated_minutes}} دقيقة\n👥 المرضى أمامك: {{patients_ahead}}\n\n📍 يرجى التوجه إلى: {{proceed_to_location}}\n\n⚠️ إذا لم تكن موجوداً عند النداء، قد تفقد دورك.\n\n{{#if bring_items}}📋 يرجى تجهيز:\n{{#each bring_items}}• {{this}}\n{{/each}}{{/if}}"
+    },
+    "your_turn_now": {
+      "_en": "🔔 YOUR TURN NOW - {{hospital_name}}\n\n📣 {{patient_name}}, please proceed immediately!\n\n📋 Queue Number: {{queue_number}}\n📍 Go to: {{room_or_counter}}\n\n{{#if provider}}👨‍⚕️ You'll be seen by: {{provider}}{{/if}}\n\n⚠️ Please arrive within {{grace_period}} minutes.\n\nIf you need assistance, please inform nearby staff.",
+      "_ar": "🔔 دورك الآن - {{hospital_name}}\n\n📣 {{patient_name}}، يرجى التوجه فوراً!\n\n📋 رقم الطابور: {{queue_number}}\n📍 اذهب إلى: {{room_or_counter}}\n\n{{#if provider}}👨‍⚕️ سيراك: {{provider}}{{/if}}\n\n⚠️ يرجى الوصول خلال {{grace_period}} دقائق.\n\nإذا كنت بحاجة لمساعدة، يرجى إبلاغ الموظفين القريبين."
+    },
+    "long_wait_apology": {
+      "_en": "🙏 Apology for Extended Wait - {{hospital_name}}\n\nDear {{patient_name}},\n\nWe sincerely apologize for the longer than expected wait time.\n\n⏱️ You've been waiting: {{wait_duration}} minutes\n👥 Patients ahead: {{patients_ahead}}\n⏰ New estimate: {{new_estimate}} minutes\n\n{{#if reason}}Reason: {{reason}}{{/if}}\n\n🎁 We appreciate your patience:\n{{#if compensation}}{{compensation}}{{/if}}\n\n{{#if alternative}}💡 Alternative Option: {{alternative}}{{/if}}\n\nIf you need anything while waiting, please let our staff know.\n\n📞 Patient Services: {{patient_services_phone}}",
+      "_ar": "🙏 اعتذار عن الانتظار الطويل - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nnعتذر بصدق عن وقت الانتظار الأطول من المتوقع.\n\n⏱️ كنت تنتظر: {{wait_duration}} دقيقة\n👥 المرضى أمامك: {{patients_ahead}}\n⏰ التقدير الجديد: {{new_estimate}} دقيقة\n\n{{#if reason}}السبب: {{reason}}{{/if}}\n\n🎁 نقدر صبرك:\n{{#if compensation}}{{compensation}}{{/if}}\n\n{{#if alternative}}💡 خيار بديل: {{alternative}}{{/if}}\n\nإذا كنت بحاجة لأي شيء أثناء الانتظار، يرجى إبلاغ موظفينا.\n\n📞 خدمات المرضى: {{patient_services_phone}}"
+    },
+    "missed_turn_notification": {
+      "_en": "⚠️ Missed Turn Notice - {{hospital_name}}\n\n{{patient_name}}, you were called but not present.\n\n📋 Queue Number: {{queue_number}}\n📍 Called at: {{call_time}}\n\n{{#if requeued}}🔄 You've been moved to the next available slot.\nNew position: {{new_position}}\nNew estimated wait: {{new_wait}} minutes{{/if}}\n\n{{#if need_recheck}}📋 Please check in again at the desk to be requeued.{{/if}}\n\n💡 Tip: Stay in the waiting area and keep your phone volume on.",
+      "_ar": "⚠️ إشعار فقدان الدور - {{hospital_name}}\n\n{{patient_name}}، تم نداؤك ولكنك لم تكن موجوداً.\n\n📋 رقم الطابور: {{queue_number}}\n📍 تم النداء في: {{call_time}}\n\n{{#if requeued}}🔄 تم نقلك إلى الفترة المتاحة التالية.\nالموقع الجديد: {{new_position}}\nوقت الانتظار الجديد المقدر: {{new_wait}} دقيقة{{/if}}\n\n{{#if need_recheck}}📋 يرجى التسجيل مرة أخرى في المكتب لإعادة الإدراج.{{/if}}\n\n💡 نصيحة: ابقَ في منطقة الانتظار واحتفظ بصوت هاتفك مفتوحاً."
+    },
+    "service_completed": {
+      "_en": "✅ Visit Complete - {{hospital_name}}\n\nThank you for visiting {{department}}, {{patient_name}}!\n\n📊 Your Visit:\n• Wait time: {{actual_wait}} minutes\n• Service time: {{service_time}} minutes\n\n{{#if next_steps}}📋 Next Steps:\n{{#each next_steps}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if follow_up}}📅 Follow-up: {{follow_up}}{{/if}}\n\n💬 We value your feedback:\n{{survey_link}}\n\nThank you for choosing {{hospital_name}}!",
+      "_ar": "✅ اكتملت الزيارة - {{hospital_name}}\n\nشكراً لزيارتك {{department}}، {{patient_name}}!\n\n📊 زيارتك:\n• وقت الانتظار: {{actual_wait}} دقيقة\n• وقت الخدمة: {{service_time}} دقيقة\n\n{{#if next_steps}}📋 الخطوات التالية:\n{{#each next_steps}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if follow_up}}📅 المتابعة: {{follow_up}}{{/if}}\n\n💬 نقدر ملاحظاتك:\n{{survey_link}}\n\nشكراً لاختيارك {{hospital_name}}!"
+    },
+    "department_wait_display": {
+      "_en": "📊 Current Wait Times - {{hospital_name}}\n{{timestamp}}\n\n{{#each departments}}\n{{name}}:\n  ⏰ Current Wait: {{wait_time}} min\n  👥 Patients Waiting: {{queue_length}}\n  📈 Trend: {{trend}}\n\n{{/each}}\n\n💡 Wait times are estimates and may vary.\n\n🔗 Real-time display: {{display_link}}",
+      "_ar": "📊 أوقات الانتظار الحالية - {{hospital_name}}\n{{timestamp}}\n\n{{#each departments}}\n{{name}}:\n  ⏰ الانتظار الحالي: {{wait_time}} دقيقة\n  👥 المرضى المنتظرون: {{queue_length}}\n  📈 الاتجاه: {{trend}}\n\n{{/each}}\n\n💡 أوقات الانتظار تقديرية وقد تختلف.\n\n🔗 العرض المباشر: {{display_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "process_check_in",
+        "name": "Process patient check-in",
+        "name_ar": "معالجة تسجيل المريض",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Patient_Queue!A:Z"
+        }
+      },
+      {
+        "id": "send_check_in_confirmation",
+        "name": "Send check-in confirmation with wait time",
+        "name_ar": "إرسال تأكيد التسجيل مع وقت الانتظار",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["process_check_in"],
+        "params": {
+          "template": "check_in_confirmation"
+        }
+      },
+      {
+        "id": "calculate_wait_times",
+        "name": "Calculate current wait times",
+        "name_ar": "حساب أوقات الانتظار الحالية",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Wait_Time_Calculations!A:Z"
+        }
+      },
+      {
+        "id": "send_wait_update",
+        "name": "Send periodic wait time updates",
+        "name_ar": "إرسال تحديثات وقت الانتظار الدورية",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["calculate_wait_times"],
+        "condition": "is_update_interval",
+        "params": {
+          "template": "wait_time_update"
+        }
+      },
+      {
+        "id": "check_turn_approaching",
+        "name": "Check if patient's turn is approaching",
+        "name_ar": "التحقق من اقتراب دور المريض",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Patient_Queue!A:Z"
+        }
+      },
+      {
+        "id": "send_turn_soon",
+        "name": "Send 'your turn is soon' notification",
+        "name_ar": "إرسال إشعار 'دورك يقترب'",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "turn_approaching",
+        "params": {
+          "template": "your_turn_soon"
+        }
+      },
+      {
+        "id": "send_turn_now",
+        "name": "Send 'your turn now' notification",
+        "name_ar": "إرسال إشعار 'دورك الآن'",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_patient_turn",
+        "params": {
+          "template": "your_turn_now"
+        }
+      },
+      {
+        "id": "call_patient",
+        "name": "Make voice call for turn",
+        "name_ar": "إجراء مكالمة صوتية للدور",
+        "tool": "TWILIO_MAKE_CALL",
+        "condition": "is_patient_turn",
+        "params": {
+          "message": "your_turn_now_voice"
+        }
+      },
+      {
+        "id": "check_long_wait",
+        "name": "Check for patients with long waits",
+        "name_ar": "التحقق من المرضى ذوي الانتظار الطويل",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Patient_Queue!A:Z"
+        }
+      },
+      {
+        "id": "send_long_wait_apology",
+        "name": "Send apology for long wait",
+        "name_ar": "إرسال اعتذار عن الانتظار الطويل",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_long_wait",
+        "params": {
+          "template": "long_wait_apology"
+        }
+      },
+      {
+        "id": "handle_missed_turn",
+        "name": "Handle missed turn notification",
+        "name_ar": "معالجة إشعار الدور الفائت",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "patient_missed_turn",
+        "params": {
+          "template": "missed_turn_notification"
+        }
+      },
+      {
+        "id": "send_service_complete",
+        "name": "Send visit complete notification",
+        "name_ar": "إرسال إشعار اكتمال الزيارة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "service_completed",
+        "params": {
+          "template": "service_completed"
+        }
+      },
+      {
+        "id": "update_wait_display",
+        "name": "Update department wait time display",
+        "name_ar": "تحديث عرض وقت انتظار القسم",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "Wait_Time_Display!A:Z"
+        }
+      },
+      {
+        "id": "notify_staff_long_wait",
+        "name": "Alert staff of long waits",
+        "name_ar": "تنبيه الموظفين بالانتظار الطويل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_long_waits",
+        "params": {
+          "channel": "#patient-flow"
+        }
+      },
+      {
+        "id": "log_wait_metrics",
+        "name": "Log wait time metrics",
+        "name_ar": "تسجيل مقاييس وقت الانتظار",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "params": {
+          "range": "Wait_Time_Metrics!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "departments",
+      "question": "Which departments should have wait time communication?",
+      "question_ar": "ما هي الأقسام التي يجب أن يكون لديها تواصل حول وقت الانتظار؟",
+      "type": "multiselect",
+      "options": ["Emergency Department", "Outpatient Clinic", "Radiology", "Laboratory", "Pharmacy", "Registration"],
+      "default": ["Emergency Department", "Outpatient Clinic"]
+    },
+    {
+      "id": "data_source",
+      "question": "What is the URL of the patient queue spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات طابور المرضى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "update_interval",
+      "question": "How often should wait time updates be sent (in minutes)?",
+      "question_ar": "كم مرة يجب إرسال تحديثات وقت الانتظار (بالدقائق)؟",
+      "type": "number",
+      "default": 15
+    },
+    {
+      "id": "long_wait_threshold",
+      "question": "After how many minutes should a wait be considered 'long' (for apology message)?",
+      "question_ar": "بعد كم دقيقة يجب اعتبار الانتظار 'طويلاً' (لرسالة الاعتذار)؟",
+      "type": "number",
+      "default": 60
+    },
+    {
+      "id": "voice_calls",
+      "question": "Should voice calls be made when it's the patient's turn?",
+      "question_ar": "هل يجب إجراء مكالمات صوتية عندما يحين دور المريض؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD"
+    }
+  }
+}

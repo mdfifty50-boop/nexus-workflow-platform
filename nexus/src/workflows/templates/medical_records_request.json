@@ -1,0 +1,342 @@
+{
+  "id": "medical_records_request",
+  "name": "Medical Records Request",
+  "name_ar": "طلب السجلات الطبية",
+  "description": "Automate the medical records request process. Patients can request their records via WhatsApp, verify identity, and receive secure download links. Track requests and ensure compliance with healthcare regulations.",
+  "description_ar": "أتمتة عملية طلب السجلات الطبية. يمكن للمرضى طلب سجلاتهم عبر واتساب والتحقق من الهوية واستلام روابط تحميل آمنة. تتبع الطلبات وضمان الامتثال للوائح الرعاية الصحية.",
+  "domain": "clinic",
+  "roiTier": 2,
+  "annualValue": "$18,000/year",
+  "requiredIntegrations": ["whatsapp", "googlesheets", "googledrive"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Let patients request their medical records online",
+  "exampleUserInput_ar": "دع المرضى يطلبون سجلاتهم الطبية عبر الإنترنت",
+  "keywords": ["records", "medical", "request", "download", "history", "documents", "سجلات", "طبي", "طلب", "تحميل", "تاريخ", "مستندات"],
+  "dynamicParameters": {
+    "require_identity_verification": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require identity verification",
+      "label_ar": "طلب التحقق من الهوية"
+    },
+    "processing_days": {
+      "type": "number",
+      "default": 3,
+      "label": "Days to process records request",
+      "label_ar": "أيام لمعالجة طلب السجلات"
+    },
+    "link_expiry_hours": {
+      "type": "number",
+      "default": 48,
+      "label": "Hours before download link expires",
+      "label_ar": "ساعات قبل انتهاء صلاحية رابط التحميل"
+    },
+    "allow_partial_records": {
+      "type": "boolean",
+      "default": true,
+      "label": "Allow patients to request specific records only",
+      "label_ar": "السماح للمرضى بطلب سجلات محددة فقط"
+    }
+  },
+  "messages": {
+    "request_received_en": "📋 *Medical Records Request*\n\nHi {{patient_name}},\n\nWe've received your request for medical records.\n\n*Request Details:*\n📅 Date: {{timestamp}}\n📂 Type: {{record_type}}\n📝 Reference: #{{request_id}}\n\n*Processing time:* {{processing_days}} business days\n\n{{#if require_identity_verification}}*For security, please verify your identity by sending:*\n1. A photo of your Civil ID (front)\n2. Reply with your date of birth (DD/MM/YYYY){{/if}}\n\nWe'll notify you when your records are ready for download.\n\n*Questions?* Call {{clinic_phone}}",
+    "request_received_ar": "📋 *طلب السجلات الطبية*\n\nمرحباً {{patient_name}}،\n\nاستلمنا طلبك للسجلات الطبية.\n\n*تفاصيل الطلب:*\n📅 التاريخ: {{timestamp}}\n📂 النوع: {{record_type}}\n📝 المرجع: #{{request_id}}\n\n*وقت المعالجة:* {{processing_days}} أيام عمل\n\n{{#if require_identity_verification}}*للأمان، يرجى التحقق من هويتك بإرسال:*\n1. صورة من البطاقة المدنية (الأمام)\n2. رد بتاريخ ميلادك (يوم/شهر/سنة){{/if}}\n\nسنخبرك عندما تكون سجلاتك جاهزة للتحميل.\n\n*أسئلة؟* اتصل على {{clinic_phone}}",
+    "verification_success_en": "✅ *Identity Verified*\n\nThank you, {{patient_name}}!\n\nYour identity has been verified. We're now processing your records request.\n\n*Request #{{request_id}}*\n📂 Records: {{record_type}}\n⏰ Expected ready: {{expected_date}}\n\nWe'll send you a secure download link once ready.",
+    "verification_success_ar": "✅ *تم التحقق من الهوية*\n\nشكراً {{patient_name}}!\n\nتم التحقق من هويتك. نعالج الآن طلب سجلاتك.\n\n*الطلب #{{request_id}}*\n📂 السجلات: {{record_type}}\n⏰ الجاهزية المتوقعة: {{expected_date}}\n\nسنرسل لك رابط تحميل آمن عند الجاهزية.",
+    "records_ready_en": "📥 *Your Medical Records Are Ready!*\n\nHi {{patient_name}},\n\nYour requested medical records are now available for download.\n\n*Request #{{request_id}}*\n📂 Records: {{record_type}}\n📅 Date range: {{date_range}}\n\n🔗 *Secure Download Link:*\n{{download_link}}\n\n⚠️ *Important:*\n• Link expires in {{link_expiry_hours}} hours\n• Download requires your date of birth\n• Link works once per device for security\n\n*Having trouble?* Reply HELP or call {{clinic_phone}}",
+    "records_ready_ar": "📥 *سجلاتك الطبية جاهزة!*\n\nمرحباً {{patient_name}}،\n\nسجلاتك الطبية المطلوبة متاحة الآن للتحميل.\n\n*الطلب #{{request_id}}*\n📂 السجلات: {{record_type}}\n📅 الفترة: {{date_range}}\n\n🔗 *رابط التحميل الآمن:*\n{{download_link}}\n\n⚠️ *مهم:*\n• ينتهي الرابط خلال {{link_expiry_hours}} ساعة\n• التحميل يتطلب تاريخ ميلادك\n• الرابط يعمل مرة واحدة لكل جهاز للأمان\n\n*تواجه مشكلة؟* رد بـ مساعدة أو اتصل على {{clinic_phone}}",
+    "record_type_options_en": "📂 *What records do you need?*\n\nPlease reply with the number(s) of records you need:\n\n1️⃣ Complete medical history\n2️⃣ Recent visit summaries (last 12 months)\n3️⃣ Lab results only\n4️⃣ Prescription history\n5️⃣ Imaging reports (X-rays, MRI, etc.)\n6️⃣ Vaccination records\n7️⃣ Specific date range\n\nReply with numbers (e.g., \"1\" or \"2,4,6\")",
+    "record_type_options_ar": "📂 *ما السجلات التي تحتاجها؟*\n\nيرجى الرد برقم(أرقام) السجلات التي تحتاجها:\n\n1️⃣ التاريخ الطبي الكامل\n2️⃣ ملخصات الزيارات الأخيرة (آخر 12 شهر)\n3️⃣ نتائج المختبر فقط\n4️⃣ تاريخ الوصفات\n5️⃣ تقارير التصوير (أشعة، رنين، إلخ)\n6️⃣ سجلات التطعيمات\n7️⃣ فترة تاريخ محددة\n\nرد بالأرقام (مثال: \"1\" أو \"2,4,6\")",
+    "staff_request_alert_en": "📋 *New Records Request*\n\n*Patient:* {{patient_name}}\n*Request ID:* #{{request_id}}\n*Records Type:* {{record_type}}\n*Submitted:* {{timestamp}}\n*Phone:* {{patient_phone}}\n*Verification:* {{verification_status}}\n\n*Due Date:* {{due_date}}\n\n*Action Required:* Prepare and upload records to secure folder"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Records Request Received",
+        "name_ar": "استلام طلب السجلات",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "records|سجلات|medical history|تاريخ طبي"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send Record Type Options",
+        "name_ar": "إرسال خيارات نوع السجل",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.record_type_options_{{patient_language}}}}",
+            "condition": "allow_partial_records = true"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Handle Record Selection",
+        "name_ar": "معالجة اختيار السجل",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "^[1-7](,[1-7])*$"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Create Request Record",
+        "name_ar": "إنشاء سجل الطلب",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{records_requests_sheet}}",
+            "range": "Requests!A:J",
+            "values": [["{{request_id}}", "{{patient_name}}", "{{patient_phone}}", "{{record_type}}", "{{timestamp}}", "pending_verification", "", "", "", ""]]
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Confirmation & Verification Request",
+        "name_ar": "إرسال التأكيد وطلب التحقق",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.request_received_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Receive Verification",
+        "name_ar": "استلام التحقق",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "image|date_pattern"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Verify Identity",
+        "name_ar": "التحقق من الهوية",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "verify_identity",
+          "params": {
+            "patient_id": "{{patient_id}}",
+            "provided_dob": "{{message_content}}",
+            "id_image": "{{attachment_url}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Update Request Status",
+        "name_ar": "تحديث حالة الطلب",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{records_requests_sheet}}",
+            "filter": "request_id = {{request_id}}",
+            "values": {"status": "verified", "verified_at": "{{timestamp}}"}
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Verification Success",
+        "name_ar": "إرسال نجاح التحقق",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.verification_success_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Alert Staff",
+        "name_ar": "تنبيه الموظفين",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#records-requests",
+            "message": "{{messages.staff_request_alert_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Records Uploaded",
+        "name_ar": "رفع السجلات",
+        "type": "trigger",
+        "integrationId": "googledrive",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLEDRIVE_FILE_UPLOADED",
+          "action": "webhook",
+          "params": {
+            "folder_id": "{{patient_records_folder}}"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Generate Secure Link",
+        "name_ar": "إنشاء رابط آمن",
+        "type": "action",
+        "integrationId": "googledrive",
+        "dependencies": ["task_11"],
+        "config": {
+          "toolSlug": "GOOGLEDRIVE_CREATE_SHARE_LINK",
+          "action": "create",
+          "params": {
+            "file_id": "{{file_id}}",
+            "expiry_hours": "{{link_expiry_hours}}",
+            "require_password": true
+          }
+        }
+      },
+      {
+        "id": "task_13",
+        "name": "Send Download Link",
+        "name_ar": "إرسال رابط التحميل",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_12"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.records_ready_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_14",
+        "name": "Update Request Complete",
+        "name_ar": "تحديث اكتمال الطلب",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_13"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{records_requests_sheet}}",
+            "filter": "request_id = {{request_id}}",
+            "values": {"status": "completed", "completed_at": "{{timestamp}}", "download_link": "{{download_link}}"}
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["whatsapp", "googlesheets", "googledrive"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "require_identity_verification",
+      "question": "Require identity verification before providing records?",
+      "question_ar": "طلب التحقق من الهوية قبل تقديم السجلات؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "processing_days",
+      "question": "How many business days to process records requests?",
+      "question_ar": "كم يوم عمل لمعالجة طلبات السجلات؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "link_expiry_hours",
+      "question": "How many hours before download link expires?",
+      "question_ar": "كم ساعة قبل انتهاء صلاحية رابط التحميل؟",
+      "type": "number",
+      "default": 48
+    },
+    {
+      "id": "allow_partial_records",
+      "question": "Allow patients to request specific records only?",
+      "question_ar": "السماح للمرضى بطلب سجلات محددة فقط؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "recordsRetention": "10 years",
+      "privacyLaw": "Kuwait Health Data Protection"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "recordsRetention": "10 years",
+      "privacyLaw": "Saudi PDPL"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "recordsRetention": "10 years",
+      "privacyLaw": "UAE Data Protection Law"
+    }
+  }
+}

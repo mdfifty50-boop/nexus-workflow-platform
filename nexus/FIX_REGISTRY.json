@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.24",
-  "_lastUpdated": "2026-01-24",
-  "_totalFixes": 74,
+  "_version": "1.0.36",
+  "_lastUpdated": "2026-02-04",
+  "_totalFixes": 110,
 
   "fixes": [
     {
@@ -1005,6 +1005,328 @@
       "codeMarker": "@NEXUS-FIX-075",
       "testCommand": "Create a ClickUp workflow. If backend pre-flight fails, frontend fallback should still show questions for 'ClickUp List' and 'Task Name'.",
       "critical": true
+    },
+    {
+      "id": "FIX-076",
+      "date": "2026-01-31",
+      "category": "UX",
+      "title": "Double question display bug fix",
+      "problem": "Questions appeared twice in chat - once in message content and again as quick-answer buttons",
+      "solution": "Changed message type from 'analysis' to 'questions' and removed question text from content field. Questions now only appear as interactive buttons.",
+      "files": ["nexus/src/components/SmartAIChatbot.tsx"],
+      "codeMarker": "@NEXUS-FIX-076",
+      "testCommand": "Ask for a workflow - question should appear ONCE as clickable buttons, not twice",
+      "critical": true
+    },
+    {
+      "id": "FIX-077",
+      "date": "2026-01-31",
+      "category": "UX",
+      "title": "Node hover tooltip + click expand for mobile",
+      "problem": "Workflow nodes didn't show full name/description on hover or tap. No mobile-friendly way to see node details.",
+      "solution": "Added hover tooltip with full name, click/tap to expand detail panel showing description. Mobile-friendly with touch event support.",
+      "files": ["nexus/src/components/WorkflowFlowChart.tsx"],
+      "codeMarker": "@NEXUS-FIX-077",
+      "testCommand": "Hover over workflow node - see tooltip. Click/tap node - see expanded detail panel",
+      "critical": false
+    },
+    {
+      "id": "FIX-078",
+      "date": "2026-01-31",
+      "category": "Tool Mapping",
+      "title": "Google Sheets Create Spreadsheet tool support",
+      "problem": "'Create New Sheet' button failed with 'Google Sheets Setup Needed' error. Missing GOOGLESHEETS_CREATE_SPREADSHEET in fallback schemas and 'Log to Spreadsheet' not mapping to append action.",
+      "solution": "Added GOOGLESHEETS_CREATE_SPREADSHEET and GOOGLESHEETS_ADD_SHEET to FALLBACK_SCHEMAS. Enhanced buildToolSlug() to map 'log/append/write' to GOOGLESHEETS_APPEND_DATA.",
+      "files": ["nexus/server/services/PreFlightValidationService.ts"],
+      "codeMarker": "@NEXUS-FIX-078",
+      "testCommand": "Create workflow with 'Log to Spreadsheet' node - should prompt for spreadsheet ID or offer to create new",
+      "critical": true
+    },
+    {
+      "id": "FIX-079",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "WhatsApp-optimized AI responses",
+      "problem": "Nexus AI responses were too long and used unsupported markdown formatting for WhatsApp (4096 char limit, no markdown links). Also lacked Arabic language detection and Gulf dialect responses.",
+      "solution": "Added WHATSAPP RESPONSE MODE section to Nexus AI personality with: length limits (200-500 chars target), formatting rules (only *bold* and _italic_), emoji guidelines, language detection (Arabic/English), and Gulf Arabic dialect expressions (شلونك, تمام, إن شاء الله).",
+      "files": ["nexus/server/agents/index.ts", "nexus/server/routes/whatsapp-composio.ts"],
+      "codeMarker": "@NEXUS-FIX-079",
+      "testCommand": "Send message via WhatsApp webhook - AI should respond with short, formatted message in same language as input",
+      "critical": true
+    },
+    {
+      "id": "FIX-080",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "WhatsApp workflow creation via chat",
+      "problem": "Users couldn't create workflows directly from WhatsApp. Need to parse workflow intent, store pending workflows, handle confirmations in Arabic/English.",
+      "solution": "Added pending workflow state management with in-memory store (Map), confirmation/cancellation/modification keyword detection in EN/AR, workflow preview formatting for WhatsApp, and confirm/modify/cancel flow handling.",
+      "files": ["nexus/server/routes/whatsapp-composio.ts"],
+      "codeMarker": "@NEXUS-FIX-080",
+      "testCommand": "Send 'Create a workflow to email me every morning' via WhatsApp - should get preview, reply 'Yes' to create it",
+      "critical": true
+    },
+    {
+      "id": "FIX-081",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "WhatsApp AI response systemBlocks format",
+      "problem": "Claude API call failed with 'Cannot read properties of undefined (reading map)' because callClaudeWithCaching expected systemBlocks array but received systemPrompt string.",
+      "solution": "Changed processMessageWithNexus to pass systemBlocks as array format: [{ type: 'text', text: prompt }] instead of systemPrompt string. Also added debug logging for Claude response.",
+      "files": ["nexus/server/routes/whatsapp-composio.ts"],
+      "codeMarker": "systemBlocks format",
+      "testCommand": "Send any message via WhatsApp webhook - should receive AI response without 'map' error",
+      "critical": true
+    },
+    {
+      "id": "FIX-082",
+      "date": "2026-02-02",
+      "category": "UX",
+      "title": "WhatsApp recipient inputType phone not email",
+      "problem": "WhatsApp workflows showed 'email@example.com' placeholder and email validation for the 'to' parameter. GenericUXTranslator's pattern for 'to|recipient' always returned inputType:'email' regardless of toolkit.",
+      "solution": "Added toolkit-specific override in GenericUXTranslator.translate() that checks if toolkit is 'whatsapp' or 'whatsappweb' BEFORE pattern matching. Returns phone inputType with '+965 xxxx xxxx' placeholder and 'My Phone' quick action.",
+      "files": ["nexus/src/services/orchestration/GenericUXTranslator.ts"],
+      "codeMarker": "@NEXUS-FIX-073",
+      "testCommand": "Create workflow with WhatsApp integration. Quick Setup should show 'Phone Number' label with '+965 xxxx xxxx' placeholder, NOT 'Recipient' with 'email@example.com'",
+      "critical": true
+    },
+    {
+      "id": "FIX-085",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "WhatsApp connection error handling and timing fixes",
+      "problem": "WhatsApp connection showed 'Connection Failed' without details because: 1) Frontend didn't listen for server's custom 'error' event (only browser onerror), 2) State event didn't include error message when state='error', 3) Pairing code was requested before client was ready (timing issue)",
+      "solution": "1) Added eventSource.addEventListener('error') for server errors, 2) Backend now includes error in state events when state='error', 3) Pairing code flow now waits for 'qr' event before requesting code",
+      "files": ["nexus/src/components/chat/WhatsAppConnectionPrompt.tsx", "nexus/server/routes/whatsapp-web.ts"],
+      "codeMarker": "@NEXUS-FIX-085",
+      "testCommand": "Trigger WhatsApp connection failure and verify proper error message is displayed",
+      "critical": true
+    },
+    {
+      "id": "FIX-086",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "Prevent server crash on WhatsApp session initialization failure",
+      "problem": "Server crashed with ERR_UNHANDLED_ERROR when WhatsApp session failed to initialize (e.g., Puppeteer browser not found) because EventEmitter threw when 'error' event had no listeners",
+      "solution": "Added default error event listener in WhatsAppWebService constructor to handle errors gracefully without crashing",
+      "files": ["nexus/server/services/WhatsAppWebService.ts"],
+      "codeMarker": "@NEXUS-FIX-086",
+      "testCommand": "Create WhatsApp session without Puppeteer installed - server should log error but not crash",
+      "critical": true
+    },
+    {
+      "id": "FIX-094",
+      "date": "2026-02-02",
+      "category": "Workflow Execution",
+      "title": "Auto-retry mechanism fix for collected params",
+      "problem": "When user entered a missing parameter value, the auto-retry useEffect called setPhase('ready') which triggered a re-render. This caused React's cleanup function to run and cancel the setTimeout that would execute the workflow. Result: workflow reset to 'Run Beta Test' but never actually executed.",
+      "solution": "Split the auto-retry mechanism into two useEffects: (1) First effect detects param change in error state and sets a ref flag before resetting state. (2) Second effect watches for phase='ready' + flag=true and executes the workflow. The ref survives re-renders, ensuring execution happens after state settles.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-094",
+      "testCommand": "Create workflow, trigger missing param error, enter value - workflow should auto-execute, not just reset to 'Run Beta Test'",
+      "critical": true
+    },
+    {
+      "id": "FIX-095",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "Route WhatsApp messages through Baileys when QR-connected",
+      "problem": "User connects WhatsApp via QR code (Baileys library), but workflow execution tries to send via Composio's WHATSAPP_SEND_MESSAGE which requires separate Composio OAuth. Composio returns 'No connected account found for toolkit whatsapp'. The two connection methods are completely separate systems.",
+      "solution": "Added special routing in rube.ts tool execution: When toolkit is 'whatsapp' and Composio has no connection, check if we have a ready Baileys session. If yes, send message directly via whatsAppBaileysService.sendMessage() instead of Composio. This bridges the QR-based connection to the workflow execution system.",
+      "files": ["nexus/server/routes/rube.ts"],
+      "codeMarker": "@NEXUS-FIX-095",
+      "testCommand": "Connect WhatsApp via QR, execute workflow with WHATSAPP_SEND_MESSAGE - message should send via Baileys, not fail with 'No connected account'",
+      "critical": true
+    },
+    {
+      "id": "FIX-096",
+      "date": "2026-02-02",
+      "category": "WhatsApp",
+      "title": "Debug logging and additional parameter aliases for WhatsApp Baileys routing",
+      "problem": "When FIX-095 routes WhatsApp messages to Baileys, the phone number parameter might be passed under different keys (to, phone, recipient, whatsapp, phone_number, number) and message might be (message, text, body, content). Without knowing which keys are being used, debugging is impossible.",
+      "solution": "Added comprehensive debug logging in rube.ts to print all incoming arguments, and expanded parameter alias checking to handle all common naming variations for phone number and message content.",
+      "files": ["nexus/server/routes/rube.ts"],
+      "codeMarker": "@NEXUS-FIX-096",
+      "testCommand": "Execute WhatsApp workflow via Baileys, check server logs for FIX-096 debug output showing all arguments",
+      "critical": true
+    },
+    {
+      "id": "FIX-097",
+      "date": "2026-02-02",
+      "category": "Parameter Mapping",
+      "title": "Prevent placeholder values from overwriting valid phone numbers",
+      "problem": "When collecting parameters, 'whatsapp' key maps to 'to' (for phone number). If user provided phone number (+96590044104) was stored as 'to', but a later clarifying question added 'whatsapp: I'll provide a phone number', the placeholder OVERWROTE the valid phone number.",
+      "solution": "Added detection of placeholder values (contains 'I'll provide', 'provide a', 'enter a', 'select', or empty). Before overwriting, check if existing value is valid data (starts with +, contains @, or starts with digit). If existing is valid and new is placeholder, skip the overwrite.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-097",
+      "testCommand": "Create WhatsApp workflow with phone number in original message - phone should NOT be overwritten by clarifying question placeholder",
+      "critical": true
+    },
+    {
+      "id": "FIX-098",
+      "date": "2026-02-02",
+      "category": "WhatsApp Baileys",
+      "title": "Fix Baileys sendMessage return type handling",
+      "problem": "WhatsAppBaileysService.sendMessage() returns a WhatsAppMessage object (with id, status, etc.), but rube.ts was treating the return value as {success: boolean, messageId: string, error: string}. Since sendResult.success was undefined (falsy), execution was always marked as failed even when message was sent successfully.",
+      "solution": "Changed to use try/catch pattern. Success is determined by whether sendMessage() throws. On success, return true with the WhatsAppMessage fields (id → messageId, status, timestamp). On error, catch and return the error message.",
+      "files": ["nexus/server/routes/rube.ts"],
+      "codeMarker": "@NEXUS-FIX-098",
+      "testCommand": "Execute WhatsApp workflow - should show 'Complete' status after message sent, not 'Failed'",
+      "critical": true
+    },
+    {
+      "id": "FIX-099",
+      "date": "2026-02-03",
+      "category": "UX",
+      "title": "NodeTooltip full description + touch-friendly mobile support",
+      "problem": "Node tooltips in WorkflowPreviewCard only showed node.name and node.integration, but NOT node.description which exists in the interface. Additionally, CSS group-hover doesn't work on touch devices, so mobile users couldn't see tooltip content at all.",
+      "solution": "Three-part fix: (1) Added node.description rendering inside NodeTooltip after integration name. (2) Added onTouchStart/onTouchEnd handlers to MiniNodeHorizontal and MiniNodeVertical that show tooltip on touch and auto-hide after 2 seconds. (3) Increased touch targets to minimum 44x44px for iOS/Android accessibility compliance. Added aria-label for screen readers.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-099",
+      "testCommand": "Hover over workflow node on desktop - should show full name + description. Tap node on mobile - tooltip appears for 2 seconds.",
+      "critical": true
+    },
+    {
+      "id": "FIX-100",
+      "date": "2026-02-03",
+      "category": "Pre-Flight",
+      "title": "Semantic parameter deduplication for Quick Setup questions",
+      "problem": "Quick Setup asked the same question multiple times (5 out of 8) because questions from different sources used different parameter names for the same semantic meaning. For example, 'message', 'text', 'content', 'body', 'notification_details' all mean the same thing but were treated as separate parameters.",
+      "solution": "Three-part fix: (1) Added PARAM_ALIASES constant mapping semantic equivalents (text↔message↔content↔body, to↔recipient, channel↔slack_channel, etc.). (2) Added isParamSemanticallycollected() function that checks if a parameter is already collected under any alias. (3) Added getCanonicalParamName() to group parameters by semantic meaning and deduplicate when merging static and orchestration questions.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-100",
+      "testCommand": "Create workflow with multiple text/message fields - Quick Setup should only ask ONCE for message content, not multiple times for message/text/content/body.",
+      "critical": true
+    },
+    {
+      "id": "FIX-101",
+      "date": "2026-02-03",
+      "category": "Chat Mode",
+      "title": "Think with me mode - focused problem-solving chat mode",
+      "problem": "Users wanted a chat mode focused on problem-solving that asks precise questions rather than immediately generating workflows, especially for complex issues requiring detailed understanding.",
+      "solution": "Added 'Think with me' chat mode: (1) New dropdown under 'New Chat' button in SidebarNavigation with two options. (2) ChatContainer stores chatMode state and shows purple visual indicator badge. (3) NexusAIService passes chatMode to backend. (4) server/routes/chat.ts extracts chatMode and prepends THINK_WITH_ME_DIRECTIVE to system prompt when mode is 'think_with_me'. The directive enforces: always ask 2-3 questions first, no workflow until confidence >0.85, direct questions without fluff.",
+      "files": [
+        "nexus/src/components/chat/SidebarNavigation.tsx",
+        "nexus/src/components/chat/ChatContainer.tsx",
+        "nexus/src/services/NexusAIService.ts",
+        "nexus/server/routes/chat.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-101",
+      "testCommand": "Click 'New Chat' dropdown, select 'Think with me', send vague message like 'help me automate my business' - Nexus should ask focused questions instead of generating workflow.",
+      "critical": false
+    },
+    {
+      "id": "FIX-102",
+      "date": "2026-02-03",
+      "category": "AI Response",
+      "title": "Enhanced vagueness detection for clarifying questions",
+      "problem": "In standard chat mode, Nexus sometimes generated workflows for vague requests instead of asking clarifying questions first, leading to inaccurate workflows.",
+      "solution": "Enhanced Phase 1 vagueness detection in agents/index.ts with explicit trigger patterns: (1) Generic verbs without specifics (automate, help, manage, track, handle, streamline, optimize). (2) Missing specifics (no tool/data source/destination mentioned). (3) Vague scope references (my emails, my files, customer data, everything). (4) Ambiguous timing (regularly, when needed, sometimes, automatically without trigger). Added concrete examples showing when Phase 1 questions are required.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-102",
+      "testCommand": "Send vague message like 'Help me with emails' in standard chat - Nexus should ask clarifying questions before generating any workflow.",
+      "critical": false
+    },
+    {
+      "id": "FIX-103",
+      "date": "2026-02-04",
+      "category": "Mobile UX",
+      "title": "Unified horizontal scroll for identical mobile/desktop experience",
+      "problem": "Mobile and desktop had different node layouts - desktop used horizontal scroll with MiniNodeHorizontal while mobile used vertical list with MiniNodeVertical. User requested IDENTICAL experience across all devices.",
+      "solution": "Unified node display to use horizontal scroll with MiniNodeHorizontal on ALL screen sizes. Added snap-x snap-mandatory touch-pan-x for smooth touch scrolling. Made node cards responsive with smaller padding/fonts on mobile (gap-1.5 sm:gap-2, px-2 sm:px-3, text-[10px] sm:text-xs, max-w-[80px] sm:max-w-[120px]). Connector arrows also made smaller on mobile (w-5 sm:w-8).",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-103",
+      "testCommand": "View workflow card on mobile - should show horizontal scrolling nodes (swipe left/right) identical to desktop layout.",
+      "critical": true
+    },
+    {
+      "id": "FIX-104",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "Hide MissingInfoSection when Quick Setup has questions",
+      "problem": "Duplicate questions appeared because two separate question systems (MissingInfoSection 'Quick Question' and PreFlightParamCollector 'Quick Setup') could render simultaneously, showing questions from both AI response and orchestration that may be semantically identical.",
+      "solution": "Added conditional rendering to hide MissingInfoSection when preFlightResult.questions has questions. Now only ONE question section shows at a time, eliminating visual duplication.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-104",
+      "testCommand": "Create any workflow - should show ONLY Quick Setup OR Quick Question, never both. No duplicate questions visible.",
+      "critical": true
+    },
+    {
+      "id": "FIX-105",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "Semantic deduplication within MissingInfoSection",
+      "problem": "Even within MissingInfoSection, questions could be semantically duplicated (e.g., 'text' and 'message' are the same concept but shown as separate questions).",
+      "solution": "Added semantic deduplication using getCanonicalParamName() with PARAM_ALIASES mapping. Questions like 'text', 'message', 'content' are now recognized as the same canonical field and only one is shown.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-105",
+      "testCommand": "Create workflow with multiple text parameters - should show only ONE question for semantically equivalent fields.",
+      "critical": true
+    },
+    {
+      "id": "FIX-106",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "Cross-node question deduplication in PreFlightValidationService",
+      "problem": "Questions from different workflow nodes that are semantically identical (e.g., 'slack_channel' from node 1 and 'channel' from node 2) were both being asked, causing duplicates.",
+      "solution": "Added deduplicateQuestions() function in PreFlightValidationService that normalizes question keys using the same PARAM_ALIASES logic as the frontend, ensuring cross-node semantic equivalents are merged before sending to UI.",
+      "files": ["nexus/server/services/PreFlightValidationService.ts"],
+      "codeMarker": "@NEXUS-FIX-106",
+      "testCommand": "Create workflow with Gmail→Dropbox→Slack - should NOT ask about 'channel' twice even if different nodes request it.",
+      "critical": true
+    },
+    {
+      "id": "FIX-107",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "Space-to-underscore normalization for parameter matching",
+      "problem": "Parameters like 'slack channel' (with space) weren't matching 'slack_channel' (with underscore) during deduplication, causing false non-matches.",
+      "solution": "Added space-to-underscore normalization in both PreFlightValidationService.deduplicateQuestions() and WorkflowPreviewCard's isAlreadyCollected(), ensuring 'slack channel' and 'slack_channel' are treated as equivalent.",
+      "files": ["nexus/server/services/PreFlightValidationService.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-107",
+      "testCommand": "Create workflow - verify 'slack channel' and 'slack_channel' are not asked separately.",
+      "critical": true
+    },
+    {
+      "id": "FIX-108",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "MissingInfoSection collectedParams integration",
+      "problem": "MissingInfoSection component wasn't receiving collectedParams, so it couldn't filter out already-answered questions from its display.",
+      "solution": "Pass collectedParams to MissingInfoSection via props, and add filtering logic using isAlreadyCollected() to skip questions that were already answered in Quick Setup.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-108",
+      "testCommand": "Answer 'channel' in Quick Setup - MissingInfoSection should NOT show 'slack_channel' question afterward.",
+      "critical": true
+    },
+    {
+      "id": "FIX-109",
+      "date": "2026-02-04",
+      "category": "UX",
+      "title": "Path/folder alias mapping for storage destinations",
+      "problem": "User answered 'path' = '/Documents' in Quick Setup but MissingInfo still asked about 'folder' because they weren't aliased.",
+      "solution": "Added bidirectional path ↔ folder aliases to PARAM_ALIASES: path aliases to ['folder', 'folder_path', 'directory', etc.] and folder aliases to ['path', 'folder_path', etc.].",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-109",
+      "testCommand": "Create Dropbox workflow, answer 'path' question - should NOT be asked about 'folder' separately.",
+      "critical": true
+    },
+    {
+      "id": "FIX-110",
+      "date": "2026-02-04",
+      "category": "Email",
+      "title": "Welcome email system for new users",
+      "problem": "New users didn't receive any welcome email after signing up.",
+      "solution": "Created EmailService with Resend integration, welcome email template with Nexus branding and feature overview, webhook trigger on user.created event, and database tracking for sent emails.",
+      "files": [
+        "nexus/server/services/EmailService.ts",
+        "nexus/server/routes/webhooks.ts",
+        "nexus/server/services/userProfile.ts",
+        "nexus/supabase/migrations/20260204_004_welcome_email_tracking.sql"
+      ],
+      "codeMarker": "@NEXUS-FIX-110",
+      "testCommand": "Sign up new user with Clerk - should receive welcome email with Nexus branding.",
+      "critical": true
     }
   ],
 
@@ -1022,7 +1344,12 @@
     },
     {
       "path": "nexus/server/agents/index.ts",
-      "reason": "Contains Nexus AI personality and response format fixes",
+      "reason": "Contains Nexus AI personality and response format fixes - FIX-012, FIX-015, FIX-016, FIX-079, FIX-102",
+      "warningThreshold": 30
+    },
+    {
+      "path": "nexus/server/routes/chat.ts",
+      "reason": "Contains Think with me mode directive - FIX-101",
       "warningThreshold": 30
     },
     {
@@ -1039,6 +1366,33 @@
       "path": "nexus/src/pages/Integrations.tsx",
       "reason": "Contains FIX-046 for real connection status",
       "warningThreshold": 20
+    },
+    {
+      "path": "nexus/server/services/WhatsAppBaileysService.ts",
+      "reason": "Core Baileys WhatsApp integration - FIX-092, FIX-093",
+      "warningThreshold": 30,
+      "note": "DO NOT modify session/QR handling without testing"
+    },
+    {
+      "path": "nexus/server/routes/whatsapp-web.ts",
+      "reason": "Baileys routing and SSE streaming - FIX-091",
+      "warningThreshold": 20
+    },
+    {
+      "path": "nexus/server/routes/rube.ts",
+      "reason": "WhatsApp execution routing - FIX-095, FIX-096, FIX-098",
+      "warningThreshold": 50,
+      "note": "Contains critical WhatsApp Baileys routing logic"
+    },
+    {
+      "path": "nexus/src/components/chat/WhatsAppConnectionPrompt.tsx",
+      "reason": "QR/Pairing code UI for workflow cards - mobile-ready",
+      "warningThreshold": 20
+    },
+    {
+      "path": "nexus/src/hooks/useWhatsAppWeb.ts",
+      "reason": "SSE and session management hook",
+      "warningThreshold": 15
     }
   ],
 

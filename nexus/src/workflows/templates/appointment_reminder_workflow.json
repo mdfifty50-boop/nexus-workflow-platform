@@ -1,0 +1,336 @@
+{
+  "id": "appointment_reminder_workflow",
+  "name": "Appointment Reminder Chain",
+  "name_ar": "سلسلة تذكير المواعيد",
+  "description": "Multi-level appointment reminder system: immediate confirmation, 24-hour reminder, 2-hour reminder, and post-appointment feedback. Reduces no-shows and improves patient satisfaction for clinics and healthcare providers.",
+  "description_ar": "نظام تذكير متعدد المستويات: تأكيد فوري، تذكير قبل 24 ساعة، تذكير قبل ساعتين، وطلب التقييم بعد الموعد. يقلل من حالات عدم الحضور ويحسن رضا المرضى.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$53,040/doctor",
+  "requiredIntegrations": ["whatsapp", "gmail", "googlecalendar", "slack"],
+  "optionalIntegrations": ["notion", "typeform"],
+  "exampleUserInput": "Send appointment reminders to my patients automatically",
+  "exampleUserInput_ar": "أرسل تذكيرات المواعيد لمرضاي تلقائياً",
+  "keywords": ["appointment", "reminder", "patient", "doctor", "clinic", "healthcare", "medical", "booking", "confirmation", "no-show", "feedback", "schedule", "visit", "موعد", "تذكير", "مريض", "طبيب", "عيادة", "حجز", "تأكيد", "زيارة", "صحي"],
+  "dynamicParameters": {
+    "reminder_24h_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send 24-hour reminder",
+      "label_ar": "إرسال تذكير قبل 24 ساعة",
+      "required": false
+    },
+    "reminder_2h_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send 2-hour reminder",
+      "label_ar": "إرسال تذكير قبل ساعتين",
+      "required": false
+    },
+    "feedback_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Request feedback after appointment",
+      "label_ar": "طلب التقييم بعد الموعد",
+      "required": false
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    },
+    "waitlist_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Enable waitlist for cancellations",
+      "label_ar": "تفعيل قائمة الانتظار للإلغاءات",
+      "description": "Automatically notify waitlist patients when a slot opens"
+    },
+    "appointment_duration": {
+      "type": "number",
+      "default": 30,
+      "label": "Default appointment duration (minutes)",
+      "label_ar": "مدة الموعد الافتراضية (دقائق)"
+    }
+  },
+  "messages": {
+    "confirmation_en": "✅ Appointment Confirmed!\n\nDear {{patient_name}},\n\nYour appointment is scheduled:\n\n📅 Date: {{appointment_date}}\n⏰ Time: {{appointment_time}}\n👨‍⚕️ Doctor: {{doctor_name}}\n🏥 Clinic: {{clinic_name}}\n📍 Location: {{location}}\n⏱️ Duration: {{duration}} minutes\n\nYou'll receive reminders:\n- 24 hours before\n- 2 hours before\n\nReply CANCEL to cancel or RESCHEDULE to change your time.\n\nThank you!",
+    "confirmation_ar": "✅ تم تأكيد الموعد!\n\nعزيزي/عزيزتي {{patient_name}}،\n\nتم حجز موعدك:\n\n📅 التاريخ: {{appointment_date}}\n⏰ الوقت: {{appointment_time}}\n👨‍⚕️ الطبيب: {{doctor_name}}\n🏥 العيادة: {{clinic_name}}\n📍 الموقع: {{location}}\n⏱️ المدة: {{duration}} دقيقة\n\nستتلقى تذكيرات:\n- قبل 24 ساعة\n- قبل ساعتين\n\nأرسل إلغاء لإلغاء الموعد أو تغيير لتغيير الوقت.\n\nشكراً لك!",
+    "confirmation_bilingual": "✅ Appointment Confirmed! / تم تأكيد الموعد!\n\n{{patient_name}},\n\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n👨‍⚕️ {{doctor_name}}\n🏥 {{clinic_name}}\n📍 {{location}}\n\nReminders at 24h & 2h before.\nستتلقى تذكيرات قبل 24 ساعة وساعتين.\n\nCANCEL / إلغاء | RESCHEDULE / تغيير",
+    "reminder_24h_en": "📅 Appointment Tomorrow!\n\nDear {{patient_name}},\n\nThis is a reminder that you have an appointment tomorrow:\n\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n👨‍⚕️ {{doctor_name}}\n📍 {{location}}\n\n📋 Please bring:\n- Photo ID\n- Insurance card\n- Relevant medical records\n\nReply CONFIRM to confirm or CANCEL to cancel.",
+    "reminder_24h_ar": "📅 موعدك غداً!\n\nعزيزي/عزيزتي {{patient_name}}،\n\nهذا تذكير بأن لديك موعد غداً:\n\n📅 {{appointment_date}}\n⏰ {{appointment_time}}\n👨‍⚕️ {{doctor_name}}\n📍 {{location}}\n\n📋 يرجى إحضار:\n- بطاقة الهوية\n- بطاقة التأمين\n- السجلات الطبية المتعلقة\n\nأرسل تأكيد للتأكيد أو إلغاء للإلغاء.",
+    "reminder_2h_en": "⏰ Your appointment is in 2 hours!\n\n👨‍⚕️ {{doctor_name}}\n📍 {{location}}\n⏰ {{appointment_time}}\n\n🚗 Please start heading to the clinic now.\n\nSee you soon!",
+    "reminder_2h_ar": "⏰ موعدك خلال ساعتين!\n\n👨‍⚕️ {{doctor_name}}\n📍 {{location}}\n⏰ {{appointment_time}}\n\n🚗 يرجى التوجه إلى العيادة الآن.\n\nنراك قريباً!",
+    "feedback_en": "🌟 How was your visit?\n\nDear {{patient_name}},\n\nThank you for visiting {{clinic_name}} today!\n\nPlease rate your experience with Dr. {{doctor_name}}:\n\n1️⃣ ⭐ Needs Improvement\n2️⃣ ⭐⭐ Fair\n3️⃣ ⭐⭐⭐ Good\n4️⃣ ⭐⭐⭐⭐ Very Good\n5️⃣ ⭐⭐⭐⭐⭐ Excellent\n\nReply with a number (1-5).\n\nYour feedback helps us improve!",
+    "feedback_ar": "🌟 كيف كانت زيارتك؟\n\nعزيزي/عزيزتي {{patient_name}}،\n\nشكراً لزيارتك {{clinic_name}} اليوم!\n\nيرجى تقييم تجربتك مع د. {{doctor_name}}:\n\n1️⃣ ⭐ يحتاج تحسين\n2️⃣ ⭐⭐ مقبول\n3️⃣ ⭐⭐⭐ جيد\n4️⃣ ⭐⭐⭐⭐ جيد جداً\n5️⃣ ⭐⭐⭐⭐⭐ ممتاز\n\nأرسل رقم (1-5).\n\nتقييمك يساعدنا على التحسين!",
+    "waitlist_available_en": "🎉 Good news! An appointment slot has opened up.\n\n📅 {{available_date}}\n⏰ {{available_time}}\n👨‍⚕️ {{doctor_name}}\n\nWould you like to book this slot?\nReply YES to confirm or NO to stay on the waitlist.",
+    "waitlist_available_ar": "🎉 أخبار سارة! موعد متاح الآن.\n\n📅 {{available_date}}\n⏰ {{available_time}}\n👨‍⚕️ {{doctor_name}}\n\nهل تريد حجز هذا الموعد؟\nأرسل نعم للتأكيد أو لا للبقاء في قائمة الانتظار."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "New Appointment Booked (Trigger)",
+        "name_ar": "حجز موعد جديد (محفز)",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_WATCH_EVENTS",
+          "action": "webhook",
+          "params": {
+            "description": "Triggers when a new appointment is added to the calendar",
+            "calendarId": "{{doctor_calendar_id}}",
+            "eventType": "created"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send Immediate WhatsApp Confirmation",
+        "name_ar": "إرسال تأكيد واتساب فوري",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.confirmation_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Email Confirmation",
+        "name_ar": "إرسال تأكيد البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{patient_email}}",
+            "subject": "Appointment Confirmed - {{appointment_date}} at {{appointment_time}} / تأكيد الموعد",
+            "body": "{{messages.confirmation_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Log Confirmation in Slack",
+        "name_ar": "تسجيل التأكيد في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#appointments",
+            "message": "📅 *New Appointment Booked / موعد جديد*\n\n*Patient / المريض:* {{patient_name}}\n*Date / التاريخ:* {{appointment_date}} at {{appointment_time}}\n*Doctor / الطبيب:* {{doctor_name}}\n*Type / النوع:* {{appointment_type}}\n\nConfirmation sent via WhatsApp and Email."
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "24-Hour Reminder Check (Trigger)",
+        "name_ar": "فحص تذكير 24 ساعة (محفز)",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * *",
+            "description": "Daily check at 9 AM for appointments tomorrow",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send 24-Hour WhatsApp Reminder",
+        "name_ar": "إرسال تذكير واتساب 24 ساعة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.reminder_24h_{{language}}}}",
+            "description": "Sent 24 hours before appointment"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "2-Hour Reminder Check (Trigger)",
+        "name_ar": "فحص تذكير ساعتين (محفز)",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "interval",
+          "params": {
+            "interval": 30,
+            "unit": "minutes",
+            "description": "Check every 30 minutes for appointments in 2 hours"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send 2-Hour WhatsApp Reminder",
+        "name_ar": "إرسال تذكير واتساب ساعتين",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.reminder_2h_{{language}}}}",
+            "description": "Sent 2 hours before appointment"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Post-Appointment Feedback (Trigger)",
+        "name_ar": "تقييم ما بعد الموعد (محفز)",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "interval",
+          "params": {
+            "interval": 1,
+            "unit": "hours",
+            "description": "Check hourly for completed appointments"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Feedback Request",
+        "name_ar": "إرسال طلب التقييم",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.feedback_{{language}}}}",
+            "description": "Sent after appointment completes"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Handle Cancellation - Notify Waitlist",
+        "name_ar": "معالجة الإلغاء - إشعار قائمة الانتظار",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{waitlist_patient_phone}}",
+            "message": "{{messages.waitlist_available_{{language}}}}",
+            "description": "Sent to waitlist when slot opens",
+            "condition": "waitlist_enabled === true && waitlist.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Log Feedback in Slack",
+        "name_ar": "تسجيل التقييم في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_10"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#patient-feedback",
+            "message": "⭐ *Patient Feedback Received / تقييم مريض*\n\n*Patient / المريض:* {{patient_name}}\n*Doctor / الطبيب:* {{doctor_name}}\n*Date / التاريخ:* {{appointment_date}}\n*Rating / التقييم:* {{rating_stars}}\n\n{{#if rating_comment}}*Comment / تعليق:* {{rating_comment}}{{/if}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["whatsapp", "gmail", "googlecalendar", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_24h_enabled",
+      "question": "Would you like to send a reminder 24 hours before?",
+      "question_ar": "هل تريد إرسال تذكير قبل 24 ساعة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "feedback_enabled",
+      "question": "Would you like to request feedback after appointments?",
+      "question_ar": "هل تريد طلب التقييم بعد المواعيد؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "waitlist_enabled",
+      "question": "Enable waitlist to fill cancelled slots?",
+      "question_ar": "تفعيل قائمة الانتظار لملء المواعيد الملغاة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "What language should messages be in?",
+      "question_ar": "بأي لغة يجب إرسال الرسائل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "20:00"},
+      "defaultLanguage": "bilingual",
+      "insuranceProviders": ["AFYA", "Gulf Insurance", "Warba Insurance", "KIC"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "21:00"},
+      "defaultLanguage": "arabic",
+      "insuranceProviders": ["Bupa Arabia", "Tawuniya", "Medgulf"]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "08:00", "end": "20:00"},
+      "defaultLanguage": "english",
+      "insuranceProviders": ["Daman", "Dubai Insurance", "ADNIC"]
+    }
+  }
+}

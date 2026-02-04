@@ -1,0 +1,314 @@
+{
+  "id": "vaccination_reminder",
+  "name": "Vaccination Reminder System",
+  "name_ar": "نظام تذكير التطعيمات",
+  "description": "Automate vaccination reminders for patients of all ages. Track immunization schedules, send timely reminders for due vaccines, and maintain compliance with MOH vaccination requirements.",
+  "description_ar": "أتمتة تذكيرات التطعيم للمرضى من جميع الأعمار. تتبع جداول التحصين وإرسال تذكيرات في الوقت المناسب للقاحات المستحقة والحفاظ على الامتثال لمتطلبات وزارة الصحة.",
+  "domain": "clinic",
+  "roiTier": 2,
+  "annualValue": "$22,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Send vaccination reminders to patients",
+  "exampleUserInput_ar": "أرسل تذكيرات التطعيم للمرضى",
+  "keywords": ["vaccination", "vaccine", "immunization", "booster", "flu", "shot", "تطعيم", "لقاح", "تحصين", "جرعة منشطة", "إنفلونزا", "حقنة"],
+  "dynamicParameters": {
+    "reminder_days_before": {
+      "type": "number",
+      "default": 14,
+      "label": "Days before due date to send reminder",
+      "label_ar": "أيام قبل تاريخ الاستحقاق لإرسال التذكير"
+    },
+    "include_pediatric": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include pediatric vaccination schedule",
+      "label_ar": "تضمين جدول تطعيمات الأطفال"
+    },
+    "seasonal_flu_campaign": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send seasonal flu vaccine reminders",
+      "label_ar": "إرسال تذكيرات لقاح الإنفلونزا الموسمية"
+    },
+    "track_compliance": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track vaccination compliance rates",
+      "label_ar": "تتبع معدلات الامتثال للتطعيم"
+    }
+  },
+  "messages": {
+    "vaccine_due_en": "💉 *Vaccination Reminder*\n\nHi {{patient_name}},\n\n{{#if is_child}}Your child {{child_name}} is{{else}}You are{{/if}} due for a vaccination!\n\n*Vaccine:* {{vaccine_name}}\n📅 *Due Date:* {{due_date}}\n📋 *Dose:* {{dose_number}} of {{total_doses}}\n\n*Why it's important:*\n{{vaccine_importance}}\n\n*Ready to schedule?*\n1️⃣ Yes, show available times\n2️⃣ Already vaccinated elsewhere\n3️⃣ Remind me next week\n4️⃣ Questions about the vaccine\n\nReply 1, 2, 3, or 4.\n\n📞 Questions? Call {{clinic_phone}}",
+    "vaccine_due_ar": "💉 *تذكير بالتطعيم*\n\nمرحباً {{patient_name}}،\n\n{{#if is_child}}طفلك {{child_name}} موعد{{else}}موعد{{/if}} تطعيم!\n\n*اللقاح:* {{vaccine_name}}\n📅 *تاريخ الاستحقاق:* {{due_date}}\n📋 *الجرعة:* {{dose_number}} من {{total_doses}}\n\n*لماذا هو مهم:*\n{{vaccine_importance}}\n\n*مستعد للجدولة؟*\n1️⃣ نعم، أظهر الأوقات المتاحة\n2️⃣ تم التطعيم في مكان آخر\n3️⃣ ذكرني الأسبوع القادم\n4️⃣ أسئلة عن اللقاح\n\nرد بـ 1 أو 2 أو 3 أو 4.\n\n📞 أسئلة؟ اتصل على {{clinic_phone}}",
+    "appointment_scheduled_en": "✅ *Vaccination Appointment Scheduled*\n\n{{#if is_child}}Great! {{child_name}}'s{{else}}Your{{/if}} vaccination appointment is confirmed:\n\n💉 *Vaccine:* {{vaccine_name}}\n📅 *Date:* {{appointment_date}}\n⏰ *Time:* {{appointment_time}}\n📍 *Location:* {{clinic_name}}\n\n*Please bring:*\n• Vaccination record booklet\n• Civil ID {{#if is_child}}(child and parent){{/if}}\n• Insurance card\n\n{{#if pre_vaccination_instructions}}*Before the appointment:*\n{{pre_vaccination_instructions}}{{/if}}\n\nSee you then! 💙",
+    "appointment_scheduled_ar": "✅ *تم جدولة موعد التطعيم*\n\n{{#if is_child}}رائع! تم تأكيد موعد تطعيم {{child_name}}:{{else}}تم تأكيد موعد تطعيمك:{{/if}}\n\n💉 *اللقاح:* {{vaccine_name}}\n📅 *التاريخ:* {{appointment_date}}\n⏰ *الوقت:* {{appointment_time}}\n📍 *الموقع:* {{clinic_name}}\n\n*يرجى إحضار:*\n• دفتر سجل التطعيمات\n• البطاقة المدنية {{#if is_child}}(الطفل والوالد){{/if}}\n• بطاقة التأمين\n\n{{#if pre_vaccination_instructions}}*قبل الموعد:*\n{{pre_vaccination_instructions}}{{/if}}\n\nنراك حينها! 💙",
+    "post_vaccination_en": "✅ *Vaccination Complete!*\n\nThank you for getting {{#if is_child}}{{child_name}}{{else}}yourself{{/if}} vaccinated today!\n\n💉 *Vaccine:* {{vaccine_name}}\n📅 *Date:* {{vaccination_date}}\n📋 *Dose:* {{dose_number}} of {{total_doses}}\n\n{{#if next_dose_date}}*Next Dose Due:* {{next_dose_date}}\nWe'll remind you when it's time!{{/if}}\n\n*What to expect:*\n{{post_vaccination_info}}\n\n⚠️ *Contact us immediately if you notice:*\n{{warning_signs}}\n\n📞 Emergency: {{clinic_phone}}",
+    "post_vaccination_ar": "✅ *تم التطعيم!*\n\nشكراً لتطعيم {{#if is_child}}{{child_name}}{{else}}نفسك{{/if}} اليوم!\n\n💉 *اللقاح:* {{vaccine_name}}\n📅 *التاريخ:* {{vaccination_date}}\n📋 *الجرعة:* {{dose_number}} من {{total_doses}}\n\n{{#if next_dose_date}}*موعد الجرعة التالية:* {{next_dose_date}}\nسنذكرك عندما يحين الوقت!{{/if}}\n\n*ما يمكن توقعه:*\n{{post_vaccination_info}}\n\n⚠️ *اتصل بنا فوراً إذا لاحظت:*\n{{warning_signs}}\n\n📞 الطوارئ: {{clinic_phone}}",
+    "flu_campaign_en": "🍂 *Flu Season Vaccination*\n\nHi {{patient_name}},\n\nFlu season is approaching! Protect yourself and your family with the annual flu vaccine.\n\n*Why get the flu shot?*\n• Reduces risk of flu illness\n• Prevents serious complications\n• Protects vulnerable family members\n\n*Especially recommended for:*\n• Adults 50+\n• Children under 5\n• Pregnant women\n• People with chronic conditions\n\n*Ready to schedule?*\n1️⃣ Yes, book my flu shot\n2️⃣ Schedule for my family\n3️⃣ Not interested this year\n\nReply 1, 2, or 3.\n\n💉 Flu vaccines available now at {{clinic_name}}!",
+    "flu_campaign_ar": "🍂 *تطعيم موسم الإنفلونزا*\n\nمرحباً {{patient_name}}،\n\nموسم الإنفلونزا يقترب! احمِ نفسك وعائلتك بلقاح الإنفلونزا السنوي.\n\n*لماذا تأخذ لقاح الإنفلونزا؟*\n• يقلل خطر الإصابة بالإنفلونزا\n• يمنع المضاعفات الخطيرة\n• يحمي أفراد الأسرة المعرضين للخطر\n\n*موصى به خاصة لـ:*\n• البالغين 50+\n• الأطفال تحت 5\n• النساء الحوامل\n• الأشخاص ذوي الحالات المزمنة\n\n*مستعد للجدولة؟*\n1️⃣ نعم، احجز لقاح الإنفلونزا\n2️⃣ جدولة لعائلتي\n3️⃣ غير مهتم هذا العام\n\nرد بـ 1 أو 2 أو 3.\n\n💉 لقاحات الإنفلونزا متاحة الآن في {{clinic_name}}!",
+    "vaccine_info_en": "ℹ️ *About {{vaccine_name}}*\n\n*What it protects against:*\n{{protection_info}}\n\n*Who should get it:*\n{{eligibility_info}}\n\n*Common side effects:*\n{{side_effects}}\n\n*Duration of protection:*\n{{protection_duration}}\n\n*MOH Recommendation:*\n{{moh_recommendation}}\n\n*Have more questions?*\nSpeak with our healthcare team: {{clinic_phone}}\n\nReady to schedule? Reply SCHEDULE",
+    "vaccine_info_ar": "ℹ️ *عن {{vaccine_name}}*\n\n*مما يحمي:*\n{{protection_info}}\n\n*من يجب أن يأخذه:*\n{{eligibility_info}}\n\n*الآثار الجانبية الشائعة:*\n{{side_effects}}\n\n*مدة الحماية:*\n{{protection_duration}}\n\n*توصية وزارة الصحة:*\n{{moh_recommendation}}\n\n*لديك أسئلة أخرى؟*\nتحدث مع فريقنا الطبي: {{clinic_phone}}\n\nمستعد للجدولة؟ رد بـ جدولة"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Vaccine Check",
+        "name_ar": "فحص اللقاحات اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0-4",
+            "description": "Daily check for due vaccinations",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Patients Due for Vaccine",
+        "name_ar": "الحصول على المرضى المستحقين للقاح",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{vaccination_schedule_sheet}}",
+            "range": "Schedule!A:M",
+            "filter": "next_due_date <= TODAY() + {{reminder_days_before}} AND status = 'pending'"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Vaccine Reminder",
+        "name_ar": "إرسال تذكير اللقاح",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.vaccine_due_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Handle Patient Response",
+        "name_ar": "معالجة رد المريض",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3|4|SCHEDULE|جدولة"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Schedule Vaccination Appointment",
+        "name_ar": "جدولة موعد التطعيم",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "calendar_id": "{{vaccination_calendar}}",
+            "summary": "Vaccination: {{vaccine_name}} - {{patient_name}}",
+            "duration": "15",
+            "condition": "response = 1"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Appointment Confirmation",
+        "name_ar": "إرسال تأكيد الموعد",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.appointment_scheduled_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Vaccine Info",
+        "name_ar": "إرسال معلومات اللقاح",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.vaccine_info_{{patient_language}}}}",
+            "condition": "response = 4"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Update External Vaccination",
+        "name_ar": "تحديث التطعيم الخارجي",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{vaccination_schedule_sheet}}",
+            "filter": "patient_id = {{patient_id}} AND vaccine_id = {{vaccine_id}}",
+            "values": {"status": "completed_external", "notes": "Vaccinated elsewhere"},
+            "condition": "response = 2"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Vaccination Complete Trigger",
+        "name_ar": "مشغل اكتمال التطعيم",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_UPDATED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{vaccination_schedule_sheet}}",
+            "filter": "status = 'completed'"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Post-Vaccination Info",
+        "name_ar": "إرسال معلومات ما بعد التطعيم",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.post_vaccination_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Flu Campaign Trigger",
+        "name_ar": "مشغل حملة الإنفلونزا",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 1 9,10 *",
+            "description": "Flu campaign in September/October",
+            "timezone": "{{timezone}}",
+            "condition": "seasonal_flu_campaign = true"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Send Flu Campaign Message",
+        "name_ar": "إرسال رسالة حملة الإنفلونزا",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_11"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.flu_campaign_{{patient_language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_days_before",
+      "question": "How many days before vaccine due date to send reminder?",
+      "question_ar": "كم يوم قبل تاريخ استحقاق اللقاح لإرسال التذكير؟",
+      "type": "number",
+      "default": 14
+    },
+    {
+      "id": "include_pediatric",
+      "question": "Include pediatric vaccination schedule reminders?",
+      "question_ar": "تضمين تذكيرات جدول تطعيمات الأطفال؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "seasonal_flu_campaign",
+      "question": "Send seasonal flu vaccination campaign messages?",
+      "question_ar": "إرسال رسائل حملة التطعيم ضد الإنفلونزا الموسمية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "track_compliance",
+      "question": "Track and report vaccination compliance rates?",
+      "question_ar": "تتبع والإبلاغ عن معدلات الامتثال للتطعيم؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "vaccinationProgram": "Kuwait National Immunization Program"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "vaccinationProgram": "Saudi National Immunization Program"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "vaccinationProgram": "UAE National Immunization Program"
+    }
+  }
+}

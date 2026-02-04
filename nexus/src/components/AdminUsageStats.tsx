@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 // =============================================================================
-// MOCK DATA - Replace with real API calls
+// TYPES
 // =============================================================================
 
 interface UsageMetrics {
@@ -28,33 +28,6 @@ interface TimeSeriesData {
   errors: number
 }
 
-const MOCK_METRICS: UsageMetrics = {
-  totalUsers: 156,
-  activeUsers: 89,
-  totalWorkflows: 423,
-  activeWorkflows: 187,
-  totalExecutions: 15847,
-  executionsToday: 234,
-  executionsThisWeek: 1567,
-  executionsThisMonth: 5832,
-  successRate: 97.3,
-  avgExecutionTime: 2.4,
-  storageUsed: 4.2,
-  storageLimit: 10,
-  apiCalls: 45678,
-  apiLimit: 100000,
-}
-
-const MOCK_TIME_SERIES: TimeSeriesData[] = [
-  { date: '2026-01-06', executions: 198, users: 45, errors: 5 },
-  { date: '2026-01-07', executions: 245, users: 52, errors: 8 },
-  { date: '2026-01-08', executions: 312, users: 61, errors: 3 },
-  { date: '2026-01-09', executions: 287, users: 58, errors: 6 },
-  { date: '2026-01-10', executions: 356, users: 67, errors: 4 },
-  { date: '2026-01-11', executions: 198, users: 43, errors: 2 },
-  { date: '2026-01-12', executions: 234, users: 51, errors: 7 },
-]
-
 interface TopWorkflow {
   id: string
   name: string
@@ -62,14 +35,6 @@ interface TopWorkflow {
   avgTime: number
   successRate: number
 }
-
-const MOCK_TOP_WORKFLOWS: TopWorkflow[] = [
-  { id: '1', name: 'Daily Email Digest', executions: 1234, avgTime: 1.2, successRate: 99.1 },
-  { id: '2', name: 'CRM Data Sync', executions: 892, avgTime: 3.4, successRate: 96.5 },
-  { id: '3', name: 'Lead Generation Pipeline', executions: 756, avgTime: 2.8, successRate: 98.2 },
-  { id: '4', name: 'Invoice Processing', executions: 567, avgTime: 4.1, successRate: 95.8 },
-  { id: '5', name: 'Customer Onboarding', executions: 445, avgTime: 5.2, successRate: 97.9 },
-]
 
 // =============================================================================
 // ADMIN USAGE STATS COMPONENT
@@ -82,18 +47,45 @@ export function AdminUsageStats() {
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d')
 
-  useEffect(() => {
-    // Simulate API call
-    const loadData = async () => {
-      setLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 800))
-      setMetrics(MOCK_METRICS)
-      setTimeSeries(MOCK_TIME_SERIES)
-      setTopWorkflows(MOCK_TOP_WORKFLOWS)
+  // Fetch data from API
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      // Calculate days based on time range
+      const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90
+
+      // Fetch all data in parallel
+      const [metricsRes, timeSeriesRes, topWorkflowsRes] = await Promise.all([
+        fetch('/api/admin-analytics/metrics'),
+        fetch(`/api/admin-analytics/time-series?days=${days}`),
+        fetch('/api/admin-analytics/top-workflows?limit=5')
+      ])
+
+      const [metricsData, timeSeriesData, topWorkflowsData] = await Promise.all([
+        metricsRes.json(),
+        timeSeriesRes.json(),
+        topWorkflowsRes.json()
+      ])
+
+      if (metricsData.success) {
+        setMetrics(metricsData.data)
+      }
+      if (timeSeriesData.success) {
+        setTimeSeries(timeSeriesData.data)
+      }
+      if (topWorkflowsData.success) {
+        setTopWorkflows(topWorkflowsData.data)
+      }
+    } catch (error) {
+      console.error('Error fetching usage stats:', error)
+    } finally {
       setLoading(false)
     }
-    loadData()
   }, [timeRange])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   if (loading) {
     return (

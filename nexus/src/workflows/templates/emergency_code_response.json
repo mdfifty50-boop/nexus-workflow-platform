@@ -1,0 +1,283 @@
+{
+  "id": "emergency_code_response",
+  "name": "Emergency Code Response Coordination",
+  "name_ar": "تنسيق الاستجابة لأكواد الطوارئ",
+  "description": "Automated coordination system for hospital emergency codes (Code Blue, Code Red, etc.). Instantly alerts response teams, tracks response times, and documents incidents for quality review.",
+  "description_ar": "نظام تنسيق آلي لأكواد الطوارئ في المستشفى (كود أزرق، كود أحمر، إلخ). ينبه فرق الاستجابة فوراً، ويتتبع أوقات الاستجابة، ويوثق الحوادث لمراجعة الجودة.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$150,000/year",
+  "requiredIntegrations": ["twilio", "slack", "googlesheets"],
+  "optionalIntegrations": ["whatsapp", "gmail"],
+  "exampleUserInput": "Coordinate Code Blue responses and track response times",
+  "exampleUserInput_ar": "تنسيق استجابات الكود الأزرق وتتبع أوقات الاستجابة",
+  "keywords": [
+    "code blue", "code red", "emergency response", "rapid response", "cardiac arrest", "fire",
+    "كود أزرق", "كود أحمر", "استجابة الطوارئ", "استجابة سريعة", "توقف القلب", "حريق"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "code_types": {
+      "type": "array",
+      "default": [
+        {"code": "Blue", "description": "Cardiac/Respiratory Arrest", "color": "#0066CC"},
+        {"code": "Red", "description": "Fire", "color": "#CC0000"},
+        {"code": "Pink", "description": "Infant/Child Abduction", "color": "#FF69B4"},
+        {"code": "Gray", "description": "Combative Person", "color": "#808080"},
+        {"code": "Orange", "description": "Hazardous Material Spill", "color": "#FF6600"},
+        {"code": "Yellow", "description": "Bomb Threat", "color": "#FFCC00"},
+        {"code": "Green", "description": "Mass Casualty", "color": "#00CC00"},
+        {"code": "Silver", "description": "Active Shooter", "color": "#C0C0C0"}
+      ],
+      "label": "Emergency Code Types",
+      "label_ar": "أنواع أكواد الطوارئ"
+    },
+    "response_time_target_seconds": {
+      "type": "number",
+      "default": 180,
+      "label": "Target response time (seconds)",
+      "label_ar": "وقت الاستجابة المستهدف (ثواني)"
+    },
+    "all_clear_required": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require all-clear confirmation",
+      "label_ar": "يتطلب تأكيد انتهاء الحالة"
+    }
+  },
+  "messages": {
+    "code_activated": {
+      "_en": "🚨 CODE {{code_type}} ACTIVATED 🚨\n\n🏥 {{hospital_name}}\n📍 Location: {{location}} ({{floor}}, {{building}})\n⏰ Time: {{activation_time}}\n\n{{code_description}}\n\n👤 Activated by: {{activator_name}}\n📞 Callback: {{callback_extension}}\n\n🔴 RESPONSE TEAM: RESPOND IMMEDIATELY\n\n{{#if patient_info}}Patient: {{patient_info}}{{/if}}\n{{#if additional_info}}Details: {{additional_info}}{{/if}}",
+      "_ar": "🚨 تفعيل الكود {{code_type}} 🚨\n\n🏥 {{hospital_name}}\n📍 الموقع: {{location}} ({{floor}}، {{building}})\n⏰ الوقت: {{activation_time}}\n\n{{code_description}}\n\n👤 مفعّل بواسطة: {{activator_name}}\n📞 معاودة الاتصال: {{callback_extension}}\n\n🔴 فريق الاستجابة: الاستجابة الفورية مطلوبة\n\n{{#if patient_info}}المريض: {{patient_info}}{{/if}}\n{{#if additional_info}}التفاصيل: {{additional_info}}{{/if}}"
+    },
+    "team_acknowledgment": {
+      "_en": "✅ Response Acknowledged\n\nCode {{code_type}} at {{location}}\n\n👤 Responder: {{responder_name}} ({{responder_role}})\n⏱️ Response Time: {{response_time}} seconds\n📍 ETA: {{eta}}\n\n{{#if team_status}}Team Status:\n{{#each team_members}}• {{name}} ({{role}}): {{status}}\n{{/each}}{{/if}}",
+      "_ar": "✅ تم الإقرار بالاستجابة\n\nالكود {{code_type}} في {{location}}\n\n👤 المستجيب: {{responder_name}} ({{responder_role}})\n⏱️ وقت الاستجابة: {{response_time}} ثانية\n📍 وقت الوصول المتوقع: {{eta}}\n\n{{#if team_status}}حالة الفريق:\n{{#each team_members}}• {{name}} ({{role}}): {{status}}\n{{/each}}{{/if}}"
+    },
+    "code_update": {
+      "_en": "🔄 CODE {{code_type}} UPDATE\n\n📍 Location: {{location}}\n⏱️ Duration: {{duration}} minutes\n\n📊 Current Status: {{current_status}}\n\n{{#if interventions}}Interventions:\n{{#each interventions}}• {{time}}: {{action}}\n{{/each}}{{/if}}\n\n{{#if resources_needed}}📢 Additional Resources Needed:\n{{#each resources_needed}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if equipment_used}}Equipment Used:\n{{#each equipment_used}}• {{this}}\n{{/each}}{{/if}}",
+      "_ar": "🔄 تحديث الكود {{code_type}}\n\n📍 الموقع: {{location}}\n⏱️ المدة: {{duration}} دقيقة\n\n📊 الحالة الحالية: {{current_status}}\n\n{{#if interventions}}التدخلات:\n{{#each interventions}}• {{time}}: {{action}}\n{{/each}}{{/if}}\n\n{{#if resources_needed}}📢 موارد إضافية مطلوبة:\n{{#each resources_needed}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if equipment_used}}المعدات المستخدمة:\n{{#each equipment_used}}• {{this}}\n{{/each}}{{/if}}"
+    },
+    "code_all_clear": {
+      "_en": "✅ CODE {{code_type}} - ALL CLEAR ✅\n\n📍 Location: {{location}}\n⏰ Cleared at: {{clear_time}}\n⏱️ Total Duration: {{total_duration}} minutes\n\n📊 Outcome: {{outcome}}\n\n👥 Response Team:\n{{#each responders}}• {{name}} ({{role}}) - Arrived: {{arrival_time}}\n{{/each}}\n\n📋 Post-Event:\n• Debriefing: {{debrief_time}}\n• Documentation: {{documentation_status}}\n• Equipment restocking: {{restock_status}}\n\n🔗 Incident Report: {{report_link}}",
+      "_ar": "✅ الكود {{code_type}} - انتهى الوضع ✅\n\n📍 الموقع: {{location}}\n⏰ انتهى في: {{clear_time}}\n⏱️ المدة الإجمالية: {{total_duration}} دقيقة\n\n📊 النتيجة: {{outcome}}\n\n👥 فريق الاستجابة:\n{{#each responders}}• {{name}} ({{role}}) - وصل: {{arrival_time}}\n{{/each}}\n\n📋 ما بعد الحدث:\n• جلسة استخلاص: {{debrief_time}}\n• التوثيق: {{documentation_status}}\n• إعادة تعبئة المعدات: {{restock_status}}\n\n🔗 تقرير الحادث: {{report_link}}"
+    },
+    "response_time_alert": {
+      "_en": "⚠️ RESPONSE TIME ALERT\n\nCode {{code_type}} at {{location}}\n\n🔴 Target: {{target_time}} seconds\n⏱️ Elapsed: {{elapsed_time}} seconds\n\n{{#if missing_roles}}Missing Responders:\n{{#each missing_roles}}• {{this}}\n{{/each}}{{/if}}\n\n📞 Escalating to backup team...",
+      "_ar": "⚠️ تنبيه وقت الاستجابة\n\nالكود {{code_type}} في {{location}}\n\n🔴 المستهدف: {{target_time}} ثانية\n⏱️ المنقضي: {{elapsed_time}} ثانية\n\n{{#if missing_roles}}المستجيبون المفقودون:\n{{#each missing_roles}}• {{this}}\n{{/each}}{{/if}}\n\n📞 جاري التصعيد إلى الفريق الاحتياطي..."
+    },
+    "daily_code_summary": {
+      "_en": "📊 Daily Code Response Summary - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 Codes Activated: {{total_codes}}\n\n{{#each code_summary}}\nCode {{type}}: {{count}} events\n  • Avg Response: {{avg_response}} sec\n  • Outcomes: {{outcomes}}\n{{/each}}\n\n⏱️ Performance:\n• Met Target (<{{target_time}}s): {{met_target_count}} ({{met_target_percent}}%)\n• Average Response: {{overall_avg_response}} seconds\n• Fastest: {{fastest_response}} seconds\n• Slowest: {{slowest_response}} seconds\n\n{{#if improvement_areas}}📈 Areas for Improvement:\n{{#each improvement_areas}}• {{this}}\n{{/each}}{{/if}}\n\n🔗 Full Report: {{report_link}}",
+      "_ar": "📊 ملخص استجابة الأكواد اليومي - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 الأكواد المفعلة: {{total_codes}}\n\n{{#each code_summary}}\nالكود {{type}}: {{count}} أحداث\n  • متوسط الاستجابة: {{avg_response}} ثانية\n  • النتائج: {{outcomes}}\n{{/each}}\n\n⏱️ الأداء:\n• حقق الهدف (<{{target_time}} ثانية): {{met_target_count}} ({{met_target_percent}}%)\n• متوسط الاستجابة: {{overall_avg_response}} ثانية\n• الأسرع: {{fastest_response}} ثانية\n• الأبطأ: {{slowest_response}} ثانية\n\n{{#if improvement_areas}}📈 مجالات التحسين:\n{{#each improvement_areas}}• {{this}}\n{{/each}}{{/if}}\n\n🔗 التقرير الكامل: {{report_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "receive_code_activation",
+        "name": "Receive code activation trigger",
+        "name_ar": "استلام تفعيل الكود",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Code_Activations!A:Z"
+        }
+      },
+      {
+        "id": "alert_response_team",
+        "name": "Alert response team via voice call",
+        "name_ar": "تنبيه فريق الاستجابة عبر مكالمة صوتية",
+        "tool": "TWILIO_MAKE_CALL",
+        "dependsOn": ["receive_code_activation"],
+        "params": {
+          "priority": "high",
+          "message_type": "code_activated"
+        }
+      },
+      {
+        "id": "send_slack_alert",
+        "name": "Send alert to Slack emergency channel",
+        "name_ar": "إرسال تنبيه إلى قناة الطوارئ على Slack",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["receive_code_activation"],
+        "params": {
+          "channel": "#emergency-codes",
+          "template": "code_activated"
+        }
+      },
+      {
+        "id": "start_response_timer",
+        "name": "Start response time tracking",
+        "name_ar": "بدء تتبع وقت الاستجابة",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "dependsOn": ["receive_code_activation"],
+        "params": {
+          "range": "Response_Tracking!A:Z"
+        }
+      },
+      {
+        "id": "track_acknowledgments",
+        "name": "Track team acknowledgments",
+        "name_ar": "تتبع إقرارات الفريق",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "Response_Tracking!A:Z"
+        }
+      },
+      {
+        "id": "send_acknowledgment_update",
+        "name": "Send acknowledgment update",
+        "name_ar": "إرسال تحديث الإقرار",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_new_acknowledgment",
+        "params": {
+          "template": "team_acknowledgment"
+        }
+      },
+      {
+        "id": "check_response_time",
+        "name": "Check if response time exceeded",
+        "name_ar": "التحقق من تجاوز وقت الاستجابة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Response_Tracking!A:Z"
+        }
+      },
+      {
+        "id": "escalate_delayed_response",
+        "name": "Escalate if response delayed",
+        "name_ar": "التصعيد إذا تأخرت الاستجابة",
+        "tool": "TWILIO_MAKE_CALL",
+        "condition": "response_time_exceeded",
+        "params": {
+          "template": "response_time_alert"
+        }
+      },
+      {
+        "id": "send_code_update",
+        "name": "Send status updates during event",
+        "name_ar": "إرسال تحديثات الحالة أثناء الحدث",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_update",
+        "params": {
+          "template": "code_update"
+        }
+      },
+      {
+        "id": "process_all_clear",
+        "name": "Process all-clear confirmation",
+        "name_ar": "معالجة تأكيد انتهاء الحالة",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "all_clear_received",
+        "params": {
+          "range": "Code_Activations!A:Z"
+        }
+      },
+      {
+        "id": "send_all_clear",
+        "name": "Send all-clear notification",
+        "name_ar": "إرسال إشعار انتهاء الحالة",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["process_all_clear"],
+        "params": {
+          "template": "code_all_clear"
+        }
+      },
+      {
+        "id": "log_incident",
+        "name": "Log incident details",
+        "name_ar": "تسجيل تفاصيل الحادث",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["process_all_clear"],
+        "params": {
+          "range": "Incident_Log!A:Z"
+        }
+      },
+      {
+        "id": "generate_daily_summary",
+        "name": "Generate daily code response summary",
+        "name_ar": "إنشاء ملخص استجابة الأكواد اليومي",
+        "tool": "GMAIL_SEND_EMAIL",
+        "condition": "is_daily_report_time",
+        "params": {
+          "template": "daily_code_summary"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "code_types",
+      "question": "Which emergency codes should be tracked?",
+      "question_ar": "ما هي أكواد الطوارئ التي يجب تتبعها؟",
+      "type": "multiselect",
+      "options": ["Code Blue (Cardiac Arrest)", "Code Red (Fire)", "Code Pink (Infant Abduction)", "Code Gray (Combative Person)", "Code Orange (Hazmat)", "Code Yellow (Bomb Threat)", "Code Green (Mass Casualty)", "Code Silver (Active Shooter)"],
+      "default": ["Code Blue (Cardiac Arrest)", "Code Red (Fire)"]
+    },
+    {
+      "id": "response_target",
+      "question": "What is the target response time in seconds?",
+      "question_ar": "ما هو وقت الاستجابة المستهدف بالثواني؟",
+      "type": "number",
+      "default": 180
+    },
+    {
+      "id": "emergency_channel",
+      "question": "What is the Slack channel for emergency alerts?",
+      "question_ar": "ما هي قناة Slack لتنبيهات الطوارئ؟",
+      "type": "text",
+      "default": "#emergency-codes"
+    },
+    {
+      "id": "voice_alerts",
+      "question": "Should voice calls be made to response team members?",
+      "question_ar": "هل يجب إجراء مكالمات صوتية لأعضاء فريق الاستجابة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "escalation_time",
+      "question": "After how many seconds should delayed responses be escalated?",
+      "question_ar": "بعد كم ثانية يجب تصعيد الاستجابات المتأخرة؟",
+      "type": "number",
+      "default": 120
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "codeStandards": "MOH Emergency Response Protocol"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "codeStandards": "CBAHI Emergency Response Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "codeStandards": "JCI Emergency Response Standards"
+    }
+  }
+}

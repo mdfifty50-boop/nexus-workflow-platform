@@ -1,0 +1,287 @@
+{
+  "id": "patient_admission_workflow",
+  "name": "Patient Admission Workflow",
+  "name_ar": "سير عمل إدخال المريض",
+  "description": "Streamlined patient admission process with automated documentation, room assignment, and coordination between departments. Reduces admission time and ensures all required steps are completed.",
+  "description_ar": "عملية إدخال مريض مبسطة مع التوثيق الآلي وتخصيص الغرف والتنسيق بين الأقسام. يقلل من وقت الإدخال ويضمن إكمال جميع الخطوات المطلوبة.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$95,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail", "googlecalendar"],
+  "optionalIntegrations": ["slack", "googledrive"],
+  "exampleUserInput": "Automate the patient admission process from ER to ward",
+  "exampleUserInput_ar": "أتمتة عملية إدخال المريض من الطوارئ إلى الجناح",
+  "keywords": [
+    "admission", "patient registration", "bed assignment", "hospital intake", "documentation",
+    "إدخال", "تسجيل المريض", "تخصيص السرير", "استقبال المستشفى", "توثيق"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "admission_types": {
+      "type": "array",
+      "default": ["Emergency", "Elective", "Transfer", "Direct Admission"],
+      "label": "Admission Types",
+      "label_ar": "أنواع الإدخال"
+    },
+    "required_documents": {
+      "type": "array",
+      "default": ["ID/Civil ID", "Insurance Card", "Referral Letter", "Medical History", "Consent Forms"],
+      "label": "Required Documents",
+      "label_ar": "المستندات المطلوبة"
+    },
+    "auto_assign_beds": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-assign available beds",
+      "label_ar": "تخصيص الأسرة المتاحة تلقائياً"
+    }
+  },
+  "messages": {
+    "admission_initiated": {
+      "_en": "🏥 Admission Process Started - {{hospital_name}}\n\nDear {{patient_name}},\n\nYour admission has been initiated.\n\n📋 Admission ID: {{admission_id}}\n📍 Admitting Department: {{department}}\n👨‍⚕️ Attending Physician: Dr. {{attending_physician}}\n📅 Admission Date: {{admission_date}}\n\n📄 Required Documents:\n{{#each required_documents}}• {{this}}\n{{/each}}\n\n{{#if pre_admission_instructions}}📝 Pre-Admission Instructions:\n{{pre_admission_instructions}}{{/if}}\n\nA patient coordinator will contact you shortly.",
+      "_ar": "🏥 بدأت عملية الإدخال - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nتم بدء عملية إدخالك.\n\n📋 رقم الإدخال: {{admission_id}}\n📍 قسم الإدخال: {{department}}\n👨‍⚕️ الطبيب المعالج: د. {{attending_physician}}\n📅 تاريخ الإدخال: {{admission_date}}\n\n📄 المستندات المطلوبة:\n{{#each required_documents}}• {{this}}\n{{/each}}\n\n{{#if pre_admission_instructions}}📝 تعليمات ما قبل الإدخال:\n{{pre_admission_instructions}}{{/if}}\n\nسيتواصل معك منسق المرضى قريباً."
+    },
+    "room_assigned": {
+      "_en": "🛏️ Room Assignment - {{hospital_name}}\n\nDear {{patient_name}},\n\nYour room has been assigned.\n\n📍 Department: {{department}}\n🚪 Room: {{room_number}}\n🛏️ Bed: {{bed_number}}\n🏢 Floor: {{floor}}\n📞 Room Phone: {{room_phone}}\n\n{{#if roommate}}👤 Roommate: You will be sharing with another patient{{/if}}\n{{#if private_room}}🔒 Private Room{{/if}}\n\n🕐 Visiting Hours: {{visiting_hours}}\n\n{{#if amenities}}Room Amenities:\n{{#each amenities}}• {{this}}\n{{/each}}{{/if}}\n\nPlease proceed to the admission desk for check-in.",
+      "_ar": "🛏️ تخصيص الغرفة - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nتم تخصيص غرفتك.\n\n📍 القسم: {{department}}\n🚪 الغرفة: {{room_number}}\n🛏️ السرير: {{bed_number}}\n🏢 الطابق: {{floor}}\n📞 هاتف الغرفة: {{room_phone}}\n\n{{#if roommate}}👤 مشاركة: ستشارك الغرفة مع مريض آخر{{/if}}\n{{#if private_room}}🔒 غرفة خاصة{{/if}}\n\n🕐 ساعات الزيارة: {{visiting_hours}}\n\n{{#if amenities}}مرافق الغرفة:\n{{#each amenities}}• {{this}}\n{{/each}}{{/if}}\n\nيرجى التوجه إلى مكتب الاستقبال لإتمام التسجيل."
+    },
+    "family_notification": {
+      "_en": "📱 Patient Admission Notice - {{hospital_name}}\n\nDear {{family_contact_name}},\n\n{{patient_name}} has been admitted to {{hospital_name}}.\n\n📍 Department: {{department}}\n🚪 Room: {{room_number}}, Bed {{bed_number}}\n👨‍⚕️ Attending Physician: Dr. {{attending_physician}}\n📅 Admission Date: {{admission_date}}\n\n🕐 Visiting Hours: {{visiting_hours}}\n📞 Department Phone: {{department_phone}}\n📞 Room Phone: {{room_phone}}\n\n{{#if admission_reason}}Reason for Admission: {{admission_reason}}{{/if}}\n\n{{#if parking_info}}🅿️ Parking: {{parking_info}}{{/if}}\n\nFor any questions, please contact the nursing station.",
+      "_ar": "📱 إشعار إدخال المريض - {{hospital_name}}\n\nعزيزي/عزيزتي {{family_contact_name}}،\n\nتم إدخال {{patient_name}} إلى {{hospital_name}}.\n\n📍 القسم: {{department}}\n🚪 الغرفة: {{room_number}}، السرير {{bed_number}}\n👨‍⚕️ الطبيب المعالج: د. {{attending_physician}}\n📅 تاريخ الإدخال: {{admission_date}}\n\n🕐 ساعات الزيارة: {{visiting_hours}}\n📞 هاتف القسم: {{department_phone}}\n📞 هاتف الغرفة: {{room_phone}}\n\n{{#if admission_reason}}سبب الإدخال: {{admission_reason}}{{/if}}\n\n{{#if parking_info}}🅿️ مواقف السيارات: {{parking_info}}{{/if}}\n\nلأي استفسارات، يرجى الاتصال بمحطة التمريض."
+    },
+    "care_team_notification": {
+      "_en": "🏥 New Admission Alert - {{hospital_name}}\n\n📋 Patient: {{patient_name}} ({{patient_id}})\n📍 Room: {{room_number}}, Bed {{bed_number}}\n📅 Admitted: {{admission_date}} at {{admission_time}}\n\n👨‍⚕️ Attending: Dr. {{attending_physician}}\n🏥 Admission Type: {{admission_type}}\n📝 Diagnosis: {{primary_diagnosis}}\n\n⚠️ Alerts:\n{{#each alerts}}• {{this}}\n{{/each}}\n\n📋 Care Plan:\n{{care_plan_summary}}\n\n🔗 Full Chart: {{chart_link}}",
+      "_ar": "🏥 تنبيه إدخال جديد - {{hospital_name}}\n\n📋 المريض: {{patient_name}} ({{patient_id}})\n📍 الغرفة: {{room_number}}، السرير {{bed_number}}\n📅 تم الإدخال: {{admission_date}} في {{admission_time}}\n\n👨‍⚕️ المعالج: د. {{attending_physician}}\n🏥 نوع الإدخال: {{admission_type}}\n📝 التشخيص: {{primary_diagnosis}}\n\n⚠️ التنبيهات:\n{{#each alerts}}• {{this}}\n{{/each}}\n\n📋 خطة الرعاية:\n{{care_plan_summary}}\n\n🔗 الملف الكامل: {{chart_link}}"
+    },
+    "admission_checklist_reminder": {
+      "_en": "📋 Admission Checklist Reminder - {{hospital_name}}\n\nPatient: {{patient_name}}\nRoom: {{room_number}}\n\nPending Items:\n{{#each pending_items}}❌ {{this}}\n{{/each}}\n\nCompleted Items:\n{{#each completed_items}}✅ {{this}}\n{{/each}}\n\nPlease complete pending items within {{deadline_hours}} hours.\n\n📞 Admission Desk: {{admission_desk_phone}}",
+      "_ar": "📋 تذكير قائمة التحقق من الإدخال - {{hospital_name}}\n\nالمريض: {{patient_name}}\nالغرفة: {{room_number}}\n\nالعناصر المعلقة:\n{{#each pending_items}}❌ {{this}}\n{{/each}}\n\nالعناصر المكتملة:\n{{#each completed_items}}✅ {{this}}\n{{/each}}\n\nيرجى إكمال العناصر المعلقة خلال {{deadline_hours}} ساعة.\n\n📞 مكتب الإدخال: {{admission_desk_phone}}"
+    },
+    "insurance_verification_complete": {
+      "_en": "✅ Insurance Verification Complete - {{hospital_name}}\n\nPatient: {{patient_name}}\nAdmission ID: {{admission_id}}\n\n💳 Insurance: {{insurance_provider}}\n📋 Policy #: {{policy_number}}\n✅ Status: {{verification_status}}\n\n{{#if pre_authorization}}🔒 Pre-Authorization: {{pre_auth_number}}{{/if}}\n\n{{#if coverage_details}}Coverage Details:\n• Room Type: {{room_coverage}}\n• Deductible: {{deductible}}\n• Co-pay: {{copay}}%\n{{/if}}\n\n{{#if issues}}⚠️ Issues:\n{{#each issues}}• {{this}}\n{{/each}}{{/if}}",
+      "_ar": "✅ اكتمل التحقق من التأمين - {{hospital_name}}\n\nالمريض: {{patient_name}}\nرقم الإدخال: {{admission_id}}\n\n💳 التأمين: {{insurance_provider}}\n📋 رقم البوليصة: {{policy_number}}\n✅ الحالة: {{verification_status}}\n\n{{#if pre_authorization}}🔒 الموافقة المسبقة: {{pre_auth_number}}{{/if}}\n\n{{#if coverage_details}}تفاصيل التغطية:\n• نوع الغرفة: {{room_coverage}}\n• المبلغ المقتطع: {{deductible}}\n• نسبة التحمل: {{copay}}%\n{{/if}}\n\n{{#if issues}}⚠️ مشاكل:\n{{#each issues}}• {{this}}\n{{/each}}{{/if}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "receive_admission_request",
+        "name": "Receive and validate admission request",
+        "name_ar": "استلام والتحقق من طلب الإدخال",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Admission_Requests!A:Z"
+        }
+      },
+      {
+        "id": "generate_admission_id",
+        "name": "Generate unique admission ID",
+        "name_ar": "إنشاء رقم إدخال فريد",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["receive_admission_request"],
+        "params": {
+          "range": "Admissions!A:Z"
+        }
+      },
+      {
+        "id": "verify_insurance",
+        "name": "Verify insurance coverage",
+        "name_ar": "التحقق من التغطية التأمينية",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["receive_admission_request"],
+        "params": {
+          "range": "Insurance_Verification!A:Z"
+        }
+      },
+      {
+        "id": "send_admission_initiated",
+        "name": "Send admission initiated notification to patient",
+        "name_ar": "إرسال إشعار بدء الإدخال للمريض",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["generate_admission_id"],
+        "params": {
+          "template": "admission_initiated"
+        }
+      },
+      {
+        "id": "check_bed_availability",
+        "name": "Check bed availability in target department",
+        "name_ar": "التحقق من توفر الأسرة في القسم المستهدف",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["receive_admission_request"],
+        "params": {
+          "range": "Bed_Status!A:Z"
+        }
+      },
+      {
+        "id": "assign_room",
+        "name": "Assign room and bed",
+        "name_ar": "تخصيص الغرفة والسرير",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "dependsOn": ["check_bed_availability"],
+        "params": {
+          "range": "Bed_Status!A:Z"
+        }
+      },
+      {
+        "id": "send_room_assignment",
+        "name": "Send room assignment to patient",
+        "name_ar": "إرسال تخصيص الغرفة للمريض",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["assign_room"],
+        "params": {
+          "template": "room_assigned"
+        }
+      },
+      {
+        "id": "send_family_notification",
+        "name": "Notify family of admission",
+        "name_ar": "إبلاغ العائلة بالإدخال",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["assign_room"],
+        "params": {
+          "template": "family_notification"
+        }
+      },
+      {
+        "id": "notify_care_team",
+        "name": "Alert care team of new admission",
+        "name_ar": "تنبيه فريق الرعاية بالإدخال الجديد",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["assign_room"],
+        "params": {
+          "template": "care_team_notification"
+        }
+      },
+      {
+        "id": "send_insurance_status",
+        "name": "Send insurance verification result",
+        "name_ar": "إرسال نتيجة التحقق من التأمين",
+        "tool": "GMAIL_SEND_EMAIL",
+        "dependsOn": ["verify_insurance"],
+        "params": {
+          "template": "insurance_verification_complete"
+        }
+      },
+      {
+        "id": "schedule_admission_tasks",
+        "name": "Schedule admission checklist tasks",
+        "name_ar": "جدولة مهام قائمة التحقق من الإدخال",
+        "tool": "GOOGLECALENDAR_CREATE_EVENT",
+        "dependsOn": ["assign_room"],
+        "params": {
+          "title": "Admission Checklist - {{patient_name}}"
+        }
+      },
+      {
+        "id": "send_checklist_reminder",
+        "name": "Send checklist reminder for incomplete items",
+        "name_ar": "إرسال تذكير بالعناصر غير المكتملة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "has_pending_items",
+        "params": {
+          "template": "admission_checklist_reminder"
+        }
+      },
+      {
+        "id": "upload_documents",
+        "name": "Upload admission documents to patient folder",
+        "name_ar": "رفع مستندات الإدخال إلى مجلد المريض",
+        "tool": "GOOGLEDRIVE_UPLOAD_FILE",
+        "condition": "has_documents",
+        "params": {
+          "folder": "Patient_Admissions/{{patient_id}}"
+        }
+      },
+      {
+        "id": "log_admission",
+        "name": "Log admission to master registry",
+        "name_ar": "تسجيل الإدخال في السجل الرئيسي",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["assign_room"],
+        "params": {
+          "range": "Admission_Log!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "admission_sheet",
+      "question": "What is the URL of the admission management spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات إدارة الإدخالات؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "required_documents",
+      "question": "What documents are required for admission?",
+      "question_ar": "ما هي المستندات المطلوبة للإدخال؟",
+      "type": "multiselect",
+      "options": ["ID/Civil ID", "Insurance Card", "Referral Letter", "Medical History", "Consent Forms", "Lab Results", "Imaging Reports"],
+      "default": ["ID/Civil ID", "Insurance Card", "Consent Forms"]
+    },
+    {
+      "id": "auto_assign",
+      "question": "Should beds be automatically assigned based on availability?",
+      "question_ar": "هل يجب تخصيص الأسرة تلقائياً بناءً على التوفر؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "visiting_hours",
+      "question": "What are the standard visiting hours?",
+      "question_ar": "ما هي ساعات الزيارة القياسية؟",
+      "type": "text",
+      "default": "4:00 PM - 8:00 PM"
+    },
+    {
+      "id": "staff_channel",
+      "question": "Which Slack channel should receive admission notifications?",
+      "question_ar": "أي قناة Slack يجب أن تتلقى إشعارات الإدخال؟",
+      "type": "text",
+      "default": "#admissions"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "insuranceProviders": ["AFYA", "Gulf Insurance", "Warba Insurance", "KIC"],
+      "visitingHoursDefault": "4:00 PM - 8:00 PM"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "insuranceProviders": ["Bupa Arabia", "Tawuniya", "MedGulf", "AXA"],
+      "visitingHoursDefault": "4:00 PM - 9:00 PM"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "insuranceProviders": ["Daman", "ADNIC", "Oman Insurance", "AXA Gulf"],
+      "visitingHoursDefault": "3:00 PM - 9:00 PM"
+    }
+  }
+}

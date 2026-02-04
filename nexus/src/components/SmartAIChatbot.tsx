@@ -29,11 +29,9 @@ import {
 // NEW: Real Claude AI service
 import { nexusAIService } from '@/services/NexusAIService'
 import { WorkflowFlowChart } from './WorkflowFlowChart'
-// Real-world execution imports - types only for reference
-import type {
-  ExecutionEvent,
-  WorkflowExecutionResult
-} from '@/services/WorkflowExecutionEngine'
+// Real-world execution types (archived engine - stubs for compatibility)
+type ExecutionEvent = { type: string; [key: string]: unknown }
+type WorkflowExecutionResult = { status: string; outputs: Record<string, unknown> }
 // User context extraction
 import { useUserContext } from '@/lib/context/useUserContext'
 // Voice input
@@ -670,17 +668,16 @@ I'll understand what you need, ask a few quick questions if needed, and build a 
 
         await simulateTyping()
 
-        // Show friendly acknowledgment and ask first question
-        let acknowledgment = `**Got it!** I'll help you ${intentAnalysis.understanding.toLowerCase()}.\n\n`
-        acknowledgment += `Just ${questions.length} quick question${questions.length > 1 ? 's' : ''} to set this up:\n\n`
-        acknowledgment += questions[0].question
+        // Show friendly acknowledgment - question will be shown via quick buttons
+        // @NEXUS-FIX-076: Don't duplicate question in content AND buttons
+        const acknowledgment = `**Got it!** I'll help you ${intentAnalysis.understanding.toLowerCase()}.\n\nJust ${questions.length} quick question${questions.length > 1 ? 's' : ''} to set this up:`
 
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           role: 'assistant',
           content: acknowledgment,
           timestamp: new Date(),
-          type: 'analysis',
+          type: 'questions', // Changed from 'analysis' to 'questions' for proper rendering
           questions: [questions[0]],
           intentAnalysis
         }])
@@ -734,6 +731,7 @@ I'll understand what you need, ask a few quick questions if needed, and build a 
           setPendingQuestions(questions)
           setCurrentQuestionIndex(0)
 
+          // @NEXUS-FIX-076: Don't duplicate question in content AND buttons
           let response = `**Great! Let's boost your sales!** 🚀\n\n`
           response += `I understand you want to: **${proactiveIntent.understanding}**\n\n`
 
@@ -742,15 +740,14 @@ I'll understand what you need, ask a few quick questions if needed, and build a 
             response += `Got it: ${infoStr}\n\n`
           }
 
-          response += `Quick question to customize your workflow:\n\n`
-          response += questions[0].question
+          response += `Quick question to customize your workflow:`
 
           setMessages(prev => [...prev, {
             id: Date.now().toString(),
             role: 'assistant',
             content: response,
             timestamp: new Date(),
-            type: 'analysis',
+            type: 'questions', // Changed to 'questions' for proper button rendering
             questions: [questions[0]],
             intentAnalysis: proactiveIntent
           }])

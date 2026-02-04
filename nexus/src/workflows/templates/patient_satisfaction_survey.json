@@ -1,0 +1,307 @@
+{
+  "id": "patient_satisfaction_survey",
+  "name": "Patient Satisfaction Survey",
+  "name_ar": "استبيان رضا المرضى",
+  "description": "Automatically send satisfaction surveys after patient visits. Collect NPS scores, identify unhappy patients for immediate follow-up, and track satisfaction trends to improve care quality.",
+  "description_ar": "إرسال استبيانات الرضا تلقائياً بعد زيارات المرضى. جمع درجات NPS وتحديد المرضى غير الراضين للمتابعة الفورية وتتبع اتجاهات الرضا لتحسين جودة الرعاية.",
+  "domain": "clinic",
+  "roiTier": 2,
+  "annualValue": "$28,000/year",
+  "requiredIntegrations": ["googleforms", "whatsapp", "googlesheets"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Send satisfaction surveys after patient visits",
+  "exampleUserInput_ar": "أرسل استبيانات الرضا بعد زيارات المرضى",
+  "keywords": ["survey", "satisfaction", "NPS", "feedback", "rating", "review", "استبيان", "رضا", "تقييم", "ملاحظات", "تصنيف", "مراجعة"],
+  "dynamicParameters": {
+    "send_hours_after_visit": {
+      "type": "number",
+      "default": 4,
+      "label": "Hours after visit to send survey",
+      "label_ar": "ساعات بعد الزيارة لإرسال الاستبيان"
+    },
+    "follow_up_low_scores": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert staff for low satisfaction scores",
+      "label_ar": "تنبيه الموظفين لدرجات الرضا المنخفضة"
+    },
+    "low_score_threshold": {
+      "type": "number",
+      "default": 6,
+      "label": "Score threshold for follow-up (1-10)",
+      "label_ar": "حد الدرجة للمتابعة (1-10)"
+    },
+    "request_google_review": {
+      "type": "boolean",
+      "default": true,
+      "label": "Request Google review for high scores",
+      "label_ar": "طلب مراجعة جوجل للدرجات العالية"
+    }
+  },
+  "messages": {
+    "survey_request_en": "🙏 *Your Feedback Matters!*\n\nHi {{patient_name}},\n\nThank you for visiting {{clinic_name}} today!\n\nWe'd love to hear about your experience with Dr. {{doctor_name}}.\n\n📋 *Quick Survey (2 minutes):*\n{{survey_link}}\n\nYour feedback helps us serve you better.\n\n*On a scale of 1-10, how likely are you to recommend us?*\n\nReply with a number (1-10), or tap the link above for the full survey.",
+    "survey_request_ar": "🙏 *رأيك يهمنا!*\n\nمرحباً {{patient_name}}،\n\nشكراً لزيارتك {{clinic_name}} اليوم!\n\nنود سماع رأيك في تجربتك مع د. {{doctor_name}}.\n\n📋 *استبيان سريع (دقيقتان):*\n{{survey_link}}\n\nملاحظاتك تساعدنا على خدمتك بشكل أفضل.\n\n*من 1 إلى 10، ما مدى احتمال أن توصي بنا؟*\n\nرد برقم (1-10)، أو انقر الرابط أعلاه للاستبيان الكامل.",
+    "thank_you_high_en": "⭐ *Thank You for the Great Rating!*\n\nWe're thrilled you had a positive experience at {{clinic_name}}!\n\n*Would you mind sharing your experience on Google?*\nIt really helps other patients find quality care.\n\n📝 {{google_review_link}}\n\n*Or share with friends:*\nReferral code: {{referral_code}} - Get {{referral_bonus}} off your next visit!\n\nThank you for trusting us with your care! 💙",
+    "thank_you_high_ar": "⭐ *شكراً للتقييم الرائع!*\n\nيسعدنا أن تجربتك كانت إيجابية في {{clinic_name}}!\n\n*هل تمانع مشاركة تجربتك على جوجل؟*\nهذا يساعد مرضى آخرين على إيجاد رعاية جيدة.\n\n📝 {{google_review_link}}\n\n*أو شارك مع الأصدقاء:*\nكود الإحالة: {{referral_code}} - احصل على خصم {{referral_bonus}} في زيارتك القادمة!\n\nشكراً لثقتك بنا في رعايتك! 💙",
+    "thank_you_medium_en": "🙏 *Thank You for Your Feedback!*\n\nHi {{patient_name}},\n\nThank you for taking the time to share your experience.\n\nWe're always looking to improve. Is there anything specific we could have done better?\n\nReply with your suggestions - we read every response.\n\nThank you for choosing {{clinic_name}}!",
+    "thank_you_medium_ar": "🙏 *شكراً لملاحظاتك!*\n\nمرحباً {{patient_name}}،\n\nشكراً لأخذك الوقت لمشاركة تجربتك.\n\nنسعى دائماً للتحسين. هل هناك شيء محدد كان بإمكاننا فعله بشكل أفضل؟\n\nرد باقتراحاتك - نقرأ كل رد.\n\nشكراً لاختيارك {{clinic_name}}!",
+    "concern_acknowledgment_en": "😔 *We're Sorry to Hear That*\n\nHi {{patient_name}},\n\nWe're sorry your experience didn't meet your expectations.\n\nYour feedback is important to us, and we'd like to make things right.\n\n📞 Our patient relations team will call you within {{callback_hours}} hours to discuss your concerns.\n\n*Prefer to call us?*\n{{patient_relations_phone}}\n\nThank you for giving us the opportunity to improve.",
+    "concern_acknowledgment_ar": "😔 *نأسف لسماع ذلك*\n\nمرحباً {{patient_name}}،\n\nنأسف أن تجربتك لم تلبِ توقعاتك.\n\nملاحظاتك مهمة لنا، ونود تصحيح الأمور.\n\n📞 فريق علاقات المرضى لدينا سيتصل بك خلال {{callback_hours}} ساعات لمناقشة مخاوفك.\n\n*تفضل الاتصال بنا؟*\n{{patient_relations_phone}}\n\nشكراً لمنحنا فرصة التحسين.",
+    "staff_low_score_alert_en": "🚨 *Low Satisfaction Score Alert*\n\n*Patient:* {{patient_name}}\n*Score:* {{score}}/10\n*Doctor:* Dr. {{doctor_name}}\n*Visit Date:* {{visit_date}}\n*Phone:* {{patient_phone}}\n\n{{#if feedback_comment}}*Comment:* \"{{feedback_comment}}\"{{/if}}\n\n*Action Required:* Contact patient within 24 hours",
+    "weekly_report_en": "📊 *Weekly Patient Satisfaction Report*\n\n*Period:* {{report_period}}\n*Total Responses:* {{total_responses}}\n\n*NPS Score:* {{nps_score}}\n• Promoters (9-10): {{promoters_count}} ({{promoters_percent}}%)\n• Passives (7-8): {{passives_count}} ({{passives_percent}}%)\n• Detractors (0-6): {{detractors_count}} ({{detractors_percent}}%)\n\n*Trend:* {{trend_indicator}} vs last week\n\n*Top Feedback Themes:*\n{{feedback_themes}}\n\n*Action Items:*\n{{action_items}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Visit Completed",
+        "name_ar": "اكتملت الزيارة",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_UPDATED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{visits_sheet}}",
+            "filter": "status = 'completed'"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Schedule Survey Send",
+        "name_ar": "جدولة إرسال الاستبيان",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{visit_time_plus_{{send_hours_after_visit}}h}}",
+            "action": "send_survey"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Survey Request",
+        "name_ar": "إرسال طلب الاستبيان",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.survey_request_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Handle Quick Score",
+        "name_ar": "معالجة الدرجة السريعة",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "^[0-9]$|^10$"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log Score",
+        "name_ar": "تسجيل الدرجة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{survey_responses_sheet}}",
+            "range": "Responses!A:H",
+            "values": [["{{timestamp}}", "{{patient_name}}", "{{patient_phone}}", "{{score}}", "{{doctor_name}}", "{{visit_date}}", "whatsapp", ""]]
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send High Score Thank You",
+        "name_ar": "إرسال شكر للدرجة العالية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.thank_you_high_{{patient_language}}}}",
+            "condition": "score >= 9 AND request_google_review = true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Medium Score Thank You",
+        "name_ar": "إرسال شكر للدرجة المتوسطة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.thank_you_medium_{{patient_language}}}}",
+            "condition": "score >= 7 AND score <= 8"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Low Score Acknowledgment",
+        "name_ar": "إرسال إقرار بالدرجة المنخفضة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.concern_acknowledgment_{{patient_language}}}}",
+            "condition": "score <= {{low_score_threshold}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Alert Staff - Low Score",
+        "name_ar": "تنبيه الموظفين - درجة منخفضة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#patient-satisfaction",
+            "message": "{{messages.staff_low_score_alert_en}}",
+            "condition": "score <= {{low_score_threshold}} AND follow_up_low_scores = true"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Form Response Received",
+        "name_ar": "استلام رد النموذج",
+        "type": "trigger",
+        "integrationId": "googleforms",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLEFORMS_RESPONSE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "form_id": "{{survey_form_id}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Weekly Report",
+        "name_ar": "التقرير الأسبوعي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0",
+            "description": "Weekly satisfaction report on Sunday",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Send Weekly Report",
+        "name_ar": "إرسال التقرير الأسبوعي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_11"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#clinic-reports",
+            "message": "{{messages.weekly_report_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googleforms", "whatsapp", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "send_hours_after_visit",
+      "question": "How many hours after the visit should the survey be sent?",
+      "question_ar": "كم ساعة بعد الزيارة يجب إرسال الاستبيان؟",
+      "type": "number",
+      "default": 4
+    },
+    {
+      "id": "follow_up_low_scores",
+      "question": "Alert staff for low satisfaction scores?",
+      "question_ar": "تنبيه الموظفين لدرجات الرضا المنخفضة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "low_score_threshold",
+      "question": "What score (1-10) triggers staff follow-up?",
+      "question_ar": "أي درجة (1-10) تستدعي متابعة الموظفين؟",
+      "type": "number",
+      "default": 6
+    },
+    {
+      "id": "request_google_review",
+      "question": "Request Google reviews from highly satisfied patients?",
+      "question_ar": "طلب مراجعات جوجل من المرضى الراضين جداً؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD"
+    }
+  }
+}

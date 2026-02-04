@@ -2,8 +2,10 @@
  * PricingSection - Pricing display with RTL support
  *
  * Shows subscription pricing plans with:
- * - Launch Special ($79/month) highlighted
- * - Standard pricing ($99/month)
+ * - Free ($0/month - 10 workflows)
+ * - Starter ($29/month - 30 workflows)
+ * - Pro ($79/month - unlimited) - Most Popular
+ * - Business ($149/month - unlimited + premium)
  * - Feature comparison
  * - RTL support for Arabic
  * - Responsive design
@@ -11,12 +13,13 @@
  * Usage:
  *   <PricingSection
  *     onSelectPlan={(planId) => handlePlanSelection(planId)}
- *     selectedPlan="launch"
+ *     selectedPlan="pro"
  *   />
  */
 
 import { useState, useContext } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useLanguage } from '@/i18n/useLanguage'
 import { PRICING_PLANS, formatPrice, type PricingPlan } from '@/lib/stripe'
 import { SubscriptionContext } from '@/contexts/SubscriptionContext'
@@ -78,6 +81,7 @@ function PricingCard({
   isRTL: boolean
   locale: string
 }) {
+  const { t } = useTranslation()
   const { isActive, currentPlan } = useSubscriptionSafe()
   const isCurrentPlan = currentPlan === plan.id && isActive
 
@@ -96,7 +100,7 @@ function PricingCard({
       {plan.popular && (
         <div className="absolute top-0 inset-x-0">
           <div className="bg-gradient-to-r from-cyan-500 to-purple-600 text-white text-xs font-bold py-1.5 text-center uppercase tracking-wider">
-            {plan.badge || 'Most Popular'}
+            {plan.badge || t('landing.pricing.badge', 'Most Popular')}
           </div>
         </div>
       )}
@@ -105,7 +109,7 @@ function PricingCard({
       {isCurrentPlan && (
         <div className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-4`}>
           <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
-            Current Plan
+            {t('landing.pricing.currentPlan', 'Current Plan')}
           </span>
         </div>
       )}
@@ -146,13 +150,13 @@ function PricingCard({
               : 'bg-slate-700 text-white hover:bg-slate-600'
           } ${isCurrentPlan ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isCurrentPlan ? 'Current Plan' : plan.popular ? 'Get Started' : 'Choose Plan'}
+          {isCurrentPlan ? t('landing.pricing.currentPlan', 'Current Plan') : plan.popular ? t('landing.pricing.getStarted', 'Get Started') : t('landing.pricing.choosePlan', 'Choose Plan')}
         </button>
 
         {/* Features */}
         <div className="space-y-4">
           <p className="text-sm font-medium text-slate-300 uppercase tracking-wider">
-            What's included:
+            {t('landing.pricing.whatsIncluded', "What's included:")}
           </p>
           <ul className="space-y-3">
             {plan.features.map((feature, index) => (
@@ -181,8 +185,9 @@ export function PricingSection({
   compact = false,
   className = '',
 }: PricingSectionProps) {
-  const { isRTL, language, currentLanguageConfig } = useLanguage()
-  const [localSelectedPlan, setLocalSelectedPlan] = useState(selectedPlan || 'launch')
+  const { t } = useTranslation()
+  const { isRTL, currentLanguageConfig } = useLanguage()
+  const [localSelectedPlan, setLocalSelectedPlan] = useState(selectedPlan || 'pro')
   const locale = currentLanguageConfig.locale || 'en-US'
 
   const handleSelectPlan = (planId: string) => {
@@ -195,7 +200,7 @@ export function PricingSection({
   if (compact) {
     return (
       <div className={`${className}`} dir={isRTL ? 'rtl' : 'ltr'}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <PricingCard
               key={plan.id}
@@ -222,7 +227,7 @@ export function PricingSection({
             viewport={{ once: true }}
             className="text-4xl md:text-5xl font-bold text-white mb-4"
           >
-            {language === 'ar' ? 'اختر خطتك' : 'Choose Your Plan'}
+            {t('landing.pricing.title', 'Choose Your Plan')}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -231,13 +236,11 @@ export function PricingSection({
             transition={{ delay: 0.1 }}
             className="text-xl text-slate-400 max-w-2xl mx-auto"
           >
-            {language === 'ar'
-              ? 'ابدأ مجانا ثم قم بالترقية عندما تكون جاهزا'
-              : 'Start free, then upgrade when you\'re ready. All plans include unlimited workflows.'}
+            {t('landing.pricing.subtitle', 'Start free with 10 workflows, then upgrade as you grow.')}
           </motion.p>
         </div>
 
-        {/* Launch Special Highlight */}
+        {/* Pro Plan Highlight */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -250,17 +253,16 @@ export function PricingSection({
               <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
             </span>
             <span className="text-cyan-400 font-bold uppercase tracking-wider text-sm">
-              Limited Time Offer
+              {t('landing.pricing.badge', 'Most Popular')}
             </span>
           </div>
           <p className="text-white text-lg">
-            Lock in <span className="font-bold text-cyan-400">$79/month</span> forever -
-            Regular price <span className="line-through text-slate-500">$99/month</span>
+            {t('landing.pricing.proHighlight', 'Go Pro at $79/month for unlimited workflows and all 500+ integrations')}
           </p>
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {plans.map((plan) => (
             <PricingCard
               key={plan.id}
@@ -290,7 +292,7 @@ export function PricingSection({
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-sm">Secure checkout</span>
+              <span className="text-sm">{t('landing.pricing.secure', 'Secure checkout')}</span>
             </div>
             <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -300,13 +302,13 @@ export function PricingSection({
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-sm">Cancel anytime</span>
+              <span className="text-sm">{t('landing.pricing.cancel', 'Cancel anytime')}</span>
             </div>
             <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
               </svg>
-              <span className="text-sm">30-day money back</span>
+              <span className="text-sm">{t('landing.pricing.moneyBack', '30-day money back')}</span>
             </div>
           </div>
         </motion.div>
@@ -326,7 +328,8 @@ interface UpgradeModalProps {
 }
 
 export function UpgradeModal({ isOpen, onClose, onCheckout }: UpgradeModalProps) {
-  const [selectedPlan, setSelectedPlan] = useState('launch')
+  const { t } = useTranslation()
+  const [selectedPlan, setSelectedPlan] = useState('pro')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -382,8 +385,8 @@ export function UpgradeModal({ isOpen, onClose, onCheckout }: UpgradeModalProps)
         {/* Content */}
         <div className="p-8">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Upgrade to Nexus Pro</h2>
-            <p className="text-slate-400">Unlock unlimited AI workflows and premium features</p>
+            <h2 className="text-3xl font-bold text-white mb-2">{t('landing.pricing.upgradeTitle', 'Upgrade to Nexus Pro')}</h2>
+            <p className="text-slate-400">{t('landing.pricing.upgradeSubtitle', 'Unlock unlimited AI workflows and premium features')}</p>
           </div>
 
           {/* Error message */}
@@ -423,10 +426,10 @@ export function UpgradeModal({ isOpen, onClose, onCheckout }: UpgradeModalProps)
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Processing...
+                  {t('common.processing', 'Processing...')}
                 </span>
               ) : (
-                'Continue to Checkout'
+                t('landing.pricing.continueCheckout', 'Continue to Checkout')
               )}
             </button>
           </div>

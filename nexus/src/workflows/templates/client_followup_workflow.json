@@ -1,0 +1,319 @@
+{
+  "id": "client_followup_workflow",
+  "name": "Client Follow-Up Automation",
+  "name_ar": "أتمتة متابعة العملاء",
+  "description": "Automated client communication tracking: monitors inactivity, sends lawyer reminders, and optionally auto-sends client check-ins. Perfect for law firms and professional services managing client relationships.",
+  "description_ar": "تتبع آلي لتواصل العملاء: مراقبة عدم النشاط، إرسال تذكيرات للمحامي، وإرسال رسائل متابعة تلقائية للعملاء. مثالي لمكاتب المحاماة والخدمات المهنية.",
+  "domain": "lawyers",
+  "roiTier": 2,
+  "annualValue": "$18,000/lawyer",
+  "requiredIntegrations": ["whatsapp", "gmail", "slack", "notion"],
+  "optionalIntegrations": ["hubspot", "asana"],
+  "exampleUserInput": "Remind me to follow up with clients I haven't contacted recently",
+  "exampleUserInput_ar": "ذكرني بمتابعة العملاء الذين لم أتواصل معهم مؤخراً",
+  "keywords": ["client", "follow up", "followup", "contact", "check-in", "checkin", "reminder", "inactive", "relationship", "crm", "customer", "touch base", "outreach", "retention", "عميل", "متابعة", "تواصل", "علاقة", "تذكير", "تفقد"],
+  "dynamicParameters": {
+    "inactivity_days": {
+      "type": "number",
+      "default": 14,
+      "label": "Days before follow-up reminder",
+      "label_ar": "أيام قبل تذكير المتابعة",
+      "required": true
+    },
+    "critical_days": {
+      "type": "number",
+      "default": 30,
+      "label": "Days before escalation",
+      "label_ar": "أيام قبل التصعيد",
+      "required": true
+    },
+    "auto_followup_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Auto-send check-in messages to clients",
+      "label_ar": "إرسال رسائل تفقد تلقائية للعملاء",
+      "description": "If enabled, will automatically send friendly check-in messages to inactive clients"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    },
+    "primary_channel": {
+      "type": "select",
+      "options": ["whatsapp", "email", "both"],
+      "default": "whatsapp",
+      "label": "Primary communication channel",
+      "label_ar": "قناة التواصل الرئيسية"
+    },
+    "escalation_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Escalate critical inactivity to supervisor",
+      "label_ar": "تصعيد حالات عدم النشاط الحرجة للمشرف"
+    }
+  },
+  "messages": {
+    "lawyer_reminder_en": "📋 Client Follow-Up Reminder\n\nYou have {{inactive_count}} clients that need attention:\n\n{{#each inactive_clients}}\n• {{name}} - {{days_since_contact}} days\n{{/each}}\n\nReply with a client number to see details.",
+    "lawyer_reminder_ar": "📋 تذكير متابعة العملاء\n\nلديك {{inactive_count}} عملاء يحتاجون انتباهك:\n\n{{#each inactive_clients}}\n• {{name}} - {{days_since_contact}} يوم\n{{/each}}\n\nأرسل رقم العميل لمشاهدة التفاصيل.",
+    "client_checkin_en": "Hi {{client_first_name}}, I hope you're doing well! I wanted to check in and see how things are going. Is there anything you need help with, or any updates we should discuss? Feel free to reach out anytime.\n\nBest regards,\n{{lawyer_name}}",
+    "client_checkin_ar": "مرحباً {{client_first_name}}، أتمنى أنك بخير! أردت أن أتواصل معك للاطمئنان على سير الأمور. هل هناك أي شيء تحتاج مساعدة فيه، أو أي تحديثات يجب مناقشتها؟ لا تتردد في التواصل في أي وقت.\n\nمع أطيب التحيات،\n{{lawyer_name}}",
+    "client_checkin_bilingual": "Hi {{client_first_name}} / مرحباً {{client_first_name}}\n\nI wanted to check in and see how things are going.\nأردت أن أتواصل معك للاطمئنان على سير الأمور.\n\nIs there anything you need help with?\nهل هناك أي شيء تحتاج مساعدة فيه؟\n\nBest regards / مع التحية,\n{{lawyer_name}}",
+    "escalation_en": "🚨 URGENT: Clients at Churn Risk\n\nThe following clients have not been contacted for an extended period and are at high churn risk:\n\n{{#each critical_clients}}\n---\nClient: {{name}}\nCompany: {{company}}\nDays Without Contact: {{days_since_contact}}\nAssigned Lawyer: {{lawyer_name}}\nPriority: {{priority}}\n{{/each}}\n\nImmediate action recommended.",
+    "escalation_ar": "🚨 عاجل: عملاء معرضون لخطر الفقدان\n\nالعملاء التالية أسماؤهم لم يتم التواصل معهم لفترة طويلة ومعرضون لخطر الفقدان:\n\n{{#each critical_clients}}\n---\nالعميل: {{name}}\nالشركة: {{company}}\nأيام بدون تواصل: {{days_since_contact}}\nالمحامي المكلف: {{lawyer_name}}\nالأولوية: {{priority}}\n{{/each}}\n\nيوصى باتخاذ إجراء فوري."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Inactivity Check (Trigger)",
+        "name_ar": "فحص يومي لعدم النشاط (محفز)",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0-4",
+            "description": "Runs every day at 9 AM (Sunday-Thursday) to check for inactive clients",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Scan Client List for Inactivity",
+        "name_ar": "مسح قائمة العملاء لعدم النشاط",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "NOTION_QUERY_DATABASE",
+          "action": "query",
+          "params": {
+            "database_id": "{{clients_database_id}}",
+            "filter": {
+              "property": "Last Contact",
+              "date": {
+                "before": "{{inactivity_threshold_date}}"
+              }
+            },
+            "description": "Query clients not contacted in X days"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send WhatsApp Reminder to Lawyer",
+        "name_ar": "إرسال تذكير واتساب للمحامي",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_phone}}",
+            "message": "{{messages.lawyer_reminder_{{language}}}}",
+            "description": "Daily summary of clients needing follow-up"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Email Summary to Lawyer",
+        "name_ar": "إرسال ملخص بريد إلكتروني للمحامي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_email}}",
+            "subject": "⏰ {{inactive_count}} Clients Need Follow-Up / عملاء يحتاجون متابعة",
+            "body": "{{messages.lawyer_reminder_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log Reminder in Slack",
+        "name_ar": "تسجيل التذكير في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#client-followups",
+            "message": ":bell: *Daily Client Follow-Up Summary / ملخص المتابعة اليومي*\n\n*{{lawyer_name}}* has {{inactive_count}} clients needing attention:\n{{#each inactive_clients}}\n• {{name}} ({{company}}) - {{days_since_contact}} days | Priority: {{priority}}\n{{/each}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Check for Critical Inactivity",
+        "name_ar": "فحص عدم النشاط الحرج",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "any client.days_since_contact > critical_days",
+            "description": "Check if any client is critically inactive"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Escalate Critical Clients",
+        "name_ar": "تصعيد العملاء الحرجين",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{supervisor_email}}",
+            "subject": "🚨 ESCALATION: Clients at Churn Risk / تصعيد: عملاء معرضون للفقدان",
+            "body": "{{messages.escalation_{{language}}}}",
+            "description": "Escalation email for critically inactive clients"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Auto Check-In (if enabled)",
+        "name_ar": "تفقد تلقائي (إذا مفعل)",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{client_phone}}",
+            "message": "{{messages.client_checkin_{{language}}}}",
+            "description": "Auto check-in message to client (only if auto_followup_enabled)",
+            "condition": "auto_followup_enabled === true"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Log Contact in System",
+        "name_ar": "تسجيل التواصل في النظام",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "update",
+          "params": {
+            "page_id": "{{client_notion_page_id}}",
+            "properties": {
+              "Last Contact": {
+                "date": {"start": "{{current_date}}"}
+              },
+              "Last Contact Type": {
+                "select": {"name": "WhatsApp"}
+              },
+              "Last Contact Summary": {
+                "rich_text": [{"text": {"content": "Automated check-in message sent / رسالة تفقد تلقائية"}}]
+              }
+            },
+            "description": "Update client record with new contact"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Confirmation in Slack",
+        "name_ar": "تأكيد في سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#client-followups",
+            "message": ":white_check_mark: *Auto Check-In Sent / تم إرسال رسالة تفقد*\n\nClient: {{client_name}}\nMethod: WhatsApp\n\nSent automatically due to exceeding inactivity threshold."
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["whatsapp", "gmail", "slack", "notion"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "inactivity_days",
+      "question": "After how many days without contact should I remind you?",
+      "question_ar": "بعد كم يوم بدون تواصل يجب أن أذكرك؟",
+      "type": "number",
+      "default": 14
+    },
+    {
+      "id": "primary_channel",
+      "question": "What's your preferred communication channel?",
+      "question_ar": "ما هي قناة التواصل المفضلة لديك؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "email", "label": "Email / البريد الإلكتروني"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "auto_followup_enabled",
+      "question": "Should I automatically send check-in messages to your clients?",
+      "question_ar": "هل أقوم بإرسال رسائل تفقد تلقائية لعملائك؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "language",
+      "question": "What language should messages be in?",
+      "question_ar": "بأي لغة يجب إرسال الرسائل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "primaryChannel": "whatsapp"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "primaryChannel": "whatsapp"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "primaryChannel": "email"
+    }
+  }
+}

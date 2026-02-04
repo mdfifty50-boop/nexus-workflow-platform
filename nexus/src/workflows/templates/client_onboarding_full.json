@@ -1,30 +1,91 @@
 {
   "id": "client_onboarding_full",
   "name": "Client Onboarding Workflow",
-  "description": "Complete client onboarding flow: form capture, CRM entry, info request, contract, welcome email, and team notification. Uses Notion as placeholder for ClickUp/CRM.",
+  "name_ar": "سير عمل تأهيل العملاء",
+  "description": "Complete client onboarding flow: form capture, CRM entry, info request, contract via DocuSign, welcome email, and team notification. Uses Notion as placeholder for ClickUp/CRM.",
+  "description_ar": "سير عمل تأهيل العملاء الكامل: التقاط النموذج، إدخال CRM، طلب المعلومات، العقد عبر DocuSign، بريد الترحيب، وإشعار الفريق. يستخدم Notion كبديل لـ ClickUp/CRM.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$32,000/year",
   "requiredIntegrations": ["notion", "gmail", "slack"],
+  "optionalIntegrations": ["docusign", "whatsapp", "hubspot", "calendly"],
   "exampleUserInput": "Help me onboard my clients automatically with forms, contracts, and welcome emails",
-  "keywords": ["onboard", "onboarding", "client", "customer", "welcome", "contract", "form", "crm", "signup", "new client"],
+  "exampleUserInput_ar": "ساعدني في تأهيل عملائي تلقائياً بالنماذج والعقود ورسائل الترحيب",
+  "keywords": ["onboard", "onboarding", "client", "customer", "welcome", "contract", "form", "crm", "signup", "new client", "تأهيل", "عميل", "ترحيب", "عقد", "نموذج", "تسجيل"],
+  "dynamicParameters": {
+    "welcome_delay_hours": {
+      "type": "number",
+      "default": 0,
+      "label": "Hours to wait before sending welcome email",
+      "label_ar": "ساعات الانتظار قبل إرسال بريد الترحيب",
+      "required": false
+    },
+    "contract_required": {
+      "type": "boolean",
+      "default": true,
+      "label": "Require contract signature before activation",
+      "label_ar": "يتطلب توقيع العقد قبل التفعيل"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Communication Language",
+      "label_ar": "لغة التواصل"
+    },
+    "primary_channel": {
+      "type": "select",
+      "options": ["email", "whatsapp", "both"],
+      "default": "both",
+      "label": "Primary communication channel",
+      "label_ar": "قناة التواصل الرئيسية"
+    },
+    "auto_schedule_kickoff": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule kickoff call",
+      "label_ar": "جدولة مكالمة الانطلاق تلقائياً"
+    },
+    "docusign_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Use DocuSign for contracts",
+      "label_ar": "استخدام DocuSign للعقود"
+    }
+  },
+  "messages": {
+    "info_request_en": "Hi {{client_name}},\n\nThank you for signing up with {{company_name}}! We're excited to have you on board.\n\nTo complete your onboarding, please provide the following:\n- Company logo (high resolution)\n- Billing address\n- Primary contact person and phone number\n- Preferred communication method\n\nReply to this email with the details, or send them via WhatsApp to {{company_whatsapp}}.\n\nBest regards,\n{{company_name}} Team",
+    "info_request_ar": "مرحباً {{client_name}}،\n\nشكراً لتسجيلك مع {{company_name}}! نحن متحمسون لانضمامك إلينا.\n\nلإكمال تأهيلك، يرجى تقديم ما يلي:\n- شعار الشركة (دقة عالية)\n- عنوان الفوترة\n- جهة الاتصال الرئيسية ورقم الهاتف\n- طريقة التواصل المفضلة\n\nرد على هذا البريد بالتفاصيل، أو أرسلها عبر واتساب إلى {{company_whatsapp}}.\n\nمع أطيب التحيات،\nفريق {{company_name}}",
+    "contract_email_en": "Hi {{client_name}},\n\nPlease review and sign your service agreement using the secure DocuSign link below:\n\n📝 [Sign Contract]({{docusign_link}})\n\nThe contract includes:\n- Service terms and conditions\n- Payment schedule\n- Confidentiality agreement\n\nOnce signed, we'll activate your account immediately.\n\nQuestions? Reply to this email or call {{company_phone}}.\n\nBest regards,\n{{company_name}}",
+    "contract_email_ar": "مرحباً {{client_name}}،\n\nيرجى مراجعة وتوقيع اتفاقية الخدمة باستخدام رابط DocuSign الآمن أدناه:\n\n📝 [توقيع العقد]({{docusign_link}})\n\nيتضمن العقد:\n- شروط وأحكام الخدمة\n- جدول الدفع\n- اتفاقية السرية\n\nبمجرد التوقيع، سنقوم بتفعيل حسابك فوراً.\n\nأسئلة؟ رد على هذا البريد أو اتصل على {{company_phone}}.\n\nمع أطيب التحيات،\n{{company_name}}",
+    "welcome_en": "Hi {{client_name}},\n\n🎉 Great news - your contract has been received and your account is now active!\n\nHere's what happens next:\n1. You'll receive login credentials within 24 hours\n2. Your dedicated account manager ({{account_manager}}) will reach out\n3. We'll schedule your kickoff call{{#if auto_schedule_kickoff}} - check your calendar!{{/if}}\n\nImportant Links:\n- Client Portal: {{portal_link}}\n- Support: {{support_email}}\n- WhatsApp: {{company_whatsapp}}\n\nWelcome to the {{company_name}} family!\n\nBest regards,\nThe {{company_name}} Team",
+    "welcome_ar": "مرحباً {{client_name}}،\n\n🎉 أخبار رائعة - تم استلام عقدك وحسابك نشط الآن!\n\nما يحدث بعد ذلك:\n1. ستتلقى بيانات تسجيل الدخول خلال 24 ساعة\n2. سيتواصل معك مدير حسابك المخصص ({{account_manager}})\n3. سنجدول مكالمة الانطلاق{{#if auto_schedule_kickoff}} - تحقق من تقويمك!{{/if}}\n\nروابط مهمة:\n- بوابة العملاء: {{portal_link}}\n- الدعم: {{support_email}}\n- واتساب: {{company_whatsapp}}\n\nمرحباً بك في عائلة {{company_name}}!\n\nمع أطيب التحيات،\nفريق {{company_name}}",
+    "welcome_whatsapp_en": "🎉 Welcome to {{company_name}}, {{client_name}}!\n\nYour account is now active! 🚀\n\nYour account manager {{account_manager}} will reach out shortly.\n\nNeed anything? Just reply here!\n\nLooking forward to working with you! 💼",
+    "welcome_whatsapp_ar": "🎉 مرحباً بك في {{company_name}}، {{client_name}}!\n\nحسابك نشط الآن! 🚀\n\nسيتواصل معك مدير حسابك {{account_manager}} قريباً.\n\nتحتاج شيء؟ فقط رد هنا!\n\nنتطلع للعمل معك! 💼",
+    "team_notification_en": "🎉 *New Client Onboarded!*\n\nClient: {{client_name}}\nCompany: {{company_name}}\nPackage: {{selected_package}}\nEmail: {{client_email}}\nPhone: {{client_phone}}\n\nAccount Manager: {{account_manager}}\nContract: {{contract_status}}\n\nWelcome email sent. Kickoff call {{#if kickoff_scheduled}}scheduled for {{kickoff_date}}{{else}}pending{{/if}}.\n\n🚀 Let's make this client successful!"
+  },
   "executionPlan": {
     "tasks": [
       {
         "id": "task_1",
         "name": "Capture Form Submission (Trigger)",
+        "name_ar": "التقاط إرسال النموذج (محفز)",
         "type": "trigger",
         "integrationId": "notion",
         "dependencies": [],
         "config": {
-          "toolSlug": "NOTION_CREATE_PAGE",
-          "action": "create",
+          "toolSlug": "NOTION_DATABASE_ITEM_CREATED",
+          "action": "webhook",
           "params": {
-            "description": "Placeholder: Trigger when website form is submitted. In production, replace with webhook or form integration.",
-            "database": "clients"
+            "description": "Trigger when new client form is submitted",
+            "database": "{{clients_database_id}}"
           }
         }
       },
       {
         "id": "task_2",
         "name": "Create Client in CRM",
+        "name_ar": "إنشاء العميل في CRM",
         "type": "action",
         "integrationId": "notion",
         "dependencies": ["task_1"],
@@ -32,15 +93,19 @@
           "toolSlug": "NOTION_CREATE_PAGE",
           "action": "create",
           "params": {
-            "description": "Placeholder: Create client record in ClickUp/CRM. Using Notion as CRM placeholder.",
-            "database": "clients",
-            "title": "{{client_name}}"
+            "database_id": "{{clients_database_id}}",
+            "properties": {
+              "Name": "{{task_1.client_name}}",
+              "Status": "Onboarding",
+              "Created": "{{current_date}}"
+            }
           }
         }
       },
       {
         "id": "task_3",
         "name": "Populate Client Fields",
+        "name_ar": "ملء حقول العميل",
         "type": "action",
         "integrationId": "notion",
         "dependencies": ["task_2"],
@@ -48,13 +113,14 @@
           "toolSlug": "NOTION_UPDATE_PAGE",
           "action": "update",
           "params": {
-            "description": "Populate client fields: name, email, company, phone, package",
+            "page_id": "{{task_2.page_id}}",
             "properties": {
-              "name": "{{client_name}}",
-              "email": "{{client_email}}",
-              "company": "{{company_name}}",
-              "phone": "{{phone}}",
-              "package": "{{selected_package}}"
+              "Email": "{{task_1.client_email}}",
+              "Company": "{{task_1.company_name}}",
+              "Phone": "{{task_1.phone}}",
+              "Package": "{{task_1.selected_package}}",
+              "Language": "{{language}}",
+              "Onboarding Status": "Info Requested"
             }
           }
         }
@@ -62,6 +128,7 @@
       {
         "id": "task_4",
         "name": "Request Missing Info via Email",
+        "name_ar": "طلب المعلومات الناقصة عبر البريد",
         "type": "action",
         "integrationId": "gmail",
         "dependencies": ["task_3"],
@@ -69,15 +136,42 @@
           "toolSlug": "GMAIL_SEND_EMAIL",
           "action": "send",
           "params": {
-            "to": "{{client_email}}",
-            "subject": "Welcome! We need a bit more info to get started",
-            "body": "Hi {{client_name}},\n\nThank you for signing up! To complete your onboarding, please provide the following:\n- Company logo\n- Billing address\n- Primary contact\n\nReply to this email with the details.\n\nBest regards"
+            "to": "{{task_1.client_email}}",
+            "subject": "Welcome! We need a bit more info / مرحباً! نحتاج بعض المعلومات",
+            "body": "{{messages.info_request_{{language}}}}"
           }
         }
       },
       {
         "id": "task_5",
         "name": "Send Contract for Signature",
+        "name_ar": "إرسال العقد للتوقيع",
+        "type": "action",
+        "integrationId": "docusign",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "DOCUSIGN_CREATE_ENVELOPE",
+          "action": "create",
+          "params": {
+            "templateId": "{{contract_template_id}}",
+            "recipients": {
+              "signers": [{
+                "email": "{{task_1.client_email}}",
+                "name": "{{task_1.client_name}}",
+                "recipientId": "1",
+                "routingOrder": "1"
+              }]
+            },
+            "emailSubject": "Please sign your service agreement / يرجى توقيع اتفاقية الخدمة",
+            "status": "sent"
+          },
+          "condition": "docusign_enabled === true && contract_required === true"
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Contract Email (DocuSign disabled)",
+        "name_ar": "إرسال بريد العقد (DocuSign معطل)",
         "type": "action",
         "integrationId": "gmail",
         "dependencies": ["task_4"],
@@ -85,46 +179,193 @@
           "toolSlug": "GMAIL_SEND_EMAIL",
           "action": "send",
           "params": {
-            "description": "Placeholder: In production, integrate DocuSign/HelloSign for e-signatures",
-            "to": "{{client_email}}",
-            "subject": "Your Service Agreement - Please Sign",
-            "body": "Hi {{client_name}},\n\nPlease review and sign your service agreement using the link below:\n\n[Contract Link Placeholder]\n\nOnce signed, we'll activate your account immediately.\n\nBest regards"
-          }
-        }
-      },
-      {
-        "id": "task_6",
-        "name": "Send Welcome Email + Notify Team",
-        "type": "action",
-        "integrationId": "gmail",
-        "dependencies": ["task_5"],
-        "config": {
-          "toolSlug": "GMAIL_SEND_EMAIL",
-          "action": "send",
-          "params": {
-            "description": "Triggered after contract signed. Sends welcome email to client.",
-            "to": "{{client_email}}",
-            "subject": "Welcome Aboard! Your Account is Active",
-            "body": "Hi {{client_name}},\n\nGreat news - your contract has been received and your account is now active!\n\nHere's what happens next:\n1. You'll receive login credentials within 24 hours\n2. Your dedicated account manager will reach out\n3. We'll schedule your kickoff call\n\nWelcome to the team!\n\nBest regards"
-          }
+            "to": "{{task_1.client_email}}",
+            "subject": "Your Service Agreement / اتفاقية الخدمة",
+            "body": "{{messages.contract_email_{{language}}}}",
+            "attachments": ["{{contract_pdf_path}}"]
+          },
+          "condition": "docusign_enabled === false && contract_required === true"
         }
       },
       {
         "id": "task_7",
+        "name": "Wait for Contract Signature",
+        "name_ar": "انتظار توقيع العقد",
+        "type": "trigger",
+        "integrationId": "docusign",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "DOCUSIGN_ENVELOPE_COMPLETED",
+          "action": "webhook",
+          "params": {
+            "envelopeId": "{{task_5.envelopeId}}",
+            "event": "envelope_completed"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Update Client Status to Active",
+        "name_ar": "تحديث حالة العميل إلى نشط",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "update",
+          "params": {
+            "page_id": "{{task_2.page_id}}",
+            "properties": {
+              "Status": "Active",
+              "Contract Signed": "{{current_date}}",
+              "Onboarding Status": "Complete"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Welcome Email",
+        "name_ar": "إرسال بريد الترحيب",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.client_email}}",
+            "subject": "Welcome Aboard! Your Account is Active / مرحباً! حسابك نشط",
+            "body": "{{messages.welcome_{{language}}}}",
+            "delay_hours": "{{welcome_delay_hours}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Welcome WhatsApp",
+        "name_ar": "إرسال ترحيب واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.phone}}",
+            "message": "{{messages.welcome_whatsapp_{{language}}}}",
+            "condition": "primary_channel === 'whatsapp' || primary_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Schedule Kickoff Call",
+        "name_ar": "جدولة مكالمة الانطلاق",
+        "type": "action",
+        "integrationId": "calendly",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "CALENDLY_CREATE_SCHEDULING_LINK",
+          "action": "create",
+          "params": {
+            "eventType": "kickoff_call",
+            "invitee_email": "{{task_1.client_email}}",
+            "invitee_name": "{{task_1.client_name}}"
+          },
+          "condition": "auto_schedule_kickoff === true"
+        }
+      },
+      {
+        "id": "task_12",
         "name": "Internal Slack Notification",
+        "name_ar": "إشعار داخلي سلاك",
         "type": "action",
         "integrationId": "slack",
-        "dependencies": ["task_6"],
+        "dependencies": ["task_9"],
         "config": {
           "toolSlug": "SLACK_SEND_MESSAGE",
           "action": "send",
           "params": {
             "channel": "#new-clients",
-            "message": ":tada: New client onboarded!\n\n*Client:* {{client_name}}\n*Company:* {{company_name}}\n*Package:* {{selected_package}}\n*Email:* {{client_email}}\n\nWelcome email sent. Please assign account manager."
+            "message": "{{messages.team_notification_en}}"
           }
         }
       }
     ],
     "requiredIntegrations": ["notion", "gmail", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "contract_required",
+      "question": "Do you require a signed contract before activating clients?",
+      "question_ar": "هل تتطلب عقداً موقعاً قبل تفعيل العملاء؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "docusign_enabled",
+      "question": "Use DocuSign for electronic signatures?",
+      "question_ar": "استخدام DocuSign للتوقيعات الإلكترونية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "primary_channel",
+      "question": "What's your preferred way to communicate with clients?",
+      "question_ar": "ما هي طريقتك المفضلة للتواصل مع العملاء؟",
+      "type": "select",
+      "options": [
+        {"value": "email", "label": "Email / البريد الإلكتروني"},
+        {"value": "whatsapp", "label": "WhatsApp / واتساب"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "both"
+    },
+    {
+      "id": "auto_schedule_kickoff",
+      "question": "Automatically schedule a kickoff call with new clients?",
+      "question_ar": "جدولة مكالمة انطلاق تلقائياً مع العملاء الجدد؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "What language should communications be in?",
+      "question_ar": "بأي لغة يجب إرسال المراسلات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "primaryChannel": "whatsapp",
+      "docuSign": true
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "primaryChannel": "whatsapp",
+      "docuSign": true
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "primaryChannel": "email",
+      "docuSign": true
+    }
   }
 }

@@ -1,21 +1,83 @@
 {
   "id": "whatsapp_lead_followup_to_crm",
   "name": "WhatsApp Lead Follow-up to CRM",
-  "description": "Automatically log WhatsApp lead conversations to HubSpot CRM and send follow-up messages",
-  "requiredIntegrations": ["whatsapp", "hubspot"],
+  "name_ar": "متابعة عملاء واتساب إلى CRM",
+  "description": "Automatically log WhatsApp Business lead conversations to HubSpot CRM, qualify leads, and send follow-up messages. Perfect for businesses using WhatsApp as primary lead capture channel.",
+  "description_ar": "تسجيل محادثات العملاء المحتملين من واتساب إلى HubSpot CRM تلقائياً، تأهيل العملاء، وإرسال رسائل متابعة. مثالي للأعمال التي تستخدم واتساب كقناة رئيسية لاستقطاب العملاء.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$33,280/year",
+  "requiredIntegrations": ["whatsapp-business", "hubspot"],
+  "optionalIntegrations": ["slack", "gmail", "notion"],
   "exampleUserInput": "When I get a WhatsApp message from a lead, save it to my CRM and schedule a follow-up",
-  "keywords": ["whatsapp", "lead", "crm", "hubspot", "follow-up", "followup", "contact"],
+  "exampleUserInput_ar": "عندما أتلقى رسالة واتساب من عميل محتمل، احفظها في CRM وجدول متابعة",
+  "keywords": ["whatsapp", "whatsapp business", "lead", "crm", "hubspot", "follow-up", "followup", "contact", "prospect", "sales", "conversion", "واتساب", "عميل محتمل", "متابعة", "مبيعات", "تحويل"],
+  "dynamicParameters": {
+    "auto_followup_delay": {
+      "type": "number",
+      "default": 5,
+      "label": "Minutes before auto follow-up",
+      "label_ar": "دقائق قبل المتابعة التلقائية",
+      "required": true
+    },
+    "lead_qualification_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Enable automatic lead qualification",
+      "label_ar": "تفعيل تأهيل العملاء التلقائي"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    },
+    "followup_template": {
+      "type": "select",
+      "options": ["professional", "friendly", "urgent"],
+      "default": "friendly",
+      "label": "Follow-up message tone",
+      "label_ar": "نبرة رسالة المتابعة"
+    },
+    "assign_to_rep": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-assign to available sales rep",
+      "label_ar": "تعيين تلقائي لمندوب مبيعات متاح"
+    },
+    "business_hours_only": {
+      "type": "boolean",
+      "default": true,
+      "label": "Only auto-respond during business hours",
+      "label_ar": "الرد التلقائي خلال ساعات العمل فقط"
+    }
+  },
+  "messages": {
+    "initial_response_en": "Hi {{lead_name}}! 👋\n\nThank you for reaching out to {{company_name}}. We received your message and a team member will get back to you shortly.\n\nIn the meantime, how can we help you today?\n\n1️⃣ Product inquiry\n2️⃣ Service request\n3️⃣ Pricing information\n4️⃣ Support\n5️⃣ Other\n\nReply with a number or type your question directly.",
+    "initial_response_ar": "مرحباً {{lead_name}}! 👋\n\nشكراً لتواصلك مع {{company_name}}. استلمنا رسالتك وسيتواصل معك أحد أعضاء الفريق قريباً.\n\nكيف يمكننا مساعدتك اليوم؟\n\n1️⃣ استفسار عن المنتج\n2️⃣ طلب خدمة\n3️⃣ معلومات الأسعار\n4️⃣ الدعم الفني\n5️⃣ أخرى\n\nأرسل رقماً أو اكتب سؤالك مباشرة.",
+    "initial_response_bilingual": "Hi {{lead_name}}! / مرحباً {{lead_name}}! 👋\n\nThank you for reaching out!\nشكراً لتواصلك!\n\n{{company_name}}\n\nHow can we help? / كيف يمكننا المساعدة؟\n\n1️⃣ Product / منتج\n2️⃣ Service / خدمة\n3️⃣ Pricing / أسعار\n4️⃣ Support / دعم\n5️⃣ Other / أخرى",
+    "followup_professional_en": "Dear {{lead_name}},\n\nThank you for your interest in {{company_name}}. I'm {{rep_name}}, and I'll be your point of contact.\n\nI noticed you inquired about {{inquiry_topic}}. I'd be happy to discuss this with you.\n\nWould you prefer:\n- A quick call now?\n- Scheduling a meeting?\n- More information via WhatsApp?\n\nBest regards,\n{{rep_name}}",
+    "followup_friendly_en": "Hey {{lead_name}}! 😊\n\nIt's {{rep_name}} from {{company_name}}. Thanks for reaching out!\n\nI saw you were interested in {{inquiry_topic}} - great choice! I'd love to help you out.\n\nWhat works best for you - quick chat here, a call, or should I send over some info?\n\nLooking forward to hearing from you!",
+    "followup_urgent_en": "Hi {{lead_name}},\n\n{{rep_name}} here from {{company_name}}. I wanted to personally follow up on your inquiry.\n\n⏰ We currently have a limited-time offer on {{inquiry_topic}} that I didn't want you to miss.\n\nCan we chat briefly? I'm available now.",
+    "followup_friendly_ar": "مرحباً {{lead_name}}! 😊\n\nأنا {{rep_name}} من {{company_name}}. شكراً لتواصلك!\n\nلاحظت اهتمامك بـ {{inquiry_topic}} - اختيار رائع! سأكون سعيداً بمساعدتك.\n\nما الأنسب لك - محادثة سريعة هنا، مكالمة، أو أرسل لك بعض المعلومات؟\n\nأتطلع لسماع ردك!",
+    "after_hours_en": "Hi {{lead_name}}! 🌙\n\nThanks for reaching out to {{company_name}}. Our team is currently offline, but we'll respond first thing when we're back.\n\nBusiness Hours: {{business_hours}}\n\nYour message has been saved and a team member will contact you soon.\n\nUrgent? Email us at {{urgent_email}}",
+    "after_hours_ar": "مرحباً {{lead_name}}! 🌙\n\nشكراً لتواصلك مع {{company_name}}. فريقنا غير متاح حالياً، لكننا سنرد في أقرب وقت.\n\nساعات العمل: {{business_hours}}\n\nتم حفظ رسالتك وسيتواصل معك أحد أعضاء الفريق قريباً.\n\nحالة طارئة؟ راسلنا على {{urgent_email}}",
+    "qualified_notification_en": "🔥 *New Qualified Lead*\n\nName: {{lead_name}}\nPhone: {{lead_phone}}\nSource: WhatsApp\nInterest: {{inquiry_topic}}\nScore: {{lead_score}}/100\n\nFirst message: \"{{first_message}}\"\n\nAssigned to: {{rep_name}}\n\nFollow up within 5 minutes for best conversion!"
+  },
   "executionPlan": {
     "tasks": [
       {
         "id": "task_1",
-        "name": "Receive WhatsApp Message",
+        "name": "WhatsApp Message Received",
+        "name_ar": "استلام رسالة واتساب",
         "type": "trigger",
-        "integrationId": "whatsapp",
+        "integrationId": "whatsapp-business",
         "dependencies": [],
         "config": {
-          "toolSlug": "WHATSAPP_SEND_MESSAGE",
-          "action": "receive",
+          "tool": "whatsapp_trigger",
+          "action": "webhook",
+          "description": "Trigger workflow when WhatsApp Business message arrives",
           "params": {
             "messageType": "text"
           }
@@ -23,34 +85,233 @@
       },
       {
         "id": "task_2",
-        "name": "Create or Update HubSpot Contact",
-        "type": "action",
-        "integrationId": "hubspot",
+        "name": "Check Business Hours",
+        "name_ar": "فحص ساعات العمل",
+        "type": "condition",
+        "integrationId": "system",
         "dependencies": ["task_1"],
         "config": {
-          "toolSlug": "HUBSPOT_CREATE_CONTACT",
-          "action": "create",
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
           "params": {
-            "source": "WhatsApp",
-            "leadStatus": "New"
+            "condition": "isWithinBusinessHours({{timezone}}, {{business_hours}})",
+            "description": "Check if current time is within business hours"
           }
         }
       },
       {
         "id": "task_3",
-        "name": "Send Follow-up WhatsApp",
+        "name": "Send Initial Response",
+        "name_ar": "إرسال الرد الأولي",
         "type": "action",
-        "integrationId": "whatsapp",
+        "integrationId": "whatsapp-business",
         "dependencies": ["task_2"],
         "config": {
-          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "tool": "whatsapp_send",
+          "action": "send",
+          "description": "Send initial acknowledgment message",
+          "params": {
+            "to": "{{task_1.fromNumber}}",
+            "message": "{{messages.initial_response_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Create or Update HubSpot Contact",
+        "name_ar": "إنشاء أو تحديث جهة اتصال HubSpot",
+        "type": "action",
+        "integrationId": "hubspot",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "HUBSPOT_CREATE_CONTACT",
+          "action": "upsert",
+          "params": {
+            "properties": {
+              "phone": "{{task_1.fromNumber}}",
+              "firstname": "{{task_1.fromName}}",
+              "lead_source": "WhatsApp Business",
+              "lead_status": "New",
+              "first_message": "{{task_1.messageBody}}",
+              "last_whatsapp_message": "{{task_1.messageBody}}",
+              "whatsapp_conversation_date": "{{current_datetime}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Qualify Lead",
+        "name_ar": "تأهيل العميل",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "analyze",
+          "params": {
+            "description": "Analyze message content to qualify lead",
+            "scoring": {
+              "keywords_high": ["urgent", "today", "price", "buy", "order", "عاجل", "اليوم", "سعر", "شراء"],
+              "keywords_medium": ["interested", "info", "looking", "مهتم", "معلومات", "أبحث"],
+              "keywords_low": ["later", "maybe", "thinking", "لاحقاً", "ربما"]
+            },
+            "output": "lead_score"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Update Lead Score in HubSpot",
+        "name_ar": "تحديث تقييم العميل في HubSpot",
+        "type": "action",
+        "integrationId": "hubspot",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "HUBSPOT_UPDATE_CONTACT",
+          "action": "update",
+          "params": {
+            "contactId": "{{task_4.contactId}}",
+            "properties": {
+              "lead_score": "{{task_5.lead_score}}",
+              "lead_status": "{{task_5.lead_status}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Assign to Sales Rep",
+        "name_ar": "تعيين لمندوب مبيعات",
+        "type": "action",
+        "integrationId": "hubspot",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "HUBSPOT_UPDATE_CONTACT",
+          "action": "assign",
+          "params": {
+            "contactId": "{{task_4.contactId}}",
+            "ownerId": "{{next_available_rep}}",
+            "description": "Round-robin assignment to available sales rep"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Follow-up via WhatsApp",
+        "name_ar": "إرسال متابعة عبر واتساب",
+        "type": "action",
+        "integrationId": "whatsapp-business",
+        "dependencies": ["task_7"],
+        "config": {
+          "tool": "whatsapp_send",
+          "action": "template",
+          "description": "Send personalized follow-up message",
+          "params": {
+            "to": "{{task_1.fromNumber}}",
+            "message": "{{messages.followup_{{followup_template}}_{{language}}}}",
+            "delay_minutes": "{{auto_followup_delay}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Notify Team on Slack",
+        "name_ar": "إشعار الفريق على سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
           "action": "send",
           "params": {
-            "messageTemplate": "follow_up"
+            "channel": "#leads",
+            "message": "{{messages.qualified_notification_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send After-Hours Response",
+        "name_ar": "إرسال رد خارج ساعات العمل",
+        "type": "action",
+        "integrationId": "whatsapp-business",
+        "dependencies": ["task_2"],
+        "config": {
+          "tool": "whatsapp_send",
+          "action": "send",
+          "description": "Send after-hours auto-response",
+          "params": {
+            "to": "{{task_1.fromNumber}}",
+            "message": "{{messages.after_hours_{{language}}}}",
+            "condition": "!isWithinBusinessHours && business_hours_only"
           }
         }
       }
     ],
-    "requiredIntegrations": ["whatsapp", "hubspot"]
+    "requiredIntegrations": ["whatsapp-business", "hubspot"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "auto_followup_delay",
+      "question": "How many minutes should I wait before sending follow-up?",
+      "question_ar": "كم دقيقة يجب الانتظار قبل إرسال المتابعة؟",
+      "type": "number",
+      "default": 5
+    },
+    {
+      "id": "followup_template",
+      "question": "What tone should follow-up messages have?",
+      "question_ar": "ما نبرة رسائل المتابعة؟",
+      "type": "select",
+      "options": [
+        {"value": "professional", "label": "Professional / رسمي"},
+        {"value": "friendly", "label": "Friendly / ودي"},
+        {"value": "urgent", "label": "Urgent / عاجل"}
+      ],
+      "default": "friendly"
+    },
+    {
+      "id": "language",
+      "question": "What language should messages be in?",
+      "question_ar": "بأي لغة يجب إرسال الرسائل؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    },
+    {
+      "id": "business_hours_only",
+      "question": "Only auto-respond during business hours?",
+      "question_ar": "الرد التلقائي خلال ساعات العمل فقط؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "bilingual",
+      "currency": "KWD"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "currency": "SAR"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "currency": "AED"
+    }
   }
 }

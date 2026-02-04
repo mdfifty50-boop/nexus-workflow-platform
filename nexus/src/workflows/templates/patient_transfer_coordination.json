@@ -1,0 +1,299 @@
+{
+  "id": "patient_transfer_coordination",
+  "name": "Patient Transfer Coordination",
+  "name_ar": "تنسيق نقل المريض",
+  "description": "Comprehensive coordination system for inter-facility and intra-facility patient transfers. Manages documentation, transport, receiving facility communication, and family notifications.",
+  "description_ar": "نظام تنسيق شامل لنقل المرضى بين المرافق وداخلها. يدير التوثيق والنقل والتواصل مع المرفق المستقبل وإشعارات العائلة.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$90,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail", "slack"],
+  "optionalIntegrations": ["twilio", "googledrive"],
+  "exampleUserInput": "Coordinate patient transfer from ER to another hospital",
+  "exampleUserInput_ar": "تنسيق نقل المريض من الطوارئ إلى مستشفى آخر",
+  "keywords": [
+    "transfer", "patient transport", "inter-facility", "referral", "ambulance", "handoff",
+    "نقل", "نقل المريض", "بين المرافق", "إحالة", "إسعاف", "تسليم"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Sending Hospital Name",
+      "label_ar": "اسم المستشفى المرسل"
+    },
+    "transfer_types": {
+      "type": "array",
+      "default": ["Emergency Transfer", "Elective Transfer", "Step-down Transfer", "Specialty Referral", "Inter-department"],
+      "label": "Transfer Types",
+      "label_ar": "أنواع النقل"
+    },
+    "transport_options": {
+      "type": "array",
+      "default": ["Basic Ambulance", "ALS Ambulance", "Critical Care Transport", "Air Ambulance", "Private Transport"],
+      "label": "Transport Options",
+      "label_ar": "خيارات النقل"
+    },
+    "documentation_required": {
+      "type": "array",
+      "default": ["Transfer Summary", "Medication List", "Recent Labs", "Imaging Reports", "Consent Form"],
+      "label": "Required Documentation",
+      "label_ar": "المستندات المطلوبة"
+    }
+  },
+  "messages": {
+    "transfer_initiated": {
+      "_en": "🚑 Transfer Request Initiated - {{sending_hospital}}\n\n📋 Transfer Request #: {{transfer_id}}\n⏰ Requested: {{request_time}}\n\n👤 Patient: {{patient_name}} ({{patient_id}})\n📍 Current Location: {{current_location}}\n🏥 Destination: {{receiving_facility}}\n\n📝 Reason: {{transfer_reason}}\n🔴 Priority: {{priority_level}}\n\n📄 Required Documentation:\n{{#each required_docs}}{{#if completed}}✅{{else}}⏳{{/if}} {{name}}\n{{/each}}\n\n👨‍⚕️ Requesting Physician: Dr. {{requesting_physician}}\n📞 Contact: {{physician_phone}}",
+      "_ar": "🚑 بدء طلب النقل - {{sending_hospital}}\n\n📋 رقم طلب النقل: {{transfer_id}}\n⏰ تم الطلب: {{request_time}}\n\n👤 المريض: {{patient_name}} ({{patient_id}})\n📍 الموقع الحالي: {{current_location}}\n🏥 الوجهة: {{receiving_facility}}\n\n📝 السبب: {{transfer_reason}}\n🔴 الأولوية: {{priority_level}}\n\n📄 المستندات المطلوبة:\n{{#each required_docs}}{{#if completed}}✅{{else}}⏳{{/if}} {{name}}\n{{/each}}\n\n👨‍⚕️ الطبيب الطالب: د. {{requesting_physician}}\n📞 الاتصال: {{physician_phone}}"
+    },
+    "receiving_facility_request": {
+      "_en": "🏥 Incoming Transfer Request - {{receiving_facility}}\n\n📋 Transfer #: {{transfer_id}}\nFrom: {{sending_hospital}}\n\n👤 Patient: {{patient_name}}\n🎂 Age/Gender: {{age}}/{{gender}}\n📋 Diagnosis: {{diagnosis}}\n\n📊 Clinical Summary:\n{{clinical_summary}}\n\n🔬 Recent Results:\n{{#each recent_results}}• {{test}}: {{result}}\n{{/each}}\n\n💊 Current Medications:\n{{#each medications}}• {{name}} {{dose}}\n{{/each}}\n\n🛏️ Bed Requirement: {{bed_type}}\n🚑 Transport: {{transport_type}}\n⏰ ETA: {{eta}}\n\n👨‍⚕️ Sending Physician: Dr. {{sending_physician}}\n📞 {{physician_phone}}\n\n✅ ACCEPT | ❌ DECLINE",
+      "_ar": "🏥 طلب نقل وارد - {{receiving_facility}}\n\n📋 رقم النقل: {{transfer_id}}\nمن: {{sending_hospital}}\n\n👤 المريض: {{patient_name}}\n🎂 العمر/الجنس: {{age}}/{{gender}}\n📋 التشخيص: {{diagnosis}}\n\n📊 الملخص السريري:\n{{clinical_summary}}\n\n🔬 النتائج الأخيرة:\n{{#each recent_results}}• {{test}}: {{result}}\n{{/each}}\n\n💊 الأدوية الحالية:\n{{#each medications}}• {{name}} {{dose}}\n{{/each}}\n\n🛏️ متطلبات السرير: {{bed_type}}\n🚑 النقل: {{transport_type}}\n⏰ وقت الوصول المتوقع: {{eta}}\n\n👨‍⚕️ الطبيب المرسل: د. {{sending_physician}}\n📞 {{physician_phone}}\n\n✅ قبول | ❌ رفض"
+    },
+    "transfer_accepted": {
+      "_en": "✅ Transfer Accepted - {{transfer_id}}\n\n🏥 {{receiving_facility}} has accepted the transfer.\n\n👤 Patient: {{patient_name}}\n📍 Receiving Unit: {{receiving_unit}}\n🛏️ Bed Assigned: {{bed_assignment}}\n\n👨‍⚕️ Accepting Physician: Dr. {{accepting_physician}}\n📞 Direct Line: {{physician_direct}}\n\n📋 Pre-Arrival Instructions:\n{{#each instructions}}• {{this}}\n{{/each}}\n\n🚑 Next Steps:\n1. Complete transfer documentation\n2. Arrange transport: {{transport_type}}\n3. Call report to receiving nurse: {{receiving_nurse_phone}}\n\n⏰ Transfer should occur by: {{transfer_deadline}}",
+      "_ar": "✅ تم قبول النقل - {{transfer_id}}\n\n🏥 {{receiving_facility}} قبل النقل.\n\n👤 المريض: {{patient_name}}\n📍 الوحدة المستقبلة: {{receiving_unit}}\n🛏️ السرير المخصص: {{bed_assignment}}\n\n👨‍⚕️ الطبيب القابل: د. {{accepting_physician}}\n📞 الخط المباشر: {{physician_direct}}\n\n📋 تعليمات ما قبل الوصول:\n{{#each instructions}}• {{this}}\n{{/each}}\n\n🚑 الخطوات التالية:\n1. إكمال مستندات النقل\n2. ترتيب النقل: {{transport_type}}\n3. الاتصال بالممرضة المستقبلة: {{receiving_nurse_phone}}\n\n⏰ يجب أن يتم النقل بحلول: {{transfer_deadline}}"
+    },
+    "family_notification": {
+      "_en": "🏥 Transfer Notice - {{sending_hospital}}\n\nDear {{family_contact}},\n\n{{patient_name}} is being transferred to another facility for continued care.\n\n📍 Current Location: {{sending_hospital}}\n🏥 Transferring to: {{receiving_facility}}\n📍 Address: {{receiving_address}}\n\n📝 Reason: {{transfer_reason}}\n🚑 Transport Method: {{transport_type}}\n⏰ Departure Time: {{departure_time}}\n⏰ Estimated Arrival: {{eta}}\n\n📞 Receiving Facility Contact: {{receiving_phone}}\n\n{{#if visiting_info}}🕐 Visiting Information:\n{{visiting_info}}{{/if}}\n\n{{#if what_to_bring}}📦 What to Bring:\n{{#each what_to_bring}}• {{this}}\n{{/each}}{{/if}}\n\nIf you have questions, please contact:\n📞 {{contact_phone}}",
+      "_ar": "🏥 إشعار النقل - {{sending_hospital}}\n\nعزيزي/عزيزتي {{family_contact}}،\n\nيتم نقل {{patient_name}} إلى مرفق آخر لمواصلة الرعاية.\n\n📍 الموقع الحالي: {{sending_hospital}}\n🏥 النقل إلى: {{receiving_facility}}\n📍 العنوان: {{receiving_address}}\n\n📝 السبب: {{transfer_reason}}\n🚑 طريقة النقل: {{transport_type}}\n⏰ وقت المغادرة: {{departure_time}}\n⏰ الوصول المتوقع: {{eta}}\n\n📞 اتصال المرفق المستقبل: {{receiving_phone}}\n\n{{#if visiting_info}}🕐 معلومات الزيارة:\n{{visiting_info}}{{/if}}\n\n{{#if what_to_bring}}📦 ما يجب إحضاره:\n{{#each what_to_bring}}• {{this}}\n{{/each}}{{/if}}\n\nإذا كانت لديكم أسئلة، يرجى الاتصال:\n📞 {{contact_phone}}"
+    },
+    "transport_dispatched": {
+      "_en": "🚑 Transport Dispatched - {{transfer_id}}\n\n📋 Patient: {{patient_name}}\n🏥 From: {{sending_hospital}} → To: {{receiving_facility}}\n\n🚑 Transport Details:\n• Type: {{transport_type}}\n• Unit #: {{unit_number}}\n• Crew: {{crew_names}}\n• Contact: {{transport_phone}}\n\n⏰ Dispatched: {{dispatch_time}}\n⏰ ETA to Pickup: {{eta_pickup}}\n⏰ ETA to Destination: {{eta_destination}}\n\n📍 Pickup Location: {{pickup_location}}\n📍 Drop-off: {{dropoff_location}}\n\n{{#if special_equipment}}🏥 Equipment Onboard:\n{{#each special_equipment}}• {{this}}\n{{/each}}{{/if}}",
+      "_ar": "🚑 تم إرسال النقل - {{transfer_id}}\n\n📋 المريض: {{patient_name}}\n🏥 من: {{sending_hospital}} → إلى: {{receiving_facility}}\n\n🚑 تفاصيل النقل:\n• النوع: {{transport_type}}\n• رقم الوحدة: {{unit_number}}\n• الطاقم: {{crew_names}}\n• الاتصال: {{transport_phone}}\n\n⏰ تم الإرسال: {{dispatch_time}}\n⏰ وقت الوصول للاستلام: {{eta_pickup}}\n⏰ وقت الوصول للوجهة: {{eta_destination}}\n\n📍 موقع الاستلام: {{pickup_location}}\n📍 التسليم: {{dropoff_location}}\n\n{{#if special_equipment}}🏥 المعدات على متن:\n{{#each special_equipment}}• {{this}}\n{{/each}}{{/if}}"
+    },
+    "patient_departed": {
+      "_en": "🚑 Patient Departed - {{sending_hospital}}\n\nTransfer #: {{transfer_id}}\n👤 Patient: {{patient_name}}\n\n⏰ Departure Time: {{departure_time}}\n🏥 Destination: {{receiving_facility}}\n⏰ ETA: {{eta}}\n\n👨‍⚕️ Escorting Staff: {{escort_name}}\n📞 Transport Contact: {{transport_phone}}\n\n📋 Documentation Sent:\n{{#each docs_sent}}✅ {{this}}\n{{/each}}\n\n💊 Medications Sent:\n{{#each meds_sent}}• {{this}}\n{{/each}}\n\n📞 Receiving facility has been notified.",
+      "_ar": "🚑 غادر المريض - {{sending_hospital}}\n\nرقم النقل: {{transfer_id}}\n👤 المريض: {{patient_name}}\n\n⏰ وقت المغادرة: {{departure_time}}\n🏥 الوجهة: {{receiving_facility}}\n⏰ وقت الوصول المتوقع: {{eta}}\n\n👨‍⚕️ المرافق: {{escort_name}}\n📞 اتصال النقل: {{transport_phone}}\n\n📋 المستندات المرسلة:\n{{#each docs_sent}}✅ {{this}}\n{{/each}}\n\n💊 الأدوية المرسلة:\n{{#each meds_sent}}• {{this}}\n{{/each}}\n\n📞 تم إبلاغ المرفق المستقبل."
+    },
+    "patient_arrived": {
+      "_en": "✅ Patient Arrived - {{receiving_facility}}\n\nTransfer #: {{transfer_id}}\n👤 Patient: {{patient_name}}\n\n⏰ Arrival Time: {{arrival_time}}\n📍 Location: {{arrival_location}}\n🛏️ Assigned Bed: {{bed_assignment}}\n\n👨‍⚕️ Receiving Physician: Dr. {{receiving_physician}}\n👩‍⚕️ Primary Nurse: {{primary_nurse}}\n\n📋 Status: {{patient_status}}\n\n✅ Transfer Complete\n\n📞 Sending facility has been notified.\n🔗 Transfer Documentation: {{doc_link}}",
+      "_ar": "✅ وصل المريض - {{receiving_facility}}\n\nرقم النقل: {{transfer_id}}\n👤 المريض: {{patient_name}}\n\n⏰ وقت الوصول: {{arrival_time}}\n📍 الموقع: {{arrival_location}}\n🛏️ السرير المخصص: {{bed_assignment}}\n\n👨‍⚕️ الطبيب المستقبل: د. {{receiving_physician}}\n👩‍⚕️ الممرضة الرئيسية: {{primary_nurse}}\n\n📋 الحالة: {{patient_status}}\n\n✅ اكتمل النقل\n\n📞 تم إبلاغ المرفق المرسل.\n🔗 مستندات النقل: {{doc_link}}"
+    },
+    "transfer_declined": {
+      "_en": "❌ Transfer Declined - {{transfer_id}}\n\n🏥 {{receiving_facility}} cannot accept the transfer.\n\n👤 Patient: {{patient_name}}\n📝 Reason: {{decline_reason}}\n\n{{#if alternative}}💡 Suggested Alternative:\n{{alternative}}{{/if}}\n\n{{#if next_facility}}🏥 Alternative Facility Suggested:\n{{next_facility}}\n📞 {{next_facility_phone}}{{/if}}\n\n📞 Please contact Transfer Center: {{transfer_center_phone}}",
+      "_ar": "❌ تم رفض النقل - {{transfer_id}}\n\n🏥 {{receiving_facility}} لا يمكنه قبول النقل.\n\n👤 المريض: {{patient_name}}\n📝 السبب: {{decline_reason}}\n\n{{#if alternative}}💡 البديل المقترح:\n{{alternative}}{{/if}}\n\n{{#if next_facility}}🏥 المرفق البديل المقترح:\n{{next_facility}}\n📞 {{next_facility_phone}}{{/if}}\n\n📞 يرجى الاتصال بمركز النقل: {{transfer_center_phone}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "receive_transfer_request",
+        "name": "Receive transfer request",
+        "name_ar": "استلام طلب النقل",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Transfer_Requests!A:Z"
+        }
+      },
+      {
+        "id": "generate_transfer_id",
+        "name": "Generate transfer tracking ID",
+        "name_ar": "إنشاء رقم تتبع النقل",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["receive_transfer_request"],
+        "params": {
+          "range": "Transfers!A:Z"
+        }
+      },
+      {
+        "id": "notify_transfer_team",
+        "name": "Notify transfer coordination team",
+        "name_ar": "إبلاغ فريق تنسيق النقل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["generate_transfer_id"],
+        "params": {
+          "channel": "#transfer-coordination",
+          "template": "transfer_initiated"
+        }
+      },
+      {
+        "id": "contact_receiving_facility",
+        "name": "Contact receiving facility",
+        "name_ar": "الاتصال بالمرفق المستقبل",
+        "tool": "GMAIL_SEND_EMAIL",
+        "dependsOn": ["generate_transfer_id"],
+        "params": {
+          "template": "receiving_facility_request"
+        }
+      },
+      {
+        "id": "track_acceptance",
+        "name": "Track facility acceptance/decline",
+        "name_ar": "تتبع قبول/رفض المرفق",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "Transfers!A:Z"
+        }
+      },
+      {
+        "id": "send_acceptance_notification",
+        "name": "Notify of transfer acceptance",
+        "name_ar": "إبلاغ بقبول النقل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "transfer_accepted",
+        "params": {
+          "template": "transfer_accepted"
+        }
+      },
+      {
+        "id": "send_decline_notification",
+        "name": "Notify of transfer decline",
+        "name_ar": "إبلاغ برفض النقل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "transfer_declined",
+        "params": {
+          "template": "transfer_declined"
+        }
+      },
+      {
+        "id": "notify_family",
+        "name": "Notify family of transfer",
+        "name_ar": "إبلاغ العائلة بالنقل",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "transfer_accepted",
+        "params": {
+          "template": "family_notification"
+        }
+      },
+      {
+        "id": "arrange_transport",
+        "name": "Arrange transport",
+        "name_ar": "ترتيب النقل",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "transfer_accepted",
+        "params": {
+          "range": "Transport_Requests!A:Z"
+        }
+      },
+      {
+        "id": "notify_transport_dispatched",
+        "name": "Notify transport dispatched",
+        "name_ar": "إبلاغ بإرسال النقل",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "transport_dispatched",
+        "params": {
+          "template": "transport_dispatched"
+        }
+      },
+      {
+        "id": "notify_patient_departed",
+        "name": "Notify patient departure",
+        "name_ar": "إبلاغ بمغادرة المريض",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "patient_departed",
+        "params": {
+          "template": "patient_departed"
+        }
+      },
+      {
+        "id": "notify_receiving_facility_enroute",
+        "name": "Alert receiving facility patient enroute",
+        "name_ar": "تنبيه المرفق المستقبل بأن المريض في الطريق",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "patient_departed"
+      },
+      {
+        "id": "confirm_arrival",
+        "name": "Confirm patient arrival",
+        "name_ar": "تأكيد وصول المريض",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "patient_arrived",
+        "params": {
+          "range": "Transfers!A:Z"
+        }
+      },
+      {
+        "id": "notify_arrival",
+        "name": "Send arrival notification",
+        "name_ar": "إرسال إشعار الوصول",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["confirm_arrival"],
+        "params": {
+          "template": "patient_arrived"
+        }
+      },
+      {
+        "id": "upload_documentation",
+        "name": "Upload transfer documentation",
+        "name_ar": "رفع مستندات النقل",
+        "tool": "GOOGLEDRIVE_UPLOAD_FILE",
+        "dependsOn": ["confirm_arrival"]
+      },
+      {
+        "id": "log_transfer",
+        "name": "Log completed transfer",
+        "name_ar": "تسجيل النقل المكتمل",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["confirm_arrival"],
+        "params": {
+          "range": "Transfer_Log!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is your hospital name?",
+      "question_ar": "ما هو اسم مستشفاكم؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "transfer_sheet",
+      "question": "What is the URL of the transfer tracking spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات تتبع النقل؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "transport_options",
+      "question": "What transport options are available?",
+      "question_ar": "ما هي خيارات النقل المتاحة؟",
+      "type": "multiselect",
+      "options": ["Basic Ambulance", "ALS Ambulance", "Critical Care Transport", "Air Ambulance", "Private Transport"],
+      "default": ["Basic Ambulance", "ALS Ambulance"]
+    },
+    {
+      "id": "receiving_facilities",
+      "question": "What are the common receiving facilities?",
+      "question_ar": "ما هي المرافق المستقبلة الشائعة؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "transfer_center_phone",
+      "question": "What is the transfer center phone number?",
+      "question_ar": "ما هو رقم هاتف مركز النقل؟",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "transferProtocol": "MOH Inter-Facility Transfer Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "transferProtocol": "SCFHS Transfer Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "transferProtocol": "JCI Patient Transfer Standards"
+    }
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "id": "critical_results_escalation",
+  "name": "Critical Results Escalation",
+  "name_ar": "تصعيد النتائج الحرجة",
+  "description": "Automated escalation system for critical lab values and imaging findings. Ensures critical results are communicated to the appropriate provider within regulatory timeframes with full documentation and acknowledgment tracking.",
+  "description_ar": "نظام تصعيد آلي للقيم المخبرية الحرجة ونتائج التصوير. يضمن إبلاغ النتائج الحرجة للطبيب المناسب ضمن الأطر الزمنية التنظيمية مع التوثيق الكامل وتتبع الإقرار.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$200,000/year",
+  "requiredIntegrations": ["googlesheets", "twilio", "slack", "gmail"],
+  "optionalIntegrations": ["whatsapp"],
+  "exampleUserInput": "Escalate critical lab results to the right doctor immediately",
+  "exampleUserInput_ar": "تصعيد نتائج المختبر الحرجة إلى الطبيب المناسب فوراً",
+  "keywords": [
+    "critical values", "lab results", "escalation", "panic values", "imaging findings", "STAT results",
+    "قيم حرجة", "نتائج المختبر", "تصعيد", "قيم الذعر", "نتائج التصوير", "نتائج عاجلة"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "critical_values": {
+      "type": "object",
+      "default": {
+        "glucose_low": 50,
+        "glucose_high": 450,
+        "potassium_low": 2.5,
+        "potassium_high": 6.5,
+        "sodium_low": 120,
+        "sodium_high": 160,
+        "hemoglobin_low": 7.0,
+        "platelet_low": 20000,
+        "troponin_high": 0.5,
+        "ptt_high": 100,
+        "inr_high": 5.0
+      },
+      "label": "Critical Value Thresholds",
+      "label_ar": "عتبات القيم الحرجة"
+    },
+    "escalation_timeout_minutes": {
+      "type": "number",
+      "default": 30,
+      "label": "Minutes before escalation to backup",
+      "label_ar": "دقائق قبل التصعيد للاحتياطي"
+    },
+    "max_acknowledgment_time_minutes": {
+      "type": "number",
+      "default": 60,
+      "label": "Max minutes to acknowledge critical result",
+      "label_ar": "أقصى دقائق للإقرار بالنتيجة الحرجة"
+    }
+  },
+  "messages": {
+    "critical_result_alert": {
+      "_en": "🚨 CRITICAL RESULT ALERT 🚨\n\n🏥 {{hospital_name}}\n⏰ Time: {{result_time}}\n\n👤 Patient: {{patient_name}}\n📋 MRN: {{patient_id}}\n📍 Location: {{patient_location}}\n\n🔬 TEST: {{test_name}}\n🔴 RESULT: {{result_value}} {{result_unit}}\n📊 Reference: {{reference_range}}\n⚠️ Severity: {{severity_level}}\n\n👨‍⚕️ Ordering Provider: Dr. {{ordering_physician}}\n👨‍⚕️ Attending: Dr. {{attending_physician}}\n\n📞 IMMEDIATE ACTION REQUIRED\n\n⏱️ Acknowledgment deadline: {{ack_deadline}}\n\nReply 'ACK' to acknowledge receipt.",
+      "_ar": "🚨 تنبيه نتيجة حرجة 🚨\n\n🏥 {{hospital_name}}\n⏰ الوقت: {{result_time}}\n\n👤 المريض: {{patient_name}}\n📋 الرقم الطبي: {{patient_id}}\n📍 الموقع: {{patient_location}}\n\n🔬 الفحص: {{test_name}}\n🔴 النتيجة: {{result_value}} {{result_unit}}\n📊 المرجع: {{reference_range}}\n⚠️ الخطورة: {{severity_level}}\n\n👨‍⚕️ الطبيب الطالب: د. {{ordering_physician}}\n👨‍⚕️ المعالج: د. {{attending_physician}}\n\n📞 يتطلب إجراء فوري\n\n⏱️ موعد الإقرار: {{ack_deadline}}\n\nأجب 'ACK' للإقرار بالاستلام."
+    },
+    "imaging_critical_finding": {
+      "_en": "🚨 CRITICAL IMAGING FINDING 🚨\n\n🏥 {{hospital_name}}\n⏰ Time: {{result_time}}\n\n👤 Patient: {{patient_name}}\n📋 MRN: {{patient_id}}\n📍 Location: {{patient_location}}\n\n📷 STUDY: {{study_type}}\n🔴 FINDING: {{critical_finding}}\n👨‍⚕️ Radiologist: Dr. {{radiologist}}\n\n⚠️ Clinical Impression:\n{{clinical_impression}}\n\n📋 Recommended Action:\n{{recommended_action}}\n\n👨‍⚕️ Attending: Dr. {{attending_physician}}\n📞 Contact: {{physician_phone}}\n\n⏱️ Acknowledgment required within {{ack_minutes}} minutes.",
+      "_ar": "🚨 نتيجة تصوير حرجة 🚨\n\n🏥 {{hospital_name}}\n⏰ الوقت: {{result_time}}\n\n👤 المريض: {{patient_name}}\n📋 الرقم الطبي: {{patient_id}}\n📍 الموقع: {{patient_location}}\n\n📷 الدراسة: {{study_type}}\n🔴 النتيجة: {{critical_finding}}\n👨‍⚕️ أخصائي الأشعة: د. {{radiologist}}\n\n⚠️ الانطباع السريري:\n{{clinical_impression}}\n\n📋 الإجراء الموصى:\n{{recommended_action}}\n\n👨‍⚕️ المعالج: د. {{attending_physician}}\n📞 الاتصال: {{physician_phone}}\n\n⏱️ الإقرار مطلوب خلال {{ack_minutes}} دقيقة."
+    },
+    "escalation_level_1": {
+      "_en": "⚠️ ESCALATION LEVEL 1 - {{hospital_name}}\n\n🔴 UNACKNOWLEDGED CRITICAL RESULT\n\n👤 Patient: {{patient_name}} ({{patient_id}})\n📍 Location: {{patient_location}}\n\n🔬 Test: {{test_name}}\n🔴 Result: {{result_value}} {{result_unit}}\n⏰ Result Time: {{result_time}}\n\n⏱️ Time Elapsed: {{elapsed_time}} minutes\n❌ No acknowledgment from: Dr. {{primary_physician}}\n\n📞 ESCALATING TO BACKUP:\n👨‍⚕️ Dr. {{backup_physician}}\n📞 {{backup_phone}}\n\nImmediate response required.",
+      "_ar": "⚠️ التصعيد المستوى 1 - {{hospital_name}}\n\n🔴 نتيجة حرجة غير مقرة\n\n👤 المريض: {{patient_name}} ({{patient_id}})\n📍 الموقع: {{patient_location}}\n\n🔬 الفحص: {{test_name}}\n🔴 النتيجة: {{result_value}} {{result_unit}}\n⏰ وقت النتيجة: {{result_time}}\n\n⏱️ الوقت المنقضي: {{elapsed_time}} دقيقة\n❌ لا إقرار من: د. {{primary_physician}}\n\n📞 التصعيد للاحتياطي:\n👨‍⚕️ د. {{backup_physician}}\n📞 {{backup_phone}}\n\nالاستجابة الفورية مطلوبة."
+    },
+    "escalation_level_2": {
+      "_en": "🚨 ESCALATION LEVEL 2 - {{hospital_name}}\n\n🔴 CRITICAL: UNACKNOWLEDGED RESULT\n\n👤 Patient: {{patient_name}} ({{patient_id}})\n📍 Location: {{patient_location}}\n\n🔬 Test: {{test_name}}\n🔴 Result: {{result_value}} {{result_unit}}\n\n⏱️ Time Elapsed: {{elapsed_time}} minutes\n❌ No response from:\n  • Dr. {{primary_physician}}\n  • Dr. {{backup_physician}}\n\n📞 ESCALATING TO DEPARTMENT HEAD:\n👨‍⚕️ Dr. {{department_head}}\n📞 {{dept_head_phone}}\n\n⚠️ COMPLIANCE RISK: Approaching regulatory reporting threshold.",
+      "_ar": "🚨 التصعيد المستوى 2 - {{hospital_name}}\n\n🔴 حرج: نتيجة غير مقرة\n\n👤 المريض: {{patient_name}} ({{patient_id}})\n📍 الموقع: {{patient_location}}\n\n🔬 الفحص: {{test_name}}\n🔴 النتيجة: {{result_value}} {{result_unit}}\n\n⏱️ الوقت المنقضي: {{elapsed_time}} دقيقة\n❌ لا استجابة من:\n  • د. {{primary_physician}}\n  • د. {{backup_physician}}\n\n📞 التصعيد لرئيس القسم:\n👨‍⚕️ د. {{department_head}}\n📞 {{dept_head_phone}}\n\n⚠️ خطر الامتثال: الاقتراب من عتبة التقارير التنظيمية."
+    },
+    "acknowledgment_confirmed": {
+      "_en": "✅ CRITICAL RESULT ACKNOWLEDGED\n\n👤 Patient: {{patient_name}} ({{patient_id}})\n🔬 Test: {{test_name}}\n🔴 Result: {{result_value}} {{result_unit}}\n\n👨‍⚕️ Acknowledged by: Dr. {{acknowledging_physician}}\n⏰ Time: {{ack_time}}\n⏱️ Response Time: {{response_time}} minutes\n\n{{#if action_taken}}📋 Action Noted: {{action_taken}}{{/if}}\n\n✅ Documentation complete.\n🔗 Record: {{documentation_link}}",
+      "_ar": "✅ تم الإقرار بالنتيجة الحرجة\n\n👤 المريض: {{patient_name}} ({{patient_id}})\n🔬 الفحص: {{test_name}}\n🔴 النتيجة: {{result_value}} {{result_unit}}\n\n👨‍⚕️ تم الإقرار بواسطة: د. {{acknowledging_physician}}\n⏰ الوقت: {{ack_time}}\n⏱️ وقت الاستجابة: {{response_time}} دقيقة\n\n{{#if action_taken}}📋 الإجراء المسجل: {{action_taken}}{{/if}}\n\n✅ التوثيق مكتمل.\n🔗 السجل: {{documentation_link}}"
+    },
+    "daily_critical_summary": {
+      "_en": "📊 Daily Critical Results Summary - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 Total Critical Results: {{total_critical}}\n✅ Acknowledged within target: {{within_target}} ({{within_target_percent}}%)\n⚠️ Required escalation: {{required_escalation}}\n🔴 Exceeded max time: {{exceeded_max}}\n\n⏱️ Average Response Time: {{avg_response}} minutes\n🏆 Best: {{best_response}} minutes\n🐌 Slowest: {{slowest_response}} minutes\n\n📊 By Department:\n{{#each department_stats}}\n{{name}}: {{count}} critical ({{avg_time}} min avg)\n{{/each}}\n\n📊 By Test Type:\n{{#each test_stats}}\n{{name}}: {{count}} critical\n{{/each}}\n\n{{#if compliance_issues}}⚠️ Compliance Issues:\n{{#each compliance_issues}}• {{this}}\n{{/each}}{{/if}}\n\n🔗 Full Report: {{report_link}}",
+      "_ar": "📊 ملخص النتائج الحرجة اليومي - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 إجمالي النتائج الحرجة: {{total_critical}}\n✅ تم الإقرار ضمن الهدف: {{within_target}} ({{within_target_percent}}%)\n⚠️ تطلب تصعيد: {{required_escalation}}\n🔴 تجاوز الوقت الأقصى: {{exceeded_max}}\n\n⏱️ متوسط وقت الاستجابة: {{avg_response}} دقيقة\n🏆 الأفضل: {{best_response}} دقيقة\n🐌 الأبطأ: {{slowest_response}} دقيقة\n\n📊 حسب القسم:\n{{#each department_stats}}\n{{name}}: {{count}} حرج ({{avg_time}} دقيقة متوسط)\n{{/each}}\n\n📊 حسب نوع الفحص:\n{{#each test_stats}}\n{{name}}: {{count}} حرج\n{{/each}}\n\n{{#if compliance_issues}}⚠️ مشاكل الامتثال:\n{{#each compliance_issues}}• {{this}}\n{{/each}}{{/if}}\n\n🔗 التقرير الكامل: {{report_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "monitor_critical_results",
+        "name": "Monitor for new critical results",
+        "name_ar": "مراقبة النتائج الحرجة الجديدة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Critical_Results!A:Z"
+        }
+      },
+      {
+        "id": "identify_responsible_provider",
+        "name": "Identify responsible provider",
+        "name_ar": "تحديد الطبيب المسؤول",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["monitor_critical_results"],
+        "params": {
+          "range": "Provider_Assignments!A:Z"
+        }
+      },
+      {
+        "id": "send_primary_alert",
+        "name": "Send alert to primary provider",
+        "name_ar": "إرسال تنبيه للطبيب الأساسي",
+        "tool": "TWILIO_MAKE_CALL",
+        "dependsOn": ["identify_responsible_provider"],
+        "params": {
+          "template": "critical_result_alert",
+          "priority": "high"
+        }
+      },
+      {
+        "id": "send_slack_alert",
+        "name": "Send alert to department Slack",
+        "name_ar": "إرسال تنبيه لقناة القسم على Slack",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["identify_responsible_provider"],
+        "params": {
+          "channel": "#critical-results",
+          "template": "critical_result_alert"
+        }
+      },
+      {
+        "id": "start_ack_timer",
+        "name": "Start acknowledgment timer",
+        "name_ar": "بدء مؤقت الإقرار",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "dependsOn": ["send_primary_alert"],
+        "params": {
+          "range": "Critical_Results!A:Z"
+        }
+      },
+      {
+        "id": "check_acknowledgment",
+        "name": "Check for acknowledgment",
+        "name_ar": "التحقق من الإقرار",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Critical_Results!A:Z"
+        }
+      },
+      {
+        "id": "escalate_level_1",
+        "name": "Escalate to backup provider",
+        "name_ar": "التصعيد للطبيب الاحتياطي",
+        "tool": "TWILIO_MAKE_CALL",
+        "condition": "no_ack_timeout_level_1",
+        "params": {
+          "template": "escalation_level_1"
+        }
+      },
+      {
+        "id": "escalate_level_2",
+        "name": "Escalate to department head",
+        "name_ar": "التصعيد لرئيس القسم",
+        "tool": "TWILIO_MAKE_CALL",
+        "condition": "no_ack_timeout_level_2",
+        "params": {
+          "template": "escalation_level_2"
+        }
+      },
+      {
+        "id": "process_acknowledgment",
+        "name": "Process acknowledgment",
+        "name_ar": "معالجة الإقرار",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "received_ack",
+        "params": {
+          "range": "Critical_Results!A:Z"
+        }
+      },
+      {
+        "id": "send_ack_confirmation",
+        "name": "Send acknowledgment confirmation",
+        "name_ar": "إرسال تأكيد الإقرار",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["process_acknowledgment"],
+        "params": {
+          "template": "acknowledgment_confirmed"
+        }
+      },
+      {
+        "id": "document_result",
+        "name": "Document critical result handling",
+        "name_ar": "توثيق معالجة النتيجة الحرجة",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "params": {
+          "range": "Critical_Results_Log!A:Z"
+        }
+      },
+      {
+        "id": "send_email_documentation",
+        "name": "Send email documentation for compliance",
+        "name_ar": "إرسال توثيق البريد الإلكتروني للامتثال",
+        "tool": "GMAIL_SEND_EMAIL",
+        "dependsOn": ["document_result"],
+        "params": {
+          "subject": "Critical Result Documentation - {{patient_id}}"
+        }
+      },
+      {
+        "id": "generate_daily_summary",
+        "name": "Generate daily critical results summary",
+        "name_ar": "إنشاء ملخص النتائج الحرجة اليومي",
+        "tool": "GMAIL_SEND_EMAIL",
+        "condition": "is_daily_report_time",
+        "params": {
+          "template": "daily_critical_summary"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "data_source",
+      "question": "What is the URL of the critical results tracking spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات تتبع النتائج الحرجة؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "escalation_timeout",
+      "question": "After how many minutes should unacknowledged results escalate to backup?",
+      "question_ar": "بعد كم دقيقة يجب تصعيد النتائج غير المقرة للاحتياطي؟",
+      "type": "number",
+      "default": 30
+    },
+    {
+      "id": "max_ack_time",
+      "question": "What is the maximum allowed acknowledgment time (for compliance)?",
+      "question_ar": "ما هو الحد الأقصى لوقت الإقرار المسموح (للامتثال)؟",
+      "type": "number",
+      "default": 60
+    },
+    {
+      "id": "slack_channel",
+      "question": "Which Slack channel should receive critical result alerts?",
+      "question_ar": "أي قناة Slack يجب أن تتلقى تنبيهات النتائج الحرجة؟",
+      "type": "text",
+      "default": "#critical-results"
+    },
+    {
+      "id": "voice_calls",
+      "question": "Should voice calls be made for critical result notifications?",
+      "question_ar": "هل يجب إجراء مكالمات صوتية لإشعارات النتائج الحرجة؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "criticalResultStandards": "MOH Critical Value Notification Policy",
+      "maxAckTimeMinutes": 60
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "criticalResultStandards": "CBAHI Critical Value Standards",
+      "maxAckTimeMinutes": 60
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "criticalResultStandards": "JCI Critical Result Reporting",
+      "maxAckTimeMinutes": 30
+    }
+  }
+}

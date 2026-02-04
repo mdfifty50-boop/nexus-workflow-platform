@@ -1,0 +1,283 @@
+{
+  "id": "prescription_refill_tracker",
+  "name": "Prescription Refill Tracker",
+  "name_ar": "متتبع إعادة صرف الوصفات",
+  "description": "Proactively remind patients when their prescriptions are due for refill. Track medication adherence, manage chronic disease prescriptions, and streamline the refill request process.",
+  "description_ar": "تذكير المرضى بشكل استباقي عند حلول موعد إعادة صرف وصفاتهم. تتبع الالتزام بالأدوية وإدارة وصفات الأمراض المزمنة وتبسيط عملية طلب إعادة الصرف.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$42,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["gmail", "slack"],
+  "exampleUserInput": "Remind patients when their medication needs refill",
+  "exampleUserInput_ar": "ذكّر المرضى عندما يحتاجون إعادة صرف أدويتهم",
+  "keywords": ["prescription", "refill", "medication", "chronic", "adherence", "pharmacy", "وصفة", "إعادة صرف", "دواء", "مزمن", "التزام", "صيدلية"],
+  "dynamicParameters": {
+    "reminder_days_before": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before refill due to send reminder",
+      "label_ar": "أيام قبل موعد إعادة الصرف لإرسال التذكير"
+    },
+    "follow_up_if_no_response": {
+      "type": "boolean",
+      "default": true,
+      "label": "Follow up if no response received",
+      "label_ar": "متابعة إذا لم يتم الرد"
+    },
+    "track_adherence": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track medication adherence",
+      "label_ar": "تتبع الالتزام بالأدوية"
+    },
+    "allow_whatsapp_refill_request": {
+      "type": "boolean",
+      "default": true,
+      "label": "Allow refill requests via WhatsApp",
+      "label_ar": "السماح بطلبات إعادة الصرف عبر واتساب"
+    }
+  },
+  "messages": {
+    "refill_reminder_en": "💊 *Prescription Refill Reminder*\n\nHi {{patient_name}},\n\nYour prescription for *{{medication_name}}* is due for refill in {{days_remaining}} days.\n\n📋 *Prescription Details:*\n• Medication: {{medication_name}}\n• Dosage: {{dosage}}\n• Prescribing Doctor: Dr. {{doctor_name}}\n• Refills Remaining: {{refills_remaining}}\n\n*Would you like to:*\n1️⃣ Request refill now\n2️⃣ Schedule appointment with doctor\n3️⃣ I have enough medication\n\nReply with 1, 2, or 3\n\n⚠️ *Important:* Don't skip doses. If you're experiencing side effects, please contact us.",
+    "refill_reminder_ar": "💊 *تذكير بإعادة صرف الوصفة*\n\nمرحباً {{patient_name}}،\n\nوصفتك لـ *{{medication_name}}* موعد إعادة صرفها بعد {{days_remaining}} أيام.\n\n📋 *تفاصيل الوصفة:*\n• الدواء: {{medication_name}}\n• الجرعة: {{dosage}}\n• الطبيب: د. {{doctor_name}}\n• إعادات الصرف المتبقية: {{refills_remaining}}\n\n*هل تريد:*\n1️⃣ طلب إعادة الصرف الآن\n2️⃣ حجز موعد مع الطبيب\n3️⃣ لدي كمية كافية من الدواء\n\nرد بـ 1 أو 2 أو 3\n\n⚠️ *مهم:* لا تتخطَ الجرعات. إذا كنت تعاني من آثار جانبية، يرجى الاتصال بنا.",
+    "refill_confirmed_en": "✅ *Refill Request Received*\n\nThank you, {{patient_name}}!\n\nYour refill request for *{{medication_name}}* has been submitted.\n\n📍 *Pickup Options:*\n• Clinic pharmacy: {{clinic_name}}\n• Preferred pharmacy: Reply with pharmacy name\n\n⏰ Ready for pickup: {{ready_time}}\n\nWe'll notify you when it's ready.",
+    "refill_confirmed_ar": "✅ *تم استلام طلب إعادة الصرف*\n\nشكراً {{patient_name}}!\n\nتم إرسال طلب إعادة الصرف لـ *{{medication_name}}*.\n\n📍 *خيارات الاستلام:*\n• صيدلية العيادة: {{clinic_name}}\n• صيدلية مفضلة: رد باسم الصيدلية\n\n⏰ جاهز للاستلام: {{ready_time}}\n\nسنخبرك عندما يكون جاهزاً.",
+    "refill_ready_en": "🔔 *Prescription Ready*\n\nHi {{patient_name}},\n\nYour prescription for *{{medication_name}}* is ready for pickup.\n\n📍 {{pharmacy_name}}\n{{pharmacy_address}}\n\n⏰ Pickup hours: {{pharmacy_hours}}\n\n*Remember to bring:*\n• Civil ID\n• Insurance card (if applicable)\n\nThank you for choosing {{clinic_name}}!",
+    "refill_ready_ar": "🔔 *الوصفة جاهزة*\n\nمرحباً {{patient_name}}،\n\nوصفتك لـ *{{medication_name}}* جاهزة للاستلام.\n\n📍 {{pharmacy_name}}\n{{pharmacy_address}}\n\n⏰ ساعات الاستلام: {{pharmacy_hours}}\n\n*تذكر إحضار:*\n• البطاقة المدنية\n• بطاقة التأمين (إن وجدت)\n\nشكراً لاختيارك {{clinic_name}}!",
+    "no_refills_remaining_en": "⚠️ *Prescription Renewal Needed*\n\nHi {{patient_name}},\n\nYour prescription for *{{medication_name}}* has no refills remaining.\n\nYou'll need to see Dr. {{doctor_name}} for a renewal.\n\n📅 *Available Appointments:*\n{{available_slots}}\n\nReply with the number of your preferred slot, or call {{clinic_phone}} for more options.\n\n⚠️ Don't wait until you run out - schedule now!",
+    "no_refills_remaining_ar": "⚠️ *يلزم تجديد الوصفة*\n\nمرحباً {{patient_name}}،\n\nوصفتك لـ *{{medication_name}}* ليس لديها إعادات صرف متبقية.\n\nستحتاج لمراجعة د. {{doctor_name}} للتجديد.\n\n📅 *المواعيد المتاحة:*\n{{available_slots}}\n\nرد برقم الموعد المفضل، أو اتصل على {{clinic_phone}} لمزيد من الخيارات.\n\n⚠️ لا تنتظر حتى ينفد الدواء - احجز الآن!",
+    "adherence_check_en": "💊 *Medication Check-in*\n\nHi {{patient_name}},\n\nJust checking in about your *{{medication_name}}*.\n\nAre you:\n1️⃣ Taking it as prescribed\n2️⃣ Having trouble remembering doses\n3️⃣ Experiencing side effects\n4️⃣ Stopped taking it\n\nYour feedback helps us provide better care. Reply 1-4.",
+    "adherence_check_ar": "💊 *متابعة الدواء*\n\nمرحباً {{patient_name}}،\n\nنتابع معك بخصوص *{{medication_name}}*.\n\nهل أنت:\n1️⃣ تأخذه كما وصف\n2️⃣ تواجه صعوبة في تذكر الجرعات\n3️⃣ تعاني من آثار جانبية\n4️⃣ توقفت عن أخذه\n\nملاحظاتك تساعدنا على تقديم رعاية أفضل. رد بـ 1-4.",
+    "staff_alert_en": "🚨 *Patient Adherence Alert*\n\n*Patient:* {{patient_name}}\n*Medication:* {{medication_name}}\n*Issue:* {{adherence_issue}}\n*Phone:* {{patient_phone}}\n\n*Action Required:* Contact patient to address medication concerns"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Refill Check",
+        "name_ar": "فحص إعادة الصرف اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0-4",
+            "description": "Daily check for upcoming refills",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Patients Needing Refill",
+        "name_ar": "الحصول على المرضى الذين يحتاجون إعادة صرف",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{prescriptions_sheet}}",
+            "range": "Active!A:L",
+            "filter": "refill_due_date <= TODAY() + {{reminder_days_before}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Refill Reminders",
+        "name_ar": "إرسال تذكيرات إعادة الصرف",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.refill_reminder_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Handle Refill Response",
+        "name_ar": "معالجة رد إعادة الصرف",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Process Refill Request",
+        "name_ar": "معالجة طلب إعادة الصرف",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{refill_requests_sheet}}",
+            "range": "Requests!A:G",
+            "values": [["{{timestamp}}", "{{patient_name}}", "{{medication_name}}", "{{response_type}}", "pending", "", ""]],
+            "condition": "response = 1"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Refill Confirmation",
+        "name_ar": "إرسال تأكيد إعادة الصرف",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.refill_confirmed_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Schedule Doctor Appointment",
+        "name_ar": "جدولة موعد مع الطبيب",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "summary": "Prescription Renewal - {{patient_name}}",
+            "description": "Medication: {{medication_name}}",
+            "condition": "response = 2"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Check for No Refills",
+        "name_ar": "فحص عدم وجود إعادات صرف",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.no_refills_remaining_{{patient_language}}}}",
+            "condition": "refills_remaining = 0"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Weekly Adherence Check",
+        "name_ar": "فحص الالتزام الأسبوعي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 14 * * 3",
+            "description": "Weekly adherence check-in",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Adherence Check",
+        "name_ar": "إرسال فحص الالتزام",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.adherence_check_{{patient_language}}}}",
+            "condition": "chronic_medication = true"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_days_before",
+      "question": "How many days before refill is due should reminders be sent?",
+      "question_ar": "كم يوم قبل موعد إعادة الصرف يجب إرسال التذكيرات؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "follow_up_if_no_response",
+      "question": "Send follow-up if no response to refill reminder?",
+      "question_ar": "إرسال متابعة إذا لم يرد على تذكير إعادة الصرف؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "track_adherence",
+      "question": "Track medication adherence with periodic check-ins?",
+      "question_ar": "تتبع الالتزام بالأدوية بفحوصات دورية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "allow_whatsapp_refill_request",
+      "question": "Allow patients to request refills via WhatsApp?",
+      "question_ar": "السماح للمرضى بطلب إعادة الصرف عبر واتساب؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "prescriptionValidity": "6 months"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "prescriptionValidity": "6 months"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "prescriptionValidity": "6 months"
+    }
+  }
+}

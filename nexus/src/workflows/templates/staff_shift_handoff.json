@@ -1,0 +1,285 @@
+{
+  "id": "staff_shift_handoff",
+  "name": "Staff Shift Handoff",
+  "name_ar": "تسليم الورديات بين الموظفين",
+  "description": "Structured clinical handoff system for shift changes. Ensures critical patient information, pending tasks, and important updates are communicated between outgoing and incoming staff using SBAR format.",
+  "description_ar": "نظام تسليم سريري منظم لتغييرات الورديات. يضمن نقل معلومات المريض الحرجة والمهام المعلقة والتحديثات المهمة بين الموظفين المغادرين والقادمين باستخدام صيغة SBAR.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$75,000/year",
+  "requiredIntegrations": ["googlesheets", "slack", "gmail"],
+  "optionalIntegrations": ["whatsapp", "googledrive"],
+  "exampleUserInput": "Automate shift handoff reports between nursing staff",
+  "exampleUserInput_ar": "أتمتة تقارير تسليم الورديات بين طاقم التمريض",
+  "keywords": [
+    "handoff", "shift change", "SBAR", "clinical handover", "nursing report", "patient safety",
+    "تسليم", "تغيير الوردية", "تقرير سريري", "تسليم تمريضي", "سلامة المريض"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "departments": {
+      "type": "array",
+      "default": ["ICU", "ER", "General Ward", "Pediatrics", "Surgery"],
+      "label": "Departments with shift handoff",
+      "label_ar": "الأقسام مع تسليم الورديات"
+    },
+    "shift_times": {
+      "type": "array",
+      "default": ["07:00", "15:00", "23:00"],
+      "label": "Shift change times",
+      "label_ar": "أوقات تغيير الوردية"
+    },
+    "handoff_method": {
+      "type": "string",
+      "default": "SBAR",
+      "label": "Handoff communication method",
+      "label_ar": "طريقة التواصل للتسليم"
+    }
+  },
+  "messages": {
+    "handoff_reminder": {
+      "_en": "🔔 Shift Handoff Reminder - {{hospital_name}}\n\n{{department}} - {{shift_type}} Shift\n⏰ Handoff in {{minutes_until}} minutes\n\n📋 Please prepare:\n• Patient status updates (SBAR format)\n• Pending tasks and orders\n• Critical alerts and concerns\n• Equipment/supply issues\n\n📍 Handoff Location: {{handoff_location}}\n\nComplete your handoff report: {{report_link}}",
+      "_ar": "🔔 تذكير تسليم الوردية - {{hospital_name}}\n\n{{department}} - وردية {{shift_type}}\n⏰ التسليم خلال {{minutes_until}} دقيقة\n\n📋 يرجى التحضير:\n• تحديثات حالة المريض (صيغة SBAR)\n• المهام والأوامر المعلقة\n• التنبيهات والمخاوف الحرجة\n• مشاكل المعدات/الإمدادات\n\n📍 موقع التسليم: {{handoff_location}}\n\nأكمل تقرير التسليم: {{report_link}}"
+    },
+    "patient_handoff_report": {
+      "_en": "📋 SBAR Handoff Report - {{hospital_name}}\n{{department}} | {{handoff_time}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n{{#each patients}}\n🛏️ Bed {{bed_number}}: {{patient_name}} ({{patient_id}})\n\n📌 SITUATION:\n{{situation}}\n\n📝 BACKGROUND:\n{{background}}\n\n📊 ASSESSMENT:\n• Vitals: {{vitals}}\n• Pain: {{pain_level}}/10\n• Status: {{status}}\n{{#if concerns}}⚠️ Concerns: {{concerns}}{{/if}}\n\n🎯 RECOMMENDATION:\n{{#each recommendations}}• {{this}}\n{{/each}}\n\n⏳ PENDING:\n{{#each pending_tasks}}• {{this}}\n{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n{{/each}}\n\n👤 Outgoing: {{outgoing_staff}}\n👤 Incoming: {{incoming_staff}}",
+      "_ar": "📋 تقرير تسليم SBAR - {{hospital_name}}\n{{department}} | {{handoff_time}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n{{#each patients}}\n🛏️ السرير {{bed_number}}: {{patient_name}} ({{patient_id}})\n\n📌 الموقف:\n{{situation}}\n\n📝 الخلفية:\n{{background}}\n\n📊 التقييم:\n• العلامات الحيوية: {{vitals}}\n• الألم: {{pain_level}}/10\n• الحالة: {{status}}\n{{#if concerns}}⚠️ المخاوف: {{concerns}}{{/if}}\n\n🎯 التوصية:\n{{#each recommendations}}• {{this}}\n{{/each}}\n\n⏳ المعلق:\n{{#each pending_tasks}}• {{this}}\n{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n{{/each}}\n\n👤 المغادر: {{outgoing_staff}}\n👤 القادم: {{incoming_staff}}"
+    },
+    "critical_patient_alert": {
+      "_en": "🚨 Critical Patient Handoff Alert\n\n{{department}} - Bed {{bed_number}}\nPatient: {{patient_name}}\n\n⚠️ HIGH PRIORITY HANDOFF\n\n{{#each critical_items}}\n🔴 {{this}}\n{{/each}}\n\n📋 Immediate Actions Required:\n{{#each immediate_actions}}• {{this}}\n{{/each}}\n\n👨‍⚕️ Attending: Dr. {{attending_physician}}\n📞 On-call: {{oncall_contact}}\n\nVerbal handoff REQUIRED for this patient.",
+      "_ar": "🚨 تنبيه تسليم مريض حرج\n\n{{department}} - السرير {{bed_number}}\nالمريض: {{patient_name}}\n\n⚠️ تسليم ذو أولوية عالية\n\n{{#each critical_items}}\n🔴 {{this}}\n{{/each}}\n\n📋 الإجراءات الفورية المطلوبة:\n{{#each immediate_actions}}• {{this}}\n{{/each}}\n\n👨‍⚕️ المعالج: د. {{attending_physician}}\n📞 المناوب: {{oncall_contact}}\n\nالتسليم الشفهي مطلوب لهذا المريض."
+    },
+    "pending_tasks_summary": {
+      "_en": "📋 Pending Tasks Summary - {{department}}\n{{shift_type}} Shift | {{handoff_time}}\n\n{{#each task_categories}}\n{{category_name}}:\n{{#each tasks}}• {{description}} ({{patient_info}}) - Due: {{due_time}}\n{{/each}}\n\n{{/each}}\n\n📊 Total Pending: {{total_pending}}\n🔴 Urgent: {{urgent_count}}\n🟡 Routine: {{routine_count}}\n\n✅ Completed this shift: {{completed_count}}",
+      "_ar": "📋 ملخص المهام المعلقة - {{department}}\nوردية {{shift_type}} | {{handoff_time}}\n\n{{#each task_categories}}\n{{category_name}}:\n{{#each tasks}}• {{description}} ({{patient_info}}) - الموعد: {{due_time}}\n{{/each}}\n\n{{/each}}\n\n📊 إجمالي المعلق: {{total_pending}}\n🔴 عاجل: {{urgent_count}}\n🟡 روتيني: {{routine_count}}\n\n✅ مكتمل هذه الوردية: {{completed_count}}"
+    },
+    "handoff_acknowledgment": {
+      "_en": "✅ Handoff Acknowledged\n\n{{department}} - {{shift_type}} Shift\n⏰ {{handoff_time}}\n\n👤 Outgoing: {{outgoing_staff}}\n👤 Incoming: {{incoming_staff}}\n\n📋 Patients Handed Off: {{patient_count}}\n⏳ Pending Tasks Received: {{task_count}}\n\n{{#if critical_patients}}🚨 Critical Patients:\n{{#each critical_patients}}• Bed {{bed}}: {{name}}\n{{/each}}{{/if}}\n\n✅ Handoff confirmed at {{confirmation_time}}",
+      "_ar": "✅ تم الإقرار بالتسليم\n\n{{department}} - وردية {{shift_type}}\n⏰ {{handoff_time}}\n\n👤 المغادر: {{outgoing_staff}}\n👤 القادم: {{incoming_staff}}\n\n📋 المرضى المسلمين: {{patient_count}}\n⏳ المهام المعلقة المستلمة: {{task_count}}\n\n{{#if critical_patients}}🚨 المرضى الحرجون:\n{{#each critical_patients}}• السرير {{bed}}: {{name}}\n{{/each}}{{/if}}\n\n✅ تم تأكيد التسليم في {{confirmation_time}}"
+    },
+    "handoff_incomplete_alert": {
+      "_en": "⚠️ Handoff Incomplete Alert\n\n{{department}} - {{shift_type}} Shift\n⏰ Scheduled: {{scheduled_time}}\n\n🔴 Handoff not completed:\n{{#each incomplete_items}}• {{this}}\n{{/each}}\n\n👤 Outgoing Staff: {{outgoing_staff}}\n\nPlease complete handoff immediately.\n\n📞 Charge Nurse: {{charge_nurse_contact}}\n📞 Supervisor: {{supervisor_contact}}",
+      "_ar": "⚠️ تنبيه تسليم غير مكتمل\n\n{{department}} - وردية {{shift_type}}\n⏰ المجدول: {{scheduled_time}}\n\n🔴 التسليم غير مكتمل:\n{{#each incomplete_items}}• {{this}}\n{{/each}}\n\n👤 الموظف المغادر: {{outgoing_staff}}\n\nيرجى إكمال التسليم فوراً.\n\n📞 الممرضة المسؤولة: {{charge_nurse_contact}}\n📞 المشرف: {{supervisor_contact}}"
+    },
+    "department_summary": {
+      "_en": "📊 Department Shift Summary - {{hospital_name}}\n{{department}} | {{shift_type}} → {{next_shift}}\n{{handoff_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🛏️ Census: {{current_census}}/{{total_beds}}\n📥 Admissions: {{admissions}}\n📤 Discharges: {{discharges}}\n🔄 Transfers: {{transfers}}\n\n⚠️ High Acuity: {{high_acuity_count}}\n🆕 New Admits: {{new_admits_count}}\n🔜 Pending Discharge: {{pending_discharge}}\n\n👥 Staffing:\n• Outgoing: {{outgoing_count}} staff\n• Incoming: {{incoming_count}} staff\n• Ratio: 1:{{patient_ratio}}\n\n📋 Key Handoffs Complete: {{handoffs_complete}}/{{handoffs_total}}\n\n{{#if alerts}}🚨 Active Alerts:\n{{#each alerts}}• {{this}}\n{{/each}}{{/if}}",
+      "_ar": "📊 ملخص وردية القسم - {{hospital_name}}\n{{department}} | {{shift_type}} → {{next_shift}}\n{{handoff_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🛏️ الإحصاء: {{current_census}}/{{total_beds}}\n📥 الإدخالات: {{admissions}}\n📤 حالات الخروج: {{discharges}}\n🔄 التحويلات: {{transfers}}\n\n⚠️ الحالات الحرجة: {{high_acuity_count}}\n🆕 الإدخالات الجديدة: {{new_admits_count}}\n🔜 في انتظار الخروج: {{pending_discharge}}\n\n👥 التوظيف:\n• المغادرون: {{outgoing_count}} موظف\n• القادمون: {{incoming_count}} موظف\n• النسبة: 1:{{patient_ratio}}\n\n📋 التسليمات الرئيسية المكتملة: {{handoffs_complete}}/{{handoffs_total}}\n\n{{#if alerts}}🚨 التنبيهات النشطة:\n{{#each alerts}}• {{this}}\n{{/each}}{{/if}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "check_shift_schedule",
+        "name": "Check upcoming shift changes",
+        "name_ar": "التحقق من تغييرات الوردية القادمة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Shift_Schedule!A:Z"
+        }
+      },
+      {
+        "id": "send_handoff_reminder",
+        "name": "Send handoff reminder to outgoing staff",
+        "name_ar": "إرسال تذكير التسليم للموظف المغادر",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["check_shift_schedule"],
+        "params": {
+          "template": "handoff_reminder"
+        }
+      },
+      {
+        "id": "gather_patient_data",
+        "name": "Gather patient status data for handoff",
+        "name_ar": "جمع بيانات حالة المريض للتسليم",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Patient_Status!A:Z"
+        }
+      },
+      {
+        "id": "identify_critical_patients",
+        "name": "Identify critical patients requiring verbal handoff",
+        "name_ar": "تحديد المرضى الحرجين الذين يحتاجون تسليم شفهي",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["gather_patient_data"],
+        "params": {
+          "range": "Critical_Alerts!A:Z"
+        }
+      },
+      {
+        "id": "send_critical_alert",
+        "name": "Send critical patient handoff alerts",
+        "name_ar": "إرسال تنبيهات تسليم المرضى الحرجين",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["identify_critical_patients"],
+        "condition": "has_critical_patients",
+        "params": {
+          "template": "critical_patient_alert"
+        }
+      },
+      {
+        "id": "compile_pending_tasks",
+        "name": "Compile pending tasks summary",
+        "name_ar": "تجميع ملخص المهام المعلقة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Pending_Tasks!A:Z"
+        }
+      },
+      {
+        "id": "generate_handoff_report",
+        "name": "Generate SBAR handoff report",
+        "name_ar": "إنشاء تقرير تسليم SBAR",
+        "tool": "GMAIL_SEND_EMAIL",
+        "dependsOn": ["gather_patient_data", "compile_pending_tasks"],
+        "params": {
+          "template": "patient_handoff_report"
+        }
+      },
+      {
+        "id": "send_tasks_summary",
+        "name": "Send pending tasks summary",
+        "name_ar": "إرسال ملخص المهام المعلقة",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["compile_pending_tasks"],
+        "params": {
+          "template": "pending_tasks_summary"
+        }
+      },
+      {
+        "id": "track_acknowledgment",
+        "name": "Track incoming staff acknowledgment",
+        "name_ar": "تتبع إقرار الموظف القادم",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "Handoff_Tracking!A:Z"
+        }
+      },
+      {
+        "id": "send_acknowledgment",
+        "name": "Send handoff acknowledgment confirmation",
+        "name_ar": "إرسال تأكيد إقرار التسليم",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "handoff_acknowledged",
+        "params": {
+          "template": "handoff_acknowledgment"
+        }
+      },
+      {
+        "id": "check_incomplete_handoffs",
+        "name": "Check for incomplete handoffs",
+        "name_ar": "التحقق من التسليمات غير المكتملة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Handoff_Tracking!A:Z"
+        }
+      },
+      {
+        "id": "escalate_incomplete",
+        "name": "Escalate incomplete handoffs",
+        "name_ar": "تصعيد التسليمات غير المكتملة",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_incomplete_handoffs",
+        "params": {
+          "template": "handoff_incomplete_alert"
+        }
+      },
+      {
+        "id": "generate_department_summary",
+        "name": "Generate department shift summary",
+        "name_ar": "إنشاء ملخص وردية القسم",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "is_shift_end",
+        "params": {
+          "template": "department_summary"
+        }
+      },
+      {
+        "id": "archive_handoff",
+        "name": "Archive handoff records",
+        "name_ar": "أرشفة سجلات التسليم",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "dependsOn": ["send_acknowledgment"],
+        "params": {
+          "range": "Handoff_Archive!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "departments",
+      "question": "Which departments should use the handoff system?",
+      "question_ar": "ما هي الأقسام التي يجب أن تستخدم نظام التسليم؟",
+      "type": "multiselect",
+      "options": ["ICU", "CCU", "ER", "General Ward", "Pediatrics", "Maternity", "Surgery", "Oncology"],
+      "default": ["ICU", "ER", "General Ward"]
+    },
+    {
+      "id": "shift_times",
+      "question": "What are the shift change times (24-hour format)?",
+      "question_ar": "ما هي أوقات تغيير الورديات (صيغة 24 ساعة)؟",
+      "type": "text",
+      "default": "07:00, 15:00, 23:00"
+    },
+    {
+      "id": "reminder_minutes",
+      "question": "How many minutes before shift change should reminders be sent?",
+      "question_ar": "كم دقيقة قبل تغيير الوردية يجب إرسال التذكيرات؟",
+      "type": "number",
+      "default": 30
+    },
+    {
+      "id": "data_source",
+      "question": "What is the URL of the patient/staff data spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات المرضى/الموظفين؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "escalation_time",
+      "question": "After how many minutes should incomplete handoffs be escalated?",
+      "question_ar": "بعد كم دقيقة يجب تصعيد التسليمات غير المكتملة؟",
+      "type": "number",
+      "default": 15
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "handoffStandards": "MOH Clinical Handoff Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "handoffStandards": "CBAHI Patient Handoff Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "handoffStandards": "JCI Handoff Communication Standards"
+    }
+  }
+}

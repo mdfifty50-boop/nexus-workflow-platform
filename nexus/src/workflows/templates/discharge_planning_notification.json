@@ -1,0 +1,293 @@
+{
+  "id": "discharge_planning_notification",
+  "name": "Discharge Planning & Notification",
+  "name_ar": "تخطيط وإشعار الخروج",
+  "description": "Comprehensive discharge coordination system that notifies patients, families, and care teams. Manages discharge instructions, medication reconciliation, follow-up appointments, and transportation coordination.",
+  "description_ar": "نظام شامل لتنسيق الخروج يُشعر المرضى والعائلات وفرق الرعاية. يدير تعليمات الخروج ومطابقة الأدوية ومواعيد المتابعة وتنسيق النقل.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$110,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail", "googlecalendar"],
+  "optionalIntegrations": ["slack", "googledrive", "twilio"],
+  "exampleUserInput": "Coordinate patient discharge with follow-up appointments and medication instructions",
+  "exampleUserInput_ar": "تنسيق خروج المريض مع مواعيد المتابعة وتعليمات الأدوية",
+  "keywords": [
+    "discharge", "discharge planning", "follow-up", "medication", "care transition", "patient education",
+    "خروج", "تخطيط الخروج", "متابعة", "أدوية", "انتقال الرعاية", "تثقيف المريض"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "discharge_notice_hours": {
+      "type": "number",
+      "default": 24,
+      "label": "Hours notice before discharge",
+      "label_ar": "ساعات الإشعار قبل الخروج"
+    },
+    "readmission_followup_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days after discharge for follow-up call",
+      "label_ar": "أيام بعد الخروج لمكالمة المتابعة"
+    },
+    "medication_reconciliation": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include medication reconciliation",
+      "label_ar": "تضمين مطابقة الأدوية"
+    }
+  },
+  "messages": {
+    "discharge_planned": {
+      "_en": "📋 Discharge Planning Notice - {{hospital_name}}\n\nDear {{patient_name}},\n\nGreat news! You are scheduled for discharge.\n\n📅 Planned Discharge: {{discharge_date}} at approximately {{discharge_time}}\n\n✅ Before you leave, we need to:\n{{#each checklist_items}}• {{this}}\n{{/each}}\n\n{{#if pending_tests}}⏳ Pending items:\n{{#each pending_tests}}• {{this}}\n{{/each}}{{/if}}\n\n👨‍⚕️ Your physician will visit for final assessment.\n\nPlease arrange for someone to pick you up. Contact the nursing station if you need transportation assistance.",
+      "_ar": "📋 إشعار تخطيط الخروج - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nأخبار رائعة! أنت مجدول للخروج.\n\n📅 الخروج المخطط: {{discharge_date}} في حوالي {{discharge_time}}\n\n✅ قبل مغادرتك، نحتاج إلى:\n{{#each checklist_items}}• {{this}}\n{{/each}}\n\n{{#if pending_tests}}⏳ عناصر معلقة:\n{{#each pending_tests}}• {{this}}\n{{/each}}{{/if}}\n\n👨‍⚕️ سيزورك طبيبك للتقييم النهائي.\n\nيرجى ترتيب شخص لاصطحابك. تواصل مع محطة التمريض إذا كنت بحاجة لمساعدة في النقل."
+    },
+    "family_discharge_notification": {
+      "_en": "📱 Discharge Notice - {{hospital_name}}\n\nDear {{family_contact_name}},\n\n{{patient_name}} is scheduled for discharge.\n\n📅 Date: {{discharge_date}}\n⏰ Time: Approximately {{discharge_time}}\n📍 Pickup Location: {{discharge_location}}\n\n🚗 Transportation:\n{{#if needs_transport}}Transportation assistance requested - we will coordinate{{else}}Please arrange pickup{{/if}}\n\n📋 You will need to:\n• Bring comfortable clothing\n• Review discharge instructions with nurse\n• Pick up prescriptions from pharmacy\n• Confirm follow-up appointments\n\n📞 Questions? Call: {{nursing_station_phone}}",
+      "_ar": "📱 إشعار الخروج - {{hospital_name}}\n\nعزيزي/عزيزتي {{family_contact_name}}،\n\n{{patient_name}} مجدول للخروج.\n\n📅 التاريخ: {{discharge_date}}\n⏰ الوقت: حوالي {{discharge_time}}\n📍 موقع الاستلام: {{discharge_location}}\n\n🚗 النقل:\n{{#if needs_transport}}تم طلب المساعدة في النقل - سنقوم بالتنسيق{{else}}يرجى ترتيب الاستلام{{/if}}\n\n📋 ستحتاج إلى:\n• إحضار ملابس مريحة\n• مراجعة تعليمات الخروج مع الممرضة\n• استلام الوصفات من الصيدلية\n• تأكيد مواعيد المتابعة\n\n📞 استفسارات؟ اتصل: {{nursing_station_phone}}"
+    },
+    "discharge_instructions": {
+      "_en": "📋 Discharge Instructions - {{hospital_name}}\n\nPatient: {{patient_name}}\nDischarge Date: {{discharge_date}}\nPrimary Diagnosis: {{diagnosis}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n💊 MEDICATIONS:\n{{#each medications}}\n{{name}} - {{dosage}}\n   ⏰ {{frequency}}\n   📝 {{instructions}}\n{{/each}}\n\n⚠️ STOP taking: {{#each discontinued_meds}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🏠 HOME CARE INSTRUCTIONS:\n{{#each care_instructions}}• {{this}}\n{{/each}}\n\n🚫 ACTIVITY RESTRICTIONS:\n{{#each restrictions}}• {{this}}\n{{/each}}\n\n🍽️ DIET:\n{{diet_instructions}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🚨 SEEK IMMEDIATE CARE IF:\n{{#each warning_signs}}• {{this}}\n{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📅 FOLLOW-UP APPOINTMENTS:\n{{#each appointments}}\n• {{date}} at {{time}} - {{doctor}} ({{specialty}})\n  📍 {{location}}\n{{/each}}\n\n📞 Questions? Call: {{contact_number}}\n🏥 Emergency: {{emergency_number}}",
+      "_ar": "📋 تعليمات الخروج - {{hospital_name}}\n\nالمريض: {{patient_name}}\nتاريخ الخروج: {{discharge_date}}\nالتشخيص الرئيسي: {{diagnosis}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n💊 الأدوية:\n{{#each medications}}\n{{name}} - {{dosage}}\n   ⏰ {{frequency}}\n   📝 {{instructions}}\n{{/each}}\n\n⚠️ توقف عن تناول: {{#each discontinued_meds}}{{this}}{{#unless @last}}، {{/unless}}{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🏠 تعليمات الرعاية المنزلية:\n{{#each care_instructions}}• {{this}}\n{{/each}}\n\n🚫 قيود النشاط:\n{{#each restrictions}}• {{this}}\n{{/each}}\n\n🍽️ النظام الغذائي:\n{{diet_instructions}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🚨 اطلب الرعاية الفورية إذا:\n{{#each warning_signs}}• {{this}}\n{{/each}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📅 مواعيد المتابعة:\n{{#each appointments}}\n• {{date}} في {{time}} - {{doctor}} ({{specialty}})\n  📍 {{location}}\n{{/each}}\n\n📞 استفسارات؟ اتصل: {{contact_number}}\n🏥 الطوارئ: {{emergency_number}}"
+    },
+    "followup_reminder": {
+      "_en": "📅 Follow-up Reminder - {{hospital_name}}\n\nDear {{patient_name}},\n\nThis is a reminder of your upcoming follow-up appointment:\n\n👨‍⚕️ Doctor: {{doctor_name}}\n📍 Location: {{clinic_location}}\n📅 Date: {{appointment_date}}\n⏰ Time: {{appointment_time}}\n\n📋 Please bring:\n• Discharge summary\n• Current medication list\n• Insurance card\n{{#if bring_items}}{{#each bring_items}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if fasting_required}}⚠️ Note: {{fasting_instructions}}{{/if}}\n\nTo reschedule, call: {{clinic_phone}}",
+      "_ar": "📅 تذكير المتابعة - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nهذا تذكير بموعد المتابعة القادم:\n\n👨‍⚕️ الطبيب: {{doctor_name}}\n📍 الموقع: {{clinic_location}}\n📅 التاريخ: {{appointment_date}}\n⏰ الوقت: {{appointment_time}}\n\n📋 يرجى إحضار:\n• ملخص الخروج\n• قائمة الأدوية الحالية\n• بطاقة التأمين\n{{#if bring_items}}{{#each bring_items}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if fasting_required}}⚠️ ملاحظة: {{fasting_instructions}}{{/if}}\n\nلإعادة الجدولة، اتصل: {{clinic_phone}}"
+    },
+    "post_discharge_check": {
+      "_en": "🏠 Post-Discharge Check-in - {{hospital_name}}\n\nDear {{patient_name}},\n\nIt's been {{days_since_discharge}} days since your discharge. We hope you're recovering well!\n\n📋 Quick Check:\n• Are you taking all medications as prescribed?\n• Any new symptoms or concerns?\n• Have you scheduled your follow-up?\n\n{{#if has_concerns}}If you have any concerns, please reply to this message or call us at {{contact_number}}.{{/if}}\n\n🔗 Educational Resources: {{resources_link}}\n\nWishing you a speedy recovery!\n\n- The Care Team at {{hospital_name}}",
+      "_ar": "🏠 متابعة ما بعد الخروج - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nمرت {{days_since_discharge}} أيام منذ خروجك. نأمل أنك تتعافى جيداً!\n\n📋 فحص سريع:\n• هل تتناول جميع الأدوية كما وصفت؟\n• هل هناك أعراض أو مخاوف جديدة؟\n• هل حددت موعد المتابعة؟\n\n{{#if has_concerns}}إذا كانت لديك أي مخاوف، يرجى الرد على هذه الرسالة أو الاتصال بنا على {{contact_number}}.{{/if}}\n\n🔗 موارد تعليمية: {{resources_link}}\n\nنتمنى لك الشفاء العاجل!\n\n- فريق الرعاية في {{hospital_name}}"
+    },
+    "pharmacy_pickup_ready": {
+      "_en": "💊 Prescriptions Ready - {{hospital_name}} Pharmacy\n\nDear {{patient_name}},\n\nYour discharge medications are ready for pickup.\n\n📍 Location: {{pharmacy_location}}\n⏰ Hours: {{pharmacy_hours}}\n🔢 Order #: {{prescription_number}}\n\n💳 Estimated Cost:\n• Total: {{total_cost}}\n• Insurance covers: {{insurance_portion}}\n• Your payment: {{patient_portion}}\n\n⏳ Please pickup within 24 hours.\n\n💡 Tip: Ask the pharmacist about any medications you're unsure about.",
+      "_ar": "💊 الوصفات جاهزة - صيدلية {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nأدوية خروجك جاهزة للاستلام.\n\n📍 الموقع: {{pharmacy_location}}\n⏰ الساعات: {{pharmacy_hours}}\n🔢 رقم الطلب: {{prescription_number}}\n\n💳 التكلفة المقدرة:\n• الإجمالي: {{total_cost}}\n• يغطي التأمين: {{insurance_portion}}\n• دفعتك: {{patient_portion}}\n\n⏳ يرجى الاستلام خلال 24 ساعة.\n\n💡 نصيحة: اسأل الصيدلي عن أي أدوية لست متأكداً منها."
+    },
+    "care_team_discharge_complete": {
+      "_en": "✅ Discharge Complete - {{hospital_name}}\n\n📋 Patient: {{patient_name}} ({{patient_id}})\n📅 Discharged: {{discharge_date}} at {{discharge_time}}\n🛏️ Room {{room_number}} is now available\n\n📊 Summary:\n• Length of Stay: {{length_of_stay}} days\n• Primary Diagnosis: {{diagnosis}}\n• Discharge Disposition: {{disposition}}\n\n📅 Follow-up scheduled: {{followup_date}} with Dr. {{followup_doctor}}\n\n{{#if readmission_risk}}⚠️ Readmission Risk: {{readmission_risk}}{{/if}}\n\n✅ Discharge checklist completed\n🔗 Discharge summary: {{summary_link}}",
+      "_ar": "✅ اكتمل الخروج - {{hospital_name}}\n\n📋 المريض: {{patient_name}} ({{patient_id}})\n📅 الخروج: {{discharge_date}} في {{discharge_time}}\n🛏️ الغرفة {{room_number}} متاحة الآن\n\n📊 ملخص:\n• مدة الإقامة: {{length_of_stay}} أيام\n• التشخيص الرئيسي: {{diagnosis}}\n• وجهة الخروج: {{disposition}}\n\n📅 المتابعة مجدولة: {{followup_date}} مع د. {{followup_doctor}}\n\n{{#if readmission_risk}}⚠️ خطر إعادة الإدخال: {{readmission_risk}}{{/if}}\n\n✅ اكتملت قائمة التحقق من الخروج\n🔗 ملخص الخروج: {{summary_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "identify_discharge_ready",
+        "name": "Identify patients ready for discharge",
+        "name_ar": "تحديد المرضى الجاهزين للخروج",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Discharge_Planning!A:Z"
+        }
+      },
+      {
+        "id": "send_discharge_planned",
+        "name": "Notify patient of planned discharge",
+        "name_ar": "إشعار المريض بالخروج المخطط",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["identify_discharge_ready"],
+        "params": {
+          "template": "discharge_planned"
+        }
+      },
+      {
+        "id": "send_family_notification",
+        "name": "Notify family of discharge",
+        "name_ar": "إشعار العائلة بالخروج",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["identify_discharge_ready"],
+        "params": {
+          "template": "family_discharge_notification"
+        }
+      },
+      {
+        "id": "prepare_medication_list",
+        "name": "Prepare medication reconciliation",
+        "name_ar": "إعداد مطابقة الأدوية",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["identify_discharge_ready"],
+        "params": {
+          "range": "Medications!A:Z"
+        }
+      },
+      {
+        "id": "send_discharge_instructions",
+        "name": "Send detailed discharge instructions",
+        "name_ar": "إرسال تعليمات الخروج المفصلة",
+        "tool": "GMAIL_SEND_EMAIL",
+        "dependsOn": ["prepare_medication_list"],
+        "params": {
+          "template": "discharge_instructions"
+        }
+      },
+      {
+        "id": "schedule_followup",
+        "name": "Schedule follow-up appointments",
+        "name_ar": "جدولة مواعيد المتابعة",
+        "tool": "GOOGLECALENDAR_CREATE_EVENT",
+        "dependsOn": ["identify_discharge_ready"],
+        "params": {
+          "title": "Follow-up - {{patient_name}}"
+        }
+      },
+      {
+        "id": "send_followup_reminder",
+        "name": "Send follow-up appointment reminder",
+        "name_ar": "إرسال تذكير موعد المتابعة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["schedule_followup"],
+        "params": {
+          "template": "followup_reminder"
+        }
+      },
+      {
+        "id": "notify_pharmacy",
+        "name": "Notify pharmacy of discharge prescriptions",
+        "name_ar": "إشعار الصيدلية بوصفات الخروج",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["prepare_medication_list"],
+        "params": {
+          "channel": "#pharmacy"
+        }
+      },
+      {
+        "id": "send_pharmacy_pickup",
+        "name": "Send pharmacy pickup notification",
+        "name_ar": "إرسال إشعار استلام الصيدلية",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "prescriptions_ready",
+        "params": {
+          "template": "pharmacy_pickup_ready"
+        }
+      },
+      {
+        "id": "update_bed_status",
+        "name": "Update bed status to available",
+        "name_ar": "تحديث حالة السرير إلى متاح",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "patient_discharged",
+        "params": {
+          "range": "Bed_Status!A:Z"
+        }
+      },
+      {
+        "id": "notify_care_team_complete",
+        "name": "Notify care team of discharge completion",
+        "name_ar": "إشعار فريق الرعاية باكتمال الخروج",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "discharge_complete",
+        "params": {
+          "template": "care_team_discharge_complete"
+        }
+      },
+      {
+        "id": "upload_discharge_summary",
+        "name": "Upload discharge summary to patient folder",
+        "name_ar": "رفع ملخص الخروج إلى مجلد المريض",
+        "tool": "GOOGLEDRIVE_UPLOAD_FILE",
+        "condition": "discharge_complete"
+      },
+      {
+        "id": "schedule_post_discharge_check",
+        "name": "Schedule post-discharge follow-up call",
+        "name_ar": "جدولة مكالمة متابعة ما بعد الخروج",
+        "tool": "GOOGLECALENDAR_CREATE_EVENT",
+        "dependsOn": ["update_bed_status"],
+        "params": {
+          "title": "Post-discharge call - {{patient_name}}"
+        }
+      },
+      {
+        "id": "send_post_discharge_check",
+        "name": "Send post-discharge check-in message",
+        "name_ar": "إرسال رسالة متابعة ما بعد الخروج",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_post_discharge_day",
+        "params": {
+          "template": "post_discharge_check"
+        }
+      },
+      {
+        "id": "log_discharge",
+        "name": "Log discharge to registry",
+        "name_ar": "تسجيل الخروج في السجل",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "params": {
+          "range": "Discharge_Log!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "discharge_sheet",
+      "question": "What is the URL of the discharge planning spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات تخطيط الخروج؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "discharge_notice",
+      "question": "How many hours notice should be given before discharge?",
+      "question_ar": "كم ساعة إشعار يجب إعطاؤها قبل الخروج؟",
+      "type": "number",
+      "default": 24
+    },
+    {
+      "id": "followup_check",
+      "question": "How many days after discharge should the follow-up check-in occur?",
+      "question_ar": "بعد كم يوم من الخروج يجب أن تتم متابعة المريض؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "pharmacy_hours",
+      "question": "What are the hospital pharmacy hours?",
+      "question_ar": "ما هي ساعات عمل صيدلية المستشفى؟",
+      "type": "text",
+      "default": "8:00 AM - 10:00 PM"
+    },
+    {
+      "id": "emergency_number",
+      "question": "What is the emergency contact number for discharged patients?",
+      "question_ar": "ما هو رقم الطوارئ للمرضى المخرجين؟",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "dischargeStandards": "MOH Discharge Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "dischargeStandards": "CBAHI Discharge Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "dischargeStandards": "JCI Discharge Standards"
+    }
+  }
+}

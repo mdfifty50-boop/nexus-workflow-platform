@@ -2,10 +2,13 @@
  * useChatState Hook
  *
  * Manages chat state including messages, sessions, and persistence.
- * Uses localStorage for session persistence.
+ * Uses localStorage for local persistence with optional Supabase cloud sync.
+ *
+ * Plan B: User Account System - Updated for dual-write persistence
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { chatPersistenceService } from '@/services/ChatPersistenceService'
 import type {
   ChatMessage,
   ChatSession,
@@ -37,6 +40,10 @@ function generateSessionTitle(messages: ChatMessage[]): string {
   }
   return 'New Chat'
 }
+
+// ============================================================================
+// localStorage Helpers (kept for fallback compatibility)
+// ============================================================================
 
 function loadSessionsFromStorage(): ChatSession[] {
   try {
@@ -84,45 +91,133 @@ function saveCurrentSessionIdToStorage(sessionId: string): void {
 }
 
 // ============================================================================
+// Hook Configuration
+// ============================================================================
+
+export interface UseChatStateConfig {
+  /** Clerk user ID for cloud sync. If not provided, localStorage-only mode. */
+  userId?: string | null
+  /** Enable cloud sync when userId is available. Default: true */
+  enableCloudSync?: boolean
+}
+
+// ============================================================================
 // Hook Implementation
 // ============================================================================
 
-export function useChatState(): UseChatStateReturn {
+export function useChatState(config: UseChatStateConfig = {}): UseChatStateReturn {
+  const { userId = null, enableCloudSync = true } = config
+
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const isInitializedRef = useRef(false)
+  const userIdRef = useRef(userId)
 
-  // Initialize from localStorage on mount
+  // Update persistence service when userId changes
+  useEffect(() => {
+    if (enableCloudSync) {
+      chatPersistenceService.setUserId(userId)
+      userIdRef.current = userId
+    }
+  }, [userId, enableCloudSync])
+
+  // Create new session helper
+  function createNewSession(): ChatSession {
+    return {
+      id: generateId(),
+      title: 'New Chat',
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  }
+
+  // Initialize from storage on mount (with optional cloud sync)
   useEffect(() => {
     if (isInitializedRef.current) return
     isInitializedRef.current = true
 
-    const storedSessions = loadSessionsFromStorage()
-    const currentSessionId = loadCurrentSessionIdFromStorage()
+    const initializeSessions = async () => {
+      setIsLoading(true)
 
-    if (storedSessions.length > 0) {
-      setSessions(storedSessions)
-      const sessionToLoad = currentSessionId
-        ? storedSessions.find((s) => s.id === currentSessionId)
-        : storedSessions[0]
-      if (sessionToLoad) {
-        setCurrentSession(sessionToLoad)
-      } else {
-        // Start a new session if current not found
-        const newSession = createNewSession()
-        setSessions((prev) => [newSession, ...prev])
-        setCurrentSession(newSession)
+      try {
+        // Use persistence service for loading (handles merge if cloud enabled)
+        if (enableCloudSync && userId) {
+          const { sessions: loadedSessions, syncResult } = await chatPersistenceService.loadSessions()
+
+          if (syncResult.source === 'merged') {
+            console.log(`[useChatState] Merged ${syncResult.sessionsLoaded} sessions from cloud`)
+          }
+
+          if (loadedSessions.length > 0) {
+            setSessions(loadedSessions)
+            const currentSessionId = chatPersistenceService.loadCurrentSessionId()
+            const sessionToLoad = currentSessionId
+              ? loadedSessions.find((s) => s.id === currentSessionId)
+              : loadedSessions[0]
+
+            if (sessionToLoad) {
+              setCurrentSession(sessionToLoad)
+            } else {
+              const newSession = createNewSession()
+              setSessions((prev) => [newSession, ...prev])
+              setCurrentSession(newSession)
+              chatPersistenceService.saveSession(newSession)
+            }
+          } else {
+            // No sessions, create a new one
+            const newSession = createNewSession()
+            setSessions([newSession])
+            setCurrentSession(newSession)
+            chatPersistenceService.saveSession(newSession)
+          }
+        } else {
+          // Fallback: localStorage only (original behavior)
+          const storedSessions = loadSessionsFromStorage()
+          const currentSessionId = loadCurrentSessionIdFromStorage()
+
+          if (storedSessions.length > 0) {
+            setSessions(storedSessions)
+            const sessionToLoad = currentSessionId
+              ? storedSessions.find((s) => s.id === currentSessionId)
+              : storedSessions[0]
+            if (sessionToLoad) {
+              setCurrentSession(sessionToLoad)
+            } else {
+              // Start a new session if current not found
+              const newSession = createNewSession()
+              setSessions((prev) => [newSession, ...prev])
+              setCurrentSession(newSession)
+            }
+          } else {
+            // No sessions, create a new one
+            const newSession = createNewSession()
+            setSessions([newSession])
+            setCurrentSession(newSession)
+          }
+        }
+      } catch (err) {
+        console.error('[useChatState] Initialization error:', err)
+        // Fallback to localStorage on any error
+        const storedSessions = loadSessionsFromStorage()
+        if (storedSessions.length > 0) {
+          setSessions(storedSessions)
+          setCurrentSession(storedSessions[0])
+        } else {
+          const newSession = createNewSession()
+          setSessions([newSession])
+          setCurrentSession(newSession)
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } else {
-      // No sessions, create a new one
-      const newSession = createNewSession()
-      setSessions([newSession])
-      setCurrentSession(newSession)
     }
-  }, [])
 
-  // Save sessions to localStorage when they change
+    initializeSessions()
+  }, []) // Only run once on mount
+
+  // Save sessions to localStorage when they change (always, for local backup)
   useEffect(() => {
     if (sessions.length > 0) {
       saveSessionsToStorage(sessions)
@@ -133,18 +228,9 @@ export function useChatState(): UseChatStateReturn {
   useEffect(() => {
     if (currentSession) {
       saveCurrentSessionIdToStorage(currentSession.id)
+      chatPersistenceService.saveCurrentSessionId(currentSession.id)
     }
   }, [currentSession?.id])
-
-  function createNewSession(): ChatSession {
-    return {
-      id: generateId(),
-      title: 'New Chat',
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-  }
 
   const addMessage = useCallback(
     (content: string, role: MessageRole): ChatMessage => {
@@ -171,6 +257,11 @@ export function useChatState(): UseChatStateReturn {
           sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
         )
 
+        // Dual-write to persistence service (async, non-blocking)
+        chatPersistenceService.addMessage(updatedSession.id, newMessage).catch((err) => {
+          console.warn('[useChatState] Message persistence failed:', err)
+        })
+
         return updatedSession
       })
 
@@ -196,6 +287,11 @@ export function useChatState(): UseChatStateReturn {
           sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
         )
 
+        // Sync updated session to cloud
+        chatPersistenceService.saveSession(updatedSession).catch((err) => {
+          console.warn('[useChatState] Session update persistence failed:', err)
+        })
+
         return updatedSession
       })
     },
@@ -217,6 +313,11 @@ export function useChatState(): UseChatStateReturn {
         sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
       )
 
+      // Sync to cloud
+      chatPersistenceService.saveSession(updatedSession).catch((err) => {
+        console.warn('[useChatState] Delete persistence failed:', err)
+      })
+
       return updatedSession
     })
   }, [])
@@ -235,6 +336,11 @@ export function useChatState(): UseChatStateReturn {
         sessions.map((s) => (s.id === updatedSession.id ? updatedSession : s))
       )
 
+      // Sync to cloud
+      chatPersistenceService.saveSession(updatedSession).catch((err) => {
+        console.warn('[useChatState] Clear persistence failed:', err)
+      })
+
       return updatedSession
     })
   }, [])
@@ -243,6 +349,11 @@ export function useChatState(): UseChatStateReturn {
     const newSession = createNewSession()
     setSessions((prev) => [newSession, ...prev])
     setCurrentSession(newSession)
+
+    // Persist new session
+    chatPersistenceService.saveSession(newSession).catch((err) => {
+      console.warn('[useChatState] New session persistence failed:', err)
+    })
   }, [])
 
   const loadSession = useCallback(
@@ -259,6 +370,34 @@ export function useChatState(): UseChatStateReturn {
     return sessions
   }, [sessions])
 
+  const deleteSession = useCallback(
+    (sessionId: string): void => {
+      setSessions((prev) => {
+        const filtered = prev.filter((s) => s.id !== sessionId)
+
+        // If deleting current session, switch to another
+        if (currentSession?.id === sessionId) {
+          if (filtered.length > 0) {
+            setCurrentSession(filtered[0])
+          } else {
+            // Create a new session if all deleted
+            const newSession = createNewSession()
+            setCurrentSession(newSession)
+            return [newSession]
+          }
+        }
+
+        return filtered
+      })
+
+      // Delete from cloud
+      chatPersistenceService.deleteSession(sessionId).catch((err) => {
+        console.warn('[useChatState] Delete session persistence failed:', err)
+      })
+    },
+    [currentSession?.id]
+  )
+
   return {
     messages: currentSession?.messages ?? [],
     isLoading,
@@ -271,6 +410,7 @@ export function useChatState(): UseChatStateReturn {
     loadSession,
     getSessions,
     setIsLoading,
+    deleteSession,
   }
 }
 

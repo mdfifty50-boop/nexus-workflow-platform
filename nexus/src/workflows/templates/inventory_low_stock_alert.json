@@ -1,0 +1,234 @@
+{
+  "id": "inventory_low_stock_alert",
+  "name": "Inventory Low Stock Alert",
+  "name_ar": "تنبيه انخفاض المخزون",
+  "description": "Monitor inventory levels and automatically alert when stock falls below threshold. Optionally auto-generate purchase orders and notify suppliers. Never run out of critical items.",
+  "description_ar": "مراقبة مستويات المخزون والتنبيه تلقائياً عند انخفاض المخزون عن الحد المحدد. إمكانية إنشاء أوامر شراء تلقائية وإشعار الموردين. لا تنفد البضائع الهامة أبداً.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$25,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail", "slack"],
+  "optionalIntegrations": ["whatsapp", "notion", "airtable"],
+  "exampleUserInput": "Alert me when inventory is running low",
+  "exampleUserInput_ar": "نبهني عندما ينخفض المخزون",
+  "keywords": ["inventory", "stock", "alert", "reorder", "supply", "warehouse", "مخزون", "تنبيه", "إعادة طلب", "مستودع", "بضاعة"],
+  "dynamicParameters": {
+    "check_frequency": {
+      "type": "select",
+      "options": ["hourly", "daily", "weekly"],
+      "default": "daily",
+      "label": "How often to check inventory",
+      "label_ar": "كم مرة يتم فحص المخزون"
+    },
+    "alert_threshold_percent": {
+      "type": "number",
+      "default": 20,
+      "label": "Alert when stock falls below (% of max)",
+      "label_ar": "التنبيه عند انخفاض المخزون عن (% من الحد الأقصى)"
+    },
+    "auto_reorder": {
+      "type": "boolean",
+      "default": false,
+      "label": "Auto-generate purchase orders",
+      "label_ar": "إنشاء أوامر شراء تلقائياً"
+    },
+    "notify_supplier": {
+      "type": "boolean",
+      "default": false,
+      "label": "Auto-notify suppliers",
+      "label_ar": "إشعار الموردين تلقائياً"
+    },
+    "critical_items_only": {
+      "type": "boolean",
+      "default": false,
+      "label": "Only alert for critical items",
+      "label_ar": "التنبيه للعناصر الحرجة فقط"
+    }
+  },
+  "messages": {
+    "low_stock_alert_en": "⚠️ *Low Stock Alert*\n\n*Item:* {{item_name}}\n*SKU:* {{sku}}\n*Current Stock:* {{current_qty}} {{unit}}\n*Minimum Level:* {{min_qty}} {{unit}}\n*Status:* {{status}}\n\n{{#if supplier}}*Supplier:* {{supplier_name}}\n*Last Order:* {{last_order_date}}{{/if}}\n\n{{#if auto_reorder}}✅ Purchase order auto-generated{{else}}Action required: Reorder soon{{/if}}",
+    "low_stock_alert_ar": "⚠️ *تنبيه انخفاض المخزون*\n\n*المنتج:* {{item_name}}\n*رمز المنتج:* {{sku}}\n*المخزون الحالي:* {{current_qty}} {{unit}}\n*الحد الأدنى:* {{min_qty}} {{unit}}\n*الحالة:* {{status}}\n\n{{#if supplier}}*المورد:* {{supplier_name}}\n*آخر طلب:* {{last_order_date}}{{/if}}\n\n{{#if auto_reorder}}✅ تم إنشاء أمر شراء تلقائياً{{else}}مطلوب إجراء: إعادة الطلب قريباً{{/if}}",
+    "daily_summary_en": "📦 *Daily Inventory Summary*\n\nDate: {{date}}\n\n*Low Stock Items:* {{low_stock_count}}\n*Out of Stock:* {{out_of_stock_count}}\n*Pending Orders:* {{pending_orders}}\n\n{{#if critical_items}}*Critical Items:*\n{{#each critical_items}}\n🔴 {{name}}: {{qty}} remaining\n{{/each}}{{/if}}\n\n{{#if low_items}}*Low Stock:*\n{{#each low_items}}\n🟡 {{name}}: {{qty}} remaining\n{{/each}}{{/if}}",
+    "daily_summary_ar": "📦 *ملخص المخزون اليومي*\n\nالتاريخ: {{date}}\n\n*منتجات منخفضة:* {{low_stock_count}}\n*نفذت:* {{out_of_stock_count}}\n*طلبات معلقة:* {{pending_orders}}\n\n{{#if critical_items}}*منتجات حرجة:*\n{{#each critical_items}}\n🔴 {{name}}: {{qty}} متبقي\n{{/each}}{{/if}}\n\n{{#if low_items}}*مخزون منخفض:*\n{{#each low_items}}\n🟡 {{name}}: {{qty}} متبقي\n{{/each}}{{/if}}",
+    "purchase_order_en": "📋 *Purchase Order Generated*\n\nPO Number: {{po_number}}\nSupplier: {{supplier_name}}\nDate: {{date}}\n\n*Items:*\n{{#each items}}\n• {{name}} - Qty: {{qty}} - Est. Cost: {{cost}}\n{{/each}}\n\n*Total Estimated:* {{currency}} {{total}}\n\n{{#if notify_supplier}}📧 Supplier notified{{/if}}",
+    "supplier_notification_en": "Dear {{supplier_name}},\n\nWe would like to place the following order:\n\nPO Number: {{po_number}}\nCompany: {{company_name}}\n\nItems:\n{{#each items}}\n- {{name}}: {{qty}} {{unit}}\n{{/each}}\n\nPlease confirm availability and delivery timeline.\n\nBest regards,\n{{company_name}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Scheduled Inventory Check",
+        "name_ar": "فحص المخزون المجدول",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "{{check_frequency_cron}}",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Inventory Sheet",
+        "name_ar": "قراءة جدول المخزون",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{inventory_sheet}}",
+            "range": "Inventory!A:H"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Analyze Stock Levels",
+        "name_ar": "تحليل مستويات المخزون",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "analyze",
+          "params": {
+            "data": "{{task_2.values}}",
+            "threshold_percent": "{{alert_threshold_percent}}",
+            "critical_only": "{{critical_items_only}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Slack Alerts",
+        "name_ar": "إرسال تنبيهات Slack",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#inventory",
+            "message": "{{messages.low_stock_alert_en}}",
+            "condition": "task_3.low_stock_items.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Generate Purchase Orders",
+        "name_ar": "إنشاء أوامر الشراء",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{purchase_orders_sheet}}",
+            "values": "{{task_3.reorder_items}}",
+            "condition": "auto_reorder === true AND task_3.low_stock_items.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Notify Suppliers",
+        "name_ar": "إشعار الموردين",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{supplier_email}}",
+            "subject": "Purchase Order {{po_number}} - {{company_name}}",
+            "body": "{{messages.supplier_notification_en}}",
+            "condition": "notify_supplier === true AND task_5.po_created === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "WhatsApp Alert to Owner",
+        "name_ar": "تنبيه واتساب للمالك",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{owner_phone}}",
+            "message": "{{messages.low_stock_alert_{{language}}}}",
+            "condition": "task_3.critical_items.length > 0"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "check_frequency",
+      "question": "How often should inventory be checked?",
+      "question_ar": "كم مرة يجب فحص المخزون؟",
+      "type": "select",
+      "options": [
+        {"value": "hourly", "label": "Hourly / كل ساعة"},
+        {"value": "daily", "label": "Daily / يومياً"},
+        {"value": "weekly", "label": "Weekly / أسبوعياً"}
+      ],
+      "default": "daily"
+    },
+    {
+      "id": "alert_threshold_percent",
+      "question": "Alert when stock falls below what percentage?",
+      "question_ar": "التنبيه عند انخفاض المخزون عن أي نسبة؟",
+      "type": "number",
+      "default": 20
+    },
+    {
+      "id": "auto_reorder",
+      "question": "Auto-generate purchase orders?",
+      "question_ar": "إنشاء أوامر شراء تلقائياً؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "notify_supplier",
+      "question": "Auto-notify suppliers when reordering?",
+      "question_ar": "إشعار الموردين تلقائياً عند إعادة الطلب؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

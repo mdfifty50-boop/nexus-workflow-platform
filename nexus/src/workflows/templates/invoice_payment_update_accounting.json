@@ -1,21 +1,88 @@
 {
   "id": "invoice_payment_update_accounting",
   "name": "Invoice Payment to Accounting Update",
-  "description": "When a Stripe payment is received, update Google Sheets accounting ledger and send notification",
+  "name_ar": "تحديث المحاسبة عند استلام الدفعات",
+  "description": "When a Stripe payment is received, update Google Sheets accounting ledger, send notifications, and optionally process KNET payments for Kuwait customers. Perfect for SMEs tracking revenue.",
+  "description_ar": "عند استلام دفعة Stripe، تحديث دفتر المحاسبة في Google Sheets، إرسال إشعارات، ومعالجة دفعات KNET للعملاء الكويتيين. مثالي للشركات الصغيرة لتتبع الإيرادات.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$19,968/year",
   "requiredIntegrations": ["stripe", "googlesheets", "slack"],
+  "optionalIntegrations": ["gmail", "whatsapp", "knet"],
   "exampleUserInput": "When I receive a payment on Stripe, update my accounting spreadsheet and notify me on Slack",
-  "keywords": ["invoice", "payment", "stripe", "accounting", "spreadsheet", "sheets", "ledger", "notify"],
+  "exampleUserInput_ar": "عندما أستلم دفعة على Stripe، حدث جدول المحاسبة وأشعرني على Slack",
+  "keywords": ["invoice", "payment", "stripe", "accounting", "spreadsheet", "sheets", "ledger", "notify", "revenue", "knet", "فاتورة", "دفعة", "محاسبة", "إيرادات", "كي نت"],
+  "dynamicParameters": {
+    "payment_notification_channel": {
+      "type": "string",
+      "default": "#payments",
+      "label": "Slack channel for notifications",
+      "label_ar": "قناة Slack للإشعارات",
+      "required": true
+    },
+    "spreadsheet_name": {
+      "type": "string",
+      "default": "Revenue Tracker 2026",
+      "label": "Google Sheets name",
+      "label_ar": "اسم جدول Google Sheets",
+      "required": true
+    },
+    "currency": {
+      "type": "select",
+      "options": ["KWD", "SAR", "AED", "USD", "EUR"],
+      "default": "KWD",
+      "label": "Primary Currency",
+      "label_ar": "العملة الرئيسية"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Notification Language",
+      "label_ar": "لغة الإشعارات"
+    },
+    "send_receipt_whatsapp": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send receipt via WhatsApp",
+      "label_ar": "إرسال الإيصال عبر واتساب"
+    },
+    "knet_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Enable KNET payment processing (Kuwait)",
+      "label_ar": "تفعيل معالجة دفعات KNET (الكويت)",
+      "description": "Placeholder for KNET integration - requires custom setup"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 5,
+      "label": "VAT Rate (%)",
+      "label_ar": "نسبة ضريبة القيمة المضافة (%)"
+    }
+  },
+  "messages": {
+    "payment_received_en": "💰 *Payment Received!*\n\nAmount: {{currency}} {{amount}}\nCustomer: {{customer_name}}\nInvoice: {{invoice_id}}\nDate: {{payment_date}}\nMethod: {{payment_method}}\n\n✅ Recorded in accounting sheet.",
+    "payment_received_ar": "💰 *تم استلام دفعة!*\n\nالمبلغ: {{currency}} {{amount}}\nالعميل: {{customer_name}}\nالفاتورة: {{invoice_id}}\nالتاريخ: {{payment_date}}\nطريقة الدفع: {{payment_method}}\n\n✅ تم تسجيلها في جدول المحاسبة.",
+    "payment_received_bilingual": "💰 *Payment Received! / تم استلام دفعة!*\n\nAmount / المبلغ: {{currency}} {{amount}}\nCustomer / العميل: {{customer_name}}\nInvoice / الفاتورة: {{invoice_id}}\nDate / التاريخ: {{payment_date}}\n\n✅ Recorded / تم التسجيل",
+    "receipt_whatsapp_en": "🧾 *Payment Receipt*\n\nThank you for your payment, {{customer_name}}!\n\nAmount: {{currency}} {{amount}}\nInvoice: #{{invoice_id}}\nDate: {{payment_date}}\n\nThis serves as your official receipt.\n\nQuestions? Reply to this message.\n\nThank you for your business!\n{{company_name}}",
+    "receipt_whatsapp_ar": "🧾 *إيصال الدفع*\n\nشكراً لدفعتك، {{customer_name}}!\n\nالمبلغ: {{currency}} {{amount}}\nالفاتورة: #{{invoice_id}}\nالتاريخ: {{payment_date}}\n\nهذا بمثابة إيصالك الرسمي.\n\nأسئلة؟ رد على هذه الرسالة.\n\nشكراً لتعاملك معنا!\n{{company_name}}",
+    "daily_summary_en": "📊 *Daily Revenue Summary*\n\nDate: {{date}}\n\nTotal Payments: {{payment_count}}\nTotal Revenue: {{currency}} {{total_revenue}}\nVAT Collected: {{currency}} {{vat_amount}}\n\nTop Customers:\n{{#each top_customers}}\n• {{name}}: {{currency}} {{amount}}\n{{/each}}\n\nView full report: {{sheet_link}}",
+    "knet_placeholder_en": "⚠️ *KNET Integration Required*\n\nTo process KNET payments, please contact support@nexus.app to set up your KNET merchant account integration.\n\nKNET is Kuwait's primary payment gateway and requires:\n- Merchant ID\n- Terminal ID\n- API credentials",
+    "knet_placeholder_ar": "⚠️ *مطلوب تكامل KNET*\n\nلمعالجة دفعات KNET، يرجى التواصل مع support@nexus.app لإعداد تكامل حساب التاجر الخاص بك.\n\nKNET هي بوابة الدفع الرئيسية في الكويت وتتطلب:\n- معرف التاجر\n- معرف المحطة\n- بيانات اعتماد API"
+  },
   "executionPlan": {
     "tasks": [
       {
         "id": "task_1",
         "name": "Receive Stripe Payment",
+        "name_ar": "استلام دفعة Stripe",
         "type": "trigger",
         "integrationId": "stripe",
         "dependencies": [],
         "config": {
-          "toolSlug": "STRIPE_CREATE_CUSTOMER",
-          "action": "payment_received",
+          "toolSlug": "STRIPE_PAYMENT_INTENT_SUCCEEDED",
+          "action": "webhook",
           "params": {
             "eventType": "payment_intent.succeeded"
           }
@@ -23,35 +90,248 @@
       },
       {
         "id": "task_2",
-        "name": "Update Accounting Sheet",
+        "name": "Extract Payment Details",
+        "name_ar": "استخراج تفاصيل الدفعة",
         "type": "action",
-        "integrationId": "googlesheets",
+        "integrationId": "system",
         "dependencies": ["task_1"],
         "config": {
-          "toolSlug": "GOOGLESHEETS_BATCH_UPDATE",
-          "action": "append",
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "transform",
           "params": {
-            "sheetName": "Payments",
-            "columns": ["date", "amount", "customer", "invoice_id"]
+            "input": "{{task_1.data}}",
+            "mapping": {
+              "amount": "{{task_1.amount / 100}}",
+              "currency": "{{task_1.currency.toUpperCase()}}",
+              "customer_id": "{{task_1.customer}}",
+              "invoice_id": "{{task_1.invoice}}",
+              "payment_date": "{{task_1.created | date}}",
+              "payment_method": "{{task_1.payment_method_types[0]}}"
+            }
           }
         }
       },
       {
         "id": "task_3",
+        "name": "Get Customer Details from Stripe",
+        "name_ar": "الحصول على تفاصيل العميل من Stripe",
+        "type": "action",
+        "integrationId": "stripe",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "STRIPE_GET_CUSTOMER",
+          "action": "get",
+          "params": {
+            "customerId": "{{task_2.customer_id}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Update Accounting Sheet",
+        "name_ar": "تحديث جدول المحاسبة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_BATCH_UPDATE",
+          "action": "append",
+          "params": {
+            "spreadsheetId": "{{spreadsheet_id}}",
+            "sheetName": "Payments",
+            "values": [
+              "{{task_2.payment_date}}",
+              "{{task_3.name}}",
+              "{{task_3.email}}",
+              "{{task_2.invoice_id}}",
+              "{{task_2.amount}}",
+              "{{task_2.currency}}",
+              "{{task_2.amount * (vat_rate / 100)}}",
+              "{{task_2.payment_method}}",
+              "Stripe"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_5",
         "name": "Send Slack Notification",
+        "name_ar": "إرسال إشعار Slack",
         "type": "action",
         "integrationId": "slack",
-        "dependencies": ["task_2"],
+        "dependencies": ["task_4"],
         "config": {
           "toolSlug": "SLACK_SEND_MESSAGE",
           "action": "send",
           "params": {
-            "channel": "#payments",
-            "messageTemplate": "payment_received"
+            "channel": "{{payment_notification_channel}}",
+            "message": "{{messages.payment_received_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Receipt via WhatsApp",
+        "name_ar": "إرسال الإيصال عبر واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_3.phone}}",
+            "message": "{{messages.receipt_whatsapp_{{language}}}}",
+            "condition": "send_receipt_whatsapp === true && task_3.phone"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Email Receipt",
+        "name_ar": "إرسال إيصال البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_3.email}}",
+            "subject": "Payment Receipt #{{task_2.invoice_id}} / إيصال دفع",
+            "body": "{{messages.receipt_whatsapp_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Daily Revenue Summary",
+        "name_ar": "ملخص الإيرادات اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 18 * * 0-4",
+            "description": "Daily summary at 6 PM (Sunday-Thursday)",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Generate Daily Summary",
+        "name_ar": "إنشاء الملخص اليومي",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "query",
+          "params": {
+            "spreadsheetId": "{{spreadsheet_id}}",
+            "range": "Payments!A:I",
+            "filter": "date = today()"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Daily Summary to Slack",
+        "name_ar": "إرسال الملخص اليومي إلى Slack",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "{{payment_notification_channel}}",
+            "message": "{{messages.daily_summary_en}}"
           }
         }
       }
     ],
     "requiredIntegrations": ["stripe", "googlesheets", "slack"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "spreadsheet_name",
+      "question": "What's the name of your accounting spreadsheet?",
+      "question_ar": "ما اسم جدول المحاسبة الخاص بك؟",
+      "type": "text",
+      "default": "Revenue Tracker 2026"
+    },
+    {
+      "id": "currency",
+      "question": "What's your primary currency?",
+      "question_ar": "ما هي عملتك الرئيسية؟",
+      "type": "select",
+      "options": [
+        {"value": "KWD", "label": "Kuwaiti Dinar (KWD)"},
+        {"value": "SAR", "label": "Saudi Riyal (SAR)"},
+        {"value": "AED", "label": "UAE Dirham (AED)"},
+        {"value": "USD", "label": "US Dollar (USD)"}
+      ],
+      "default": "KWD"
+    },
+    {
+      "id": "vat_rate",
+      "question": "What's your VAT rate?",
+      "question_ar": "ما نسبة ضريبة القيمة المضافة؟",
+      "type": "number",
+      "default": 5
+    },
+    {
+      "id": "send_receipt_whatsapp",
+      "question": "Send receipts via WhatsApp?",
+      "question_ar": "إرسال الإيصالات عبر واتساب؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "What language should notifications be in?",
+      "question_ar": "بأي لغة يجب إرسال الإشعارات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "currency": "KWD",
+      "vat_rate": 0,
+      "paymentMethods": ["stripe", "knet"],
+      "knetNote": "KNET is the primary payment gateway in Kuwait. Contact support for integration."
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "09:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "currency": "SAR",
+      "vat_rate": 15,
+      "paymentMethods": ["stripe", "mada"]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "currency": "AED",
+      "vat_rate": 5,
+      "paymentMethods": ["stripe", "card"]
+    }
   }
 }

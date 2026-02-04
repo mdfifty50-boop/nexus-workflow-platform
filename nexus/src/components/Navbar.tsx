@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { ProfessionalAvatar } from './ProfessionalAvatar'
 import { useRTL } from './RTLProvider'
 import { Breadcrumb } from './Breadcrumb'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 // Custom hook for body scroll lock on mobile menu
 function useBodyScrollLock(isLocked: boolean) {
@@ -311,8 +312,11 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Right section: User avatar + Mobile menu button */}
+            {/* Right section: Language toggle + User avatar + Mobile menu button */}
             <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              {/* Language Toggle */}
+              <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={false} />
+
               {/* User Avatar Dropdown - 44px minimum touch target */}
               <div className="relative" ref={userMenuRef}>
                 <button

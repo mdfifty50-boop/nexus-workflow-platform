@@ -1,0 +1,256 @@
+{
+  "id": "bed_availability_tracker",
+  "name": "Bed Availability Tracker",
+  "name_ar": "متتبع توفر الأسرة",
+  "description": "Real-time tracking and notification system for hospital bed availability across departments. Automates bed status updates, transfers, and capacity alerts.",
+  "description_ar": "نظام تتبع وإشعار في الوقت الفعلي لتوفر أسرة المستشفى عبر الأقسام. يؤتمت تحديثات حالة الأسرة والتحويلات وتنبيهات السعة.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$120,000/year",
+  "requiredIntegrations": ["googlesheets", "slack", "gmail"],
+  "optionalIntegrations": ["twilio", "whatsapp"],
+  "exampleUserInput": "Track bed availability and alert staff when capacity is critical",
+  "exampleUserInput_ar": "تتبع توفر الأسرة وتنبيه الموظفين عندما تكون السعة حرجة",
+  "keywords": [
+    "bed management", "hospital capacity", "bed availability", "patient flow", "admission",
+    "إدارة الأسرة", "سعة المستشفى", "توفر الأسرة", "تدفق المرضى", "إدخال"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "departments": {
+      "type": "array",
+      "default": ["ICU", "CCU", "General Ward", "Pediatrics", "Maternity", "Surgery", "Orthopedics", "Oncology"],
+      "label": "Hospital Departments to Track",
+      "label_ar": "أقسام المستشفى للتتبع"
+    },
+    "critical_threshold_percent": {
+      "type": "number",
+      "default": 90,
+      "label": "Critical capacity threshold (%)",
+      "label_ar": "عتبة السعة الحرجة (%)"
+    },
+    "warning_threshold_percent": {
+      "type": "number",
+      "default": 80,
+      "label": "Warning capacity threshold (%)",
+      "label_ar": "عتبة التحذير (%)"
+    },
+    "update_frequency_minutes": {
+      "type": "number",
+      "default": 15,
+      "label": "Update frequency (minutes)",
+      "label_ar": "تكرار التحديث (دقائق)"
+    }
+  },
+  "messages": {
+    "capacity_alert_critical": {
+      "_en": "🚨 CRITICAL CAPACITY ALERT - {{hospital_name}}\n\n{{department}} is at {{current_occupancy}}% capacity!\n\n🛏️ Total Beds: {{total_beds}}\n✅ Available: {{available_beds}}\n🔴 Occupied: {{occupied_beds}}\n🔄 Pending Discharge: {{pending_discharge}}\n\n{{#if incoming_transfers}}⚠️ Incoming Transfers: {{incoming_transfers}}{{/if}}\n\nImmediate actions required:\n• Review pending discharges\n• Consider transfer to partner facilities\n• Activate overflow protocol\n\n📊 Dashboard: {{dashboard_link}}",
+      "_ar": "🚨 تنبيه سعة حرج - {{hospital_name}}\n\n{{department}} عند {{current_occupancy}}% من السعة!\n\n🛏️ إجمالي الأسرة: {{total_beds}}\n✅ متوفرة: {{available_beds}}\n🔴 مشغولة: {{occupied_beds}}\n🔄 في انتظار الخروج: {{pending_discharge}}\n\n{{#if incoming_transfers}}⚠️ التحويلات القادمة: {{incoming_transfers}}{{/if}}\n\nإجراءات فورية مطلوبة:\n• مراجعة حالات الخروج المعلقة\n• النظر في التحويل إلى مرافق شريكة\n• تفعيل بروتوكول الفيضان\n\n📊 لوحة المعلومات: {{dashboard_link}}"
+    },
+    "capacity_alert_warning": {
+      "_en": "⚠️ CAPACITY WARNING - {{hospital_name}}\n\n{{department}} is approaching capacity at {{current_occupancy}}%.\n\n🛏️ Available Beds: {{available_beds}} of {{total_beds}}\n🔄 Pending Discharge: {{pending_discharge}}\n⏰ Expected Discharges Today: {{expected_discharges}}\n\nRecommended actions:\n• Expedite discharge planning\n• Review admission priorities\n• Prepare overflow areas\n\n📊 Live Status: {{dashboard_link}}",
+      "_ar": "⚠️ تحذير السعة - {{hospital_name}}\n\n{{department}} يقترب من السعة عند {{current_occupancy}}%.\n\n🛏️ الأسرة المتاحة: {{available_beds}} من {{total_beds}}\n🔄 في انتظار الخروج: {{pending_discharge}}\n⏰ حالات الخروج المتوقعة اليوم: {{expected_discharges}}\n\nالإجراءات الموصى بها:\n• تسريع تخطيط الخروج\n• مراجعة أولويات الإدخال\n• تحضير مناطق الفيضان\n\n📊 الحالة المباشرة: {{dashboard_link}}"
+    },
+    "bed_status_update": {
+      "_en": "📊 Bed Status Update - {{hospital_name}}\n{{timestamp}}\n\n{{#each departments}}\n{{name}}: {{available}}/{{total}} available ({{occupancy}}%)\n{{/each}}\n\n📈 Hospital-wide: {{total_available}}/{{total_beds}} ({{overall_occupancy}}%)\n\n{{#if beds_cleaned}}🧹 Beds cleaned & ready: {{beds_cleaned}}{{/if}}\n{{#if pending_transfers}}🔄 Pending transfers: {{pending_transfers}}{{/if}}",
+      "_ar": "📊 تحديث حالة الأسرة - {{hospital_name}}\n{{timestamp}}\n\n{{#each departments}}\n{{name}}: {{available}}/{{total}} متاحة ({{occupancy}}%)\n{{/each}}\n\n📈 على مستوى المستشفى: {{total_available}}/{{total_beds}} ({{overall_occupancy}}%)\n\n{{#if beds_cleaned}}🧹 الأسرة المنظفة والجاهزة: {{beds_cleaned}}{{/if}}\n{{#if pending_transfers}}🔄 التحويلات المعلقة: {{pending_transfers}}{{/if}}"
+    },
+    "bed_available_notification": {
+      "_en": "✅ Bed Now Available - {{hospital_name}}\n\n🛏️ Bed {{bed_number}} in {{department}} is now available.\n\nRoom: {{room_number}}\nType: {{bed_type}}\nStatus: Cleaned and ready\n\n{{#if waiting_list}}📋 Waiting List: {{waiting_count}} patients{{/if}}\n{{#if assigned}}➡️ Assigned to: {{assigned_patient}}{{/if}}",
+      "_ar": "✅ سرير متاح الآن - {{hospital_name}}\n\n🛏️ السرير {{bed_number}} في {{department}} متاح الآن.\n\nالغرفة: {{room_number}}\nالنوع: {{bed_type}}\nالحالة: منظف وجاهز\n\n{{#if waiting_list}}📋 قائمة الانتظار: {{waiting_count}} مرضى{{/if}}\n{{#if assigned}}➡️ مخصص لـ: {{assigned_patient}}{{/if}}"
+    },
+    "daily_capacity_report": {
+      "_en": "📈 Daily Bed Capacity Report - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🏥 Overall Statistics:\n• Total Beds: {{total_beds}}\n• Average Occupancy: {{avg_occupancy}}%\n• Peak Occupancy: {{peak_occupancy}}% at {{peak_time}}\n• Total Admissions: {{total_admissions}}\n• Total Discharges: {{total_discharges}}\n• Average Length of Stay: {{avg_los}} days\n\n{{#each department_stats}}\n📍 {{name}}:\n   Occupancy: {{occupancy}}% | Admissions: {{admissions}} | Discharges: {{discharges}}\n{{/each}}\n\n{{#if concerns}}⚠️ Areas of Concern:\n{{#each concerns}}• {{this}}\n{{/each}}{{/if}}\n\n📊 Full Report: {{report_link}}",
+      "_ar": "📈 تقرير سعة الأسرة اليومي - {{hospital_name}}\n{{report_date}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🏥 إحصائيات شاملة:\n• إجمالي الأسرة: {{total_beds}}\n• متوسط الإشغال: {{avg_occupancy}}%\n• ذروة الإشغال: {{peak_occupancy}}% في {{peak_time}}\n• إجمالي الإدخالات: {{total_admissions}}\n• إجمالي حالات الخروج: {{total_discharges}}\n• متوسط مدة الإقامة: {{avg_los}} أيام\n\n{{#each department_stats}}\n📍 {{name}}:\n   الإشغال: {{occupancy}}% | الإدخالات: {{admissions}} | حالات الخروج: {{discharges}}\n{{/each}}\n\n{{#if concerns}}⚠️ مناطق القلق:\n{{#each concerns}}• {{this}}\n{{/each}}{{/if}}\n\n📊 التقرير الكامل: {{report_link}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "fetch_bed_status",
+        "name": "Fetch current bed status from all departments",
+        "name_ar": "جلب حالة الأسرة الحالية من جميع الأقسام",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "Bed_Status!A:Z"
+        }
+      },
+      {
+        "id": "calculate_occupancy",
+        "name": "Calculate occupancy percentages",
+        "name_ar": "حساب نسب الإشغال",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["fetch_bed_status"],
+        "params": {
+          "range": "Occupancy_Calculations!A:Z"
+        }
+      },
+      {
+        "id": "check_critical_threshold",
+        "name": "Check for critical capacity departments",
+        "name_ar": "التحقق من الأقسام ذات السعة الحرجة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "dependsOn": ["calculate_occupancy"]
+      },
+      {
+        "id": "send_critical_alert",
+        "name": "Send critical capacity alert",
+        "name_ar": "إرسال تنبيه السعة الحرجة",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["check_critical_threshold"],
+        "condition": "has_critical_departments",
+        "params": {
+          "channel": "#bed-management-alerts",
+          "template": "capacity_alert_critical"
+        }
+      },
+      {
+        "id": "send_warning_alert",
+        "name": "Send warning capacity alert",
+        "name_ar": "إرسال تنبيه التحذير",
+        "tool": "SLACK_SEND_MESSAGE",
+        "dependsOn": ["check_critical_threshold"],
+        "condition": "has_warning_departments",
+        "params": {
+          "channel": "#bed-management",
+          "template": "capacity_alert_warning"
+        }
+      },
+      {
+        "id": "send_critical_voice_alert",
+        "name": "Send voice call for critical alerts",
+        "name_ar": "إرسال مكالمة صوتية للتنبيهات الحرجة",
+        "tool": "TWILIO_MAKE_CALL",
+        "condition": "critical_and_voice_enabled",
+        "params": {
+          "message_type": "critical_capacity"
+        }
+      },
+      {
+        "id": "update_bed_availability",
+        "name": "Process bed availability changes",
+        "name_ar": "معالجة تغييرات توفر الأسرة",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "Bed_Status!A:Z"
+        }
+      },
+      {
+        "id": "notify_bed_available",
+        "name": "Notify when beds become available",
+        "name_ar": "الإشعار عند توفر الأسرة",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "bed_became_available",
+        "params": {
+          "template": "bed_available_notification"
+        }
+      },
+      {
+        "id": "send_status_update",
+        "name": "Send periodic status update",
+        "name_ar": "إرسال تحديث الحالة الدوري",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "is_update_interval",
+        "params": {
+          "channel": "#bed-management",
+          "template": "bed_status_update"
+        }
+      },
+      {
+        "id": "generate_daily_report",
+        "name": "Generate and send daily capacity report",
+        "name_ar": "إنشاء وإرسال تقرير السعة اليومي",
+        "tool": "GMAIL_SEND_EMAIL",
+        "condition": "is_daily_report_time",
+        "params": {
+          "template": "daily_capacity_report"
+        }
+      },
+      {
+        "id": "log_status_history",
+        "name": "Log status to history sheet",
+        "name_ar": "تسجيل الحالة في سجل التاريخ",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "params": {
+          "range": "Bed_Status_History!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "departments",
+      "question": "Which departments should be tracked?",
+      "question_ar": "ما هي الأقسام التي يجب تتبعها؟",
+      "type": "multiselect",
+      "options": ["ICU", "CCU", "General Ward", "Pediatrics", "Maternity", "Surgery", "Orthopedics", "Oncology", "Neurology", "Cardiology"],
+      "default": ["ICU", "CCU", "General Ward", "Surgery"]
+    },
+    {
+      "id": "data_source",
+      "question": "What is the URL of the bed management spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات إدارة الأسرة؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "critical_threshold",
+      "question": "At what occupancy percentage should critical alerts be triggered?",
+      "question_ar": "عند أي نسبة إشغال يجب تشغيل التنبيهات الحرجة؟",
+      "type": "number",
+      "default": 90
+    },
+    {
+      "id": "slack_channel",
+      "question": "Which Slack channel should receive bed management alerts?",
+      "question_ar": "أي قناة Slack يجب أن تتلقى تنبيهات إدارة الأسرة؟",
+      "type": "text",
+      "default": "#bed-management"
+    },
+    {
+      "id": "voice_alerts",
+      "question": "Should critical alerts trigger voice calls to on-call managers?",
+      "question_ar": "هل يجب أن تؤدي التنبيهات الحرجة إلى مكالمات صوتية للمديرين المناوبين؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "bedManagementStandards": "MOH Bed Allocation Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "bedManagementStandards": "CBAHI Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "bedManagementStandards": "JCI Bed Management"
+    }
+  }
+}

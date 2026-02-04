@@ -43,6 +43,21 @@ export class GenericUXTranslator {
    * @returns UX translation with display name, prompt, input type
    */
   translate(paramName: string, toolkit: string): UXTranslation {
+    // @NEXUS-FIX-073: Toolkit-specific overrides for WhatsApp - DO NOT REMOVE
+    // WhatsApp's 'to' param should be phone, not email (generic pattern matches email)
+    const toolkitLower = toolkit?.toLowerCase() || '';
+    if (toolkitLower === 'whatsapp' || toolkitLower === 'whatsappweb') {
+      if (paramName === 'to' || paramName === 'recipient') {
+        return {
+          displayName: 'Phone Number',
+          prompt: 'What phone number should receive the WhatsApp message?',
+          inputType: 'phone',
+          placeholder: '+965 xxxx xxxx',
+          quickActions: [{ label: 'My Phone', value: '{{user_phone}}' }]
+        };
+      }
+    }
+
     for (const pattern of this.patterns) {
       const match = paramName.match(pattern.match);
       if (match) {

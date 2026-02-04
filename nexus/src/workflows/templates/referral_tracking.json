@@ -1,0 +1,311 @@
+{
+  "id": "referral_tracking",
+  "name": "Referral Tracking System",
+  "name_ar": "نظام تتبع الإحالات",
+  "description": "Track patient referrals from creation to completion. Notify patients of referral status, remind them to schedule specialist appointments, and close the loop with referring physicians on outcomes.",
+  "description_ar": "تتبع إحالات المرضى من الإنشاء إلى الاكتمال. إخطار المرضى بحالة الإحالة وتذكيرهم بجدولة مواعيد المختصين وإغلاق الحلقة مع الأطباء المحيلين حول النتائج.",
+  "domain": "clinic",
+  "roiTier": 2,
+  "annualValue": "$25,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["googlecalendar", "slack"],
+  "exampleUserInput": "Track referrals and remind patients to follow up",
+  "exampleUserInput_ar": "تتبع الإحالات وذكر المرضى بالمتابعة",
+  "keywords": ["referral", "specialist", "tracking", "follow-up", "consultation", "transfer", "إحالة", "مختص", "تتبع", "متابعة", "استشارة", "تحويل"],
+  "dynamicParameters": {
+    "reminder_days_after_referral": {
+      "type": "number",
+      "default": 7,
+      "label": "Days after referral to send scheduling reminder",
+      "label_ar": "أيام بعد الإحالة لإرسال تذكير الجدولة"
+    },
+    "close_loop_with_physician": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send outcome report to referring physician",
+      "label_ar": "إرسال تقرير النتائج للطبيب المحيل"
+    },
+    "track_specialist_visit": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track if patient completed specialist visit",
+      "label_ar": "تتبع إذا أكمل المريض زيارة المختص"
+    },
+    "auto_send_referral_letter": {
+      "type": "boolean",
+      "default": true,
+      "label": "Automatically send referral letter to specialist",
+      "label_ar": "إرسال خطاب الإحالة للمختص تلقائياً"
+    }
+  },
+  "messages": {
+    "referral_created_en": "📋 *Referral Created*\n\nHi {{patient_name}},\n\nDr. {{referring_doctor}} has referred you to a specialist.\n\n*Referral Details:*\n🏥 Specialist: {{specialist_type}}\n👨‍⚕️ Referred to: {{specialist_name}} {{#if specialist_clinic}}at {{specialist_clinic}}{{/if}}\n📝 Reason: {{referral_reason}}\n🔴 Priority: {{priority_level}}\n\n*Next Steps:*\n1. Contact the specialist to schedule\n2. Bring this referral number: #{{referral_id}}\n3. Bring your ID and insurance card\n\n{{#if specialist_phone}}📞 Specialist contact: {{specialist_phone}}{{/if}}\n{{#if booking_link}}🔗 Book online: {{booking_link}}{{/if}}\n\n*Need help scheduling?* Reply HELP",
+    "referral_created_ar": "📋 *تم إنشاء الإحالة*\n\nمرحباً {{patient_name}}،\n\nأحالك د. {{referring_doctor}} إلى مختص.\n\n*تفاصيل الإحالة:*\n🏥 التخصص: {{specialist_type}}\n👨‍⚕️ المحال إليه: {{specialist_name}} {{#if specialist_clinic}}في {{specialist_clinic}}{{/if}}\n📝 السبب: {{referral_reason}}\n🔴 الأولوية: {{priority_level}}\n\n*الخطوات التالية:*\n1. اتصل بالمختص للجدولة\n2. أحضر رقم الإحالة هذا: #{{referral_id}}\n3. أحضر هويتك وبطاقة التأمين\n\n{{#if specialist_phone}}📞 اتصال المختص: {{specialist_phone}}{{/if}}\n{{#if booking_link}}🔗 احجز عبر الإنترنت: {{booking_link}}{{/if}}\n\n*تحتاج مساعدة في الجدولة؟* رد بـ مساعدة",
+    "scheduling_reminder_en": "⏰ *Referral Reminder*\n\nHi {{patient_name}},\n\nThis is a reminder about your referral from Dr. {{referring_doctor}}.\n\n*Referral #{{referral_id}}*\n🏥 Specialist: {{specialist_type}}\n👨‍⚕️ Dr. {{specialist_name}}\n\n*Have you scheduled your appointment?*\n1️⃣ Yes, appointment scheduled\n2️⃣ Need help scheduling\n3️⃣ Can't reach specialist\n4️⃣ Decided not to go\n\nReply 1, 2, 3, or 4.\n\n⚠️ *Don't delay!* Your condition may require timely specialist care.",
+    "scheduling_reminder_ar": "⏰ *تذكير بالإحالة*\n\nمرحباً {{patient_name}}،\n\nهذا تذكير بإحالتك من د. {{referring_doctor}}.\n\n*الإحالة #{{referral_id}}*\n🏥 التخصص: {{specialist_type}}\n👨‍⚕️ د. {{specialist_name}}\n\n*هل جدولت موعدك؟*\n1️⃣ نعم، تم جدولة الموعد\n2️⃣ أحتاج مساعدة في الجدولة\n3️⃣ لا أستطيع الوصول للمختص\n4️⃣ قررت عدم الذهاب\n\nرد بـ 1 أو 2 أو 3 أو 4.\n\n⚠️ *لا تتأخر!* حالتك قد تتطلب رعاية مختصة في الوقت المناسب.",
+    "appointment_confirmed_en": "✅ *Great! Appointment Confirmed*\n\nThank you for letting us know your specialist appointment is scheduled.\n\n*Referral #{{referral_id}}*\n\nPlease bring:\n• Referral letter\n• ID/Civil ID\n• Insurance card\n• List of current medications\n• Any relevant test results\n\nWe'll follow up to ensure continuity of care.\n\n*Questions before your visit?* Contact us: {{clinic_phone}}",
+    "appointment_confirmed_ar": "✅ *رائع! تم تأكيد الموعد*\n\nشكراً لإعلامنا أن موعد المختص تم جدولته.\n\n*الإحالة #{{referral_id}}*\n\nيرجى إحضار:\n• خطاب الإحالة\n• الهوية/البطاقة المدنية\n• بطاقة التأمين\n• قائمة الأدوية الحالية\n• أي نتائج فحوصات ذات صلة\n\nسنتابع لضمان استمرارية الرعاية.\n\n*أسئلة قبل زيارتك؟* اتصل بنا: {{clinic_phone}}",
+    "outcome_request_en": "📋 *How Did Your Specialist Visit Go?*\n\nHi {{patient_name}},\n\nWe hope your appointment with {{specialist_name}} went well!\n\nCould you share the outcome so Dr. {{referring_doctor}} can continue your care?\n\n1️⃣ Everything went well\n2️⃣ Follow-up treatment planned\n3️⃣ Need to discuss with Dr. {{referring_doctor}}\n4️⃣ Did not attend the appointment\n\nReply 1, 2, 3, or 4.\n\n*Your feedback helps us coordinate your care!*",
+    "outcome_request_ar": "📋 *كيف كانت زيارة المختص؟*\n\nمرحباً {{patient_name}}،\n\nنأمل أن موعدك مع {{specialist_name}} سار بشكل جيد!\n\nهل يمكنك مشاركة النتيجة لكي يتمكن د. {{referring_doctor}} من متابعة رعايتك؟\n\n1️⃣ كل شيء سار بشكل جيد\n2️⃣ تم التخطيط لعلاج متابعة\n3️⃣ أحتاج مناقشة مع د. {{referring_doctor}}\n4️⃣ لم أحضر الموعد\n\nرد بـ 1 أو 2 أو 3 أو 4.\n\n*ملاحظاتك تساعدنا على تنسيق رعايتك!*",
+    "physician_outcome_report_en": "📋 *Referral Outcome Report*\n\n*Patient:* {{patient_name}}\n*Referral #:* {{referral_id}}\n*Specialist:* {{specialist_name}} ({{specialist_type}})\n*Referral Date:* {{referral_date}}\n*Visit Date:* {{visit_date}}\n\n*Outcome:* {{outcome_summary}}\n{{#if treatment_plan}}*Treatment Plan:* {{treatment_plan}}{{/if}}\n{{#if followup_needed}}*Follow-up Required:* {{followup_recommendation}}{{/if}}\n\n*Full Report:* {{report_link}}",
+    "referral_letter_en": "📋 *Referral Letter*\n\n*To:* Dr. {{specialist_name}}\n*From:* Dr. {{referring_doctor}}\n*Date:* {{referral_date}}\n*Patient:* {{patient_name}}\n*DOB:* {{patient_dob}}\n*Civil ID:* {{patient_civil_id}}\n\n*Reason for Referral:*\n{{referral_reason}}\n\n*Clinical Summary:*\n{{clinical_summary}}\n\n*Current Medications:*\n{{medications}}\n\n*Relevant Test Results:*\n{{test_results}}\n\n*Priority:* {{priority_level}}\n\n*Please send consultation report to:*\n{{referring_doctor_email}}\n\nThank you for your assistance in the care of this patient."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Referral Created",
+        "name_ar": "إنشاء الإحالة",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{referrals_sheet}}",
+            "sheet": "Referrals"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send Referral Notification",
+        "name_ar": "إرسال إشعار الإحالة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.referral_created_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Referral Letter to Specialist",
+        "name_ar": "إرسال خطاب الإحالة للمختص",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{specialist_email}}",
+            "subject": "Patient Referral: {{patient_name}} - #{{referral_id}}",
+            "body": "{{messages.referral_letter_en}}",
+            "condition": "auto_send_referral_letter = true"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Schedule Reminder",
+        "name_ar": "جدولة التذكير",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{referral_date_plus_{{reminder_days_after_referral}}d}}",
+            "action": "send_scheduling_reminder"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Scheduling Reminder",
+        "name_ar": "إرسال تذكير الجدولة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.scheduling_reminder_{{patient_language}}}}",
+            "condition": "status != 'scheduled'"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Handle Patient Response",
+        "name_ar": "معالجة رد المريض",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3|4"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Update Referral Status",
+        "name_ar": "تحديث حالة الإحالة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{referrals_sheet}}",
+            "filter": "referral_id = {{referral_id}}",
+            "values": {"status": "{{new_status}}", "updated_at": "{{timestamp}}"}
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Appointment Confirmation",
+        "name_ar": "إرسال تأكيد الموعد",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.appointment_confirmed_{{patient_language}}}}",
+            "condition": "response = 1"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Schedule Outcome Follow-up",
+        "name_ar": "جدولة متابعة النتائج",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{scheduled_date_plus_3d}}",
+            "action": "request_outcome",
+            "condition": "track_specialist_visit = true"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Request Visit Outcome",
+        "name_ar": "طلب نتيجة الزيارة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.outcome_request_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Send Outcome to Referring Physician",
+        "name_ar": "إرسال النتيجة للطبيب المحيل",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_10"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{referring_doctor_email}}",
+            "subject": "Referral Outcome: {{patient_name}} - #{{referral_id}}",
+            "body": "{{messages.physician_outcome_report_en}}",
+            "condition": "close_loop_with_physician = true AND outcome_received = true"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Alert Staff - Scheduling Help",
+        "name_ar": "تنبيه الموظفين - مساعدة الجدولة",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#referrals",
+            "message": "🆘 Patient needs help scheduling referral\n*Patient:* {{patient_name}}\n*Referral #:* {{referral_id}}\n*Phone:* {{patient_phone}}",
+            "condition": "response = 2 OR response = 3"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_days_after_referral",
+      "question": "How many days after referral to send scheduling reminder?",
+      "question_ar": "كم يوم بعد الإحالة لإرسال تذكير الجدولة؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "close_loop_with_physician",
+      "question": "Send outcome reports to referring physicians?",
+      "question_ar": "إرسال تقارير النتائج للأطباء المحيلين؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "track_specialist_visit",
+      "question": "Track if patient completed specialist visit?",
+      "question_ar": "تتبع إذا أكمل المريض زيارة المختص؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "auto_send_referral_letter",
+      "question": "Automatically email referral letter to specialist?",
+      "question_ar": "إرسال خطاب الإحالة للمختص بالبريد تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD"
+    }
+  }
+}

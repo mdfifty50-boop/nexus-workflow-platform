@@ -6,9 +6,13 @@
  * and only loaded when needed.
  *
  * Usage:
- * import { LazyAIMeetingRoom, LazyWorkflowCanvas } from '@/components/LazyComponents'
+ * import { LazyAIMeetingRoom, LazyWorkflowFlowChart } from '@/components/LazyComponents'
  *
  * <LazyAIMeetingRoom isOpen={isOpen} onClose={onClose} />
+ *
+ * ARCHIVED (see src/_archived/):
+ * - WorkflowCanvas - Visual drag-and-drop editor (not suited for non-tech users)
+ * - WorkflowCanvasLegacy - Legacy canvas implementation
  */
 
 import { lazy, Suspense, type ComponentProps } from 'react'
@@ -16,20 +20,6 @@ import { lazy, Suspense, type ComponentProps } from 'react'
 // =============================================================================
 // LOADING FALLBACKS
 // =============================================================================
-
-/**
- * Full-page loading fallback for large components
- */
-function FullPageLoading() {
-  return (
-    <div className="min-h-[400px] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
-        <p className="text-slate-400 text-sm">Loading component...</p>
-      </div>
-    </div>
-  )
-}
 
 /**
  * Inline loading fallback for smaller components
@@ -78,26 +68,6 @@ const LazyAIMeetingRoomInner = lazy(() =>
 const LazyMeetingRoomButtonInner = lazy(() =>
   import('./AIMeetingRoom').then(m => ({
     default: m.MeetingRoomButton
-  }))
-)
-
-/**
- * Lazy-loaded WorkflowCanvas
- * Heavy component with React Flow, animations, and complex node rendering
- */
-const LazyWorkflowCanvasInner = lazy(() =>
-  import('./WorkflowCanvas').then(m => ({
-    default: m.WorkflowCanvas
-  }))
-)
-
-/**
- * Lazy-loaded WorkflowCanvasLegacy
- * Alternative workflow canvas implementation
- */
-const LazyWorkflowCanvasLegacyInner = lazy(() =>
-  import('./WorkflowCanvasLegacy').then(m => ({
-    default: m.WorkflowCanvasLegacy
   }))
 )
 
@@ -156,34 +126,6 @@ export function LazyMeetingRoomButton(props: MeetingRoomButtonProps) {
   )
 }
 
-// Type for WorkflowCanvas props (inferred from component)
-type WorkflowCanvasProps = ComponentProps<typeof LazyWorkflowCanvasInner>
-
-/**
- * Lazy WorkflowCanvas with automatic Suspense boundary
- */
-export function LazyWorkflowCanvas(props: WorkflowCanvasProps) {
-  return (
-    <Suspense fallback={<FullPageLoading />}>
-      <LazyWorkflowCanvasInner {...props} />
-    </Suspense>
-  )
-}
-
-// Type for WorkflowCanvasLegacy props
-type WorkflowCanvasLegacyProps = ComponentProps<typeof LazyWorkflowCanvasLegacyInner>
-
-/**
- * Lazy WorkflowCanvasLegacy with automatic Suspense boundary
- */
-export function LazyWorkflowCanvasLegacy(props: WorkflowCanvasLegacyProps) {
-  return (
-    <Suspense fallback={<FullPageLoading />}>
-      <LazyWorkflowCanvasLegacyInner {...props} />
-    </Suspense>
-  )
-}
-
 // Type for WorkflowFlowChart props
 type WorkflowFlowChartProps = ComponentProps<typeof LazyWorkflowFlowChartInner>
 
@@ -209,16 +151,4 @@ export function preloadAIMeetingRoom() {
   import('./AIMeetingRoomV2')
 }
 
-/**
- * Preload WorkflowCanvas for faster workflow editing
- */
-export function preloadWorkflowCanvas() {
-  import('./WorkflowCanvas')
-}
-
-/**
- * Preload WorkflowCanvasLegacy
- */
-export function preloadWorkflowCanvasLegacy() {
-  import('./WorkflowCanvasLegacy')
-}
+// WorkflowCanvas preloaders removed - Canvas archived in favor of Chat Cards

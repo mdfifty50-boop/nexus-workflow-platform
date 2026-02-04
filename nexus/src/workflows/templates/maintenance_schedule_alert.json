@@ -1,0 +1,249 @@
+{
+  "id": "maintenance_schedule_alert",
+  "name": "Maintenance Schedule Alert",
+  "name_ar": "تنبيهات جدول الصيانة",
+  "description": "Never miss equipment maintenance again. Track service schedules for all business assets, get timely reminders, and maintain compliance with warranty and safety requirements.",
+  "description_ar": "لن تفوت صيانة المعدات مرة أخرى. تتبع جداول الخدمة لجميع أصول العمل واحصل على تذكيرات في الوقت المناسب والحفاظ على الامتثال لمتطلبات الضمان والسلامة.",
+  "domain": "sme",
+  "roiTier": 2,
+  "annualValue": "$15,000/year",
+  "requiredIntegrations": ["googlesheets", "gmail", "googlecalendar"],
+  "optionalIntegrations": ["slack", "whatsapp", "notion"],
+  "exampleUserInput": "Remind me about equipment maintenance schedules",
+  "exampleUserInput_ar": "ذكرني بجداول صيانة المعدات",
+  "keywords": ["maintenance", "equipment", "service", "schedule", "repair", "asset", "صيانة", "معدات", "خدمة", "جدول", "إصلاح", "أصول"],
+  "dynamicParameters": {
+    "reminder_days_before": {
+      "type": "array",
+      "default": [30, 7, 1],
+      "label": "Days before to send reminders",
+      "label_ar": "أيام قبل لإرسال التذكيرات"
+    },
+    "include_cost_tracking": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track maintenance costs",
+      "label_ar": "تتبع تكاليف الصيانة"
+    },
+    "auto_schedule_recurring": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule recurring maintenance",
+      "label_ar": "جدولة الصيانة المتكررة تلقائياً"
+    },
+    "track_warranty": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track warranty expiration",
+      "label_ar": "تتبع انتهاء الضمان"
+    }
+  },
+  "messages": {
+    "maintenance_reminder_en": "🔧 *Maintenance Reminder*\n\n*Equipment:* {{equipment_name}}\n*Type:* {{equipment_type}}\n*Location:* {{location}}\n\n*Service Due:* {{due_date}} ({{days_until}} days)\n*Service Type:* {{service_type}}\n\n*Last Service:* {{last_service_date}}\n*Service Provider:* {{provider_name}}\n*Contact:* {{provider_contact}}\n\n{{#if estimated_cost}}*Estimated Cost:* {{currency}} {{estimated_cost}}{{/if}}\n\n{{#if warranty_status}}*Warranty:* {{warranty_status}}{{/if}}\n\n*Action Required:* Schedule maintenance service",
+    "maintenance_reminder_ar": "🔧 *تذكير بالصيانة*\n\n*المعدات:* {{equipment_name}}\n*النوع:* {{equipment_type}}\n*الموقع:* {{location}}\n\n*موعد الخدمة:* {{due_date}} ({{days_until}} يوم)\n*نوع الخدمة:* {{service_type}}\n\n*آخر خدمة:* {{last_service_date}}\n*مقدم الخدمة:* {{provider_name}}\n*التواصل:* {{provider_contact}}\n\n{{#if estimated_cost}}*التكلفة المتوقعة:* {{currency}} {{estimated_cost}}{{/if}}\n\n{{#if warranty_status}}*الضمان:* {{warranty_status}}{{/if}}\n\n*مطلوب إجراء:* جدولة خدمة الصيانة",
+    "overdue_alert_en": "⚠️ *Overdue Maintenance Alert*\n\n*Equipment:* {{equipment_name}}\n*Service Type:* {{service_type}}\n\n*Was Due:* {{due_date}} ({{days_overdue}} days overdue)\n\n*Risk Level:* {{risk_level}}\n{{#if safety_concern}}🚨 *Safety Concern:* This may affect operational safety{{/if}}\n{{#if warranty_risk}}⚠️ *Warranty Risk:* May void warranty coverage{{/if}}\n\n*Immediate Action Required*\n\nContact {{provider_name}}: {{provider_contact}}",
+    "overdue_alert_ar": "⚠️ *تنبيه صيانة متأخرة*\n\n*المعدات:* {{equipment_name}}\n*نوع الخدمة:* {{service_type}}\n\n*كان موعدها:* {{due_date}} (متأخر {{days_overdue}} يوم)\n\n*مستوى المخاطر:* {{risk_level}}\n{{#if safety_concern}}🚨 *مخاوف السلامة:* قد يؤثر على سلامة التشغيل{{/if}}\n{{#if warranty_risk}}⚠️ *مخاطر الضمان:* قد يبطل تغطية الضمان{{/if}}\n\n*مطلوب إجراء فوري*\n\nتواصل مع {{provider_name}}: {{provider_contact}}",
+    "weekly_summary_en": "📋 *Weekly Maintenance Summary*\n\nPeriod: {{week_start}} - {{week_end}}\n\n*Upcoming This Week:*\n{{#each upcoming}}\n• {{equipment}}: {{service_type}} ({{date}})\n{{/each}}\n\n*Completed This Week:*\n{{#each completed}}\n✅ {{equipment}}: {{service_type}}\n{{/each}}\n\n*Overdue:*\n{{#each overdue}}\n⚠️ {{equipment}}: {{days_overdue}} days overdue\n{{/each}}\n\n*Cost Summary:*\n• This week: {{currency}} {{weekly_cost}}\n• Month to date: {{currency}} {{mtd_cost}}\n• Year to date: {{currency}} {{ytd_cost}}\n\n*Equipment Health:* {{health_score}}/100",
+    "weekly_summary_ar": "📋 *ملخص الصيانة الأسبوعي*\n\nالفترة: {{week_start}} - {{week_end}}\n\n*القادم هذا الأسبوع:*\n{{#each upcoming}}\n• {{equipment}}: {{service_type}} ({{date}})\n{{/each}}\n\n*المكتمل هذا الأسبوع:*\n{{#each completed}}\n✅ {{equipment}}: {{service_type}}\n{{/each}}\n\n*المتأخر:*\n{{#each overdue}}\n⚠️ {{equipment}}: متأخر {{days_overdue}} يوم\n{{/each}}\n\n*ملخص التكاليف:*\n• هذا الأسبوع: {{currency}} {{weekly_cost}}\n• من بداية الشهر: {{currency}} {{mtd_cost}}\n• من بداية السنة: {{currency}} {{ytd_cost}}\n\n*صحة المعدات:* {{health_score}}/100",
+    "warranty_expiring_en": "⚡ *Warranty Expiring Soon*\n\n*Equipment:* {{equipment_name}}\n*Purchase Date:* {{purchase_date}}\n\n*Warranty Expires:* {{expiry_date}} ({{days_until}} days)\n\n*Warranty Coverage:*\n{{warranty_details}}\n\n*Recommendations:*\n• Schedule any covered repairs now\n• Consider extended warranty options\n• Document current equipment condition\n\n*Action:* Review warranty terms and schedule inspection",
+    "service_completed_en": "✅ *Maintenance Completed*\n\n*Equipment:* {{equipment_name}}\n*Service Type:* {{service_type}}\n*Date:* {{service_date}}\n\n*Provider:* {{provider_name}}\n*Technician:* {{technician_name}}\n\n*Work Performed:*\n{{work_description}}\n\n*Parts Replaced:*\n{{#each parts}}\n• {{part_name}}: {{currency}} {{cost}}\n{{/each}}\n\n*Total Cost:* {{currency}} {{total_cost}}\n\n*Next Service Due:* {{next_service_date}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Maintenance Check",
+        "name_ar": "فحص الصيانة اليومي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 8 * * 0-4",
+            "description": "Daily at 8 AM on workdays",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Read Equipment List",
+        "name_ar": "قراءة قائمة المعدات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{maintenance_sheet}}",
+            "range": "Equipment!A:L"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Check Due Maintenance",
+        "name_ar": "فحص الصيانة المستحقة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "filter",
+          "params": {
+            "equipment": "{{task_2.values}}",
+            "reminder_days": "{{reminder_days_before}}",
+            "check_overdue": true
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Upcoming Reminders",
+        "name_ar": "إرسال التذكيرات القادمة",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.upcoming_reminders}}",
+            "subject": "🔧 Maintenance Due: {{equipment_name}} - {{due_date}}",
+            "body": "{{messages.maintenance_reminder_{{language}}}}",
+            "condition": "task_3.upcoming.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Overdue Alerts",
+        "name_ar": "إرسال تنبيهات المتأخر",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.overdue_alerts}}",
+            "message": "{{messages.overdue_alert_{{language}}}}",
+            "condition": "task_3.overdue.length > 0"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Create Calendar Events",
+        "name_ar": "إنشاء أحداث التقويم",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "batch_create",
+          "params": {
+            "events": "{{task_3.calendar_events}}",
+            "calendar_id": "{{maintenance_calendar}}",
+            "condition": "auto_schedule_recurring === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Weekly Summary Trigger",
+        "name_ar": "مشغل الملخص الأسبوعي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 9 * * 0",
+            "description": "Weekly on Sunday at 9 AM",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Weekly Summary",
+        "name_ar": "إرسال الملخص الأسبوعي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{report_recipients}}",
+            "subject": "📋 Weekly Maintenance Summary - {{week_start}}",
+            "body": "{{messages.weekly_summary_{{language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "gmail", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "reminder_days_before",
+      "question": "When should reminders be sent? (days before due)",
+      "question_ar": "متى يجب إرسال التذكيرات؟ (أيام قبل الموعد)",
+      "type": "multiselect",
+      "options": [
+        {"value": "30", "label": "30 days"},
+        {"value": "14", "label": "14 days"},
+        {"value": "7", "label": "7 days"},
+        {"value": "3", "label": "3 days"},
+        {"value": "1", "label": "1 day"}
+      ],
+      "default": ["30", "7", "1"]
+    },
+    {
+      "id": "include_cost_tracking",
+      "question": "Track maintenance costs?",
+      "question_ar": "تتبع تكاليف الصيانة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "auto_schedule_recurring",
+      "question": "Auto-schedule recurring maintenance on calendar?",
+      "question_ar": "جدولة الصيانة المتكررة على التقويم تلقائياً؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "track_warranty",
+      "question": "Track warranty expiration dates?",
+      "question_ar": "تتبع تواريخ انتهاء الضمان؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

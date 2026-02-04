@@ -28,6 +28,19 @@ import rubeRoutes from './routes/rube.js'
 import oauthRoutes from './routes/oauth.js'
 import customIntegrationsRoutes from './routes/customIntegrations.js'
 import preflightRoutes from './routes/preflight.js'
+import whatsappRoutes from './routes/whatsapp.js'
+import whatsappBusinessRoutes from './routes/whatsapp-business.js'
+import whatsappComposioRoutes from './routes/whatsapp-composio.js'
+import whatsappWebRoutes from './routes/whatsapp-web.js'
+import suggestionsRoutes from './routes/suggestions.js'
+import voiceRoutes from './routes/voice.js'
+import chatPersistenceRoutes from './routes/chat-persistence.js'
+import workflowPersistenceRoutes from './routes/workflow-persistence.js'
+import userPreferencesRoutes from './routes/user-preferences.js'
+import adminAnalyticsRoutes from './routes/admin-analytics.js'
+
+// WhatsApp Business trigger service (auto-initializes and registers message handler)
+import './services/WhatsAppBusinessTriggerService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -69,6 +82,16 @@ app.use('/api/rube', rubeRoutes)
 app.use('/api/oauth', oauthRoutes)
 app.use('/api/custom-integrations', customIntegrationsRoutes)
 app.use('/api/preflight', preflightRoutes)
+app.use('/api/whatsapp', whatsappRoutes)
+app.use('/api/whatsapp-business', whatsappBusinessRoutes)
+app.use('/api/whatsapp-composio', whatsappComposioRoutes)
+app.use('/api/whatsapp-web', whatsappWebRoutes)
+app.use('/api/suggestions', suggestionsRoutes)
+app.use('/api/voice', voiceRoutes)
+app.use('/api/chat-persistence', chatPersistenceRoutes)
+app.use('/api/workflow-persistence', workflowPersistenceRoutes)
+app.use('/api/user-preferences', userPreferencesRoutes)
+app.use('/api/admin-analytics', adminAnalyticsRoutes)
 
 // Serve static frontend in production
 const distPath = path.resolve(process.cwd(), 'dist')
@@ -114,9 +137,53 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   })
 })
 
+// Graceful shutdown handling for production
+let server: ReturnType<typeof app.listen> | null = null
+
+function gracefulShutdown(signal: string) {
+  console.log(`\n⚠️ ${signal} received. Starting graceful shutdown...`)
+
+  if (server) {
+    server.close((err) => {
+      if (err) {
+        console.error('❌ Error during shutdown:', err)
+        process.exit(1)
+      }
+      console.log('✓ HTTP server closed')
+      console.log('✓ Graceful shutdown complete')
+      process.exit(0)
+    })
+
+    // Force shutdown after 30 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error('⚠️ Forcing shutdown after 30s timeout')
+      process.exit(1)
+    }, 30000)
+  } else {
+    process.exit(0)
+  }
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// Handle uncaught exceptions in production
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err)
+  if (process.env.NODE_ENV === 'production') {
+    // In production, log the error and attempt graceful shutdown
+    gracefulShutdown('uncaughtException')
+  }
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
 // Only start listener when not running under Vitest (for supertest compatibility)
 if (!process.env.VITEST) {
-  app.listen(PORT, () => {
+  server = app.listen(PORT, () => {
     console.log(`🚀 Nexus server running on port ${PORT}`)
     console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`   AI Services (proxied - keys secure):`)
@@ -136,6 +203,8 @@ if (!process.env.VITEST) {
     console.log(`     - Slack: ${process.env.SLACK_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`)
     console.log(`     - GitHub: ${process.env.GITHUB_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`)
     console.log(`   Browser: ✓ Playwright available`)
+    console.log(`   WhatsApp Business: ${process.env.AISENSY_PARTNER_ID ? '✓ AiSensy configured' : '⚠ Configure AISENSY_PARTNER_ID for Embedded Signup'}`)
+    console.log(`   WhatsApp Web: ✓ QR Code integration available`)
   })
 }
 

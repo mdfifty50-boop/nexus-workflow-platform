@@ -665,30 +665,31 @@ export const SUGGESTION_WORKFLOWS: Record<string, SuggestionWorkflow> = {
   },
 
   'whatsapp-triggers': {
-    id: 'wf-whatsapp-trigger-v1',
+    id: 'wf-whatsapp-trigger-v2',
     suggestionId: 'whatsapp-triggers',
-    name: 'WhatsApp Workflow Triggers',
-    description: 'Execute business workflows by sending commands via WhatsApp messages.',
+    name: 'WhatsApp Business Workflow Triggers',
+    description: 'Execute business workflows by sending commands via WhatsApp Business messages. Uses legitimate AiSensy BSP for compliance.',
     category: 'messaging',
-    requiredIntegrations: ['whatsapp'],
+    requiredIntegrations: ['whatsapp-business'],
     estimatedTimeSaved: '2+ hours/week',
     successRate: 99.0,
-    testedAt: new Date('2024-01-25'),
-    version: '1.0.0',
+    testedAt: new Date('2025-01-30'),
+    version: '2.0.0',
     steps: [
       {
         id: 'step-1',
         name: 'Listen for Commands',
-        description: 'Monitor WhatsApp for workflow trigger messages',
+        description: 'Monitor WhatsApp Business for workflow trigger messages via AiSensy webhook',
         agentId: 'nexus',
         type: 'trigger',
         status: 'pending',
         config: {
-          trigger: 'whatsapp_message',
+          trigger: 'whatsapp_business_message',
+          provider: 'aisensy',
           commandPrefix: '/',
           authorizedNumbers: 'user_defined'
         },
-        outputs: ['command', 'parameters', 'sender', 'timestamp'],
+        outputs: ['command', 'parameters', 'sender', 'senderName', 'timestamp'],
         estimatedDuration: 'Continuous'
       },
       {
@@ -725,13 +726,14 @@ export const SUGGESTION_WORKFLOWS: Record<string, SuggestionWorkflow> = {
       },
       {
         id: 'step-4',
-        name: 'Send Response',
-        description: 'Reply via WhatsApp with execution results',
+        name: 'Send Response via WhatsApp Business',
+        description: 'Reply via WhatsApp Business (within 24h session window) using AiSensy API',
         agentId: 'nexus',
         type: 'action',
         status: 'pending',
         config: {
-          action: 'send_whatsapp',
+          action: 'whatsapp_reply',
+          provider: 'aisensy',
           formatResponse: true,
           includeTimestamp: true
         },

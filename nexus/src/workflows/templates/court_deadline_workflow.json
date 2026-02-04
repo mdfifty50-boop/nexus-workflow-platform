@@ -1,0 +1,327 @@
+{
+  "id": "court_deadline_workflow",
+  "name": "Court Deadline Tracker",
+  "name_ar": "متتبع مواعيد المحكمة",
+  "description": "Automated court deadline management: creates calendar events, sends multi-level reminders (7/3/1 days before), and escalates urgent deadlines. Perfect for law firms managing filing deadlines, hearings, and court appearances.",
+  "description_ar": "إدارة مواعيد المحكمة الآلية: إنشاء أحداث تقويم، إرسال تذكيرات متعددة المستويات (7/3/1 أيام قبل)، وتصعيد المواعيد العاجلة. مثالي لمكاتب المحاماة لإدارة مواعيد التقديم والجلسات.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$45,000/lawyer",
+  "requiredIntegrations": ["googlecalendar", "gmail", "slack", "whatsapp"],
+  "optionalIntegrations": ["notion", "asana"],
+  "exampleUserInput": "Track my court deadlines and remind me before due dates",
+  "exampleUserInput_ar": "تتبع مواعيد المحكمة وذكرني قبل تواريخ الاستحقاق",
+  "keywords": ["court", "deadline", "filing", "hearing", "trial", "motion", "calendar", "legal", "lawyer", "law firm", "reminder", "due date", "appearance", "judge", "case", "محكمة", "موعد", "جلسة", "قضية", "محامي", "مرافعة", "تذكير", "استئناف"],
+  "dynamicParameters": {
+    "reminder_days_first": {
+      "type": "number",
+      "default": 7,
+      "label": "First reminder (days before)",
+      "label_ar": "التذكير الأول (أيام قبل)",
+      "required": true
+    },
+    "reminder_days_second": {
+      "type": "number",
+      "default": 3,
+      "label": "Second reminder (days before)",
+      "label_ar": "التذكير الثاني (أيام قبل)",
+      "required": true
+    },
+    "reminder_days_urgent": {
+      "type": "number",
+      "default": 1,
+      "label": "Urgent reminder (days before)",
+      "label_ar": "التذكير العاجل (أيام قبل)",
+      "required": true
+    },
+    "court_type": {
+      "type": "select",
+      "options": ["civil", "criminal", "commercial", "family", "administrative", "constitutional"],
+      "default": "civil",
+      "label": "Court Type",
+      "label_ar": "نوع المحكمة"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    },
+    "escalation_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Enable escalation to supervisor",
+      "label_ar": "تفعيل التصعيد للمشرف"
+    }
+  },
+  "messages": {
+    "new_deadline_en": "📅 New Court Deadline Added\n\nDeadline: {{deadline_title}}\nCase: {{case_name}} ({{case_number}})\nType: {{deadline_type}}\nDue Date: {{deadline_date}} at {{deadline_time}}\nCourt: {{court_name}}\nJudge: {{judge_name}}\nPriority: {{priority}}\n\nReminders scheduled for {{reminder_days_first}}, {{reminder_days_second}}, and {{reminder_days_urgent}} days before.\n\nBest regards,\nNexus Court Deadline Tracker",
+    "new_deadline_ar": "📅 تم إضافة موعد محكمة جديد\n\nالموعد: {{deadline_title}}\nالقضية: {{case_name}} ({{case_number}})\nالنوع: {{deadline_type}}\nتاريخ الاستحقاق: {{deadline_date}} الساعة {{deadline_time}}\nالمحكمة: {{court_name}}\nالقاضي: {{judge_name}}\nالأولوية: {{priority}}\n\nتم جدولة التذكيرات قبل {{reminder_days_first}} و{{reminder_days_second}} و{{reminder_days_urgent}} أيام.\n\nمع التحية،\nنيكسس لتتبع مواعيد المحكمة",
+    "reminder_en": "⏰ Court Deadline Reminder\n\nYou have a deadline in {{days_until}} days:\n\n📋 {{deadline_title}}\n📁 Case: {{case_number}}\n🏛️ Court: {{court_name}}\n📅 Due: {{deadline_date}}\n\nPlease ensure all preparations are complete.",
+    "reminder_ar": "⏰ تذكير بموعد المحكمة\n\nلديك موعد استحقاق خلال {{days_until}} أيام:\n\n📋 {{deadline_title}}\n📁 القضية: {{case_number}}\n🏛️ المحكمة: {{court_name}}\n📅 الاستحقاق: {{deadline_date}}\n\nيرجى التأكد من اكتمال جميع التحضيرات.",
+    "urgent_en": "🚨 URGENT: Court Deadline TOMORROW!\n\n{{deadline_title}}\nCase: {{case_number}}\nCourt: {{court_name}}\nTime: {{deadline_time}}\n\nFinal preparations needed TODAY.",
+    "urgent_ar": "🚨 عاجل: موعد المحكمة غداً!\n\n{{deadline_title}}\nالقضية: {{case_number}}\nالمحكمة: {{court_name}}\nالوقت: {{deadline_time}}\n\nيجب إتمام التحضيرات النهائية اليوم.",
+    "escalation_en": "🚨 ESCALATION NOTICE\n\nA critical court deadline requires immediate attention:\n\nDeadline: {{deadline_title}}\nCase: {{case_name}} ({{case_number}})\nDue: {{deadline_date}}\nDays Remaining: {{days_until}}\nCourt: {{court_name}}\nAssigned Lawyer: {{lawyer_name}}\n\nImmediate action required.",
+    "escalation_ar": "🚨 إشعار تصعيد\n\nموعد محكمة حرج يتطلب اهتماماً فورياً:\n\nالموعد: {{deadline_title}}\nالقضية: {{case_name}} ({{case_number}})\nالاستحقاق: {{deadline_date}}\nالأيام المتبقية: {{days_until}}\nالمحكمة: {{court_name}}\nالمحامي المكلف: {{lawyer_name}}\n\nيتطلب إجراء فوري."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Create Court Deadline Event",
+        "name_ar": "إنشاء حدث موعد المحكمة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "summary": "{{priority_emoji}} {{deadline_title}} - {{case_number}}",
+            "description": "Case: {{case_name}} ({{case_number}})\nType: {{deadline_type}}\nCourt: {{court_name}}\nJudge: {{judge_name}}\nLawyer: {{lawyer_name}}\n\n{{description}}",
+            "start": "{{deadline_date}}T{{deadline_time}}",
+            "end": "{{deadline_date}}T{{deadline_time}}",
+            "location": "{{court_name}}",
+            "timeZone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Schedule First Reminder",
+        "name_ar": "جدولة التذكير الأول",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "summary": "Reminder: {{deadline_title}} in {{reminder_days_first}} days",
+            "description": "{{messages.reminder_{{language}}}}",
+            "start": "{{reminder_first_date}}",
+            "colorId": "5"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Schedule Second Reminder",
+        "name_ar": "جدولة التذكير الثاني",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "summary": "Important: {{deadline_title}} in {{reminder_days_second}} days",
+            "description": "{{messages.reminder_{{language}}}}",
+            "start": "{{reminder_second_date}}",
+            "colorId": "6"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Schedule Urgent Reminder",
+        "name_ar": "جدولة التذكير العاجل",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "summary": "URGENT: {{deadline_title}} TOMORROW",
+            "description": "{{messages.urgent_{{language}}}}",
+            "start": "{{reminder_urgent_date}}",
+            "colorId": "11"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Email Notification",
+        "name_ar": "إرسال إشعار البريد الإلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_email}}",
+            "subject": "New Court Deadline Added: {{deadline_title}}",
+            "body": "{{messages.new_deadline_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Slack Team Notification",
+        "name_ar": "إشعار فريق سلاك",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#court-deadlines",
+            "message": ":calendar: *New Court Deadline / موعد محكمة جديد*\n\n*{{deadline_title}}*\n📁 Case: {{case_name}} ({{case_number}})\n📅 Due: {{deadline_date}} at {{deadline_time}}\n🏛️ Court: {{court_name}}\n👨‍⚖️ Judge: {{judge_name}}\n👤 Assigned: {{lawyer_name}}\n⚡ Priority: {{priority}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Check for Approaching Deadlines (Daily)",
+        "name_ar": "فحص المواعيد القادمة (يومياً)",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_LIST_EVENTS",
+          "action": "list",
+          "params": {
+            "description": "Daily check for deadlines within urgent threshold",
+            "timeMin": "{{today}}",
+            "timeMax": "{{today_plus_urgent}}",
+            "q": "Court"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Urgent WhatsApp Alert",
+        "name_ar": "إرسال تنبيه واتساب عاجل",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{lawyer_phone}}",
+            "message": "{{messages.urgent_{{language}}}}",
+            "description": "WhatsApp alert for deadlines within urgent threshold"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Escalate Critical Deadlines",
+        "name_ar": "تصعيد المواعيد الحرجة",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{supervisor_email}}",
+            "subject": "🚨 ESCALATION: Court Deadline in {{days_until}} Days",
+            "body": "{{messages.escalation_{{language}}}}",
+            "description": "Escalation email for deadlines within 1 day"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Mark Deadline Complete",
+        "name_ar": "تحديد الموعد كمكتمل",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_UPDATE_EVENT",
+          "action": "update",
+          "params": {
+            "eventId": "{{calendar_event_id}}",
+            "summary": "✅ COMPLETED: {{deadline_title}}",
+            "colorId": "10",
+            "description": "Completed on: {{completion_date}}\nCompleted by: {{completed_by}}\n\n{{original_description}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "gmail", "slack", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "court_type",
+      "question": "What type of court cases do you handle most?",
+      "question_ar": "ما نوع قضايا المحكمة التي تتعامل معها أكثر؟",
+      "type": "select",
+      "options": [
+        {"value": "civil", "label": "Civil / مدني"},
+        {"value": "criminal", "label": "Criminal / جنائي"},
+        {"value": "commercial", "label": "Commercial / تجاري"},
+        {"value": "family", "label": "Family / أسرة"},
+        {"value": "administrative", "label": "Administrative / إداري"}
+      ],
+      "default": "civil"
+    },
+    {
+      "id": "reminder_days_first",
+      "question": "How many days before should the first reminder be sent?",
+      "question_ar": "كم يوماً قبل الموعد يجب إرسال التذكير الأول؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "language",
+      "question": "What language should notifications be in?",
+      "question_ar": "بأي لغة يجب إرسال الإشعارات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "14:00"},
+      "defaultLanguage": "bilingual",
+      "courts": {
+        "civil": "محكمة الكويت المدنية",
+        "criminal": "محكمة الجنايات",
+        "commercial": "المحكمة التجارية",
+        "family": "محكمة الأحوال الشخصية",
+        "constitutional": "المحكمة الدستورية"
+      },
+      "holidays": ["National Day", "Liberation Day", "Eid al-Fitr", "Eid al-Adha"]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "15:00"},
+      "defaultLanguage": "arabic",
+      "courts": {
+        "civil": "المحكمة العامة",
+        "criminal": "المحكمة الجزائية",
+        "commercial": "المحكمة التجارية",
+        "family": "محكمة الأحوال الشخصية",
+        "administrative": "ديوان المظالم"
+      }
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "08:00", "end": "15:00"},
+      "defaultLanguage": "bilingual",
+      "courts": {
+        "civil": "المحكمة المدنية",
+        "criminal": "المحكمة الجزائية",
+        "commercial": "المحكمة التجارية",
+        "family": "محكمة الأحوال الشخصية"
+      }
+    }
+  }
+}

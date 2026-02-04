@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Strategic Presentation | 10-Firm Consulting Synthesis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 100%);
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        .slide {
+            min-height: 100vh;
+            padding: 60px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 40%;
+            height: 100%;
+            background: radial-gradient(ellipse at top right, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center;
+            background: linear-gradient(135deg, #0f0f23 0%, #1e1e4a 50%, #2d1b69 100%);
+        }
+
+        .title-slide h1 {
+            font-size: 4.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+            letter-spacing: -2px;
+        }
+
+        .title-slide .subtitle {
+            font-size: 1.5rem;
+            color: #a5b4fc;
+            font-weight: 300;
+            margin-bottom: 40px;
+        }
+
+        .consulting-logos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .consulting-logo {
+            background: rgba(255,255,255,0.1);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Section Headers */
+        h2 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: #ffffff;
+        }
+
+        h2 .number {
+            color: #6366f1;
+            font-weight: 800;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 20px;
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .card h4 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .card p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        /* Stats */
+        .stat-row {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin: 40px 0;
+        }
+
+        .stat-box {
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .bar-label {
+            width: 120px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 35px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: width 1s ease-out;
+        }
+
+        .bar-fill.lawyers { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+        .bar-fill.doctors { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+        .bar-fill.sme { background: linear-gradient(90deg, #10b981, #34d399); }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .data-table th {
+            background: rgba(99, 102, 241, 0.3);
+            padding: 15px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #e2e8f0;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255,255,255,0.05);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-high { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .badge-medium { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .badge-priority { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+            margin: 40px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            background: #6366f1;
+            border-radius: 50%;
+            border: 3px solid #1a1a3e;
+        }
+
+        .timeline-date {
+            color: #6366f1;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .timeline-content h4 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .timeline-content p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        /* Quote Box */
+        .quote-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+            border-left: 4px solid #6366f1;
+            padding: 30px 40px;
+            border-radius: 0 16px 16px 0;
+            margin: 30px 0;
+            font-size: 1.3rem;
+            font-style: italic;
+            color: #e2e8f0;
+        }
+
+        /* Two Column */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        /* Funnel */
+        .funnel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .funnel-stage {
+            padding: 20px;
+            text-align: center;
+            margin: 5px 0;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .funnel-stage:nth-child(1) { width: 100%; background: rgba(99, 102, 241, 0.3); }
+        .funnel-stage:nth-child(2) { width: 80%; background: rgba(99, 102, 241, 0.4); }
+        .funnel-stage:nth-child(3) { width: 60%; background: rgba(99, 102, 241, 0.5); }
+        .funnel-stage:nth-child(4) { width: 40%; background: rgba(99, 102, 241, 0.6); }
+
+        /* Persona Cards */
+        .persona-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .persona-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .persona-avatar.lawyer { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .persona-avatar.doctor { background: linear-gradient(135deg, #06b6d4, #22d3ee); }
+        .persona-avatar.sme { background: linear-gradient(135deg, #10b981, #34d399); }
+
+        .persona-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .persona-title {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        .persona-stat {
+            margin: 15px 0;
+        }
+
+        .persona-stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #6366f1;
+        }
+
+        .persona-stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        /* Risk Matrix */
+        .risk-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid;
+        }
+
+        .risk-item.high { border-color: #ef4444; }
+        .risk-item.medium { border-color: #eab308; }
+        .risk-item.low { border-color: #22c55e; }
+
+        .risk-level {
+            width: 80px;
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .risk-level.high { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .risk-level.medium { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .risk-level.low { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+
+        /* Navigation */
+        .nav-dots {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot:hover, .nav-dot.active {
+            background: #6366f1;
+            transform: scale(1.3);
+        }
+
+        /* Slide Number */
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.3);
+        }
+
+        /* Highlight Text */
+        .highlight {
+            color: #6366f1;
+            font-weight: 600;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+            padding: 20px 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        /* Print Styles */
+        @media print {
+            .slide {
+                page-break-after: always;
+                min-height: auto;
+                padding: 40px;
+            }
+            .nav-dots { display: none; }
+        }
+
+        /* Video Container */
+        .video-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        .video-link {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .video-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Dots -->
+<div class="nav-dots">
+    <div class="nav-dot active" onclick="scrollToSlide(0)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(1)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(2)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(3)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(4)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(5)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(6)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(7)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(8)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(9)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(10)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(11)"></div>
+    <div class="nav-dot" onclick="scrollToSlide(12)"></div>
+</div>
+
+<!-- SLIDE 1: Title -->
+<section class="slide title-slide" id="slide-0">
+    <h1>NEXUS</h1>
+    <p class="subtitle">The Definitive Business Strategy</p>
+    <p style="font-size: 1.1rem; color: #94a3b8; margin-bottom: 30px;">
+        Synthesis of 10 World-Class Consulting Perspectives
+    </p>
+
+    <div class="stat-row" style="justify-content: center;">
+        <div class="stat-box">
+            <div class="stat-number">10</div>
+            <div class="stat-label">Consulting Firms</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Debate Rounds</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">1</div>
+            <div class="stat-label">Unified Strategy</div>
+        </div>
+    </div>
+
+    <div class="consulting-logos">
+        <span class="consulting-logo">McKinsey</span>
+        <span class="consulting-logo">BCG</span>
+        <span class="consulting-logo">Bain</span>
+        <span class="consulting-logo">Deloitte</span>
+        <span class="consulting-logo">Accenture</span>
+        <span class="consulting-logo">Roland Berger</span>
+        <span class="consulting-logo">Kearney</span>
+        <span class="consulting-logo">Strategy&</span>
+        <span class="consulting-logo">Oliver Wyman</span>
+        <span class="consulting-logo">L.E.K.</span>
+    </div>
+
+    <p style="margin-top: 60px; color: #64748b; font-size: 0.9rem;">
+        January 30, 2026 | Kuwait / GCC Market Entry Strategy
+    </p>
+    <span class="slide-number">1 / 13</span>
+</section>
+
+<!-- SLIDE 2: Executive Summary -->
+<section class="slide" id="slide-1">
+    <h2><span class="number">01</span> Executive Summary</h2>
+
+    <div class="quote-box">
+        "Nexus will become the dominant 'invisible business assistant' for time-starved GCC professionals by targeting the massive non-automation-aware market with pain-focused positioning."
+    </div>
+
+    <h3>The 3 Most Important Decisions</h3>
+
+    <div class="card-grid">
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <h4>Target the Non-Automation-Aware</h4>
+            <p>The market that says "I'm drowning in paperwork" is <span class="highlight">50x larger</span> than the market searching for "Zapier alternatives"</p>
+            <div style="margin-top: 15px;"><span class="badge badge-high">Very High Confidence</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">💬</div>
+            <h4>Position as Pain Resolver</h4>
+            <p>NEVER say "workflow automation" — Lead with <span class="highlight">"Stop chasing signatures"</span> and "Get paid in 5 days, not 30"</p>
+            <div style="margin-top: 15px;"><span class="badge badge-high">Very High Confidence</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">🏰</div>
+            <h4>Build the Cultural Stack Moat</h4>
+            <p>WhatsApp-first + Arabic dialect AI + KNET + Kuwait compliance = <span class="highlight">3-5 year barrier</span> for global competitors</p>
+            <div style="margin-top: 15px;"><span class="badge badge-medium">High Confidence</span></div>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 40px;">
+        <strong>Critical Success Factor:</strong> Trust is everything. Every automation starts with human approval. No exceptions.
+    </div>
+
+    <span class="slide-number">2 / 13</span>
+</section>
+
+<!-- SLIDE 3: Market Opportunity -->
+<section class="slide" id="slide-2">
+    <h2><span class="number">02</span> Market Opportunity</h2>
+
+    <div class="two-col">
+        <div>
+            <h3>Total Addressable Market (GCC)</h3>
+            <div class="stat-row">
+                <div class="stat-box">
+                    <div class="stat-number">$103B+</div>
+                    <div class="stat-label">Annual Pain Value</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="bar-chart">
+                    <div class="bar-row">
+                        <span class="bar-label">SME Owners</span>
+                        <div class="bar-container">
+                            <div class="bar-fill sme" style="width: 97%;">$99.8B</div>
+                        </div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-label">Doctors</span>
+                        <div class="bar-container">
+                            <div class="bar-fill doctors" style="width: 12%;">$12.7B</div>
+                        </div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-label">Lawyers</span>
+                        <div class="bar-container">
+                            <div class="bar-fill lawyers" style="width: 7%;">$7.3B</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3>Year 1 Target (Kuwait)</h3>
+
+            <table class="data-table">
+                <tr>
+                    <th>Segment</th>
+                    <th>Customers</th>
+                    <th>Revenue</th>
+                </tr>
+                <tr>
+                    <td>Lawyers</td>
+                    <td>50</td>
+                    <td>$154,600</td>
+                </tr>
+                <tr>
+                    <td>Doctors</td>
+                    <td>30</td>
+                    <td>$174,900</td>
+                </tr>
+                <tr>
+                    <td>SME Owners</td>
+                    <td>200</td>
+                    <td>$383,600</td>
+                </tr>
+                <tr style="background: rgba(99, 102, 241, 0.2);">
+                    <td><strong>TOTAL</strong></td>
+                    <td><strong>280</strong></td>
+                    <td><strong>$713,100</strong></td>
+                </tr>
+            </table>
+
+            <div class="highlight-box">
+                <strong>Stretch Goal:</strong> 600 customers = $1.64M ARR
+            </div>
+        </div>
+    </div>
+
+    <span class="slide-number">3 / 13</span>
+</section>
+
+<!-- SLIDE 4: Why Now -->
+<section class="slide" id="slide-3">
+    <h2><span class="number">03</span> Why Now?</h2>
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card">
+            <div class="card-icon">📱</div>
+            <h4>Digital Trust Established</h4>
+            <p>400M+ digital govt transactions annually in Kuwait. People trust digital for serious business.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">🚀</div>
+            <h4>SME Boom</h4>
+            <p>9,881 new business licenses in Q1 2025 (+9.4% YoY). 227% increase in freelance licenses.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">💬</div>
+            <h4>WhatsApp is Business</h4>
+            <p>Doctors schedule via WhatsApp. Lawyers chase signatures via WhatsApp. The channel is ready.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">🏦</div>
+            <h4>SMEs Underserved</h4>
+            <p>Only 3.6% of Kuwait bank loans go to SMEs. They need affordable tools, not expensive services.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">📊</div>
+            <h4>Low Digital Maturity</h4>
+            <p>Level 1.5-2.5/5 on digital maturity. No existing automation habits to unlearn.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <h4>No Competition</h4>
+            <p>Zero GCC-first automation platforms. Zapier/Make have no Arabic, no WhatsApp, no KNET.</p>
+        </div>
+    </div>
+
+    <div class="quote-box" style="margin-top: 40px;">
+        "The non-automation-aware market is <span class="highlight">50x larger</span> than the automation-aware market. They search for 'Kuwait business paperwork frustration' (390K+ results), not 'Zapier alternative GCC' (~7,800 results)."
+    </div>
+
+    <span class="slide-number">4 / 13</span>
+</section>
+
+<!-- SLIDE 5: Target Personas -->
+<section class="slide" id="slide-4">
+    <h2><span class="number">04</span> Target Personas</h2>
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="persona-card">
+            <div class="persona-avatar lawyer">⚖️</div>
+            <div class="persona-name">Tareq Al-Tarabilsi</div>
+            <div class="persona-title">Solo Lawyer, Kuwait</div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">25+ hrs</div>
+                <div class="persona-stat-label">Admin per week</div>
+            </div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">50-100 KWD</div>
+                <div class="persona-stat-label">Willing to pay/month</div>
+            </div>
+
+            <div style="text-align: left; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <strong style="color: #6366f1;">Killer Pain:</strong>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 5px;">"Chasing signatures via WhatsApp while court deadlines loom"</p>
+            </div>
+        </div>
+
+        <div class="persona-card">
+            <div class="persona-avatar doctor">🩺</div>
+            <div class="persona-name">Abbas Khalaf</div>
+            <div class="persona-title">Private Clinic Doctor</div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">15-20%</div>
+                <div class="persona-stat-label">No-show rate</div>
+            </div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">200-300 KWD</div>
+                <div class="persona-stat-label">Willing to pay/month</div>
+            </div>
+
+            <div style="text-align: left; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <strong style="color: #06b6d4;">Killer Pain:</strong>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 5px;">"Empty chairs cost 400 KD/week and I can't leave before 7pm"</p>
+            </div>
+        </div>
+
+        <div class="persona-card">
+            <div class="persona-avatar sme">💼</div>
+            <div class="persona-name">Tareq Al-Awda</div>
+            <div class="persona-title">SME Owner, Services</div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">21-30 days</div>
+                <div class="persona-stat-label">Invoice payment time</div>
+            </div>
+
+            <div class="persona-stat">
+                <div class="persona-stat-value">30-50 KWD</div>
+                <div class="persona-stat-label">Willing to pay/month</div>
+            </div>
+
+            <div style="text-align: left; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <strong style="color: #10b981;">Killer Pain:</strong>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 5px;">"I'm the employee of my own business. My son asks why I work Fridays."</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 40px; text-align: center;">
+        <strong>Trust Bridge (All Personas):</strong> "Approve templates first, then it runs automatically — you're always in control"
+    </div>
+
+    <span class="slide-number">5 / 13</span>
+</section>
+
+<!-- SLIDE 6: Strategy - Dual Track -->
+<section class="slide" id="slide-5">
+    <h2><span class="number">05</span> Go-to-Market Strategy</h2>
+
+    <h3>The "Dual Track" Approach</h3>
+
+    <div class="two-col">
+        <div class="card" style="border: 2px solid #6366f1;">
+            <h4 style="color: #6366f1;">🏛️ Track 1: Lawyers as Lighthouse</h4>
+            <p style="margin-bottom: 20px;">High-value, high-visibility wins that create credibility</p>
+
+            <ul style="color: #94a3b8; list-style: none;">
+                <li style="padding: 8px 0;">✓ Highest WTP (50-100 KWD/month)</li>
+                <li style="padding: 8px 0;">✓ Professional network = word-of-mouth</li>
+                <li style="padding: 8px 0;">✓ Complex use cases prove capability</li>
+                <li style="padding: 8px 0;">✓ Bar association potential partnership</li>
+            </ul>
+
+            <div style="margin-top: 20px; padding: 15px; background: rgba(99, 102, 241, 0.1); border-radius: 8px;">
+                <strong>Target:</strong> 50 lawyers Year 1
+            </div>
+        </div>
+
+        <div class="card" style="border: 2px solid #10b981;">
+            <h4 style="color: #10b981;">📈 Track 2: SMEs for Volume</h4>
+            <p style="margin-bottom: 20px;">Volume-driven growth with simpler use cases</p>
+
+            <ul style="color: #94a3b8; list-style: none;">
+                <li style="padding: 8px 0;">✓ Largest market (2M+ in GCC)</li>
+                <li style="padding: 8px 0;">✓ Lower WTP but higher volume</li>
+                <li style="padding: 8px 0;">✓ Simpler workflows = faster onboarding</li>
+                <li style="padding: 8px 0;">✓ Word-of-mouth in business networks</li>
+            </ul>
+
+            <div style="margin-top: 20px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                <strong>Target:</strong> 200 SMEs Year 1
+            </div>
+        </div>
+    </div>
+
+    <h3 style="margin-top: 50px;">Geographic Expansion</h3>
+
+    <div style="display: flex; align-items: center; justify-content: center; gap: 40px; margin-top: 20px;">
+        <div style="text-align: center;">
+            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">🇰🇼</div>
+            <p style="margin-top: 10px; font-weight: 600;">Kuwait</p>
+            <p style="color: #94a3b8; font-size: 0.85rem;">Year 1 - Validate</p>
+        </div>
+        <div style="color: #6366f1; font-size: 2rem;">→</div>
+        <div style="text-align: center;">
+            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #06b6d4, #22d3ee); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">🇦🇪</div>
+            <p style="margin-top: 10px; font-weight: 600;">UAE</p>
+            <p style="color: #94a3b8; font-size: 0.85rem;">Year 2 - Scale</p>
+        </div>
+        <div style="color: #6366f1; font-size: 2rem;">→</div>
+        <div style="text-align: center;">
+            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #10b981, #34d399); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">🇸🇦</div>
+            <p style="margin-top: 10px; font-weight: 600;">Saudi Arabia</p>
+            <p style="color: #94a3b8; font-size: 0.85rem;">Year 2-3 - Dominate</p>
+        </div>
+    </div>
+
+    <span class="slide-number">6 / 13</span>
+</section>
+
+<!-- SLIDE 7: Pricing -->
+<section class="slide" id="slide-6">
+    <h2><span class="number">06</span> Pricing Strategy</h2>
+
+    <div class="card-grid" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="card" style="text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Starter</div>
+            <div style="font-size: 3rem; font-weight: 800; margin: 15px 0;">29</div>
+            <div style="color: #94a3b8;">KWD/month</div>
+            <div style="color: #6366f1; font-size: 0.85rem; margin-top: 5px;">~$95 USD</div>
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <ul style="text-align: left; color: #94a3b8; font-size: 0.85rem; list-style: none;">
+                <li style="padding: 5px 0;">✓ 3 workflows</li>
+                <li style="padding: 5px 0;">✓ WhatsApp integration</li>
+                <li style="padding: 5px 0;">✓ Email support</li>
+            </ul>
+            <div style="margin-top: 20px;"><span class="badge badge-priority">Founder's Price</span></div>
+        </div>
+
+        <div class="card" style="text-align: center; border: 2px solid #6366f1; transform: scale(1.05);">
+            <div style="background: #6366f1; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; display: inline-block; margin-bottom: 10px;">MOST POPULAR</div>
+            <div style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Solo</div>
+            <div style="font-size: 3rem; font-weight: 800; margin: 15px 0;">49</div>
+            <div style="color: #94a3b8;">KWD/month</div>
+            <div style="color: #6366f1; font-size: 0.85rem; margin-top: 5px;">~$160 USD</div>
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <ul style="text-align: left; color: #94a3b8; font-size: 0.85rem; list-style: none;">
+                <li style="padding: 5px 0;">✓ 10 workflows</li>
+                <li style="padding: 5px 0;">✓ KNET payments</li>
+                <li style="padding: 5px 0;">✓ Priority support</li>
+                <li style="padding: 5px 0;">✓ Arabic templates</li>
+            </ul>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Practice Pro</div>
+            <div style="font-size: 3rem; font-weight: 800; margin: 15px 0;">79</div>
+            <div style="color: #94a3b8;">KWD/month</div>
+            <div style="color: #6366f1; font-size: 0.85rem; margin-top: 5px;">~$258 USD</div>
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <ul style="text-align: left; color: #94a3b8; font-size: 0.85rem; list-style: none;">
+                <li style="padding: 5px 0;">✓ Unlimited workflows</li>
+                <li style="padding: 5px 0;">✓ Team features</li>
+                <li style="padding: 5px 0;">✓ Dedicated support</li>
+                <li style="padding: 5px 0;">✓ Custom templates</li>
+            </ul>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <div style="color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Business</div>
+            <div style="font-size: 3rem; font-weight: 800; margin: 15px 0;">149</div>
+            <div style="color: #94a3b8;">KWD/month</div>
+            <div style="color: #6366f1; font-size: 0.85rem; margin-top: 5px;">~$486 USD</div>
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+            <ul style="text-align: left; color: #94a3b8; font-size: 0.85rem; list-style: none;">
+                <li style="padding: 5px 0;">✓ Everything in Pro</li>
+                <li style="padding: 5px 0;">✓ API access</li>
+                <li style="padding: 5px 0;">✓ White-label option</li>
+                <li style="padding: 5px 0;">✓ Compliance reporting</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 40px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>Founder's Pricing:</strong> 40% off for first 500 customers
+            </div>
+            <div style="text-align: right;">
+                <strong>Value Anchor:</strong> "Less than 30 minutes of your billable time"
+            </div>
+        </div>
+    </div>
+
+    <span class="slide-number">7 / 13</span>
+</section>
+
+<!-- SLIDE 8: Product Strategy -->
+<section class="slide" id="slide-7">
+    <h2><span class="number">07</span> Product Strategy</h2>
+
+    <div class="two-col">
+        <div>
+            <h3>MVP Features (Build First)</h3>
+
+            <div style="margin-top: 20px;">
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Payment Reminder Automation</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">WhatsApp reminder cascade with KNET links</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Invoice Generation</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">Arabic/English invoices with payment links</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Appointment Reminder Chain</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">72hr → 24hr → 2hr WhatsApp cascade</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Digital Signature Collection</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">WhatsApp-based document signing</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Client Follow-up Sequences</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">Automated nurture + response handling</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+
+                <div class="risk-item" style="border-color: #6366f1;">
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 5px;">Lead Response Automation</h4>
+                        <p style="color: #94a3b8; font-size: 0.85rem;">Instant WhatsApp/Instagram response</p>
+                    </div>
+                    <span class="badge badge-priority">P0</span>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3>Technology Moat</h3>
+
+            <div class="chart-container">
+                <h4 style="margin-bottom: 20px; color: #6366f1;">The Cultural Stack</h4>
+
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #25D366; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">💬</div>
+                        <div>
+                            <strong>WhatsApp-First</strong>
+                            <p style="color: #94a3b8; font-size: 0.85rem;">Not email-first like competitors</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #10b981; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🌍</div>
+                        <div>
+                            <strong>Gulf Arabic AI</strong>
+                            <p style="color: #94a3b8; font-size: 0.85rem;">Dialect-aware, not MSA-only</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #6366f1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">💳</div>
+                        <div>
+                            <strong>KNET Integration</strong>
+                            <p style="color: #94a3b8; font-size: 0.85rem;">One-tap payment collection</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">📋</div>
+                        <div>
+                            <strong>Kuwait Compliance</strong>
+                            <p style="color: #94a3b8; font-size: 0.85rem;">MOH, ZATCA-ready from day one</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 30px;">What NOT to Build</h3>
+            <div style="background: rgba(239, 68, 68, 0.1); padding: 20px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                <ul style="color: #94a3b8; list-style: none;">
+                    <li style="padding: 5px 0;">❌ Court date tracking (Clio's territory)</li>
+                    <li style="padding: 5px 0;">❌ Full EMR/EHR integration (too complex)</li>
+                    <li style="padding: 5px 0;">❌ Complete accounting (Xero's game)</li>
+                    <li style="padding: 5px 0;">❌ E-commerce platform (Shopify's space)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <span class="slide-number">8 / 13</span>
+</section>
+
+<!-- SLIDE 9: Financial Model -->
+<section class="slide" id="slide-8">
+    <h2><span class="number">08</span> Financial Model</h2>
+
+    <div class="stat-row">
+        <div class="stat-box">
+            <div class="stat-number">$500K</div>
+            <div class="stat-label">Year 1 ARR Target</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">$1.64M</div>
+            <div class="stat-label">Stretch Target</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">Month 10</div>
+            <div class="stat-label">Break-Even Target</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">3:1</div>
+            <div class="stat-label">Target LTV:CAC</div>
+        </div>
+    </div>
+
+    <div class="two-col" style="margin-top: 40px;">
+        <div>
+            <h3>Unit Economics by Segment</h3>
+
+            <table class="data-table">
+                <tr>
+                    <th>Metric</th>
+                    <th>Lawyer</th>
+                    <th>Doctor</th>
+                    <th>SME</th>
+                </tr>
+                <tr>
+                    <td>ARPU/month</td>
+                    <td>79 KWD</td>
+                    <td>149 KWD</td>
+                    <td>49 KWD</td>
+                </tr>
+                <tr>
+                    <td>Target LTV</td>
+                    <td>1,896 KWD</td>
+                    <td>3,576 KWD</td>
+                    <td>882 KWD</td>
+                </tr>
+                <tr>
+                    <td>Target CAC</td>
+                    <td>632 KWD</td>
+                    <td>1,192 KWD</td>
+                    <td>294 KWD</td>
+                </tr>
+                <tr>
+                    <td>Payback</td>
+                    <td>8 months</td>
+                    <td>8 months</td>
+                    <td>6 months</td>
+                </tr>
+            </table>
+        </div>
+
+        <div>
+            <h3>Revenue Projection (Year 1)</h3>
+
+            <div class="chart-container">
+                <div style="display: flex; align-items: flex-end; justify-content: space-between; height: 200px; padding: 20px 0;">
+                    <div style="text-align: center;">
+                        <div style="height: 20px; width: 40px; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0;"></div>
+                        <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Q1</p>
+                        <p style="color: #6366f1; font-size: 0.75rem;">$20K</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="height: 50px; width: 40px; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0;"></div>
+                        <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Q2</p>
+                        <p style="color: #6366f1; font-size: 0.75rem;">$60K</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="height: 100px; width: 40px; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0;"></div>
+                        <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Q3</p>
+                        <p style="color: #6366f1; font-size: 0.75rem;">$150K</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="height: 180px; width: 40px; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 4px 4px 0 0;"></div>
+                        <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Q4</p>
+                        <p style="color: #6366f1; font-size: 0.75rem;">$270K</p>
+                    </div>
+                </div>
+                <div style="text-align: center; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <strong style="color: #6366f1;">Year 1 Total: $500K ARR</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <span class="slide-number">9 / 13</span>
+</section>
+
+<!-- SLIDE 10: Implementation Roadmap -->
+<section class="slide" id="slide-9">
+    <h2><span class="number">09</span> Implementation Roadmap</h2>
+
+    <div class="timeline">
+        <div class="timeline-item">
+            <div class="timeline-date">Days 1-30: Foundation</div>
+            <div class="timeline-content">
+                <h4>Launch MVP + First 10 Customers</h4>
+                <p>WhatsApp Business API integration, KNET payments, first lawyer beta users, initial Arabic templates</p>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">Days 31-90: Validation</div>
+            <div class="timeline-content">
+                <h4>50 Customers + Product-Market Fit Signal</h4>
+                <p>Expand to doctors, first NPS measurement (target: 50+), iterate on onboarding, build referral program</p>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">Months 4-6: Scale Prep</div>
+            <div class="timeline-content">
+                <h4>200 Customers + Operations Ready</h4>
+                <p>SME segment expansion, support tier structure, sales playbook documented, first marketing campaigns</p>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">Months 7-12: Growth</div>
+            <div class="timeline-content">
+                <h4>600 Customers + UAE Prep</h4>
+                <p>Team scaling, UAE market research, partnership discussions, Series A preparation materials</p>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="margin-top: 40px;">Critical First 30 Days</h3>
+
+    <div class="card-grid" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="card" style="padding: 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📱</div>
+            <strong>WhatsApp API</strong>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Business API approval</p>
+        </div>
+        <div class="card" style="padding: 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">💳</div>
+            <strong>KNET Setup</strong>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Payment integration</p>
+        </div>
+        <div class="card" style="padding: 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">⚖️</div>
+            <strong>5 Lawyers</strong>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Beta users onboarded</p>
+        </div>
+        <div class="card" style="padding: 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📝</div>
+            <strong>Templates</strong>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">10 Arabic workflows</p>
+        </div>
+        <div class="card" style="padding: 20px; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📊</div>
+            <strong>Analytics</strong>
+            <p style="color: #94a3b8; font-size: 0.8rem; margin-top: 5px;">Success tracking live</p>
+        </div>
+    </div>
+
+    <span class="slide-number">10 / 13</span>
+</section>
+
+<!-- SLIDE 11: Risks -->
+<section class="slide" id="slide-10">
+    <h2><span class="number">10</span> Risk Mitigation</h2>
+
+    <div class="two-col">
+        <div>
+            <h3>Top 5 Risks</h3>
+
+            <div class="risk-item high">
+                <div class="risk-level high">High</div>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 5px;">WhatsApp API Dependency</h4>
+                    <p style="color: #94a3b8; font-size: 0.85rem;">Policy changes could disrupt core channel</p>
+                </div>
+            </div>
+
+            <div class="risk-item high">
+                <div class="risk-level high">High</div>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 5px;">Trust Barrier</h4>
+                    <p style="color: #94a3b8; font-size: 0.85rem;">Professionals may resist automation</p>
+                </div>
+            </div>
+
+            <div class="risk-item medium">
+                <div class="risk-level medium">Med</div>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 5px;">Global Competition Entry</h4>
+                    <p style="color: #94a3b8; font-size: 0.85rem;">Zapier/Make could add Arabic/WhatsApp</p>
+                </div>
+            </div>
+
+            <div class="risk-item medium">
+                <div class="risk-level medium">Med</div>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 5px;">Regulatory Changes</h4>
+                    <p style="color: #94a3b8; font-size: 0.85rem;">MOH/ZATCA compliance evolution</p>
+                </div>
+            </div>
+
+            <div class="risk-item low">
+                <div class="risk-level low">Low</div>
+                <div style="flex: 1;">
+                    <h4 style="margin-bottom: 5px;">Technical Scaling</h4>
+                    <p style="color: #94a3b8; font-size: 0.85rem;">Infrastructure under high load</p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h3>Mitigation Strategies</h3>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <h4 style="color: #ef4444;">WhatsApp Dependency</h4>
+                <ul style="color: #94a3b8; font-size: 0.9rem; margin-top: 10px;">
+                    <li>Build multi-channel (SMS, email fallback)</li>
+                    <li>Meta Business Partner status</li>
+                    <li>Never violate ToS (no spam)</li>
+                </ul>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <h4 style="color: #ef4444;">Trust Barrier</h4>
+                <ul style="color: #94a3b8; font-size: 0.9rem; margin-top: 10px;">
+                    <li>Human-in-loop by default (always)</li>
+                    <li>Peer testimonials over ads</li>
+                    <li>Free trial with real value</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h4 style="color: #eab308;">Competition Entry</h4>
+                <ul style="color: #94a3b8; font-size: 0.9rem; margin-top: 10px;">
+                    <li>Build cultural moat fast (3-5 yr barrier)</li>
+                    <li>Focus on local relationships</li>
+                    <li>Industry partnerships they can't match</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <span class="slide-number">11 / 13</span>
+</section>
+
+<!-- SLIDE 12: Success Metrics -->
+<section class="slide" id="slide-11">
+    <h2><span class="number">11</span> Success Metrics</h2>
+
+    <div class="highlight-box" style="text-align: center; margin-bottom: 40px;">
+        <h3 style="color: #6366f1; margin-bottom: 10px;">North Star Metric</h3>
+        <div style="font-size: 2rem; font-weight: 700;">Weekly Active Workflows</div>
+        <p style="color: #94a3b8; margin-top: 10px;">Workflows that execute at least once per week = real value delivered</p>
+    </div>
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card">
+            <h4 style="color: #10b981;">Leading Indicators</h4>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;">Predict future success</p>
+            <ul style="color: #e2e8f0; font-size: 0.9rem; list-style: none;">
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Website → Demo conversion</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Demo → Trial conversion</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Day 1 workflow created</li>
+                <li style="padding: 8px 0;">Day 7 workflow executed</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4 style="color: #6366f1;">Lagging Indicators</h4>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;">Confirm success happened</p>
+            <ul style="color: #e2e8f0; font-size: 0.9rem; list-style: none;">
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">MRR / ARR</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Net Revenue Retention</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Churn Rate</li>
+                <li style="padding: 8px 0;">Referral Rate</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h4 style="color: #f59e0b;">Strategic Indicators</h4>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 15px;">Track moat building</p>
+            <ul style="color: #e2e8f0; font-size: 0.9rem; list-style: none;">
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">NPS by segment</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">Arabic usage %</li>
+                <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">WhatsApp workflows %</li>
+                <li style="padding: 8px 0;">Partnership pipeline</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3 style="margin-top: 40px;">Target Benchmarks (Year 1)</h3>
+
+    <table class="data-table">
+        <tr>
+            <th>Metric</th>
+            <th>Month 3</th>
+            <th>Month 6</th>
+            <th>Month 12</th>
+        </tr>
+        <tr>
+            <td>Customers</td>
+            <td>50</td>
+            <td>200</td>
+            <td>600</td>
+        </tr>
+        <tr>
+            <td>MRR</td>
+            <td>$8K</td>
+            <td>$30K</td>
+            <td>$135K</td>
+        </tr>
+        <tr>
+            <td>NPS</td>
+            <td>40+</td>
+            <td>50+</td>
+            <td>60+</td>
+        </tr>
+        <tr>
+            <td>Churn</td>
+            <td>&lt;10%</td>
+            <td>&lt;7%</td>
+            <td>&lt;5%</td>
+        </tr>
+    </table>
+
+    <span class="slide-number">12 / 13</span>
+</section>
+
+<!-- SLIDE 13: Investment Thesis -->
+<section class="slide" id="slide-12">
+    <h2><span class="number">12</span> Investment Thesis</h2>
+
+    <div class="quote-box">
+        "Nexus is the first automation platform built from the ground up for non-automation-aware GCC professionals — a $103B+ market with zero incumbents."
+    </div>
+
+    <div class="card-grid" style="margin-top: 40px;">
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <h4>Clear Market Gap</h4>
+            <p>50x larger market than "Zapier refugees." No one is speaking their language.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">🏰</div>
+            <h4>Defensible Moat</h4>
+            <p>Cultural Stack = 3-5 year head start. WhatsApp + Arabic + KNET + Compliance.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">📈</div>
+            <h4>Land & Expand</h4>
+            <p>Kuwait validation → UAE scale → Saudi domination. Clear expansion playbook.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-icon">💰</div>
+            <h4>Capital Efficient</h4>
+            <p>Break-even Month 10. Controlled Aggression strategy balances speed and discipline.</p>
+        </div>
+    </div>
+
+    <h3 style="margin-top: 50px;">Exit Scenarios</h3>
+
+    <table class="data-table">
+        <tr>
+            <th>Scenario</th>
+            <th>Timeline</th>
+            <th>Valuation Range</th>
+            <th>Likely Acquirer</th>
+        </tr>
+        <tr>
+            <td><span class="badge badge-high">Strategic Acquisition</span></td>
+            <td>Year 3-4</td>
+            <td>$30-50M</td>
+            <td>Zapier, Monday, Zoho</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-medium">PE Buyout</span></td>
+            <td>Year 4-5</td>
+            <td>$50-100M</td>
+            <td>Regional PE funds</td>
+        </tr>
+        <tr>
+            <td><span class="badge badge-priority">Regional Champion</span></td>
+            <td>Year 5+</td>
+            <td>$100M+</td>
+            <td>IPO or strategic</td>
+        </tr>
+    </table>
+
+    <div class="highlight-box" style="margin-top: 40px; text-align: center;">
+        <h3 style="margin-bottom: 15px;">The One-Liner</h3>
+        <p style="font-size: 1.3rem; font-style: italic;">
+            "Nexus is the Zapier that GCC professionals don't know they need — built for WhatsApp, Arabic, and the reality of how business actually gets done in the Gulf."
+        </p>
+    </div>
+
+    <span class="slide-number">13 / 13</span>
+</section>
+
+<!-- SLIDE 14: Thank You -->
+<section class="slide title-slide" style="text-align: center;">
+    <h1 style="font-size: 3.5rem;">Thank You</h1>
+    <p class="subtitle" style="font-size: 1.3rem;">The Definitive Nexus Strategy</p>
+
+    <div style="margin-top: 60px; color: #94a3b8;">
+        <p>Generated by synthesis of 10 world-class consulting perspectives</p>
+        <p style="margin-top: 10px;">McKinsey • BCG • Bain • Deloitte • Accenture • Roland Berger • Kearney • Strategy& • Oliver Wyman • L.E.K.</p>
+    </div>
+
+    <div style="margin-top: 60px;">
+        <div class="video-container" style="max-width: 500px; margin: 0 auto;">
+            <p style="color: #94a3b8; margin-bottom: 15px;">Recommended Viewing</p>
+            <a href="https://www.youtube.com/watch?v=xCvFZrrQq7k" target="_blank" class="video-link">
+                ▶️ Y Combinator: How to Get and Test Startup Ideas
+            </a>
+            <p style="color: #64748b; font-size: 0.8rem; margin-top: 10px;">Validate your market before building</p>
+        </div>
+    </div>
+
+    <div style="margin-top: 60px;">
+        <p style="color: #6366f1; font-size: 0.9rem;">Full strategy document: NEXUS-DEFINITIVE-STRATEGY.md</p>
+        <p style="color: #64748b; font-size: 0.85rem; margin-top: 5px;">Persona research: PERSONA-AI-SYNTHESIS.md</p>
+    </div>
+</section>
+
+<script>
+    // Navigation
+    function scrollToSlide(index) {
+        const slides = document.querySelectorAll('.slide');
+        if (slides[index]) {
+            slides[index].scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    // Update nav dots on scroll
+    window.addEventListener('scroll', () => {
+        const slides = document.querySelectorAll('.slide');
+        const dots = document.querySelectorAll('.nav-dot');
+
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+                dots.forEach(dot => dot.classList.remove('active'));
+                if (dots[index]) dots[index].classList.add('active');
+            }
+        });
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+                currentSlide = index;
+            }
+        });
+
+        if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+            e.preventDefault();
+            scrollToSlide(currentSlide + 1);
+        } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+            e.preventDefault();
+            scrollToSlide(currentSlide - 1);
+        }
+    });
+</script>
+
+</body>
+</html>

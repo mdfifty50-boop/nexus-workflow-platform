@@ -19,6 +19,11 @@ export default {
     'text-red-400',
     'text-red-300',
     'text-red-400/80',
+    // Settings toggle buttons
+    'bg-nexus-500',
+    'border-nexus-500',
+    'bg-surface-700',
+    'border-surface-500',
   ],
   theme: {
     extend: {

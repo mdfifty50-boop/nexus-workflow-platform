@@ -1,0 +1,281 @@
+{
+  "id": "review_request_automation",
+  "name": "Review Request Automation",
+  "name_ar": "أتمتة طلب التقييمات",
+  "description": "Automatically request reviews from satisfied customers at the perfect time. Boost your online reputation with timely Google, social media, and platform-specific review requests.",
+  "description_ar": "طلب التقييمات من العملاء الراضين تلقائياً في الوقت المثالي. تعزيز سمعتك على الإنترنت مع طلبات التقييم على Google ووسائل التواصل الاجتماعي والمنصات المختلفة في الوقت المناسب.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$30,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"],
+  "optionalIntegrations": ["slack", "google"],
+  "exampleUserInput": "Automatically ask customers for reviews",
+  "exampleUserInput_ar": "اطلب تقييمات من العملاء تلقائياً",
+  "keywords": ["review", "rating", "Google", "reputation", "feedback", "testimonial", "تقييم", "تصنيف", "جوجل", "سمعة", "ملاحظات", "شهادة"],
+  "dynamicParameters": {
+    "delay_after_purchase_hours": {
+      "type": "number",
+      "default": 48,
+      "label": "Hours after purchase to request review",
+      "label_ar": "ساعات بعد الشراء لطلب التقييم"
+    },
+    "review_platforms": {
+      "type": "multiselect",
+      "options": ["google", "facebook", "instagram", "trustpilot", "yelp"],
+      "default": ["google"],
+      "label": "Platforms to request reviews on",
+      "label_ar": "المنصات لطلب التقييمات عليها"
+    },
+    "minimum_satisfaction_score": {
+      "type": "number",
+      "default": 4,
+      "label": "Minimum satisfaction score to request public review (1-5)",
+      "label_ar": "الحد الأدنى لدرجة الرضا لطلب تقييم عام (1-5)"
+    },
+    "send_reminder": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send reminder if no review after 3 days",
+      "label_ar": "إرسال تذكير إذا لم يكن هناك تقييم بعد 3 أيام"
+    }
+  },
+  "messages": {
+    "initial_feedback_en": "Hi {{customer_name}}! 👋\n\nThank you for choosing {{business_name}}!\n\nWe'd love to hear about your experience. On a scale of 1-5, how would you rate your recent {{purchase_type}}?\n\n⭐ 1 - Poor\n⭐⭐ 2 - Fair\n⭐⭐⭐ 3 - Good\n⭐⭐⭐⭐ 4 - Very Good\n⭐⭐⭐⭐⭐ 5 - Excellent\n\nJust reply with a number 1-5.\n\nThank you! 🙏",
+    "initial_feedback_ar": "مرحباً {{customer_name}}! 👋\n\nشكراً لاختيارك {{business_name}}!\n\nنود أن نسمع عن تجربتك. من 1-5، كيف تقيم {{purchase_type}} الأخير؟\n\n⭐ 1 - ضعيف\n⭐⭐ 2 - مقبول\n⭐⭐⭐ 3 - جيد\n⭐⭐⭐⭐ 4 - جيد جداً\n⭐⭐⭐⭐⭐ 5 - ممتاز\n\nفقط رد برقم من 1-5.\n\nشكراً! 🙏",
+    "positive_review_request_en": "🎉 Thank you for the wonderful feedback, {{customer_name}}!\n\nWe're thrilled you had a great experience!\n\nWould you mind sharing your experience on Google? It would mean the world to us and help others discover {{business_name}}.\n\n👉 {{google_review_link}}\n\nIt only takes 30 seconds! 💝\n\nThank you for your support!",
+    "positive_review_request_ar": "🎉 شكراً على الملاحظات الرائعة يا {{customer_name}}!\n\nسعداء جداً أن تجربتك كانت ممتازة!\n\nهل يمكنك مشاركة تجربتك على جوجل؟ سيعني لنا الكثير وسيساعد الآخرين في اكتشاف {{business_name}}.\n\n👉 {{google_review_link}}\n\nيستغرق فقط 30 ثانية! 💝\n\nشكراً على دعمك!",
+    "negative_feedback_response_en": "Thank you for your honest feedback, {{customer_name}}.\n\nWe're sorry to hear your experience wasn't perfect. We take this seriously and would love the opportunity to make it right.\n\n{{#if manager_contact}}Our manager {{manager_name}} will reach out to you shortly.{{/if}}\n\nCould you tell us more about what went wrong? We genuinely want to improve.\n\nThank you for giving us a chance to do better. 🙏\n\n{{business_name}}",
+    "negative_feedback_response_ar": "شكراً على ملاحظاتك الصادقة يا {{customer_name}}.\n\nنأسف لسماع أن تجربتك لم تكن مثالية. نأخذ هذا بجدية ونود الفرصة لتصحيح الأمور.\n\n{{#if manager_contact}}مديرنا {{manager_name}} سيتواصل معك قريباً.{{/if}}\n\nهل يمكنك إخبارنا المزيد عما حدث خطأ؟ نريد حقاً التحسين.\n\nشكراً لمنحنا فرصة للتحسن. 🙏\n\n{{business_name}}",
+    "review_reminder_en": "Hi {{customer_name}}! 👋\n\nJust a gentle reminder - we'd love if you could share your experience with {{business_name}} on Google!\n\n👉 {{google_review_link}}\n\nYour review helps small businesses like ours grow. It only takes 30 seconds! ⭐\n\nThank you so much! 💝",
+    "review_reminder_ar": "مرحباً {{customer_name}}! 👋\n\nتذكير لطيف - سنكون سعداء إذا شاركت تجربتك مع {{business_name}} على جوجل!\n\n👉 {{google_review_link}}\n\nتقييمك يساعد الشركات الصغيرة مثلنا على النمو. يستغرق فقط 30 ثانية! ⭐\n\nشكراً جزيلاً! 💝",
+    "thank_you_for_review_en": "🌟 Thank you so much, {{customer_name}}!\n\nWe just saw your review and we're incredibly grateful for your kind words. Customers like you make everything worthwhile!\n\n{{#if incentive}}As a thank you, here's a special offer just for you:\n{{incentive_details}}{{/if}}\n\nWe look forward to serving you again! 💝\n\n{{business_name}}",
+    "thank_you_for_review_ar": "🌟 شكراً جزيلاً يا {{customer_name}}!\n\nرأينا للتو تقييمك ونحن ممتنون للغاية لكلماتك الطيبة. عملاء مثلك يجعلون كل شيء يستحق!\n\n{{#if incentive}}كشكر لك، إليك عرض خاص لك فقط:\n{{incentive_details}}{{/if}}\n\nنتطلع لخدمتك مرة أخرى! 💝\n\n{{business_name}}",
+    "internal_negative_alert_en": "⚠️ *Negative Feedback Alert*\n\n*Customer:* {{customer_name}}\n*Rating:* {{rating}}/5 ⭐\n*Purchase:* {{purchase_type}} on {{purchase_date}}\n*Phone:* {{customer_phone}}\n*Email:* {{customer_email}}\n\n*Details:*\n{{feedback_text}}\n\n*Previous Orders:* {{previous_orders}}\n*Customer Value:* {{customer_ltv}}\n\n*Action Required:* Contact customer within 2 hours to resolve",
+    "weekly_review_summary_en": "📊 *Weekly Review Summary*\n\n*Period:* {{week_start}} - {{week_end}}\n\n*Feedback Collected:*\n• Total Responses: {{total_responses}}\n• Average Rating: {{avg_rating}}/5 ⭐\n\n*Rating Breakdown:*\n⭐⭐⭐⭐⭐ {{five_star}} ({{five_star_pct}}%)\n⭐⭐⭐⭐ {{four_star}} ({{four_star_pct}}%)\n⭐⭐⭐ {{three_star}} ({{three_star_pct}}%)\n⭐⭐ {{two_star}} ({{two_star_pct}}%)\n⭐ {{one_star}} ({{one_star_pct}}%)\n\n*Public Reviews:*\n• Google: {{google_reviews}} ({{google_avg}} avg)\n• Other: {{other_reviews}}\n\n*Negative Cases:*\n• Reported: {{negative_count}}\n• Resolved: {{resolved_count}}\n\n*NPS Score:* {{nps_score}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Purchase Completed Trigger",
+        "name_ar": "مشغل اكتمال الشراء",
+        "type": "trigger",
+        "integrationId": "googlesheets",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_ROW_ADDED",
+          "action": "webhook",
+          "params": {
+            "spreadsheet_id": "{{orders_sheet}}",
+            "sheet_name": "CompletedOrders"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Schedule Review Request",
+        "name_ar": "جدولة طلب التقييم",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "delay_hours": "{{delay_after_purchase_hours}}",
+            "action": "send_feedback_request"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Initial Feedback Request",
+        "name_ar": "إرسال طلب الملاحظات الأولي",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.customer_phone}}",
+            "message": "{{messages.initial_feedback_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Receive Rating Response",
+        "name_ar": "استلام رد التقييم",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "^[1-5]$"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Process Rating",
+        "name_ar": "معالجة التقييم",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "evaluate",
+          "params": {
+            "rating": "{{task_4.message}}",
+            "threshold": "{{minimum_satisfaction_score}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Review Link (High Rating)",
+        "name_ar": "إرسال رابط التقييم (تقييم عالي)",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_4.from}}",
+            "message": "{{messages.positive_review_request_{{language}}}}",
+            "condition": "task_5.is_positive === true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Handle Negative Feedback",
+        "name_ar": "معالجة الملاحظات السلبية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_4.from}}",
+            "message": "{{messages.negative_feedback_response_{{language}}}}",
+            "condition": "task_5.is_positive === false"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Alert Team (Negative)",
+        "name_ar": "تنبيه الفريق (سلبي)",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#customer-feedback",
+            "message": "{{messages.internal_negative_alert_en}}",
+            "condition": "task_5.is_positive === false"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Log Feedback",
+        "name_ar": "تسجيل الملاحظات",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{feedback_sheet}}",
+            "sheet_name": "Responses",
+            "values": ["{{timestamp}}", "{{task_4.from}}", "{{task_4.message}}", "{{task_5.is_positive}}", "pending_review"]
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Schedule Reminder",
+        "name_ar": "جدولة التذكير",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "delay_days": 3,
+            "action": "send_review_reminder",
+            "condition": "send_reminder === true AND task_5.is_positive === true"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "delay_after_purchase_hours",
+      "question": "How many hours after purchase to request feedback?",
+      "question_ar": "كم ساعة بعد الشراء لطلب الملاحظات؟",
+      "type": "number",
+      "default": 48
+    },
+    {
+      "id": "review_platforms",
+      "question": "Which platforms to request reviews on?",
+      "question_ar": "أي المنصات لطلب التقييمات عليها؟",
+      "type": "multiselect",
+      "options": [
+        {"value": "google", "label": "Google (Recommended)"},
+        {"value": "facebook", "label": "Facebook"},
+        {"value": "instagram", "label": "Instagram"},
+        {"value": "trustpilot", "label": "Trustpilot"}
+      ],
+      "default": ["google"]
+    },
+    {
+      "id": "minimum_satisfaction_score",
+      "question": "Minimum rating to request public review? (1-5)",
+      "question_ar": "الحد الأدنى للتقييم لطلب تقييم عام؟ (1-5)",
+      "type": "number",
+      "default": 4
+    },
+    {
+      "id": "send_reminder",
+      "question": "Send reminder if no review after 3 days?",
+      "question_ar": "إرسال تذكير إذا لم يكن هناك تقييم بعد 3 أيام؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english"
+    }
+  }
+}

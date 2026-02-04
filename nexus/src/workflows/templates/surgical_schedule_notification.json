@@ -1,0 +1,270 @@
+{
+  "id": "surgical_schedule_notification",
+  "name": "Surgical Schedule Notification",
+  "name_ar": "إشعار جدول العمليات الجراحية",
+  "description": "Automated operating room scheduling notifications for patients, families, and surgical teams. Manages pre-op instructions, OR timing updates, surgery completion alerts, and post-op status.",
+  "description_ar": "إشعارات آلية لجدولة غرفة العمليات للمرضى والعائلات والفرق الجراحية. يدير تعليمات ما قبل العملية وتحديثات توقيت غرفة العمليات وتنبيهات اكتمال الجراحة وحالة ما بعد العملية.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$80,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "gmail", "slack"],
+  "optionalIntegrations": ["twilio", "googlecalendar"],
+  "exampleUserInput": "Send surgery schedule updates to patients and families",
+  "exampleUserInput_ar": "إرسال تحديثات جدول الجراحة للمرضى والعائلات",
+  "keywords": [
+    "surgery", "operating room", "OR schedule", "pre-op", "post-op", "anesthesia",
+    "جراحة", "غرفة العمليات", "جدول العمليات", "ما قبل العملية", "ما بعد العملية", "تخدير"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "pre_op_notification_hours": {
+      "type": "number",
+      "default": 24,
+      "label": "Hours before surgery for pre-op notification",
+      "label_ar": "ساعات قبل الجراحة لإشعار ما قبل العملية"
+    },
+    "arrival_before_minutes": {
+      "type": "number",
+      "default": 120,
+      "label": "Minutes before surgery patient should arrive",
+      "label_ar": "دقائق قبل الجراحة يجب أن يصل المريض"
+    },
+    "update_interval_minutes": {
+      "type": "number",
+      "default": 60,
+      "label": "Minutes between status updates to family",
+      "label_ar": "دقائق بين تحديثات الحالة للعائلة"
+    }
+  },
+  "messages": {
+    "surgery_scheduled": {
+      "_en": "🏥 Surgery Scheduled - {{hospital_name}}\n\nDear {{patient_name}},\n\nYour surgery has been scheduled.\n\n📋 Procedure: {{procedure_name}}\n👨‍⚕️ Surgeon: Dr. {{surgeon_name}}\n📅 Date: {{surgery_date}}\n⏰ Scheduled Time: {{surgery_time}}\n\n⏰ Please arrive by: {{arrival_time}}\n📍 Check-in Location: {{checkin_location}}\n\n📄 Required Documents:\n{{#each required_docs}}• {{this}}\n{{/each}}\n\n⚠️ Pre-Surgery Instructions:\n• Nothing to eat or drink after {{npo_time}}\n• {{#each pre_op_instructions}}{{this}}\n{{/each}}\n\n📞 Pre-Op Questions: {{preop_phone}}\n\nYou will receive a detailed pre-op reminder {{pre_op_hours}} hours before surgery.",
+      "_ar": "🏥 تمت جدولة الجراحة - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nتمت جدولة جراحتك.\n\n📋 الإجراء: {{procedure_name}}\n👨‍⚕️ الجراح: د. {{surgeon_name}}\n📅 التاريخ: {{surgery_date}}\n⏰ الوقت المجدول: {{surgery_time}}\n\n⏰ يرجى الوصول بحلول: {{arrival_time}}\n📍 موقع التسجيل: {{checkin_location}}\n\n📄 المستندات المطلوبة:\n{{#each required_docs}}• {{this}}\n{{/each}}\n\n⚠️ تعليمات ما قبل الجراحة:\n• لا تأكل أو تشرب بعد {{npo_time}}\n• {{#each pre_op_instructions}}{{this}}\n{{/each}}\n\n📞 أسئلة ما قبل العملية: {{preop_phone}}\n\nستتلقى تذكيراً مفصلاً قبل {{pre_op_hours}} ساعة من الجراحة."
+    },
+    "pre_op_reminder": {
+      "_en": "⏰ Pre-Op Reminder - {{hospital_name}}\n\nDear {{patient_name}},\n\nYour surgery is tomorrow!\n\n📋 Procedure: {{procedure_name}}\n👨‍⚕️ Surgeon: Dr. {{surgeon_name}}\n📅 Date: {{surgery_date}}\n⏰ Surgery Time: {{surgery_time}}\n\n🕐 ARRIVAL TIME: {{arrival_time}}\n📍 Location: {{checkin_location}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🚫 NPO REMINDER:\nNOTHING to eat or drink after {{npo_time}}\n(This includes water, gum, and candy)\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ CHECKLIST:\n{{#each checklist}}{{#if completed}}✅{{else}}⬜{{/if}} {{item}}\n{{/each}}\n\n📦 WHAT TO BRING:\n{{#each bring_items}}• {{this}}\n{{/each}}\n\n🚫 LEAVE AT HOME:\n{{#each leave_items}}• {{this}}\n{{/each}}\n\n💊 MEDICATIONS:\n{{medication_instructions}}\n\n🚗 TRANSPORTATION:\nYou MUST have someone drive you home. Plan for {{recovery_hours}} hours at the hospital.\n\n📞 Questions? Call: {{preop_phone}}",
+      "_ar": "⏰ تذكير ما قبل العملية - {{hospital_name}}\n\nعزيزي/عزيزتي {{patient_name}}،\n\nجراحتك غداً!\n\n📋 الإجراء: {{procedure_name}}\n👨‍⚕️ الجراح: د. {{surgeon_name}}\n📅 التاريخ: {{surgery_date}}\n⏰ وقت الجراحة: {{surgery_time}}\n\n🕐 وقت الوصول: {{arrival_time}}\n📍 الموقع: {{checkin_location}}\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n🚫 تذكير الصيام:\nلا تأكل أو تشرب أي شيء بعد {{npo_time}}\n(يشمل ذلك الماء والعلكة والحلوى)\n\n━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ قائمة التحقق:\n{{#each checklist}}{{#if completed}}✅{{else}}⬜{{/if}} {{item}}\n{{/each}}\n\n📦 ما يجب إحضاره:\n{{#each bring_items}}• {{this}}\n{{/each}}\n\n🚫 اتركه في المنزل:\n{{#each leave_items}}• {{this}}\n{{/each}}\n\n💊 الأدوية:\n{{medication_instructions}}\n\n🚗 المواصلات:\nيجب أن يكون لديك شخص يقودك للمنزل. خطط لـ {{recovery_hours}} ساعات في المستشفى.\n\n📞 أسئلة؟ اتصل: {{preop_phone}}"
+    },
+    "check_in_confirmed": {
+      "_en": "✅ Surgery Check-In Confirmed - {{hospital_name}}\n\n{{patient_name}} has checked in for surgery.\n\n📋 Procedure: {{procedure_name}}\n👨‍⚕️ Surgeon: Dr. {{surgeon_name}}\n\n📍 Current Status: Pre-Op Preparation\n🛏️ Pre-Op Bay: {{preop_bay}}\n\n⏰ Estimated Surgery Start: {{estimated_start}}\n⏱️ Estimated Duration: {{estimated_duration}}\n\n👨‍⚕️ Anesthesiologist: Dr. {{anesthesiologist}}\n\nFamily members will receive updates:\n• When surgery begins\n• Every {{update_interval}} minutes during surgery\n• When surgery is complete\n• When patient is in recovery\n\n📍 Family Waiting Area: {{waiting_area}}\n☕ Cafeteria: {{cafeteria_location}}",
+      "_ar": "✅ تأكيد تسجيل الجراحة - {{hospital_name}}\n\n{{patient_name}} قام بالتسجيل للجراحة.\n\n📋 الإجراء: {{procedure_name}}\n👨‍⚕️ الجراح: د. {{surgeon_name}}\n\n📍 الحالة الحالية: التحضير قبل العملية\n🛏️ منطقة ما قبل العملية: {{preop_bay}}\n\n⏰ بدء الجراحة المتوقع: {{estimated_start}}\n⏱️ المدة المتوقعة: {{estimated_duration}}\n\n👨‍⚕️ طبيب التخدير: د. {{anesthesiologist}}\n\nسيتلقى أفراد العائلة تحديثات:\n• عند بدء الجراحة\n• كل {{update_interval}} دقيقة أثناء الجراحة\n• عند اكتمال الجراحة\n• عندما يكون المريض في الإنعاش\n\n📍 منطقة انتظار العائلة: {{waiting_area}}\n☕ الكافتيريا: {{cafeteria_location}}"
+    },
+    "surgery_started": {
+      "_en": "🏥 Surgery Started - {{hospital_name}}\n\nDear Family of {{patient_name}},\n\nThe surgery has begun.\n\n📋 Procedure: {{procedure_name}}\n⏰ Started: {{start_time}}\n⏱️ Expected Duration: {{estimated_duration}}\n⏰ Expected Completion: {{expected_end}}\n\n👨‍⚕️ Surgical Team:\n• Surgeon: Dr. {{surgeon_name}}\n• Anesthesiologist: Dr. {{anesthesiologist}}\n\n📊 Patient Status: Stable\n\nYou will receive updates every {{update_interval}} minutes.\n\n📍 Please remain in: {{waiting_area}}\n📞 OR Desk: {{or_desk_phone}}",
+      "_ar": "🏥 بدأت الجراحة - {{hospital_name}}\n\nعزيزة عائلة {{patient_name}}،\n\nبدأت الجراحة.\n\n📋 الإجراء: {{procedure_name}}\n⏰ بدأت: {{start_time}}\n⏱️ المدة المتوقعة: {{estimated_duration}}\n⏰ الانتهاء المتوقع: {{expected_end}}\n\n👨‍⚕️ الفريق الجراحي:\n• الجراح: د. {{surgeon_name}}\n• طبيب التخدير: د. {{anesthesiologist}}\n\n📊 حالة المريض: مستقرة\n\nستتلقون تحديثات كل {{update_interval}} دقيقة.\n\n📍 يرجى البقاء في: {{waiting_area}}\n📞 مكتب غرفة العمليات: {{or_desk_phone}}"
+    },
+    "surgery_update": {
+      "_en": "🔄 Surgery Update - {{hospital_name}}\n\nPatient: {{patient_name}}\n📋 Procedure: {{procedure_name}}\n\n⏰ Time in Surgery: {{time_elapsed}}\n📊 Status: {{current_status}}\n\n{{#if on_schedule}}✅ Surgery is progressing as expected.{{/if}}\n{{#if delayed}}⏳ Surgery is taking {{delay_minutes}} minutes longer than expected. This is {{delay_reason}}.{{/if}}\n\n⏰ Estimated Remaining: {{estimated_remaining}}\n\nNext update in {{update_interval}} minutes.\n\n📍 Waiting Area: {{waiting_area}}\n📞 Questions: {{or_desk_phone}}",
+      "_ar": "🔄 تحديث الجراحة - {{hospital_name}}\n\nالمريض: {{patient_name}}\n📋 الإجراء: {{procedure_name}}\n\n⏰ الوقت في الجراحة: {{time_elapsed}}\n📊 الحالة: {{current_status}}\n\n{{#if on_schedule}}✅ الجراحة تسير كما هو متوقع.{{/if}}\n{{#if delayed}}⏳ الجراحة تستغرق {{delay_minutes}} دقيقة أكثر من المتوقع. هذا {{delay_reason}}.{{/if}}\n\n⏰ المتبقي المتوقع: {{estimated_remaining}}\n\nالتحديث القادم خلال {{update_interval}} دقيقة.\n\n📍 منطقة الانتظار: {{waiting_area}}\n📞 أسئلة: {{or_desk_phone}}"
+    },
+    "surgery_complete": {
+      "_en": "✅ Surgery Complete - {{hospital_name}}\n\nGood news! {{patient_name}}'s surgery is complete.\n\n📋 Procedure: {{procedure_name}}\n⏰ Completed: {{end_time}}\n⏱️ Total Duration: {{total_duration}}\n\n📊 Outcome: {{surgery_outcome}}\n\n👨‍⚕️ Dr. {{surgeon_name}} will speak with you shortly in the {{consult_location}}.\n\n📍 Patient is being moved to: {{recovery_location}}\n⏰ Expected recovery time: {{recovery_duration}}\n\nYou will be notified when you can see {{patient_name}}.\n\n📞 Recovery Room: {{recovery_phone}}",
+      "_ar": "✅ اكتملت الجراحة - {{hospital_name}}\n\nأخبار جيدة! اكتملت جراحة {{patient_name}}.\n\n📋 الإجراء: {{procedure_name}}\n⏰ اكتملت: {{end_time}}\n⏱️ المدة الإجمالية: {{total_duration}}\n\n📊 النتيجة: {{surgery_outcome}}\n\n👨‍⚕️ د. {{surgeon_name}} سيتحدث معكم قريباً في {{consult_location}}.\n\n📍 يتم نقل المريض إلى: {{recovery_location}}\n⏰ وقت الإنعاش المتوقع: {{recovery_duration}}\n\nسيتم إبلاغكم عندما يمكنكم رؤية {{patient_name}}.\n\n📞 غرفة الإنعاش: {{recovery_phone}}"
+    },
+    "recovery_update": {
+      "_en": "🏥 Recovery Update - {{hospital_name}}\n\n{{patient_name}} is recovering well.\n\n📍 Location: {{recovery_location}}\n📊 Status: {{recovery_status}}\n💊 Pain Level: {{pain_level}}/10\n\n{{#if awake}}✅ {{patient_name}} is awake and alert.{{/if}}\n{{#if family_can_visit}}✅ Family may now visit briefly. Please check in at the recovery desk.{{/if}}\n\n⏰ Expected move to room: {{expected_room_time}}\n🛏️ Room Assignment: {{room_number}}\n\n📞 Recovery: {{recovery_phone}}",
+      "_ar": "🏥 تحديث الإنعاش - {{hospital_name}}\n\n{{patient_name}} يتعافى جيداً.\n\n📍 الموقع: {{recovery_location}}\n📊 الحالة: {{recovery_status}}\n💊 مستوى الألم: {{pain_level}}/10\n\n{{#if awake}}✅ {{patient_name}} مستيقظ ومنتبه.{{/if}}\n{{#if family_can_visit}}✅ يمكن للعائلة الآن الزيارة لفترة وجيزة. يرجى التسجيل في مكتب الإنعاش.{{/if}}\n\n⏰ النقل المتوقع إلى الغرفة: {{expected_room_time}}\n🛏️ تخصيص الغرفة: {{room_number}}\n\n📞 الإنعاش: {{recovery_phone}}"
+    },
+    "or_team_notification": {
+      "_en": "🏥 OR Schedule Update - {{hospital_name}}\n\n📋 Next Case:\nPatient: {{patient_name}}\nProcedure: {{procedure_name}}\nSurgeon: Dr. {{surgeon_name}}\n\n⏰ Scheduled: {{scheduled_time}}\n🚪 OR Room: {{or_room}}\n⏱️ Estimated Duration: {{estimated_duration}}\n\n📊 Patient Status: {{patient_status}}\n📍 Current Location: {{current_location}}\n\n{{#if delays}}⚠️ Schedule Impact:\n{{#each delays}}• {{this}}\n{{/each}}{{/if}}\n\n✅ Pre-Op Complete: {{preop_complete}}\n✅ Consent Signed: {{consent_signed}}\n✅ Labs Current: {{labs_current}}",
+      "_ar": "🏥 تحديث جدول غرفة العمليات - {{hospital_name}}\n\n📋 الحالة التالية:\nالمريض: {{patient_name}}\nالإجراء: {{procedure_name}}\nالجراح: د. {{surgeon_name}}\n\n⏰ المجدول: {{scheduled_time}}\n🚪 غرفة العمليات: {{or_room}}\n⏱️ المدة المتوقعة: {{estimated_duration}}\n\n📊 حالة المريض: {{patient_status}}\n📍 الموقع الحالي: {{current_location}}\n\n{{#if delays}}⚠️ تأثير على الجدول:\n{{#each delays}}• {{this}}\n{{/each}}{{/if}}\n\n✅ ما قبل العملية مكتمل: {{preop_complete}}\n✅ الموافقة موقعة: {{consent_signed}}\n✅ التحاليل حالية: {{labs_current}}"
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "check_surgery_schedule",
+        "name": "Check OR schedule for upcoming surgeries",
+        "name_ar": "التحقق من جدول غرفة العمليات للجراحات القادمة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "OR_Schedule!A:Z"
+        }
+      },
+      {
+        "id": "send_scheduled_notification",
+        "name": "Send surgery scheduled notification",
+        "name_ar": "إرسال إشعار جدولة الجراحة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "new_surgery_scheduled",
+        "params": {
+          "template": "surgery_scheduled"
+        }
+      },
+      {
+        "id": "send_preop_reminder",
+        "name": "Send pre-op reminder",
+        "name_ar": "إرسال تذكير ما قبل العملية",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_preop_reminder_time",
+        "params": {
+          "template": "pre_op_reminder"
+        }
+      },
+      {
+        "id": "process_checkin",
+        "name": "Process surgery check-in",
+        "name_ar": "معالجة تسجيل الجراحة",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "condition": "patient_checked_in",
+        "params": {
+          "range": "OR_Schedule!A:Z"
+        }
+      },
+      {
+        "id": "send_checkin_confirmation",
+        "name": "Send check-in confirmation to family",
+        "name_ar": "إرسال تأكيد التسجيل للعائلة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["process_checkin"],
+        "params": {
+          "template": "check_in_confirmed"
+        }
+      },
+      {
+        "id": "notify_or_team",
+        "name": "Notify OR team of next case",
+        "name_ar": "إبلاغ فريق غرفة العمليات بالحالة التالية",
+        "tool": "SLACK_SEND_MESSAGE",
+        "params": {
+          "channel": "#or-schedule",
+          "template": "or_team_notification"
+        }
+      },
+      {
+        "id": "send_surgery_started",
+        "name": "Notify family surgery started",
+        "name_ar": "إبلاغ العائلة ببدء الجراحة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "surgery_started",
+        "params": {
+          "template": "surgery_started"
+        }
+      },
+      {
+        "id": "send_surgery_update",
+        "name": "Send periodic surgery updates",
+        "name_ar": "إرسال تحديثات الجراحة الدورية",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_update_interval",
+        "params": {
+          "template": "surgery_update"
+        }
+      },
+      {
+        "id": "send_surgery_complete",
+        "name": "Send surgery complete notification",
+        "name_ar": "إرسال إشعار اكتمال الجراحة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "surgery_complete",
+        "params": {
+          "template": "surgery_complete"
+        }
+      },
+      {
+        "id": "send_recovery_update",
+        "name": "Send recovery status updates",
+        "name_ar": "إرسال تحديثات حالة الإنعاش",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "in_recovery",
+        "params": {
+          "template": "recovery_update"
+        }
+      },
+      {
+        "id": "update_schedule",
+        "name": "Update OR schedule status",
+        "name_ar": "تحديث حالة جدول غرفة العمليات",
+        "tool": "GOOGLESHEETS_UPDATE_VALUES",
+        "params": {
+          "range": "OR_Schedule!A:Z"
+        }
+      },
+      {
+        "id": "log_surgery",
+        "name": "Log surgery completion",
+        "name_ar": "تسجيل اكتمال الجراحة",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "condition": "surgery_complete",
+        "params": {
+          "range": "Surgery_Log!A:Z"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name?",
+      "question_ar": "ما هو اسم المستشفى؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "or_schedule_sheet",
+      "question": "What is the URL of the OR schedule spreadsheet?",
+      "question_ar": "ما هو رابط جدول بيانات جدول غرفة العمليات؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "preop_hours",
+      "question": "How many hours before surgery should pre-op reminders be sent?",
+      "question_ar": "كم ساعة قبل الجراحة يجب إرسال تذكيرات ما قبل العملية؟",
+      "type": "number",
+      "default": 24
+    },
+    {
+      "id": "update_interval",
+      "question": "How often should updates be sent to family during surgery (in minutes)?",
+      "question_ar": "كم مرة يجب إرسال تحديثات للعائلة أثناء الجراحة (بالدقائق)؟",
+      "type": "number",
+      "default": 60
+    },
+    {
+      "id": "or_desk_phone",
+      "question": "What is the OR desk phone number?",
+      "question_ar": "ما هو رقم هاتف مكتب غرفة العمليات؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "slack_channel",
+      "question": "What Slack channel should receive OR schedule updates?",
+      "question_ar": "ما هي قناة Slack التي يجب أن تتلقى تحديثات جدول غرفة العمليات؟",
+      "type": "text",
+      "default": "#or-schedule"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "surgicalStandards": "MOH Surgical Safety Standards"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "surgicalStandards": "CBAHI Surgical Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "surgicalStandards": "JCI Surgical Safety Standards"
+    }
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "id": "emergency_triage_notification",
+  "name": "Emergency Triage Notification",
+  "name_ar": "إشعار فرز الطوارئ",
+  "description": "Automated patient and family notifications about ER triage status, wait times, and care updates. Keeps families informed during stressful emergency visits.",
+  "description_ar": "إشعارات آلية للمرضى والعائلات حول حالة فرز الطوارئ وأوقات الانتظار وتحديثات الرعاية. يبقي العائلات على اطلاع خلال زيارات الطوارئ المجهدة.",
+  "domain": "hospital",
+  "roiTier": 1,
+  "annualValue": "$85,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp"],
+  "optionalIntegrations": ["elevenlabs", "telnyx", "slack", "gmail"],
+  "mvpNote": "Start with WhatsApp notifications only (~$0/month extra). Add voice calls later with ElevenLabs + Telnyx (~$8-15/month).",
+  "mvpNote_ar": "ابدأ بإشعارات واتساب فقط (~$0/شهر إضافي). أضف المكالمات الصوتية لاحقاً مع ElevenLabs + Telnyx (~$8-15/شهر).",
+  "exampleUserInput": "Notify patients and families about their ER triage status and wait times",
+  "exampleUserInput_ar": "إبلاغ المرضى والعائلات بحالة فرز الطوارئ وأوقات الانتظار",
+  "keywords": [
+    "emergency", "triage", "ER", "wait time", "family notification", "urgent care",
+    "طوارئ", "فرز", "وقت الانتظار", "إشعار العائلة", "رعاية عاجلة"
+  ],
+  "dynamicParameters": {
+    "hospital_name": {
+      "type": "string",
+      "default": "",
+      "label": "Hospital Name",
+      "label_ar": "اسم المستشفى"
+    },
+    "er_department": {
+      "type": "string",
+      "default": "Emergency Department",
+      "label": "Department Name",
+      "label_ar": "اسم القسم"
+    },
+    "update_interval_minutes": {
+      "type": "number",
+      "default": 30,
+      "label": "Minutes between status updates",
+      "label_ar": "دقائق بين تحديثات الحالة"
+    },
+    "triage_levels": {
+      "type": "array",
+      "default": ["Level 1 - Resuscitation", "Level 2 - Emergency", "Level 3 - Urgent", "Level 4 - Less Urgent", "Level 5 - Non-Urgent"],
+      "label": "Triage Level Categories",
+      "label_ar": "فئات مستويات الفرز"
+    },
+    "voice_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "Enable AI voice calls for critical updates (requires ElevenLabs + Telnyx)",
+      "label_ar": "تفعيل المكالمات الصوتية الذكية للتحديثات الحرجة (يتطلب ElevenLabs + Telnyx)",
+      "cost": "~$8-15/month extra"
+    },
+    "voice_language": {
+      "type": "select",
+      "options": ["arabic_gulf", "arabic_levantine", "english", "bilingual"],
+      "default": "arabic_gulf",
+      "label": "Voice Language/Dialect",
+      "label_ar": "لغة/لهجة الصوت",
+      "dependsOn": "voice_enabled"
+    }
+  },
+  "messages": {
+    "registration_confirmation": {
+      "_en": "🏥 {{hospital_name}} Emergency Department\n\nDear {{family_contact_name}},\n\n{{patient_name}} has been registered in our Emergency Department.\n\n📋 Registration #: {{registration_number}}\n⏰ Arrival Time: {{arrival_time}}\n🔴 Triage Level: {{triage_level}}\n\nEstimated wait time: {{estimated_wait}}\n\nYou will receive updates every {{update_interval_minutes}} minutes or when there's a status change.\n\n📞 ER Desk: {{er_phone}}\n\nPlease keep this number saved for updates.",
+      "_ar": "🏥 قسم الطوارئ - {{hospital_name}}\n\nعزيزي/عزيزتي {{family_contact_name}}،\n\nتم تسجيل {{patient_name}} في قسم الطوارئ لدينا.\n\n📋 رقم التسجيل: {{registration_number}}\n⏰ وقت الوصول: {{arrival_time}}\n🔴 مستوى الفرز: {{triage_level}}\n\nوقت الانتظار المتوقع: {{estimated_wait}}\n\nستتلقى تحديثات كل {{update_interval_minutes}} دقيقة أو عند تغير الحالة.\n\n📞 مكتب الطوارئ: {{er_phone}}\n\nيرجى حفظ هذا الرقم للتحديثات."
+    },
+    "triage_update": {
+      "_en": "🔄 Status Update - {{hospital_name}} ER\n\nPatient: {{patient_name}}\nRegistration #: {{registration_number}}\n\n{{#if triage_changed}}🔴 Triage Level Changed: {{new_triage_level}}\nReason: {{triage_change_reason}}{{/if}}\n\n{{#if wait_update}}⏰ Updated Wait Time: {{new_estimated_wait}}{{/if}}\n\nCurrent Status: {{current_status}}\n\n{{#if being_seen}}✅ {{patient_name}} is now being seen by the medical team.{{/if}}",
+      "_ar": "🔄 تحديث الحالة - طوارئ {{hospital_name}}\n\nالمريض: {{patient_name}}\nرقم التسجيل: {{registration_number}}\n\n{{#if triage_changed}}🔴 تغير مستوى الفرز: {{new_triage_level}}\nالسبب: {{triage_change_reason}}{{/if}}\n\n{{#if wait_update}}⏰ وقت الانتظار المحدث: {{new_estimated_wait}}{{/if}}\n\nالحالة الحالية: {{current_status}}\n\n{{#if being_seen}}✅ يتم الآن فحص {{patient_name}} من قبل الفريق الطبي.{{/if}}"
+    },
+    "treatment_started": {
+      "_en": "✅ Treatment Update - {{hospital_name}} ER\n\nGood news! {{patient_name}} is now receiving care.\n\n👨‍⚕️ Attending: Dr. {{attending_physician}}\n📍 Location: {{treatment_area}}\n\n{{#if tests_ordered}}🔬 Tests Ordered:\n{{#each tests}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if estimated_duration}}⏱️ Estimated treatment duration: {{estimated_duration}}{{/if}}\n\nA staff member will update you on progress. Please remain in the waiting area or inform the desk if you need to step out.",
+      "_ar": "✅ تحديث العلاج - طوارئ {{hospital_name}}\n\nأخبار جيدة! {{patient_name}} يتلقى الرعاية الآن.\n\n👨‍⚕️ الطبيب المعالج: د. {{attending_physician}}\n📍 الموقع: {{treatment_area}}\n\n{{#if tests_ordered}}🔬 الفحوصات المطلوبة:\n{{#each tests}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if estimated_duration}}⏱️ مدة العلاج المتوقعة: {{estimated_duration}}{{/if}}\n\nسيقوم أحد الموظفين بإطلاعكم على التقدم. يرجى البقاء في منطقة الانتظار أو إبلاغ المكتب إذا كنتم بحاجة للخروج."
+    },
+    "discharge_notification": {
+      "_en": "🏠 Discharge Notice - {{hospital_name}} ER\n\n{{patient_name}} is ready for discharge.\n\n📍 Please come to: {{discharge_location}}\n📋 Discharge Summary: {{#if summary_ready}}Ready for pickup{{else}}Will be provided{{/if}}\n\n{{#if prescriptions}}💊 Prescriptions:\n{{#each prescriptions}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if follow_up}}📅 Follow-up: {{follow_up_details}}{{/if}}\n\n{{#if instructions}}⚠️ Important Instructions:\n{{instructions}}{{/if}}\n\nThank you for choosing {{hospital_name}}. We wish {{patient_name}} a speedy recovery.",
+      "_ar": "🏠 إشعار الخروج - طوارئ {{hospital_name}}\n\n{{patient_name}} جاهز للخروج.\n\n📍 يرجى الحضور إلى: {{discharge_location}}\n📋 ملخص الخروج: {{#if summary_ready}}جاهز للاستلام{{else}}سيتم توفيره{{/if}}\n\n{{#if prescriptions}}💊 الوصفات الطبية:\n{{#each prescriptions}}• {{this}}\n{{/each}}{{/if}}\n\n{{#if follow_up}}📅 المتابعة: {{follow_up_details}}{{/if}}\n\n{{#if instructions}}⚠️ تعليمات مهمة:\n{{instructions}}{{/if}}\n\nشكراً لاختياركم {{hospital_name}}. نتمنى ل{{patient_name}} الشفاء العاجل."
+    },
+    "admission_notification": {
+      "_en": "🏥 Admission Notice - {{hospital_name}}\n\n{{patient_name}} will be admitted to the hospital.\n\n📍 Department: {{admission_department}}\n🛏️ Room/Bed: {{room_assignment}}\n📅 Admission Time: {{admission_time}}\n\nReason: {{admission_reason}}\n\n{{#if visiting_hours}}🕐 Visiting Hours: {{visiting_hours}}{{/if}}\n\n{{#if items_needed}}📦 Items to Bring:\n{{#each items_needed}}• {{this}}\n{{/each}}{{/if}}\n\nA patient coordinator will contact you shortly with more details.",
+      "_ar": "🏥 إشعار الإدخال - {{hospital_name}}\n\nسيتم إدخال {{patient_name}} إلى المستشفى.\n\n📍 القسم: {{admission_department}}\n🛏️ الغرفة/السرير: {{room_assignment}}\n📅 وقت الإدخال: {{admission_time}}\n\nالسبب: {{admission_reason}}\n\n{{#if visiting_hours}}🕐 ساعات الزيارة: {{visiting_hours}}{{/if}}\n\n{{#if items_needed}}📦 الأغراض المطلوبة:\n{{#each items_needed}}• {{this}}\n{{/each}}{{/if}}\n\nسيتواصل معكم منسق المرضى قريباً لمزيد من التفاصيل."
+    },
+    "critical_voice_message": {
+      "_en": "Hello, this is an urgent message from {{hospital_name}} Emergency Department regarding {{patient_name}}. {{critical_message}}. Please come to the emergency department immediately or call us back at {{er_phone}}. Thank you.",
+      "_ar": "مرحباً، هذه رسالة عاجلة من قسم الطوارئ في {{hospital_name}} بخصوص {{patient_name}}. {{critical_message}}. يرجى الحضور إلى قسم الطوارئ فوراً أو الاتصال بنا على {{er_phone}}. شكراً لكم."
+    },
+    "voice_triage_escalation": {
+      "_en": "This is {{hospital_name}} Emergency. {{patient_name}}'s condition has been upgraded to {{new_triage_level}}. Medical team is attending now. Please contact us at {{er_phone}} for more information.",
+      "_ar": "هذا مستشفى {{hospital_name}} الطوارئ. تم رفع حالة {{patient_name}} إلى {{new_triage_level}}. الفريق الطبي يقوم بالعناية الآن. يرجى الاتصال بنا على {{er_phone}} لمزيد من المعلومات."
+    }
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "fetch_er_registrations",
+        "name": "Fetch new ER registrations",
+        "name_ar": "جلب تسجيلات الطوارئ الجديدة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "ER_Registrations!A:Z"
+        }
+      },
+      {
+        "id": "send_registration_confirmation",
+        "name": "Send registration confirmation to family",
+        "name_ar": "إرسال تأكيد التسجيل للعائلة",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["fetch_er_registrations"],
+        "params": {
+          "template": "registration_confirmation"
+        }
+      },
+      {
+        "id": "check_status_updates",
+        "name": "Check for status changes",
+        "name_ar": "التحقق من تغييرات الحالة",
+        "tool": "GOOGLESHEETS_GET_VALUES",
+        "params": {
+          "range": "ER_Status_Updates!A:Z"
+        }
+      },
+      {
+        "id": "send_triage_update",
+        "name": "Send triage update notification",
+        "name_ar": "إرسال إشعار تحديث الفرز",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["check_status_updates"],
+        "condition": "status_changed",
+        "params": {
+          "template": "triage_update"
+        }
+      },
+      {
+        "id": "send_treatment_notification",
+        "name": "Notify when treatment starts",
+        "name_ar": "الإشعار عند بدء العلاج",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "dependsOn": ["check_status_updates"],
+        "condition": "treatment_started",
+        "params": {
+          "template": "treatment_started"
+        }
+      },
+      {
+        "id": "send_voice_notification",
+        "name": "Send AI voice call for critical updates",
+        "name_ar": "إرسال مكالمة صوتية ذكية للتحديثات الحرجة",
+        "tool": "ELEVENLABS_VOICE_AGENT",
+        "condition": "is_critical_update && voice_enabled",
+        "optional": true,
+        "provider": {
+          "voice": "elevenlabs",
+          "telephony": "telnyx",
+          "fallback": "whatsapp"
+        },
+        "params": {
+          "voice_id": "arabic_gulf_female",
+          "language": "{{language}}",
+          "message_template": "critical_voice_message",
+          "max_duration_seconds": 60,
+          "retry_on_no_answer": true
+        },
+        "costNote": "~$0.10/min (ElevenLabs) + ~$0.02/min (Telnyx) = ~$0.12/min total"
+      },
+      {
+        "id": "send_discharge_notification",
+        "name": "Send discharge notification",
+        "name_ar": "إرسال إشعار الخروج",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "is_discharge",
+        "params": {
+          "template": "discharge_notification"
+        }
+      },
+      {
+        "id": "send_admission_notification",
+        "name": "Send admission notification",
+        "name_ar": "إرسال إشعار الإدخال",
+        "tool": "WHATSAPP_SEND_MESSAGE",
+        "condition": "requires_admission",
+        "params": {
+          "template": "admission_notification"
+        }
+      },
+      {
+        "id": "log_communications",
+        "name": "Log all communications",
+        "name_ar": "تسجيل جميع الاتصالات",
+        "tool": "GOOGLESHEETS_APPEND_ROW",
+        "params": {
+          "range": "ER_Communications_Log!A:Z"
+        }
+      },
+      {
+        "id": "notify_staff",
+        "name": "Notify staff of communication failures",
+        "name_ar": "إبلاغ الموظفين بفشل الاتصالات",
+        "tool": "SLACK_SEND_MESSAGE",
+        "condition": "has_failures",
+        "params": {
+          "channel": "#er-alerts"
+        }
+      }
+    ]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hospital_info",
+      "question": "What is the hospital name and ER phone number?",
+      "question_ar": "ما هو اسم المستشفى ورقم هاتف الطوارئ؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "data_source",
+      "question": "Where is ER patient registration data stored?",
+      "question_ar": "أين يتم تخزين بيانات تسجيل مرضى الطوارئ؟",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "update_frequency",
+      "question": "How often should status updates be sent (in minutes)?",
+      "question_ar": "كم مرة يجب إرسال تحديثات الحالة (بالدقائق)؟",
+      "type": "number",
+      "default": 30
+    },
+    {
+      "id": "critical_notifications",
+      "question": "Should critical updates trigger voice calls? (Optional - adds ~$8-15/month)",
+      "question_ar": "هل يجب أن تؤدي التحديثات الحرجة إلى مكالمات صوتية؟ (اختياري - يضيف ~$8-15/شهر)",
+      "type": "boolean",
+      "default": false,
+      "note": "Requires ElevenLabs + Telnyx setup. WhatsApp notifications work without this.",
+      "note_ar": "يتطلب إعداد ElevenLabs + Telnyx. إشعارات واتساب تعمل بدون هذا."
+    },
+    {
+      "id": "visiting_hours",
+      "question": "What are the visiting hours to include in admission notices?",
+      "question_ar": "ما هي ساعات الزيارة لتضمينها في إشعارات الإدخال؟",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "emergencyStandards": "MOH Emergency Care Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "SAR",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Saudi",
+      "emergencyStandards": "SCHS Emergency Standards"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [0, 1, 2, 3, 4, 5, 6],
+      "currency": "AED",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "DHA/HAAD",
+      "emergencyStandards": "JCI Emergency Standards"
+    }
+  }
+}

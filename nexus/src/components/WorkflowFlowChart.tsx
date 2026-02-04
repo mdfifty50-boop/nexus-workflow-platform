@@ -62,6 +62,11 @@ const NODE_COLORS: Record<string, { bg: string; border: string; icon: string }> 
   default: { bg: 'bg-slate-700/50', border: 'border-slate-600', icon: '⚙️' }
 }
 
+/**
+ * @NEXUS-FIX-077: Node hover tooltip + click expand for mobile UX
+ * - Hover: Shows brief tooltip with full name
+ * - Click/Tap: Expands to show full description (mobile-friendly)
+ */
 export function WorkflowFlowChart({
   nodes,
   connections,
@@ -71,6 +76,18 @@ export function WorkflowFlowChart({
 }: WorkflowFlowChartProps) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [expandedView, setExpandedView] = useState(false)
+  const [selectedNode, setSelectedNode] = useState<string | null>(null) // For click-to-expand
+
+  // Handle node click - expand detail panel (mobile-friendly)
+  const handleNodeClick = (nodeId: string) => {
+    // Toggle selection - tap again to close on mobile
+    setSelectedNode(prev => prev === nodeId ? null : nodeId)
+    // Also call external handler if provided
+    onNodeClick?.(nodeId)
+  }
+
+  // Get selected node data
+  const selectedNodeData = selectedNode ? nodes.find(n => n.id === selectedNode) : null
 
   // Build graph and compute layout
   const { layoutNodes, layoutEdges, dimensions } = useMemo(() => {
@@ -261,12 +278,13 @@ export function WorkflowFlowChart({
               ${endX} ${endY}`
   }
 
-  // Render node
+  // Render node - with hover tooltip + click expand for mobile
   const renderNode = (node: LayoutNode) => {
     const colors = NODE_COLORS[node.type] || NODE_COLORS.default
     const nodeWidth = compact ? 120 : 160
     const nodeHeight = compact ? 50 : 70
     const isHovered = hoveredNode === node.id
+    const isSelected = selectedNode === node.id
 
     return (
       <g
@@ -275,19 +293,24 @@ export function WorkflowFlowChart({
         className="cursor-pointer transition-all duration-200"
         onMouseEnter={() => setHoveredNode(node.id)}
         onMouseLeave={() => setHoveredNode(null)}
-        onClick={() => onNodeClick?.(node.id)}
+        onClick={() => handleNodeClick(node.id)}
+        // Touch support for mobile
+        onTouchEnd={(e) => {
+          e.preventDefault()
+          handleNodeClick(node.id)
+        }}
       >
-        {/* Node background */}
+        {/* Node background - highlight on hover OR selected */}
         <rect
           width={nodeWidth}
           height={nodeHeight}
           rx={compact ? 8 : 12}
           className={`
             ${colors.bg} stroke-2 transition-all duration-200
-            ${isHovered ? 'stroke-white/50' : colors.border.replace('border-', 'stroke-')}
+            ${isSelected ? 'stroke-cyan-400' : isHovered ? 'stroke-white/50' : colors.border.replace('border-', 'stroke-')}
           `}
           style={{
-            filter: isHovered ? 'drop-shadow(0 0 12px rgba(255,255,255,0.2))' : 'none'
+            filter: isSelected ? 'drop-shadow(0 0 16px rgba(34,211,238,0.4))' : isHovered ? 'drop-shadow(0 0 12px rgba(255,255,255,0.2))' : 'none'
           }}
         />
 
@@ -449,28 +472,86 @@ export function WorkflowFlowChart({
                 />
               ))}
 
+              {/* @NEXUS-FIX-077: Mini nodes with hover title + click to expand */}
               {layoutNodes.map(node => (
-                <g key={node.id} transform={`translate(${node.x - 30}, ${node.y - 15})`}>
+                <g
+                  key={node.id}
+                  transform={`translate(${node.x - 30}, ${node.y - 15})`}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredNode(node.id)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                  onClick={(e) => {
+                    e.stopPropagation() // Don't trigger expand view
+                    handleNodeClick(node.id)
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    handleNodeClick(node.id)
+                  }}
+                >
+                  {/* Hover title tooltip via SVG title element */}
+                  <title>{node.name}{node.description ? `: ${node.description}` : ''}</title>
                   <rect
                     width={60}
                     height={30}
                     rx={6}
-                    className={`fill-slate-700/50 ${node.isLoopTarget ? 'stroke-amber-500/50' : 'stroke-slate-600/50'}`}
-                    strokeWidth={1}
+                    className={`
+                      ${selectedNode === node.id ? 'fill-cyan-500/30 stroke-cyan-400' : 'fill-slate-700/50'}
+                      ${hoveredNode === node.id ? 'stroke-white/60' : node.isLoopTarget ? 'stroke-amber-500/50' : 'stroke-slate-600/50'}
+                      transition-all duration-150
+                    `}
+                    strokeWidth={selectedNode === node.id ? 2 : 1}
                   />
-                  <text x={10} y={20} className="fill-white text-xs" style={{ fontSize: '10px' }}>
+                  <text x={10} y={20} className="fill-white text-xs pointer-events-none" style={{ fontSize: '10px' }}>
                     {node.toolIcon}
                   </text>
                 </g>
               ))}
             </svg>
 
-            <div className="flex items-center justify-center gap-1 mt-2 text-xs text-slate-400">
-              <span>Click to expand</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-            </div>
+            {/* @NEXUS-FIX-077: Node detail panel - shows on click/tap (mobile-friendly) */}
+            {selectedNodeData && (
+              <div
+                className="mt-2 p-3 bg-slate-800 rounded-lg border border-cyan-500/30 animate-in fade-in slide-in-from-top-1 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{selectedNodeData.toolIcon}</span>
+                    <div>
+                      <div className="font-medium text-white text-sm">{selectedNodeData.name}</div>
+                      <div className="text-xs text-slate-400 capitalize">{selectedNodeData.type} • {selectedNodeData.tool}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNode(null)}
+                    className="p-1 hover:bg-slate-700 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {selectedNodeData.description && (
+                  <p className="mt-2 text-xs text-slate-300 leading-relaxed">
+                    {selectedNodeData.description}
+                  </p>
+                )}
+                {(selectedNodeData as LayoutNode).isLoopTarget && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-amber-400">
+                    <span>↻</span>
+                    <span>This step may be revisited during workflow execution</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!selectedNodeData && (
+              <div className="flex items-center justify-center gap-1 mt-2 text-xs text-slate-400">
+                <span>Tap a node for details • Click to expand full view</span>
+              </div>
+            )}
           </div>
         </div>
 

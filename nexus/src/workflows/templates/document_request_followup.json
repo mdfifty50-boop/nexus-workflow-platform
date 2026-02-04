@@ -1,0 +1,253 @@
+{
+  "id": "document_request_followup",
+  "name": "Document Request Follow-up",
+  "name_ar": "متابعة طلبات المستندات",
+  "description": "Track document requests sent to clients, automatically follow up on missing documents, and notify when complete. Reduces document collection time and case delays.",
+  "description_ar": "تتبع طلبات المستندات المرسلة للعملاء، المتابعة التلقائية على المستندات المفقودة، والإشعار عند الاكتمال. يقلل وقت جمع المستندات وتأخير القضايا.",
+  "domain": "lawyers",
+  "roiTier": 2,
+  "annualValue": "$24,000/lawyer",
+  "requiredIntegrations": ["gmail", "notion", "whatsapp"],
+  "optionalIntegrations": ["slack", "googledrive", "dropbox"],
+  "exampleUserInput": "Follow up on documents I requested from clients",
+  "exampleUserInput_ar": "تابع المستندات التي طلبتها من العملاء",
+  "keywords": ["document", "request", "follow up", "followup", "missing", "pending", "collect", "evidence", "مستند", "طلب", "متابعة", "مفقود", "دليل", "وثيقة"],
+  "dynamicParameters": {
+    "first_reminder_days": {
+      "type": "number",
+      "default": 3,
+      "label": "Days before first reminder",
+      "label_ar": "أيام قبل التذكير الأول",
+      "required": true
+    },
+    "second_reminder_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days before second reminder",
+      "label_ar": "أيام قبل التذكير الثاني",
+      "required": true
+    },
+    "escalation_days": {
+      "type": "number",
+      "default": 14,
+      "label": "Days before lawyer notification",
+      "label_ar": "أيام قبل إشعار المحامي"
+    },
+    "reminder_channel": {
+      "type": "select",
+      "options": ["email", "whatsapp", "both"],
+      "default": "whatsapp",
+      "label": "Primary reminder channel",
+      "label_ar": "قناة التذكير الرئيسية"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    }
+  },
+  "messages": {
+    "request_sent_en": "📄 *Document Request Sent*\n\nClient: {{client_name}}\nCase: {{case_number}}\n\nDocuments Requested:\n{{#each documents}}\n• {{name}}\n{{/each}}\n\nDeadline: {{deadline}}\nFollow-ups scheduled.",
+    "first_reminder_whatsapp_en": "Hi {{client_name}}, 👋\n\nThis is a friendly reminder about the documents we requested for your case.\n\nStill needed:\n{{#each pending_documents}}\n• {{name}}\n{{/each}}\n\nPlease submit by {{deadline}} to avoid delays.\n\nYou can reply to this message with photos/scans, or email them to {{firm_email}}.\n\nQuestions? Just reply here.\n\nThank you,\n{{firm_name}}",
+    "first_reminder_whatsapp_ar": "مرحباً {{client_name}}، 👋\n\nهذا تذكير ودي بخصوص المستندات التي طلبناها لقضيتك.\n\nالمستندات المطلوبة:\n{{#each pending_documents}}\n• {{name}}\n{{/each}}\n\nيرجى تقديمها قبل {{deadline}} لتجنب التأخير.\n\nيمكنك الرد على هذه الرسالة بصور/مسح، أو إرسالها بالبريد إلى {{firm_email}}.\n\nأسئلة؟ فقط رد هنا.\n\nشكراً،\n{{firm_name}}",
+    "second_reminder_whatsapp_en": "Hi {{client_name}},\n\nWe're still waiting for the following documents:\n\n{{#each pending_documents}}\n• {{name}} ❌\n{{/each}}\n\n⚠️ Your deadline is {{deadline}}. Missing documents may delay your case.\n\nNeed help gathering these? Let us know.\n\n{{firm_name}}",
+    "second_reminder_whatsapp_ar": "مرحباً {{client_name}}،\n\nما زلنا ننتظر المستندات التالية:\n\n{{#each pending_documents}}\n• {{name}} ❌\n{{/each}}\n\n⚠️ الموعد النهائي هو {{deadline}}. المستندات المفقودة قد تؤخر قضيتك.\n\nتحتاج مساعدة في جمعها؟ أخبرنا.\n\n{{firm_name}}",
+    "document_received_en": "✅ *Document Received*\n\nClient: {{client_name}}\nDocument: {{document_name}}\n\nRemaining: {{pending_count}} document(s)\n\n{{#if all_complete}}🎉 All documents complete!{{/if}}",
+    "lawyer_escalation_en": "⚠️ *Document Deadline Approaching*\n\nClient {{client_name}} has not submitted:\n{{#each pending_documents}}\n• {{name}}\n{{/each}}\n\nCase: {{case_number}}\nDays Overdue: {{days_overdue}}\n\nRecommended: Personal call to client.",
+    "all_complete_en": "🎉 *All Documents Received*\n\nClient: {{client_name}}\nCase: {{case_number}}\n\nAll {{total_documents}} requested documents have been received.\n\nCase can proceed to next stage."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Daily Pending Check",
+        "name_ar": "الفحص اليومي للمعلقات",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 * * 0-4",
+            "description": "Daily at 10 AM (Sunday-Thursday)",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Query Pending Requests",
+        "name_ar": "استعلام الطلبات المعلقة",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "NOTION_QUERY_DATABASE",
+          "action": "query",
+          "params": {
+            "database_id": "{{document_requests_database}}",
+            "filter": {
+              "and": [
+                {"property": "Status", "select": {"does_not_equal": "Complete"}},
+                {"property": "Request Date", "date": {"before": "{{reminder_threshold}}"}}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Categorize by Age",
+        "name_ar": "التصنيف حسب العمر",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "categorize",
+          "params": {
+            "input": "{{task_2.results}}",
+            "categories": {
+              "first_reminder": "days_since_request >= first_reminder_days AND days_since_request < second_reminder_days",
+              "second_reminder": "days_since_request >= second_reminder_days AND days_since_request < escalation_days",
+              "escalation": "days_since_request >= escalation_days"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send First Reminders (WhatsApp)",
+        "name_ar": "إرسال التذكيرات الأولى (واتساب)",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.first_reminder}}",
+            "message": "{{messages.first_reminder_whatsapp_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Second Reminders",
+        "name_ar": "إرسال التذكيرات الثانية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{task_3.second_reminder}}",
+            "message": "{{messages.second_reminder_whatsapp_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Escalate to Lawyer",
+        "name_ar": "التصعيد للمحامي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "@{{assigned_lawyer}}",
+            "message": "{{messages.lawyer_escalation_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Update Reminder Log",
+        "name_ar": "تحديث سجل التذكيرات",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_4", "task_5", "task_6"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "batch_update",
+          "params": {
+            "updates": "{{reminder_log}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "notion", "whatsapp"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "first_reminder_days",
+      "question": "When should the first reminder be sent (days after request)?",
+      "question_ar": "متى يجب إرسال التذكير الأول (أيام بعد الطلب)؟",
+      "type": "number",
+      "default": 3
+    },
+    {
+      "id": "reminder_channel",
+      "question": "How should we remind clients?",
+      "question_ar": "كيف نذكر العملاء؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "email", "label": "Email"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "language",
+      "question": "What language for reminders?",
+      "question_ar": "ما لغة التذكيرات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "bilingual",
+      "commonDocuments": [
+        "Civil ID (البطاقة المدنية)",
+        "Power of Attorney (التوكيل)",
+        "Contract (العقد)",
+        "Bank Statement (كشف حساب)"
+      ]
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "defaultLanguage": "arabic",
+      "commonDocuments": [
+        "National ID (الهوية الوطنية)",
+        "Wakala (الوكالة)",
+        "Commercial Registration (السجل التجاري)"
+      ]
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "defaultLanguage": "english",
+      "commonDocuments": [
+        "Emirates ID",
+        "Power of Attorney",
+        "Trade License"
+      ]
+    }
+  }
+}

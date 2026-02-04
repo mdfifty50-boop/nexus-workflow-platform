@@ -1,0 +1,266 @@
+{
+  "id": "client_status_broadcaster",
+  "name": "Client Status Update Broadcaster",
+  "name_ar": "بث تحديثات حالة العملاء",
+  "description": "Automatically notify clients of case status changes, hearing outcomes, and milestone achievements. Keeps clients informed without manual outreach, improving satisfaction and reducing inquiry calls.",
+  "description_ar": "إشعار العملاء تلقائياً بتغييرات حالة القضايا ونتائج الجلسات والإنجازات المهمة. يبقي العملاء على اطلاع دون تواصل يدوي، مما يحسن الرضا ويقلل مكالمات الاستفسار.",
+  "domain": "lawyers",
+  "roiTier": 2,
+  "annualValue": "$22,000/year",
+  "requiredIntegrations": ["notion", "whatsapp", "gmail"],
+  "optionalIntegrations": ["slack", "sms", "twilio"],
+  "exampleUserInput": "Notify my clients automatically when there are updates to their cases",
+  "exampleUserInput_ar": "أشعر عملائي تلقائياً عند وجود تحديثات على قضاياهم",
+  "keywords": ["status", "update", "notify", "client", "case", "broadcast", "communication", "حالة", "تحديث", "إشعار", "عميل", "قضية", "بث", "تواصل"],
+  "dynamicParameters": {
+    "notification_channel": {
+      "type": "select",
+      "options": ["whatsapp", "email", "both"],
+      "default": "whatsapp",
+      "label": "Primary notification channel",
+      "label_ar": "قناة الإشعار الرئيسية"
+    },
+    "auto_notify": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-send on status change",
+      "label_ar": "إرسال تلقائي عند تغيير الحالة"
+    },
+    "include_next_steps": {
+      "type": "boolean",
+      "default": true,
+      "label": "Include next steps in updates",
+      "label_ar": "تضمين الخطوات التالية في التحديثات"
+    },
+    "business_hours_only": {
+      "type": "boolean",
+      "default": true,
+      "label": "Only send during business hours",
+      "label_ar": "إرسال خلال ساعات العمل فقط"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Message Language",
+      "label_ar": "لغة الرسائل"
+    }
+  },
+  "messages": {
+    "status_update_whatsapp_en": "📋 *Case Update - {{case_number}}*\n\nDear {{client_name}},\n\n*Status:* {{new_status}}\n*Updated:* {{update_date}}\n\n*Summary:*\n{{update_summary}}\n\n{{#if next_steps}}*Next Steps:*\n{{#each next_steps}}\n• {{this}}\n{{/each}}{{/if}}\n\n{{#if next_hearing}}📅 Next Hearing: {{next_hearing}}{{/if}}\n\nQuestions? Reply to this message.\n\n{{firm_name}}",
+    "status_update_whatsapp_ar": "📋 *تحديث القضية - {{case_number}}*\n\nعزيزي {{client_name}}،\n\n*الحالة:* {{new_status}}\n*التحديث:* {{update_date}}\n\n*الملخص:*\n{{update_summary}}\n\n{{#if next_steps}}*الخطوات التالية:*\n{{#each next_steps}}\n• {{this}}\n{{/each}}{{/if}}\n\n{{#if next_hearing}}📅 الجلسة القادمة: {{next_hearing}}{{/if}}\n\nأسئلة؟ رد على هذه الرسالة.\n\n{{firm_name}}",
+    "hearing_outcome_en": "⚖️ *Hearing Outcome - {{case_number}}*\n\nDear {{client_name}},\n\nYour hearing on {{hearing_date}} has concluded.\n\n*Outcome:* {{outcome}}\n\n*Summary:*\n{{outcome_summary}}\n\n*Next Steps:*\n{{#each next_steps}}\n• {{this}}\n{{/each}}\n\n{{#if next_hearing}}The next hearing is scheduled for {{next_hearing}}.{{/if}}\n\nYour attorney {{lawyer_name}} will contact you shortly to discuss.\n\n{{firm_name}}",
+    "hearing_outcome_ar": "⚖️ *نتيجة الجلسة - {{case_number}}*\n\nعزيزي {{client_name}}،\n\nانتهت جلستك في {{hearing_date}}.\n\n*النتيجة:* {{outcome}}\n\n*الملخص:*\n{{outcome_summary}}\n\n*الخطوات التالية:*\n{{#each next_steps}}\n• {{this}}\n{{/each}}\n\n{{#if next_hearing}}الجلسة القادمة مجدولة في {{next_hearing}}.{{/if}}\n\nمحاميك {{lawyer_name}} سيتواصل معك قريباً للمناقشة.\n\n{{firm_name}}",
+    "milestone_achieved_en": "🎉 *Milestone Achieved - {{case_number}}*\n\nDear {{client_name}},\n\nWe are pleased to inform you that we have achieved an important milestone in your case:\n\n✅ *{{milestone_name}}*\n\n{{milestone_description}}\n\nThis is a positive development. {{next_step_explanation}}\n\nBest regards,\n{{lawyer_name}}\n{{firm_name}}",
+    "case_closed_en": "✅ *Case Concluded - {{case_number}}*\n\nDear {{client_name}},\n\nWe are pleased to inform you that your case has been concluded.\n\n*Final Outcome:* {{final_outcome}}\n*Closed Date:* {{close_date}}\n\n*Summary:*\n{{case_summary}}\n\nThank you for trusting {{firm_name}} with your legal matters. We will send you a complete case file shortly.\n\nIf you need legal assistance in the future, we are here to help.\n\nBest regards,\n{{firm_name}}",
+    "case_closed_ar": "✅ *انتهاء القضية - {{case_number}}*\n\nعزيزي {{client_name}}،\n\nيسعدنا إعلامكم بانتهاء قضيتكم.\n\n*النتيجة النهائية:* {{final_outcome}}\n*تاريخ الإغلاق:* {{close_date}}\n\n*الملخص:*\n{{case_summary}}\n\nشكراً لثقتكم بـ {{firm_name}} في شؤونكم القانونية. سنرسل لكم ملف القضية الكامل قريباً.\n\nإذا احتجتم مساعدة قانونية مستقبلاً، نحن هنا للمساعدة.\n\nمع أطيب التحيات،\n{{firm_name}}",
+    "internal_notification": "📢 *Client Notified - {{case_number}}*\n\nClient: {{client_name}}\nChannel: {{notification_channel}}\nUpdate Type: {{update_type}}\n\nMessage sent successfully at {{sent_time}}."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Case Status Changed",
+        "name_ar": "تغير حالة القضية",
+        "type": "trigger",
+        "integrationId": "notion",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "NOTION_PAGE_UPDATED",
+          "action": "webhook",
+          "params": {
+            "database_id": "{{cases_database}}",
+            "property": "Status"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Case and Client Details",
+        "name_ar": "الحصول على تفاصيل القضية والعميل",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "NOTION_GET_PAGE",
+          "action": "get",
+          "params": {
+            "page_id": "{{task_1.page_id}}",
+            "include_relations": ["Client"]
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Check Business Hours",
+        "name_ar": "فحص ساعات العمل",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "!business_hours_only OR isWithinBusinessHours({{timezone}}, {{business_hours}})"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Compose Update Message",
+        "name_ar": "صياغة رسالة التحديث",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "template",
+          "params": {
+            "template_key": "{{task_1.new_status}}_{{language}}",
+            "data": {
+              "client_name": "{{task_2.client.name}}",
+              "case_number": "{{task_2.case_number}}",
+              "new_status": "{{task_1.new_status}}",
+              "update_summary": "{{task_1.update_note}}",
+              "next_steps": "{{task_2.next_steps}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send WhatsApp Update",
+        "name_ar": "إرسال تحديث واتساب",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.client.phone}}",
+            "message": "{{task_4.message}}",
+            "condition": "notification_channel === 'whatsapp' OR notification_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Send Email Update",
+        "name_ar": "إرسال تحديث بريد إلكتروني",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_2.client.email}}",
+            "subject": "Case Update: {{task_2.case_number}} - {{task_1.new_status}} / تحديث القضية",
+            "body": "{{task_4.message}}",
+            "condition": "notification_channel === 'email' OR notification_channel === 'both'"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Log Notification Sent",
+        "name_ar": "تسجيل إرسال الإشعار",
+        "type": "action",
+        "integrationId": "notion",
+        "dependencies": ["task_5", "task_6"],
+        "config": {
+          "toolSlug": "NOTION_UPDATE_PAGE",
+          "action": "update",
+          "params": {
+            "page_id": "{{task_1.page_id}}",
+            "properties": {
+              "Last Client Notification": {"date": {"start": "{{current_datetime}}"}},
+              "Notification Log": {"rich_text": [{"text": {"content": "{{notification_log}}"}}]}
+            }
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Notify Team",
+        "name_ar": "إشعار الفريق",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#client-updates",
+            "message": "{{messages.internal_notification}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["notion", "whatsapp", "gmail"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "notification_channel",
+      "question": "How should clients receive updates?",
+      "question_ar": "كيف يجب أن يتلقى العملاء التحديثات؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "email", "label": "Email"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "auto_notify",
+      "question": "Auto-send on every status change?",
+      "question_ar": "إرسال تلقائي عند كل تغيير حالة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "business_hours_only",
+      "question": "Only send during business hours?",
+      "question_ar": "إرسال خلال ساعات العمل فقط؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "language",
+      "question": "What language for updates?",
+      "question_ar": "ما لغة التحديثات؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "preferredChannel": "whatsapp"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic",
+      "preferredChannel": "whatsapp"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english",
+      "preferredChannel": "email"
+    }
+  }
+}

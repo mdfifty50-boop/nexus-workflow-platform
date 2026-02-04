@@ -1,0 +1,353 @@
+{
+  "id": "chronic_care_management",
+  "name": "Chronic Care Management",
+  "name_ar": "إدارة الرعاية المزمنة",
+  "description": "Comprehensive chronic disease management with automated check-ins, medication reminders, vital sign tracking, and care plan adherence monitoring. Support patients with diabetes, hypertension, heart disease, and other chronic conditions.",
+  "description_ar": "إدارة شاملة للأمراض المزمنة مع متابعات آلية وتذكيرات بالأدوية وتتبع العلامات الحيوية ومراقبة الالتزام بخطة الرعاية. دعم المرضى المصابين بالسكري وارتفاع ضغط الدم وأمراض القلب والحالات المزمنة الأخرى.",
+  "domain": "clinic",
+  "roiTier": 1,
+  "annualValue": "$72,000/year",
+  "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"],
+  "optionalIntegrations": ["gmail", "slack", "googleforms"],
+  "exampleUserInput": "Help me manage my chronic disease patients",
+  "exampleUserInput_ar": "ساعدني في إدارة مرضاي ذوي الأمراض المزمنة",
+  "keywords": ["chronic", "diabetes", "hypertension", "management", "monitoring", "care plan", "مزمن", "سكري", "ضغط", "إدارة", "مراقبة", "خطة رعاية"],
+  "dynamicParameters": {
+    "check_in_frequency_days": {
+      "type": "number",
+      "default": 7,
+      "label": "Days between automated check-ins",
+      "label_ar": "أيام بين المتابعات الآلية"
+    },
+    "track_vitals": {
+      "type": "boolean",
+      "default": true,
+      "label": "Allow patients to report vital signs",
+      "label_ar": "السماح للمرضى بالإبلاغ عن العلامات الحيوية"
+    },
+    "alert_abnormal_vitals": {
+      "type": "boolean",
+      "default": true,
+      "label": "Alert staff for abnormal vital readings",
+      "label_ar": "تنبيه الموظفين للقراءات الحيوية غير الطبيعية"
+    },
+    "medication_reminders": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send daily medication reminders",
+      "label_ar": "إرسال تذكيرات يومية بالأدوية"
+    }
+  },
+  "messages": {
+    "weekly_checkin_en": "👋 *Weekly Health Check-in*\n\nHi {{patient_name}},\n\nTime for your weekly check-in! How are you feeling with your {{condition}} management?\n\n*How would you rate your week?*\n1️⃣ 😊 Great - feeling well\n2️⃣ 😐 Okay - some minor issues\n3️⃣ 😟 Not great - need to talk\n4️⃣ 🆘 Urgent - please call me\n\nReply 1, 2, 3, or 4.\n\n{{#if track_vitals}}After that, I'll ask about your readings!{{/if}}",
+    "weekly_checkin_ar": "👋 *متابعة صحية أسبوعية*\n\nمرحباً {{patient_name}}،\n\nحان وقت متابعتك الأسبوعية! كيف تشعر بخصوص إدارة {{condition}}؟\n\n*كيف تقيم أسبوعك؟*\n1️⃣ 😊 رائع - أشعر بتحسن\n2️⃣ 😐 جيد - بعض المشاكل البسيطة\n3️⃣ 😟 ليس جيداً - أحتاج للتحدث\n4️⃣ 🆘 عاجل - يرجى الاتصال بي\n\nرد بـ 1 أو 2 أو 3 أو 4.\n\n{{#if track_vitals}}بعد ذلك، سأسألك عن قراءاتك!{{/if}}",
+    "vitals_request_diabetes_en": "📊 *Please Share Your Readings*\n\n*Blood Sugar (Glucose):*\nPlease reply with your latest reading in this format:\nFasting: [number] mg/dL\nAfter meal: [number] mg/dL\n\nExample: Fasting: 120 After meal: 160\n\n*Don't have a reading?* Reply SKIP\n*Need help?* Reply HELP",
+    "vitals_request_diabetes_ar": "📊 *يرجى مشاركة قراءاتك*\n\n*السكر في الدم (الجلوكوز):*\nيرجى الرد بآخر قراءة بهذا الشكل:\nصائم: [رقم] ملغ/ديسيلتر\nبعد الوجبة: [رقم] ملغ/ديسيلتر\n\nمثال: صائم: 120 بعد الوجبة: 160\n\n*ليس لديك قراءة؟* رد بـ تخطي\n*تحتاج مساعدة؟* رد بـ مساعدة",
+    "vitals_request_hypertension_en": "📊 *Please Share Your Blood Pressure*\n\nPlease reply with your latest reading:\nFormat: [systolic]/[diastolic] mmHg\n\nExample: 125/82\n\n*Tips for accurate reading:*\n• Rest for 5 minutes before measuring\n• Sit with feet flat on floor\n• Don't talk during measurement\n\n*Don't have a reading?* Reply SKIP\n*Need help?* Reply HELP",
+    "vitals_request_hypertension_ar": "📊 *يرجى مشاركة ضغط دمك*\n\nيرجى الرد بآخر قراءة:\nالصيغة: [انقباضي]/[انبساطي] ملم زئبق\n\nمثال: 125/82\n\n*نصائح لقراءة دقيقة:*\n• استرح 5 دقائق قبل القياس\n• اجلس مع قدميك مسطحتين على الأرض\n• لا تتحدث أثناء القياس\n\n*ليس لديك قراءة؟* رد بـ تخطي\n*تحتاج مساعدة؟* رد بـ مساعدة",
+    "vitals_recorded_en": "✅ *Reading Recorded*\n\nThank you! Your reading has been saved:\n\n{{reading_type}}: {{reading_value}}\n📅 Date: {{timestamp}}\n\n{{#if in_range}}✅ Your reading is within your target range. Keep up the good work!{{/if}}\n{{#if slightly_high}}⚠️ Your reading is slightly elevated. Remember to {{recommendation}}.{{/if}}\n{{#if high}}🚨 Your reading is higher than target. {{action_recommendation}}{{/if}}\n\n*Questions about your readings?* Reply QUESTION",
+    "vitals_recorded_ar": "✅ *تم تسجيل القراءة*\n\nشكراً! تم حفظ قراءتك:\n\n{{reading_type}}: {{reading_value}}\n📅 التاريخ: {{timestamp}}\n\n{{#if in_range}}✅ قراءتك ضمن النطاق المستهدف. استمر في العمل الجيد!{{/if}}\n{{#if slightly_high}}⚠️ قراءتك مرتفعة قليلاً. تذكر أن {{recommendation}}.{{/if}}\n{{#if high}}🚨 قراءتك أعلى من المستهدف. {{action_recommendation}}{{/if}}\n\n*أسئلة عن قراءاتك؟* رد بـ سؤال",
+    "medication_reminder_en": "💊 *Medication Reminder*\n\nHi {{patient_name}},\n\nTime for your {{time_of_day}} medication:\n\n{{#each medications}}\n• {{name}} - {{dosage}}\n{{/each}}\n\n*Did you take your medication?*\n✅ Reply YES when done\n❌ Reply NO if you missed it\n\nStaying consistent with your medication helps manage your {{condition}}! 💪",
+    "medication_reminder_ar": "💊 *تذكير بالدواء*\n\nمرحباً {{patient_name}}،\n\nحان وقت دواء {{time_of_day}}:\n\n{{#each medications}}\n• {{name}} - {{dosage}}\n{{/each}}\n\n*هل أخذت دواءك؟*\n✅ رد بـ نعم عند الانتهاء\n❌ رد بـ لا إذا فاتك\n\nالالتزام بدوائك يساعد في إدارة {{condition}}! 💪",
+    "care_plan_update_en": "📋 *Care Plan Update*\n\nHi {{patient_name}},\n\nBased on your recent readings and check-ins, Dr. {{doctor_name}} has updated your care plan:\n\n*Changes:*\n{{care_plan_changes}}\n\n*Goals for Next Month:*\n{{monthly_goals}}\n\n*Questions about your care plan?*\nReply QUESTION or call {{clinic_phone}}\n\nYou're doing great - keep it up! 💙",
+    "care_plan_update_ar": "📋 *تحديث خطة الرعاية*\n\nمرحباً {{patient_name}}،\n\nبناءً على قراءاتك ومتابعاتك الأخيرة، قام د. {{doctor_name}} بتحديث خطة رعايتك:\n\n*التغييرات:*\n{{care_plan_changes}}\n\n*أهداف الشهر القادم:*\n{{monthly_goals}}\n\n*أسئلة عن خطة رعايتك؟*\nرد بـ سؤال أو اتصل على {{clinic_phone}}\n\nأنت تبلي حسناً - استمر! 💙",
+    "staff_urgent_alert_en": "🚨 *URGENT: Patient Alert*\n\n*Patient:* {{patient_name}}\n*Condition:* {{condition}}\n*Phone:* {{patient_phone}}\n\n*Alert Type:* {{alert_type}}\n*Details:* {{alert_details}}\n\n*Vital Reading:* {{reading_value}} (Target: {{target_range}})\n\n*IMMEDIATE ACTION REQUIRED*\nCall patient within 30 minutes.",
+    "staff_abnormal_vitals_en": "⚠️ *Abnormal Vital Reading*\n\n*Patient:* {{patient_name}}\n*Condition:* {{condition}}\n*Phone:* {{patient_phone}}\n\n*Reading:* {{reading_type}}: {{reading_value}}\n*Target Range:* {{target_range}}\n*Deviation:* {{deviation}}\n\n*Trend:* {{trend_analysis}}\n\n*Action:* Review and follow up within 24 hours"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Weekly Check-in Scheduler",
+        "name_ar": "مجدول المتابعة الأسبوعية",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 10 * * 0",
+            "description": "Weekly check-in on Sunday",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Get Chronic Care Patients",
+        "name_ar": "الحصول على مرضى الرعاية المزمنة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "read",
+          "params": {
+            "spreadsheet_id": "{{chronic_care_sheet}}",
+            "range": "Patients!A:O",
+            "filter": "status = 'active'"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Weekly Check-in",
+        "name_ar": "إرسال المتابعة الأسبوعية",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.weekly_checkin_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Handle Check-in Response",
+        "name_ar": "معالجة رد المتابعة",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "1|2|3|4"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Request Vitals - Diabetes",
+        "name_ar": "طلب العلامات الحيوية - سكري",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.vitals_request_diabetes_{{patient_language}}}}",
+            "condition": "condition = 'diabetes' AND track_vitals = true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Request Vitals - Hypertension",
+        "name_ar": "طلب العلامات الحيوية - ضغط",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.vitals_request_hypertension_{{patient_language}}}}",
+            "condition": "condition = 'hypertension' AND track_vitals = true"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Receive Vital Reading",
+        "name_ar": "استلام قراءة العلامات الحيوية",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "vital_reading_pattern"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Log Vital Reading",
+        "name_ar": "تسجيل قراءة العلامات الحيوية",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{vitals_log_sheet}}",
+            "range": "Readings!A:H",
+            "values": [["{{timestamp}}", "{{patient_id}}", "{{reading_type}}", "{{reading_value}}", "{{target_range}}", "{{deviation}}", "{{status}}", "{{notes}}"]]
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Send Reading Confirmation",
+        "name_ar": "إرسال تأكيد القراءة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.vitals_recorded_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Alert Staff - Urgent",
+        "name_ar": "تنبيه الموظفين - عاجل",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#chronic-care-urgent",
+            "message": "{{messages.staff_urgent_alert_en}}",
+            "condition": "response = 4"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Alert Staff - Abnormal Vitals",
+        "name_ar": "تنبيه الموظفين - علامات غير طبيعية",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#chronic-care-alerts",
+            "message": "{{messages.staff_abnormal_vitals_en}}",
+            "condition": "alert_abnormal_vitals = true AND status = 'abnormal'"
+          }
+        }
+      },
+      {
+        "id": "task_12",
+        "name": "Daily Medication Reminder",
+        "name_ar": "تذكير يومي بالأدوية",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 8,20 * * *",
+            "description": "Morning and evening medication reminders",
+            "timezone": "{{timezone}}",
+            "condition": "medication_reminders = true"
+          }
+        }
+      },
+      {
+        "id": "task_13",
+        "name": "Send Medication Reminder",
+        "name_ar": "إرسال تذكير بالدواء",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_12"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.medication_reminder_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_14",
+        "name": "Log Check-in",
+        "name_ar": "تسجيل المتابعة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{chronic_care_sheet}}",
+            "range": "CheckIns!A:F",
+            "values": [["{{timestamp}}", "{{patient_id}}", "{{response}}", "{{mood}}", "{{notes}}", "{{follow_up_needed}}"]]
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlesheets", "whatsapp", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "check_in_frequency_days",
+      "question": "How often should automated check-ins be sent?",
+      "question_ar": "كم مرة يجب إرسال المتابعات الآلية؟",
+      "type": "number",
+      "default": 7
+    },
+    {
+      "id": "track_vitals",
+      "question": "Allow patients to report vital signs via WhatsApp?",
+      "question_ar": "السماح للمرضى بالإبلاغ عن العلامات الحيوية عبر واتساب؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "alert_abnormal_vitals",
+      "question": "Alert staff for abnormal vital readings?",
+      "question_ar": "تنبيه الموظفين للقراءات الحيوية غير الطبيعية؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "medication_reminders",
+      "question": "Send daily medication reminders?",
+      "question_ar": "إرسال تذكيرات يومية بالأدوية؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "diabetesPrevalence": "High (25%+)",
+      "hypertensionPrevalence": "High"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "diabetesPrevalence": "High (24%+)",
+      "hypertensionPrevalence": "High"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "diabetesPrevalence": "High (19%+)",
+      "hypertensionPrevalence": "High"
+    }
+  }
+}

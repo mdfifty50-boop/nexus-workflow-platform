@@ -2,12 +2,18 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { initErrorTracking, setUserId } from '@/lib/errorTracking'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { userPreferencesService } from '@/services'
+
+// Initialize theme immediately on app load (before first paint)
+userPreferencesService.initializeTheme()
 import { SubscriptionProvider, SubscriptionWarningBanner } from '@/contexts/SubscriptionContext'
 import { PersonalizationProvider } from '@/contexts/PersonalizationContext'
 import { WorkflowProvider } from '@/contexts/WorkflowContext'
 import { WorkflowChatProvider } from '@/contexts/WorkflowChatContext'
 import { ToastProvider } from '@/components/Toast'
 import { GlobalConfetti } from '@/components/GlobalConfetti'
+import { AchievementsProvider } from '@/contexts/AchievementsContext'
+import { AchievementNotification } from '@/components/AchievementNotification'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import {
   BaseErrorBoundary,
@@ -118,7 +124,20 @@ const OnboardingNew = lazy(() => import('@/pages/OnboardingNew').then(m => ({ de
 // =============================================================================
 const MeetingRoomDemo = lazy(() => import('@/pages/MeetingRoomDemo'))
 const VoiceDemo = lazy(() => import('@/pages/VoiceDemo'))
+const AvatarDemo = lazy(() => import('@/pages/AvatarDemo'))
 const ChatDemo = lazy(() => import('@/pages/ChatDemo'))
+const MobileChat = lazy(() => import('@/pages/Chat'))
+
+// =============================================================================
+// WHATSAPP BUSINESS PAGES - AiSensy Integration
+// =============================================================================
+const WhatsApp = lazy(() => import('@/pages/WhatsApp').then(m => ({ default: m.WhatsApp })))
+const WhatsAppInbox = lazy(() => import('@/pages/whatsapp/Inbox').then(m => ({ default: m.WhatsAppInbox })))
+const WhatsAppBroadcasts = lazy(() => import('@/pages/whatsapp/Broadcasts').then(m => ({ default: m.WhatsAppBroadcasts })))
+const WhatsAppContacts = lazy(() => import('@/pages/whatsapp/Contacts').then(m => ({ default: m.WhatsAppContacts })))
+const WhatsAppChatbots = lazy(() => import('@/pages/whatsapp/Chatbots').then(m => ({ default: m.WhatsAppChatbots })))
+const WhatsAppAnalytics = lazy(() => import('@/pages/whatsapp/Analytics').then(m => ({ default: m.WhatsAppAnalytics })))
+const WhatsAppCatalogue = lazy(() => import('@/pages/whatsapp/Catalogue').then(m => ({ default: m.WhatsAppCatalogue })))
 
 // =============================================================================
 // ERROR PAGES
@@ -220,9 +239,36 @@ function RouteLoadingFallback() {
   )
 }
 
+// Simple test component to verify React rendering
+function TestButton() {
+  console.log('[TestButton] Rendering!')
+  return (
+    <button
+      onClick={() => alert('Test button works!')}
+      style={{
+        position: 'fixed',
+        bottom: '20px',
+        left: '20px',
+        zIndex: 99999,
+        padding: '10px 20px',
+        background: 'red',
+        color: 'white',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer'
+      }}
+    >
+      TEST BUTTON
+    </button>
+  )
+}
+
 function App() {
   return (
-    <BrowserRouter>
+    <>
+      {/* Test components OUTSIDE BrowserRouter */}
+      <TestButton />
+      <BrowserRouter>
       <AuthProvider>
         <ErrorTrackingUserSync />
         <SubscriptionProvider>
@@ -230,6 +276,8 @@ function App() {
           <WorkflowChatProvider>
           <PersonalizationProvider>
           <ToastProvider>
+          <AchievementsProvider>
+          <AchievementNotification />
           <GlobalConfetti />
           <NetworkStatusBanner />
           <SubscriptionWarningBanner />
@@ -237,12 +285,15 @@ function App() {
           <AITeamChatButton />
           {/* Global chatbot available on ALL pages */}
           <SmartAIChatbot position="bottom-right" />
+          {/* 3D Avatar moved to top of App for debugging */}
           <BaseErrorBoundary variant="full-page" severity="critical">
           <Suspense fallback={<RouteLoadingFallback />}>
           <PageTransition type="fade" duration={300}>
           <Routes>
-          {/* Chat route - main Nexus chat interface */}
-          <Route path="/chat" element={<ChatDemo />} />
+          {/* Chat route - main Nexus chat interface (mobile-first design) */}
+          <Route path="/chat" element={<MobileChat />} />
+          {/* Legacy chat demo with sidebar */}
+          <Route path="/chat-legacy" element={<ChatDemo />} />
 
           {/* Landing page - lazy loaded for smaller initial bundle */}
           <Route path="/" element={<LandingPage />} />
@@ -416,6 +467,7 @@ function App() {
           <Route path="/try" element={<Try />} />
           <Route path="/meeting-room-demo" element={<MeetingRoomDemo />} />
           <Route path="/voice-demo" element={<VoiceDemo />} />
+          <Route path="/avatar-demo" element={<AvatarDemo />} />
           {/* Original ChatDemo route moved above */}
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
@@ -478,6 +530,64 @@ function App() {
             }
           />
 
+          {/* WhatsApp Business Routes - AiSensy Integration */}
+          <Route
+            path="/whatsapp"
+            element={
+              <ProtectedRoute>
+                <WhatsApp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/inbox"
+            element={
+              <ProtectedRoute>
+                <WhatsAppInbox />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/broadcasts"
+            element={
+              <ProtectedRoute>
+                <WhatsAppBroadcasts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/contacts"
+            element={
+              <ProtectedRoute>
+                <WhatsAppContacts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/chatbots"
+            element={
+              <ProtectedRoute>
+                <WhatsAppChatbots />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/analytics"
+            element={
+              <ProtectedRoute>
+                <WhatsAppAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/whatsapp/catalogue"
+            element={
+              <ProtectedRoute>
+                <WhatsAppCatalogue />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Redirects for legacy routes */}
           <Route path="/agents" element={<Navigate to="/dashboard" replace />} />
           <Route path="/history" element={<Navigate to="/workflows" replace />} />
@@ -488,6 +598,7 @@ function App() {
           </PageTransition>
           </Suspense>
           </BaseErrorBoundary>
+          </AchievementsProvider>
           </ToastProvider>
           </PersonalizationProvider>
           </WorkflowChatProvider>
@@ -495,6 +606,7 @@ function App() {
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>
+    </>
   )
 }
 

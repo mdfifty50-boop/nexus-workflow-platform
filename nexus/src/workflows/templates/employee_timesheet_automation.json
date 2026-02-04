@@ -1,0 +1,299 @@
+{
+  "id": "employee_timesheet_automation",
+  "name": "Employee Timesheet Automation",
+  "name_ar": "أتمتة جدول دوام الموظفين",
+  "description": "Automate employee time tracking with clock-in/clock-out via WhatsApp or app. Calculate hours, overtime, and generate payroll-ready reports. Reduce timesheet fraud and manual processing.",
+  "description_ar": "أتمتة تتبع وقت الموظفين مع تسجيل الحضور والانصراف عبر واتساب أو التطبيق. حساب الساعات والعمل الإضافي وإنشاء تقارير جاهزة للرواتب. تقليل تزوير الحضور والمعالجة اليدوية.",
+  "domain": "sme",
+  "roiTier": 1,
+  "annualValue": "$15,000/year",
+  "requiredIntegrations": ["whatsapp", "googlesheets"],
+  "optionalIntegrations": ["slack", "gmail", "googlecalendar"],
+  "exampleUserInput": "Track employee hours and generate timesheets automatically",
+  "exampleUserInput_ar": "تتبع ساعات الموظفين وإنشاء جداول الدوام تلقائياً",
+  "keywords": ["timesheet", "attendance", "clock in", "hours", "overtime", "payroll", "employee", "دوام", "حضور", "ساعات", "عمل إضافي", "رواتب", "موظف"],
+  "dynamicParameters": {
+    "clock_method": {
+      "type": "select",
+      "options": ["whatsapp", "slack", "both"],
+      "default": "whatsapp",
+      "label": "Clock in/out method",
+      "label_ar": "طريقة تسجيل الحضور والانصراف"
+    },
+    "require_location": {
+      "type": "boolean",
+      "default": false,
+      "label": "Require location for clock-in",
+      "label_ar": "يتطلب الموقع لتسجيل الحضور"
+    },
+    "overtime_threshold": {
+      "type": "number",
+      "default": 8,
+      "label": "Daily hours before overtime",
+      "label_ar": "الساعات اليومية قبل العمل الإضافي"
+    },
+    "late_threshold_minutes": {
+      "type": "number",
+      "default": 15,
+      "label": "Minutes after shift start to mark late",
+      "label_ar": "دقائق بعد بداية الوردية للتأخير"
+    },
+    "weekly_report": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send weekly timesheet reports",
+      "label_ar": "إرسال تقارير الدوام الأسبوعية"
+    }
+  },
+  "messages": {
+    "clock_in_prompt_en": "Good morning! 🌅\n\nReady to start your day?\n\nReply \"IN\" to clock in.\n\n{{#if require_location}}📍 Please share your location with your reply.{{/if}}",
+    "clock_in_prompt_ar": "صباح الخير! 🌅\n\nجاهز لبدء يومك؟\n\nرد بـ \"IN\" لتسجيل الحضور.\n\n{{#if require_location}}📍 يرجى مشاركة موقعك مع ردك.{{/if}}",
+    "clock_in_confirmed_en": "✅ *Clocked In*\n\nEmployee: {{employee_name}}\nTime: {{clock_in_time}}\n{{#if location}}Location: {{location}}{{/if}}\n\n{{#if late}}⚠️ Late by {{late_minutes}} minutes{{/if}}\n\nHave a productive day!",
+    "clock_in_confirmed_ar": "✅ *تم تسجيل الحضور*\n\nالموظف: {{employee_name}}\nالوقت: {{clock_in_time}}\n{{#if location}}الموقع: {{location}}{{/if}}\n\n{{#if late}}⚠️ متأخر {{late_minutes}} دقيقة{{/if}}\n\nيوم منتج!",
+    "clock_out_prompt_en": "End of shift approaching! 🌙\n\nReply \"OUT\" to clock out when you're done.",
+    "clock_out_prompt_ar": "نهاية الوردية تقترب! 🌙\n\nرد بـ \"OUT\" لتسجيل الانصراف عند الانتهاء.",
+    "clock_out_confirmed_en": "✅ *Clocked Out*\n\nEmployee: {{employee_name}}\nTime: {{clock_out_time}}\n\n*Today's Summary:*\nWorked: {{hours_worked}}h {{minutes_worked}}m\n{{#if overtime}}Overtime: {{overtime_hours}}h{{/if}}\n\nGreat work today! 👏",
+    "clock_out_confirmed_ar": "✅ *تم تسجيل الانصراف*\n\nالموظف: {{employee_name}}\nالوقت: {{clock_out_time}}\n\n*ملخص اليوم:*\nالعمل: {{hours_worked}}س {{minutes_worked}}د\n{{#if overtime}}عمل إضافي: {{overtime_hours}}س{{/if}}\n\nعمل رائع اليوم! 👏",
+    "weekly_report_en": "📊 *Weekly Timesheet Report*\n\nEmployee: {{employee_name}}\nPeriod: {{week_start}} - {{week_end}}\n\n*Daily Breakdown:*\n{{#each days}}\n{{day}}: {{hours}}h {{#if late}}(Late: {{late_min}}m){{/if}}\n{{/each}}\n\n*Totals:*\nRegular Hours: {{total_regular}}h\nOvertime: {{total_overtime}}h\nLate Instances: {{late_count}}\nAbsences: {{absence_count}}\n\n{{#if notes}}Notes: {{notes}}{{/if}}",
+    "weekly_report_ar": "📊 *تقرير الدوام الأسبوعي*\n\nالموظف: {{employee_name}}\nالفترة: {{week_start}} - {{week_end}}\n\n*تفصيل يومي:*\n{{#each days}}\n{{day}}: {{hours}}س {{#if late}}(تأخير: {{late_min}}د){{/if}}\n{{/each}}\n\n*الإجماليات:*\nساعات عادية: {{total_regular}}س\nعمل إضافي: {{total_overtime}}س\nحالات التأخير: {{late_count}}\nالغياب: {{absence_count}}\n\n{{#if notes}}ملاحظات: {{notes}}{{/if}}",
+    "manager_summary_en": "📋 *Team Timesheet Summary - Week {{week_number}}*\n\n*Team Total Hours:* {{total_hours}}h\n*Average Daily:* {{avg_daily}}h\n*Total Overtime:* {{total_overtime}}h\n\n*Attendance Issues:*\n{{#each issues}}\n• {{employee}}: {{issue}}\n{{/each}}\n\n*Top Performers:*\n{{#each top}}\n• {{employee}}: {{hours}}h\n{{/each}}",
+    "missing_clock_alert_en": "⚠️ *Missing Clock Out Alert*\n\nEmployee: {{employee_name}}\nClocked in: {{clock_in_time}}\nExpected out: {{expected_out}}\n\nStill clocked in after {{hours_elapsed}} hours.\n\nPlease verify and adjust if needed."
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Morning Clock-In Reminder",
+        "name_ar": "تذكير الحضور الصباحي",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 {{shift_start_hour}} * * {{work_days}}",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Send Clock-In Prompt",
+        "name_ar": "إرسال طلب الحضور",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "batch_send",
+          "params": {
+            "recipients": "{{employee_phones}}",
+            "message": "{{messages.clock_in_prompt_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Receive Clock-In",
+        "name_ar": "استلام الحضور",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "IN"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Process Clock-In",
+        "name_ar": "معالجة الحضور",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "process",
+          "params": {
+            "phone": "{{task_3.from}}",
+            "time": "{{current_time}}",
+            "location": "{{task_3.location}}",
+            "calculate_late": true,
+            "late_threshold": "{{late_threshold_minutes}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Log Clock-In",
+        "name_ar": "تسجيل الحضور",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_ROW",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{timesheet_sheet}}",
+            "values": [
+              "{{current_date}}",
+              "{{task_4.employee_name}}",
+              "{{task_4.clock_in_time}}",
+              "",
+              "",
+              "{{task_4.late_status}}",
+              "{{task_4.location}}"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Confirm Clock-In",
+        "name_ar": "تأكيد الحضور",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_5"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_3.from}}",
+            "message": "{{messages.clock_in_confirmed_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Receive Clock-Out",
+        "name_ar": "استلام الانصراف",
+        "type": "trigger",
+        "integrationId": "whatsapp",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "WHATSAPP_MESSAGE_RECEIVED",
+          "action": "webhook",
+          "params": {
+            "filter": "OUT"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Process Clock-Out",
+        "name_ar": "معالجة الانصراف",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "process",
+          "params": {
+            "phone": "{{task_7.from}}",
+            "time": "{{current_time}}",
+            "calculate_hours": true,
+            "overtime_threshold": "{{overtime_threshold}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Update Timesheet",
+        "name_ar": "تحديث جدول الدوام",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_8"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_UPDATE_VALUES",
+          "action": "update",
+          "params": {
+            "spreadsheet_id": "{{timesheet_sheet}}",
+            "range": "{{task_8.row_range}}",
+            "values": [
+              ["{{task_8.clock_out_time}}", "{{task_8.total_hours}}", "{{task_8.overtime}}"]
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Confirm Clock-Out",
+        "name_ar": "تأكيد الانصراف",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{task_7.from}}",
+            "message": "{{messages.clock_out_confirmed_{{language}}}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["whatsapp", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "clock_method",
+      "question": "How should employees clock in/out?",
+      "question_ar": "كيف يجب على الموظفين تسجيل الحضور والانصراف؟",
+      "type": "select",
+      "options": [
+        {"value": "whatsapp", "label": "WhatsApp (Recommended)"},
+        {"value": "slack", "label": "Slack"},
+        {"value": "both", "label": "Both / كلاهما"}
+      ],
+      "default": "whatsapp"
+    },
+    {
+      "id": "require_location",
+      "question": "Require GPS location when clocking in?",
+      "question_ar": "يتطلب موقع GPS عند تسجيل الحضور؟",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "id": "overtime_threshold",
+      "question": "Hours per day before overtime starts?",
+      "question_ar": "ساعات في اليوم قبل بدء العمل الإضافي؟",
+      "type": "number",
+      "default": 8
+    },
+    {
+      "id": "weekly_report",
+      "question": "Send weekly timesheet reports?",
+      "question_ar": "إرسال تقارير الدوام الأسبوعية؟",
+      "type": "boolean",
+      "default": true
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "standardHours": 8,
+      "overtimeRate": 1.25,
+      "defaultLanguage": "bilingual"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "standardHours": 8,
+      "overtimeRate": 1.5,
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "standardHours": 8,
+      "overtimeRate": 1.25,
+      "defaultLanguage": "english"
+    }
+  }
+}

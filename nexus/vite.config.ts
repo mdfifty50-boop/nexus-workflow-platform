@@ -52,8 +52,27 @@ export default defineConfig({
           if (id.includes('node_modules/dompurify')) {
             return 'vendor-sanitize'
           }
-          // All other node_modules go into main vendor chunk
-          // This avoids circular dependency issues with React
+          // Animation libraries
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/@motionone')) {
+            return 'vendor-animation'
+          }
+          // Icon library
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons'
+          }
+          // Date libraries
+          if (id.includes('node_modules/date-fns') || id.includes('node_modules/dayjs')) {
+            return 'vendor-dates'
+          }
+          // Radix UI components
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'vendor-radix'
+          }
+          // React core (react + react-dom + react-router)
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router')) {
+            return 'vendor-react'
+          }
+          // All other node_modules
           if (id.includes('node_modules')) {
             return 'vendor'
           }
@@ -71,24 +90,43 @@ export default defineConfig({
   server: {
     // Security headers for dev server
     headers: securityHeaders,
-    // CORS configuration - explicit origins only (no wildcards)
+    // CORS configuration - environment-aware origins
+    // PRODUCTION FIX: Uses APP_URL in production, localhost in development
     cors: {
-      origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://127.0.0.1:5173'],
+      origin: process.env.NODE_ENV === 'production'
+        ? [
+            process.env.VITE_APP_URL || 'https://nexus.yourdomain.com',
+            process.env.APP_URL || 'https://nexus.yourdomain.com',
+          ].filter(Boolean)
+        : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://127.0.0.1:5173'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:4567',
+        target: process.env.API_SERVER_URL || 'http://localhost:4567',
         changeOrigin: true,
       },
+    },
+    // Allow ngrok tunnels for remote testing (production domains added dynamically)
+    allowedHosts: [
+      'localhost',
+      '.ngrok-free.dev',
+      '.ngrok.io',
+      ...(process.env.ALLOWED_HOSTS ? process.env.ALLOWED_HOSTS.split(',') : []),
+    ],
+    // Exclude WhatsApp sessions folder from file watching to prevent constant reloads
+    watch: {
+      ignored: ['**/.whatsapp-sessions/**'],
     },
   },
   // Preview server (for production builds served locally)
   preview: {
     headers: securityHeaders,
     cors: {
-      origin: ['http://localhost:4173', 'http://127.0.0.1:4173'],
+      origin: process.env.NODE_ENV === 'production'
+        ? [process.env.VITE_APP_URL, process.env.APP_URL].filter(Boolean) as string[]
+        : ['http://localhost:4173', 'http://127.0.0.1:4173'],
       credentials: true,
     },
   },

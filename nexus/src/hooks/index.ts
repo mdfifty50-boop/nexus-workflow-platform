@@ -263,3 +263,12 @@ export {
   type TrialNotifications,
   type UseTrialReturn
 } from './useTrial'
+
+// AI Suggestions hooks (Quality-First AI Recommendations)
+export {
+  useAISuggestions,
+  type AISuggestion,
+  type SuggestionStats,
+  type UserIntelligence,
+  type DetectedPattern
+} from './useAISuggestions'

@@ -1,0 +1,222 @@
+{
+  "id": "after_hours_lead_response",
+  "name": "After-Hours Lead Response",
+  "name_ar": "الرد على العملاء المحتملين خارج ساعات العمل",
+  "description": "Automatically respond to potential client inquiries received outside business hours, log them in your CRM, and schedule follow-up calls for the next business day. Never lose a lead due to delayed response.",
+  "description_ar": "الرد تلقائياً على استفسارات العملاء المحتملين الواردة خارج ساعات العمل، تسجيلها في CRM، وجدولة مكالمات متابعة لليوم التالي. لا تفقد أي عميل بسبب تأخر الرد.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$36,000/year",
+  "requiredIntegrations": ["gmail", "hubspot", "googlecalendar"],
+  "optionalIntegrations": ["whatsapp", "slack", "twilio"],
+  "exampleUserInput": "Respond to leads automatically when I'm not in the office",
+  "exampleUserInput_ar": "أرد على العملاء المحتملين تلقائياً عندما لا أكون في المكتب",
+  "keywords": ["lead", "after hours", "out of office", "auto reply", "automatic response", "new client", "inquiry", "CRM", "عميل محتمل", "خارج الدوام", "رد تلقائي", "استفسار"],
+  "dynamicParameters": {
+    "business_hours_start": {
+      "type": "string",
+      "default": "09:00",
+      "label": "Business hours start",
+      "label_ar": "بداية ساعات العمل",
+      "required": true
+    },
+    "business_hours_end": {
+      "type": "string",
+      "default": "17:00",
+      "label": "Business hours end",
+      "label_ar": "نهاية ساعات العمل",
+      "required": true
+    },
+    "auto_reply_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send automatic email response",
+      "label_ar": "إرسال رد بريد إلكتروني تلقائي"
+    },
+    "whatsapp_reply_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send WhatsApp auto-reply",
+      "label_ar": "إرسال رد واتساب تلقائي"
+    },
+    "schedule_callback": {
+      "type": "boolean",
+      "default": true,
+      "label": "Auto-schedule callback for next business day",
+      "label_ar": "جدولة مكالمة تلقائية لليوم التالي"
+    },
+    "language": {
+      "type": "select",
+      "options": ["english", "arabic", "bilingual"],
+      "default": "bilingual",
+      "label": "Response Language",
+      "label_ar": "لغة الرد"
+    }
+  },
+  "messages": {
+    "email_reply_en": "Thank you for contacting {{firm_name}}.\n\nWe received your inquiry and appreciate you reaching out. Our office is currently closed, but we take every potential client seriously.\n\nOne of our attorneys will contact you on the next business day. If your matter is urgent, please call {{emergency_number}}.\n\nBest regards,\n{{firm_name}}",
+    "email_reply_ar": "شكراً لتواصلك مع {{firm_name}}.\n\nاستلمنا استفسارك ونقدر تواصلك معنا. مكتبنا مغلق حالياً، لكننا نأخذ كل عميل محتمل بجدية.\n\nسيتواصل معك أحد محامينا في يوم العمل التالي. إذا كان الأمر عاجلاً، يرجى الاتصال على {{emergency_number}}.\n\nمع أطيب التحيات،\n{{firm_name}}",
+    "email_reply_bilingual": "Thank you for contacting {{firm_name}} / شكراً لتواصلك مع {{firm_name}}\n\nWe received your inquiry / استلمنا استفسارك\n\nOur office is currently closed, but we will contact you on the next business day.\nمكتبنا مغلق حالياً، لكننا سنتواصل معك في يوم العمل التالي.\n\nUrgent? / عاجل؟ {{emergency_number}}\n\n{{firm_name}}",
+    "whatsapp_reply_en": "Hi! Thank you for reaching out to {{firm_name}}. 👋\n\nOur office is currently closed ({{business_hours}}).\n\nWe've logged your message and one of our team will contact you first thing tomorrow.\n\nUrgent legal matter? Call {{emergency_number}}\n\nThank you for your patience!",
+    "whatsapp_reply_ar": "مرحباً! شكراً لتواصلك مع {{firm_name}}. 👋\n\nمكتبنا مغلق حالياً ({{business_hours}}).\n\nتم تسجيل رسالتك وسيتواصل معك أحد فريقنا في بداية يوم العمل.\n\nمسألة قانونية عاجلة؟ اتصل على {{emergency_number}}\n\nشكراً لصبرك!",
+    "slack_notification": "🌙 *After-Hours Lead Received*\n\nFrom: {{lead_email}}\nTime: {{received_time}}\nSubject: {{email_subject}}\n\nPreview: {{email_preview}}\n\n✅ Auto-reply sent\n📅 Callback scheduled for {{next_business_day}} 9:00 AM"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Email Received (After Hours)",
+        "name_ar": "استلام بريد إلكتروني (خارج الدوام)",
+        "type": "trigger",
+        "integrationId": "gmail",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GMAIL_NEW_EMAIL",
+          "action": "webhook",
+          "params": {
+            "filter": "is:unread",
+            "condition": "received_outside_business_hours"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Check if Outside Business Hours",
+        "name_ar": "التحقق من كون الوقت خارج ساعات العمل",
+        "type": "condition",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_CONDITION",
+          "action": "check",
+          "params": {
+            "condition": "!isWithinBusinessHours({{timezone}}, {{business_hours_start}}, {{business_hours_end}})"
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Create/Update HubSpot Contact",
+        "name_ar": "إنشاء/تحديث جهة اتصال HubSpot",
+        "type": "action",
+        "integrationId": "hubspot",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "HUBSPOT_CREATE_CONTACT",
+          "action": "upsert",
+          "params": {
+            "properties": {
+              "email": "{{task_1.from}}",
+              "lead_source": "Email - After Hours",
+              "first_contact_date": "{{current_datetime}}",
+              "inquiry_subject": "{{task_1.subject}}",
+              "lead_status": "New - Pending Callback"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Send Auto-Reply Email",
+        "name_ar": "إرسال رد بريد إلكتروني تلقائي",
+        "type": "action",
+        "integrationId": "gmail",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GMAIL_SEND_EMAIL",
+          "action": "send",
+          "params": {
+            "to": "{{task_1.from}}",
+            "subject": "Re: {{task_1.subject}} - We Received Your Message",
+            "body": "{{messages.email_reply_{{language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Schedule Callback Event",
+        "name_ar": "جدولة حدث المكالمة",
+        "type": "action",
+        "integrationId": "googlecalendar",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_CREATE_EVENT",
+          "action": "create",
+          "params": {
+            "title": "📞 Callback: {{task_1.from_name}} (After-Hours Lead)",
+            "start_time": "{{next_business_day}} 09:00",
+            "duration": "30 minutes",
+            "description": "After-hours inquiry received at {{task_1.received_time}}\n\nSubject: {{task_1.subject}}\n\nOriginal message:\n{{task_1.body_preview}}",
+            "condition": "schedule_callback === true"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Notify Team on Slack",
+        "name_ar": "إشعار الفريق على Slack",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#leads",
+            "message": "{{messages.slack_notification}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["gmail", "hubspot", "googlecalendar"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "business_hours",
+      "question": "What are your office hours?",
+      "question_ar": "ما هي ساعات عمل مكتبك؟",
+      "type": "time_range",
+      "default": {"start": "09:00", "end": "17:00"}
+    },
+    {
+      "id": "emergency_number",
+      "question": "What's your emergency contact number?",
+      "question_ar": "ما هو رقم الطوارئ؟",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "id": "language",
+      "question": "What language should auto-replies be in?",
+      "question_ar": "بأي لغة يجب إرسال الردود التلقائية؟",
+      "type": "select",
+      "options": [
+        {"value": "english", "label": "English"},
+        {"value": "arabic", "label": "العربية"},
+        {"value": "bilingual", "label": "Both / كلاهما"}
+      ],
+      "default": "bilingual"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "bilingual",
+      "emergencyNote": "For urgent matters, please contact Kuwait Bar Association emergency line"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "businessHours": {"start": "08:00", "end": "17:00"},
+      "defaultLanguage": "arabic"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "businessHours": {"start": "09:00", "end": "18:00"},
+      "defaultLanguage": "english"
+    }
+  }
+}

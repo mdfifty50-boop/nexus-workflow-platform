@@ -23,7 +23,9 @@ import {
   ArrowRight,
   Sparkles,
   RefreshCw,
+  Pencil,
 } from 'lucide-react'
+import { NodeEditPanel } from './NodeEditPanel'
 import {
   getIntegrationInfo,
   getRequiredIntegrations,
@@ -47,6 +49,9 @@ import type { ConnectionStatus as _ConnectionStatus } from '@/services/OAuthCont
 // NOTE: These imports are for Phase 3 integration - uncomment when UI integration is complete
 // import { UnsupportedToolCard } from './UnsupportedToolCard'
 // import { ParameterCollectionPanel, type MissingParam, type CollectedParam } from './ParameterCollectionPanel'
+
+// @NEXUS-WHATSAPP: WhatsApp connection prompt for workflows with WhatsApp nodes
+import { WhatsAppConnectionPrompt } from './WhatsAppConnectionPrompt'
 
 // @NEXUS-GENERIC-ORCHESTRATION: 5-Layer Generic Orchestration System
 // Enables Nexus to work with ANY of Rube's 500+ tools without hardcoding
@@ -219,6 +224,104 @@ interface MissingInfoItem {
   field: string
 }
 
+// @NEXUS-FIX-103: Semantic parameter aliases for deduplication - DO NOT REMOVE
+// Maps different param names that mean the same thing
+const PARAM_ALIASES: Record<string, string[]> = {
+  // Text/message content - all these mean "the content to send"
+  text: ['message', 'content', 'body', 'notification_details', 'notification_content', 'message_text', 'email_body'],
+  message: ['text', 'content', 'body', 'notification_details', 'notification_content', 'message_text'],
+  body: ['text', 'message', 'content', 'email_body', 'notification_details'],
+  content: ['text', 'message', 'body', 'notification_content'],
+
+  // Recipients - all these mean "who to send to"
+  to: ['recipient', 'recipient_email', 'email_to', 'send_to', 'email_address', 'to_email'],
+  recipient: ['to', 'recipient_email', 'email_to', 'send_to', 'email_address'],
+  channel: ['slack_channel', 'channel_name', 'channel_id', 'slack_channel_id'],
+
+  // Identifiers - all these mean "which resource"
+  spreadsheet_id: ['sheet_id', 'google_sheet', 'spreadsheet_url', 'sheet_url', 'googlesheets_spreadsheet_id'],
+  list_id: ['clickup_list', 'list', 'trello_list'],
+  task_id: ['clickup_task', 'task', 'task_identifier'],
+  board_id: ['trello_board', 'monday_board', 'board'],
+  project_id: ['asana_project', 'project', 'project_key'],
+
+  // Phone numbers
+  phone: ['phone_number', 'to', 'recipient_phone', 'whatsapp_number', 'mobile'],
+  phone_number: ['phone', 'to', 'recipient_phone', 'mobile'],
+
+  // Names/Titles
+  name: ['title', 'subject', 'summary', 'task_name', 'item_name'],
+  title: ['name', 'subject', 'summary', 'event_title'],
+  subject: ['title', 'name', 'email_subject'],
+
+  // @NEXUS-FIX-109: File/folder paths - all these mean "where to store/access" - DO NOT REMOVE
+  // FIX-109b: Added dropbox_folder to path AND dropbox_path to folder for full bidirectional mapping
+  path: ['folder', 'folder_path', 'directory', 'dropbox_path', 'dropbox_folder', 'file_path', 'location', 'destination'],
+  folder: ['path', 'folder_path', 'directory', 'dropbox_folder', 'dropbox_path', 'destination'],
+}
+
+// @NEXUS-FIX-103: Check if a param is semantically already collected via aliases
+// @NEXUS-FIX-107: Normalize spaces to underscores for proper alias matching - DO NOT REMOVE
+function isParamSemanticallycollected(paramName: string, collectedParams: Record<string, string>): boolean {
+  // FIX-107: Normalize spaces to underscores (e.g., "slack channel" → "slack_channel")
+  const lowerParam = paramName.toLowerCase().replace(/\s+/g, '_')
+
+  // Direct match first (check both original and normalized)
+  if (collectedParams[paramName] !== undefined && collectedParams[paramName] !== '') {
+    return true
+  }
+  // Also check with spaces converted to spaces (for collected params like "slack channel")
+  const normalizedParam = paramName.replace(/\s+/g, '_')
+  if (collectedParams[normalizedParam] !== undefined && collectedParams[normalizedParam] !== '') {
+    return true
+  }
+
+  // Check aliases
+  const aliases = PARAM_ALIASES[lowerParam] || []
+  for (const alias of aliases) {
+    // Check direct alias
+    if (collectedParams[alias] !== undefined && collectedParams[alias] !== '') {
+      return true
+    }
+    // Check with common prefixes (e.g., gmail_to, slack_channel)
+    for (const key of Object.keys(collectedParams)) {
+      const keyLower = key.toLowerCase()
+      if (keyLower.endsWith(`_${alias}`) || keyLower.endsWith(`_${lowerParam}`)) {
+        if (collectedParams[key] !== undefined && collectedParams[key] !== '') {
+          return true
+        }
+      }
+    }
+  }
+
+  // Also check if this param is an alias of something already collected
+  for (const [canonical, aliasList] of Object.entries(PARAM_ALIASES)) {
+    if (aliasList.includes(lowerParam)) {
+      if (collectedParams[canonical] !== undefined && collectedParams[canonical] !== '') {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+// @NEXUS-FIX-103: Get the canonical name for a param (for deduplication grouping)
+// @NEXUS-FIX-107: Normalize spaces to underscores for proper alias matching - DO NOT REMOVE
+function getCanonicalParamName(paramName: string): string {
+  // FIX-107: Normalize spaces to underscores (e.g., "slack channel" → "slack_channel")
+  const lowerParam = paramName.toLowerCase().replace(/\s+/g, '_')
+
+  // Check if this param is a known alias
+  for (const [canonical, aliases] of Object.entries(PARAM_ALIASES)) {
+    if (canonical === lowerParam || aliases.includes(lowerParam)) {
+      return canonical
+    }
+  }
+
+  return lowerParam
+}
+
 interface ChatWorkflow {
   id: string
   name: string
@@ -246,6 +349,9 @@ interface WorkflowPreviewCardProps {
   // @NEXUS-FIX-004: Custom integration API key handling - DO NOT REMOVE
   customIntegrations?: Array<{ appName: string; displayName: string; apiDocsUrl: string; apiKeyUrl?: string; steps: string[]; keyHint: string; category?: string }>
   onCustomIntegrationKeySubmit?: (appName: string, apiKey: string) => Promise<boolean>
+  // Node editing callbacks (state managed by parent - ChatContainer)
+  onNodeRemove?: (nodeId: string) => void
+  onNodeAdd?: (integration: string, actionType: string) => void
 }
 
 interface AuthState {
@@ -1420,11 +1526,11 @@ function NodeTooltip({
           onClick={onClose}
         />
       )}
-      {/* Tooltip popup - CSS hover controlled OR state controlled */}
+      {/* @NEXUS-FIX-099: Tooltip popup - larger for readability and touch-friendly - DO NOT REMOVE */}
       <div
         className={cn(
-          'absolute z-50 min-w-[200px] max-w-[280px] p-3 rounded-xl pointer-events-none',
-          'bg-slate-800 border border-slate-700 shadow-xl shadow-black/50',
+          'absolute z-50 min-w-[240px] max-w-[320px] p-4 rounded-xl pointer-events-none',
+          'bg-slate-800/95 backdrop-blur-sm border border-slate-600 shadow-2xl shadow-black/60',
           positionClasses[position],
           // CSS-based visibility when using hover class
           useHoverClass && !isOpen && 'opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-200',
@@ -1440,13 +1546,19 @@ function NodeTooltip({
 
         {/* Content */}
         <div className="space-y-2">
-          {/* Node name - full text */}
+          {/* @NEXUS-FIX-099: Node name + description - full text with touch-friendly size - DO NOT REMOVE */}
           <div className="flex items-start gap-2">
             <span className="text-xl flex-shrink-0">{getIcon(node.integration)}</span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-white break-words">{node.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white break-words leading-snug">{node.name}</p>
               {node.integration && (
-                <p className="text-xs text-slate-400 mt-0.5">{node.integration}</p>
+                <p className="text-xs text-cyan-400 mt-0.5 capitalize">{node.integration}</p>
+              )}
+              {/* @NEXUS-FIX-099: Show node description if available */}
+              {node.description && (
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed break-words">
+                  {node.description}
+                </p>
               )}
             </div>
           </div>
@@ -1487,40 +1599,68 @@ function NodeTooltip({
 // Mini Node Components (Desktop & Mobile)
 // ============================================================================
 
-function MiniNodeHorizontal({ node, isLast }: { node: WorkflowNode; isLast: boolean }) {
+function MiniNodeHorizontal({
+  node,
+  isLast,
+  onRemove,
+  canEdit = false
+}: {
+  node: WorkflowNode;
+  isLast: boolean;
+  onRemove?: (nodeId: string) => void;
+  canEdit?: boolean;
+}) {
   const colors = statusColors[node.status]
   // State for click-based tooltip (mobile/accessibility)
   const [showTooltip, setShowTooltip] = React.useState(false)
 
+  // @NEXUS-FIX-099: Handle touch events for mobile - long press shows tooltip
+  const handleTouchStart = React.useCallback(() => {
+    // On touch, always show tooltip
+    setShowTooltip(true)
+  }, [])
+
+  const handleTouchEnd = React.useCallback(() => {
+    // Keep tooltip visible for a moment after touch ends
+    setTimeout(() => setShowTooltip(false), 2000)
+  }, [])
+
   return (
-    <div className="flex items-center flex-shrink-0">
-      {/* Wrapper with 'group' class for CSS hover tooltip - CRITICAL for hover detection */}
+    <div className="flex items-center flex-shrink-0 snap-start">
+      {/* @NEXUS-FIX-099: Touch-friendly wrapper with min-height 44px for accessibility - DO NOT REMOVE */}
+      {/* @NEXUS-FIX-103: Responsive sizing for identical mobile/desktop experience - DO NOT REMOVE */}
       <div className="relative group">
         <div
           className={cn(
-            'relative flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all duration-500 cursor-pointer',
+            'relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg border-2 transition-all duration-500 cursor-pointer',
+            'min-h-[40px] sm:min-h-[44px] min-w-[40px] sm:min-w-[44px]', // Touch-friendly, slightly smaller on mobile
             colors.bg,
             colors.border,
             node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
             node.status === 'success' && 'shadow-lg shadow-emerald-500/20',
-            'hover:scale-105 hover:shadow-lg'
+            'hover:scale-105 hover:shadow-lg active:scale-95' // Active state for touch feedback
           )}
           onClick={() => setShowTooltip(!showTooltip)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          role="button"
+          tabIndex={0}
+          aria-label={`${node.name} - ${node.type} - ${node.status}${node.description ? `: ${node.description}` : ''}`}
         >
-          <span className="text-lg">{getIcon(node.integration)}</span>
-          <span className="text-xs font-medium text-white truncate max-w-[100px]">
+          <span className="text-base sm:text-lg">{getIcon(node.integration)}</span>
+          <span className="text-[10px] sm:text-xs font-medium text-white truncate max-w-[80px] sm:max-w-[120px]">
             {node.name}
           </span>
           <div
             className={cn(
-              'w-2 h-2 rounded-full transition-all duration-300',
+              'w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full transition-all duration-300 flex-shrink-0',
               colors.dot,
               node.status === 'connecting' && 'animate-ping'
             )}
           />
         </div>
 
-        {/* Tooltip - uses CSS group-hover for desktop, click state for mobile */}
+        {/* Tooltip - uses CSS group-hover for desktop, click/touch state for mobile */}
         <NodeTooltip
           node={node}
           isOpen={showTooltip}
@@ -1528,10 +1668,30 @@ function MiniNodeHorizontal({ node, isLast }: { node: WorkflowNode; isLast: bool
           position="top"
           useHoverClass={true}
         />
+
+        {/* Remove button - appears on hover when editing enabled */}
+        {canEdit && onRemove && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              const confirmMsg = node.type === 'trigger'
+                ? 'Removing the trigger will disable this workflow. Continue?'
+                : `Remove "${node.name}" from workflow?`
+              if (window.confirm(confirmMsg)) {
+                onRemove(node.id)
+              }
+            }}
+            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+            title="Remove this step"
+          >
+            ×
+          </button>
+        )}
       </div>
 
+      {/* @NEXUS-FIX-103: Responsive connector arrows - DO NOT REMOVE */}
       {!isLast && (
-        <div className="relative w-8 h-0.5 mx-1 flex-shrink-0">
+        <div className="relative w-5 sm:w-8 h-0.5 mx-0.5 sm:mx-1 flex-shrink-0">
           <div className="absolute inset-0 bg-slate-700 rounded-full" />
           <div
             className={cn(
@@ -1545,7 +1705,7 @@ function MiniNodeHorizontal({ node, isLast }: { node: WorkflowNode; isLast: bool
           />
           <div
             className={cn(
-              'absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] transition-colors duration-300',
+              'absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[3px] sm:border-t-[4px] border-t-transparent border-b-[3px] sm:border-b-[4px] border-b-transparent border-l-[4px] sm:border-l-[6px] transition-colors duration-300',
               node.status === 'success'
                 ? 'border-l-emerald-500'
                 : node.status === 'connecting'
@@ -1559,25 +1719,56 @@ function MiniNodeHorizontal({ node, isLast }: { node: WorkflowNode; isLast: bool
   )
 }
 
-function MiniNodeVertical({ node, isLast, index }: { node: WorkflowNode; isLast: boolean; index: number }) {
+// @ts-expect-error - MiniNodeVertical kept for future use but not currently rendered (FIX-100 unified to horizontal)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function MiniNodeVertical({
+  node,
+  isLast,
+  index,
+  onRemove,
+  canEdit = false
+}: {
+  node: WorkflowNode;
+  isLast: boolean;
+  index: number;
+  onRemove?: (nodeId: string) => void;
+  canEdit?: boolean;
+}) {
   const colors = statusColors[node.status]
   const [showTooltip, setShowTooltip] = React.useState(false)
 
+  // @NEXUS-FIX-099: Handle touch events for mobile - touch shows tooltip
+  const handleTouchStart = React.useCallback(() => {
+    setShowTooltip(true)
+  }, [])
+
+  const handleTouchEnd = React.useCallback(() => {
+    // Keep tooltip visible for a moment after touch ends
+    setTimeout(() => setShowTooltip(false), 2000)
+  }, [])
+
   return (
     <div className="flex items-start relative group">
+      {/* @NEXUS-FIX-099: Touch-friendly icon with min 44px touch target - DO NOT REMOVE */}
       <div className="flex flex-col items-center mr-3">
         <div
           className={cn(
-            'w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 cursor-pointer',
+            'w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 cursor-pointer',
+            'min-w-[44px] min-h-[44px]', // Touch-friendly minimum size
             colors.bg,
             colors.border,
             node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
             node.status === 'success' && 'shadow-md shadow-emerald-500/30',
-            'active:scale-95'
+            'active:scale-95 hover:scale-105'
           )}
           onClick={() => setShowTooltip(!showTooltip)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          role="button"
+          tabIndex={0}
+          aria-label={`${node.name} - ${node.type} - ${node.status}${node.description ? `: ${node.description}` : ''}`}
         >
-          <span className="text-sm">{getIcon(node.integration)}</span>
+          <span className="text-base">{getIcon(node.integration)}</span>
         </div>
 
         {!isLast && (
@@ -1593,24 +1784,31 @@ function MiniNodeVertical({ node, isLast, index }: { node: WorkflowNode; isLast:
         )}
       </div>
 
+      {/* @NEXUS-FIX-099: Larger touch target for text area - DO NOT REMOVE */}
       <div
-        className="flex-1 min-w-0 pt-1 cursor-pointer"
+        className="flex-1 min-w-0 pt-1 cursor-pointer min-h-[44px] flex flex-col justify-center"
         onClick={() => setShowTooltip(!showTooltip)}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-white truncate">
+          <span className="text-sm font-medium text-white truncate">
             {index + 1}. {node.name}
           </span>
           <div
             className={cn(
-              'w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300',
+              'w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-300',
               colors.dot,
               node.status === 'connecting' && 'animate-ping'
             )}
           />
         </div>
         {node.integration && (
-          <span className="text-[10px] text-slate-500 mt-0.5 block">{node.integration}</span>
+          <span className="text-xs text-cyan-400/70 mt-0.5 block capitalize">{node.integration}</span>
+        )}
+        {/* @NEXUS-FIX-099: Show description snippet in vertical view */}
+        {node.description && (
+          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1">{node.description}</span>
         )}
       </div>
 
@@ -1622,6 +1820,25 @@ function MiniNodeVertical({ node, isLast, index }: { node: WorkflowNode; isLast:
         position="right"
         useHoverClass={true}
       />
+
+      {/* Remove button - appears on hover when editing enabled */}
+      {canEdit && onRemove && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            const confirmMsg = node.type === 'trigger'
+              ? 'Removing the trigger will disable this workflow. Continue?'
+              : `Remove "${node.name}" from workflow?`
+            if (window.confirm(confirmMsg)) {
+              onRemove(node.id)
+            }
+          }}
+          className="absolute top-0 right-0 w-6 h-6 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+          title="Remove this step"
+        >
+          ×
+        </button>
+      )}
     </div>
   )
 }
@@ -2018,23 +2235,54 @@ function ParallelAuthPrompt({
 // Missing Info Section with Custom Input Support
 // ============================================================================
 
+// @NEXUS-FIX-108: Accept collectedParams to check already-answered questions from Quick Setup - DO NOT REMOVE
 function MissingInfoSection({
   missingInfo,
-  onSelect
+  onSelect,
+  collectedParams = {}
 }: {
   missingInfo: MissingInfoItem[]
   onSelect?: (field: string, value: string) => void
+  collectedParams?: Record<string, string>
 }) {
   // ONE STEP AT A TIME: Track answered fields to show next unanswered
   // Track which fields have custom input expanded
   const [showCustomInput, setShowCustomInput] = React.useState(false)
   // Track custom input value
   const [customValue, setCustomValue] = React.useState('')
-  // Track answered fields
-  const [answeredFields, setAnsweredFields] = React.useState<Set<string>>(new Set())
+  // Track answered fields (local state for answers given within this component)
+  const [localAnsweredFields, setLocalAnsweredFields] = React.useState<Set<string>>(new Set())
 
-  // Get remaining unanswered questions
-  const unansweredQuestions = missingInfo.filter(item => !answeredFields.has(item.field))
+  // @NEXUS-FIX-105: Deduplicate missingInfo questions semantically - DO NOT REMOVE
+  // @NEXUS-FIX-108: Also check collectedParams from Quick Setup - DO NOT REMOVE
+  // Get remaining unanswered questions with semantic deduplication
+  const seenCanonicalFields = new Set<string>()
+  const unansweredQuestions = missingInfo.filter(item => {
+    // Check if answered locally (within this component)
+    if (localAnsweredFields.has(item.field)) return false
+
+    // FIX-108: Check if already collected via Quick Setup using canonical name matching
+    const canonicalField = getCanonicalParamName(item.field)
+
+    // Check if any collected param matches this canonical field
+    for (const [key, value] of Object.entries(collectedParams)) {
+      if (value && value !== '') {
+        const collectedCanonical = getCanonicalParamName(key)
+        if (collectedCanonical === canonicalField || key === item.field) {
+          console.log(`[FIX-108] Skipping missingInfo "${item.field}" - already collected as "${key}": ${value}`)
+          return false
+        }
+      }
+    }
+
+    // FIX-105: Check for semantic duplicates within missingInfo
+    if (seenCanonicalFields.has(canonicalField)) {
+      console.log(`[FIX-105] Deduplicating missingInfo: ${item.field} → canonical: ${canonicalField}`)
+      return false
+    }
+    seenCanonicalFields.add(canonicalField)
+    return true
+  })
 
   // Get current question (first unanswered)
   const currentQuestion = unansweredQuestions[0]
@@ -2051,7 +2299,7 @@ function MissingInfoSection({
     } else {
       // Submit and move to next question
       onSelect?.(field, option)
-      setAnsweredFields(prev => new Set(prev).add(field))
+      setLocalAnsweredFields(prev => new Set(prev).add(field))
       setShowCustomInput(false)
       setCustomValue('')
     }
@@ -2061,7 +2309,7 @@ function MissingInfoSection({
     const value = customValue.trim()
     if (value) {
       onSelect?.(field, value)
-      setAnsweredFields(prev => new Set(prev).add(field))
+      setLocalAnsweredFields(prev => new Set(prev).add(field))
       setShowCustomInput(false)
       setCustomValue('')
     }
@@ -2077,7 +2325,9 @@ function MissingInfoSection({
     return null
   }
 
-  const progressPercent = Math.round((answeredFields.size / missingInfo.length) * 100)
+  // FIX-108: Count both local answers and collected params for progress
+  const totalAnswered = localAnsweredFields.size + Object.keys(collectedParams).filter(k => collectedParams[k] && collectedParams[k] !== '').length
+  const progressPercent = Math.round((totalAnswered / missingInfo.length) * 100)
   const remaining = unansweredQuestions.length
 
   // @NEXUS-UX-002: Parameter collection with VIP hospitality - DO NOT REMOVE
@@ -2431,9 +2681,30 @@ function mapCollectedParamsToToolParams(
     const mappedParam = integrationToPrimaryParam[keyLower]
 
     if (mappedParam) {
-      // Map integration name to param name
-      console.log(`[FIX-029] Mapping collected param: ${key} → ${mappedParam} = ${value}`)
-      result[mappedParam] = value
+      // @NEXUS-FIX-097: Don't overwrite valid values with placeholders - DO NOT REMOVE
+      // When "whatsapp" maps to "to", check if we already have a valid phone number
+      // and the new value is just a placeholder like "I'll provide a phone number"
+      const isPlaceholder = typeof value === 'string' && (
+        value.toLowerCase().includes("i'll provide") ||
+        value.toLowerCase().includes("i will provide") ||
+        value.toLowerCase().includes("provide a") ||
+        value.toLowerCase().includes("enter a") ||
+        value.toLowerCase().includes("select") ||
+        value === ''
+      )
+      const existingValue = result[mappedParam]
+      const existingIsValidData = existingValue && typeof existingValue === 'string' &&
+        !existingValue.toLowerCase().includes("provide") &&
+        existingValue.length > 0 &&
+        (existingValue.startsWith('+') || existingValue.includes('@') || /^\d/.test(existingValue))
+
+      if (isPlaceholder && existingIsValidData) {
+        console.log(`[FIX-097] Skipping placeholder "${value}" - keeping existing value "${existingValue}" for ${mappedParam}`)
+      } else {
+        // Map integration name to param name
+        console.log(`[FIX-029] Mapping collected param: ${key} → ${mappedParam} = ${value}`)
+        result[mappedParam] = value
+      }
     } else if (keyLower === 'value') {
       // Generic 'value' key - try to map based on current toolkit
       const toolkitParam = integrationToPrimaryParam[toolkit.toLowerCase()]
@@ -2916,6 +3187,8 @@ export function WorkflowPreviewCard({
   autoExecute = false,
   onExecutionComplete,
   onMissingInfoSelect,
+  onNodeRemove,
+  onNodeAdd,
 }: WorkflowPreviewCardProps): React.ReactElement {
   const navigate = useNavigate()
 
@@ -3026,6 +3299,17 @@ export function WorkflowPreviewCard({
   const [parallelAuthState, setParallelAuthState] = React.useState<ParallelAuthState>({})
   const [isParallelMode, _setIsParallelMode] = React.useState(true) // Default to parallel mode for minimal clicks
 
+  // @NEXUS-WHATSAPP: WhatsApp connection state - DO NOT REMOVE
+  // WhatsApp uses whatsapp-web.js (QR/pairing code), not Composio OAuth
+  const [whatsAppState, setWhatsAppState] = React.useState<{
+    needed: boolean
+    connected: boolean
+    showPrompt: boolean
+  }>({ needed: false, connected: false, showPrompt: false })
+
+  // Node editing panel state (minimal state - main state in ChatContainer)
+  const [showEditPanel, setShowEditPanel] = React.useState(false)
+
   // Flag to trigger auto-execution after all integrations connect
   const shouldAutoExecuteRef = React.useRef(false)
 
@@ -3041,10 +3325,81 @@ export function WorkflowPreviewCard({
     [workflow.nodes]
   )
 
+  // @NEXUS-WHATSAPP: Detect if workflow needs WhatsApp Web (personal) vs WhatsApp Business API
+  // WhatsApp Web uses QR code/pairing code via whatsapp-web.js
+  // WhatsApp Business uses Composio OAuth (API key flow)
+  const { whatsAppIntegrations, oauthIntegrations } = React.useMemo(() => {
+    const whatsApp: IntegrationInfo[] = []
+    const oauth: IntegrationInfo[] = []
+
+    for (const integration of requiredIntegrations) {
+      const toolkitLower = integration.toolkit.toLowerCase().replace(/[^a-z]/g, '') // normalize
+      // Only personal WhatsApp (exact 'whatsapp') uses WhatsApp Web (QR/pairing)
+      // WhatsApp Business (whatsappbusiness, whatsapp-business) uses Composio OAuth
+      if (toolkitLower === 'whatsapp') {
+        whatsApp.push(integration)
+      } else {
+        oauth.push(integration)
+      }
+    }
+
+    return { whatsAppIntegrations: whatsApp, oauthIntegrations: oauth }
+  }, [requiredIntegrations])
+
   // Add log message (defined before useEffect that uses it)
   const addLog = React.useCallback((message: string) => {
     setExecutionLog((prev: string[]) => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] ${message}`])
   }, [])
+
+  // @NEXUS-WHATSAPP: Check WhatsApp connection status using whatsapp-web.js API
+  const checkWhatsAppStatus = React.useCallback(async () => {
+    if (whatsAppIntegrations.length === 0) {
+      setWhatsAppState({ needed: false, connected: true, showPrompt: false })
+      return true
+    }
+
+    setWhatsAppState(prev => ({ ...prev, needed: true }))
+    addLog('Checking WhatsApp connection...')
+
+    try {
+      // Use the new whatsapp-web.js API endpoint
+      const response = await fetch('/api/whatsapp-web/sessions', {
+        headers: {
+          'x-user-id': localStorage.getItem('nexus_user_id') || 'anonymous'
+        }
+      })
+      const data = await response.json()
+
+      // Check for an active/ready session
+      if (data.success && data.sessions && data.sessions.length > 0) {
+        const activeSession = data.sessions.find((s: { state: string }) => s.state === 'ready')
+        if (activeSession) {
+          setWhatsAppState({ needed: true, connected: true, showPrompt: false })
+          addLog('✓ WhatsApp connected')
+          return true
+        }
+      }
+
+      // No active session - show connection prompt
+      setWhatsAppState({ needed: true, connected: false, showPrompt: true })
+      addLog('WhatsApp connection required')
+      return false
+    } catch (error) {
+      console.error('WhatsApp status check failed:', error)
+      setWhatsAppState({ needed: true, connected: false, showPrompt: true })
+      return false
+    }
+  }, [whatsAppIntegrations.length, addLog])
+
+  // @NEXUS-WHATSAPP: Handle WhatsApp connection completion
+  const handleWhatsAppConnected = React.useCallback(() => {
+    setWhatsAppState({ needed: true, connected: true, showPrompt: false })
+    addLog('✓ WhatsApp connected successfully!')
+    // If all OAuth integrations are also connected, proceed to ready
+    if (authState.pendingIntegrations.length === 0) {
+      setPhase('ready')
+    }
+  }, [addLog, authState.pendingIntegrations.length])
 
   // @NEXUS-FIX-033 & @NEXUS-FIX-055 & @NEXUS-FIX-074: Run pre-flight check with orchestration support - DO NOT REMOVE
   // This checks ALL required params BEFORE execution, eliminating the loop problem.
@@ -3284,11 +3639,12 @@ export function WorkflowPreviewCard({
 
             // Convert orchestration questions to PreFlightQuestion format
             for (const q of finalResult.questions) {
-              // Skip if already answered
-              const isAlreadyCollected = collectedParams[q.paramName] !== undefined &&
-                                         collectedParams[q.paramName] !== ''
+              // @NEXUS-FIX-103: Use semantic check for already collected params - DO NOT REMOVE
+              // Previous bug: exact match only - "message" and "text" were treated as different params
+              // Fix: Use isParamSemanticallycollected to check aliases
+              const isAlreadyCollected = isParamSemanticallycollected(q.paramName, collectedParams)
               if (isAlreadyCollected || q.answered) {
-                console.log(`[ORCHESTRATION-PREFLIGHT] Skipping ${q.paramName} - already collected`)
+                console.log(`[ORCHESTRATION-PREFLIGHT] FIX-100: Skipping ${q.paramName} - semantically already collected`)
                 continue
               }
 
@@ -3331,7 +3687,48 @@ export function WorkflowPreviewCard({
           ? result.questions.filter(q => !orchestrationSucceededNodeIds.has(q.nodeId))
           : result.questions
 
-        const allQuestions = [...staticFallbackQuestions, ...orchestrationQuestions]
+        // @NEXUS-FIX-103: Deduplicate questions by semantic param name - DO NOT REMOVE
+        // Previous bug: "message" from static and "text" from orchestration both showed (5 duplicates!)
+        // Fix: Group by canonical param name and keep only first occurrence per node
+        const rawQuestions = [...staticFallbackQuestions, ...orchestrationQuestions]
+        const seenCanonicalParams = new Map<string, Set<string>>() // nodeId -> Set of canonical param names
+
+        // @NEXUS-FIX-106: Cross-node deduplication for semantic equivalents - DO NOT REMOVE
+        // Previous bug: Gmail asks "body", Dropbox asks "content", Slack asks "text" - all 3 showed!
+        // Fix: For certain semantic groups, only ask ONCE across ALL nodes (answer applies to all)
+        const CROSS_NODE_SEMANTIC_GROUPS = new Set(['text', 'to', 'subject', 'name']) // Canonical names that should only be asked once globally
+        const seenGlobalCanonicalParams = new Set<string>() // Track cross-node seen params
+
+        const allQuestions = rawQuestions.filter(q => {
+          const canonicalName = getCanonicalParamName(q.paramName)
+          const nodeKey = q.nodeId
+
+          // @NEXUS-FIX-106: Cross-node deduplication for semantic groups
+          if (CROSS_NODE_SEMANTIC_GROUPS.has(canonicalName)) {
+            if (seenGlobalCanonicalParams.has(canonicalName)) {
+              console.log(`[FIX-106] Cross-node deduplication: ${q.paramName} (canonical: ${canonicalName}) already asked for another node`)
+              return false
+            }
+            seenGlobalCanonicalParams.add(canonicalName)
+            // Continue to also add to per-node tracking (for logging)
+          }
+
+          // Get or create the set of seen params for this node
+          if (!seenCanonicalParams.has(nodeKey)) {
+            seenCanonicalParams.set(nodeKey, new Set())
+          }
+          const nodeSeenParams = seenCanonicalParams.get(nodeKey)!
+
+          // If we've already seen this canonical param for this node, skip it
+          if (nodeSeenParams.has(canonicalName)) {
+            console.log(`[FIX-100] Deduplicating question: ${q.paramName} (canonical: ${canonicalName}) for node ${q.nodeName}`)
+            return false
+          }
+
+          // Mark as seen and include
+          nodeSeenParams.add(canonicalName)
+          return true
+        })
 
         if (allQuestions.length > 0 || orchestrationQuestions.length > 0 || staticFallbackQuestions.length > 0) {
           const mergedResult: PreFlightResult = {
@@ -3593,21 +3990,31 @@ export function WorkflowPreviewCard({
   }, [addLog])
 
   // Check connections via Composio API
+  // @NEXUS-WHATSAPP: Now handles WhatsApp separately from OAuth integrations
   const checkConnections = React.useCallback(async () => {
     setPhase('checking')
     setAuthState((prev) => ({ ...prev, isChecking: true }))
     addLog('Checking integration connections...')
 
     try {
-      // Get toolkits needed
-      const toolkits = requiredIntegrations.map((i) => i.toolkit)
-      console.log('[WorkflowPreviewCard] Checking connections for toolkits:', toolkits)
+      // @NEXUS-WHATSAPP: Check WhatsApp first (uses different flow than OAuth)
+      const whatsAppConnected = await checkWhatsAppStatus()
+      if (whatsAppIntegrations.length > 0 && !whatsAppConnected) {
+        // WhatsApp needs connection - show prompt and wait
+        setPhase('needs_auth')
+        setAuthState((prev) => ({ ...prev, isChecking: false }))
+        return false
+      }
+
+      // Get toolkits needed (excluding WhatsApp - handled separately)
+      const toolkits = oauthIntegrations.map((i) => i.toolkit)
+      console.log('[WorkflowPreviewCard] Checking OAuth connections for toolkits:', toolkits)
 
       // Check each toolkit connection via Rube MCP API
       const connected = new Set<string>()
       const pending: IntegrationInfo[] = []
 
-      for (const integration of requiredIntegrations) {
+      for (const integration of oauthIntegrations) {
         try {
           const status = await rubeClient.checkConnection(integration.toolkit)
           if (status.connected) {
@@ -3677,7 +4084,7 @@ export function WorkflowPreviewCard({
       setPhase('error')
       return false
     }
-  }, [requiredIntegrations, addLog])
+  }, [oauthIntegrations, whatsAppIntegrations, checkWhatsAppStatus, addLog])
 
   // @NEXUS-FIX-045: Auto-check connections on mount - DO NOT REMOVE
   // This fixes the bug where WorkflowPreviewCard shows 0/X connections even though
@@ -4780,15 +5187,20 @@ export function WorkflowPreviewCard({
     }
   }, [phase, executeWorkflow, addLog])
 
-  // @NEXUS-FIX-026: Auto-retry after user provides missing parameter - DO NOT REMOVE
+  // @NEXUS-FIX-026 & @NEXUS-FIX-094: Auto-retry after user provides missing parameter - DO NOT REMOVE
   // When collectedParams changes while in error state, reset and retry execution
+  // @NEXUS-FIX-094: Fixed bug where setPhase('ready') triggered re-render which canceled the timeout
+  // Solution: Use a separate ref flag to decouple state reset from execution trigger
   const prevCollectedParamsRef = React.useRef<string | null>(null)
+  const pendingAutoRetryRef = React.useRef<boolean>(false)
+
+  // Phase 1: Detect param change while in error state, set flag and reset state
   React.useEffect(() => {
     const currentParamsKey = workflow.collectedParams
       ? JSON.stringify(workflow.collectedParams)
       : null
 
-    // Only retry if:
+    // Only trigger retry if:
     // 1. We have new collected params
     // 2. They're different from before
     // 3. We're currently in error state
@@ -4797,26 +5209,41 @@ export function WorkflowPreviewCard({
       currentParamsKey !== prevCollectedParamsRef.current &&
       phase === 'error'
     ) {
-      console.log('[WorkflowPreviewCard] Collected params changed, auto-retrying workflow:', workflow.collectedParams)
+      console.log('[FIX-094] Collected params changed in error state, scheduling retry:', workflow.collectedParams)
       addLog('Got your answer! Retrying workflow...')
 
-      // Reset workflow state
+      // Set flag BEFORE state change - this survives the re-render
+      pendingAutoRetryRef.current = true
+
+      // Reset workflow state (this triggers re-render)
       setPhase('ready')
       setNodes((prev) => prev.map((n) => ({ ...n, status: 'idle' as NodeStatus, error: undefined })))
       setExecutionLog([])
 
-      // Retry execution after a short delay
+      prevCollectedParamsRef.current = currentParamsKey
+    } else {
+      // Update ref without triggering retry (for initial mount or non-error states)
+      prevCollectedParamsRef.current = currentParamsKey
+    }
+  }, [workflow.collectedParams, phase, addLog])
+
+  // Phase 2: Execute when phase becomes 'ready' AND we have a pending retry
+  // @NEXUS-FIX-094: Separate effect that doesn't get canceled by state changes
+  React.useEffect(() => {
+    if (phase === 'ready' && pendingAutoRetryRef.current) {
+      // Clear the flag first to prevent double execution
+      pendingAutoRetryRef.current = false
+
+      console.log('[FIX-094] Executing auto-retry now that phase is ready')
+
+      // Small delay to allow React to settle
       const timer = setTimeout(() => {
         executeWorkflowRef.current()
-      }, 500)
+      }, 300)
 
-      prevCollectedParamsRef.current = currentParamsKey
       return () => clearTimeout(timer)
     }
-
-    // Update ref without triggering retry (for initial mount or non-error states)
-    prevCollectedParamsRef.current = currentParamsKey
-  }, [workflow.collectedParams, phase, addLog])
+  }, [phase])
 
   // Open full workflow visualization
   const openFullView = React.useCallback(() => {
@@ -4927,8 +5354,18 @@ export function WorkflowPreviewCard({
         </button>
       </div>
 
-      {/* Auth Prompt (when needs authentication) */}
-      {needsAuth && authState.pendingIntegrations.length > 0 && isParallelMode && (
+      {/* @NEXUS-WHATSAPP: WhatsApp Connection Prompt (when WhatsApp needs connection) */}
+      {whatsAppState.needed && whatsAppState.showPrompt && !whatsAppState.connected && (
+        <div className="px-4 pb-4">
+          <WhatsAppConnectionPrompt
+            onConnected={handleWhatsAppConnected}
+            onSkip={() => setWhatsAppState(prev => ({ ...prev, showPrompt: false }))}
+          />
+        </div>
+      )}
+
+      {/* Auth Prompt (when needs authentication) - only show if WhatsApp is already connected */}
+      {needsAuth && authState.pendingIntegrations.length > 0 && isParallelMode && (whatsAppState.connected || !whatsAppState.needed) && (
         <ParallelAuthPrompt
           integrations={authState.pendingIntegrations}
           parallelState={parallelAuthState}
@@ -4939,15 +5376,15 @@ export function WorkflowPreviewCard({
         />
       )}
 
-      {/* Legacy sequential auth (fallback) */}
-      {needsAuth && authState.currentIntegration && !isParallelMode && (
+      {/* Legacy sequential auth (fallback) - only show if WhatsApp is already connected */}
+      {needsAuth && authState.currentIntegration && !isParallelMode && (whatsAppState.connected || !whatsAppState.needed) && (
         <AuthPrompt
           integration={authState.currentIntegration}
           redirectUrl={authState.redirectUrl}
           onConnect={handleConnect}
           onSkip={() => setPhase('ready')}
           connectedCount={authState.connectedIntegrations.size}
-          totalCount={requiredIntegrations.length}
+          totalCount={oauthIntegrations.length}
           isLoading={authState.isChecking}
           isPolling={authState.isPolling}
           pollAttempts={authState.pollAttempts}
@@ -4957,18 +5394,20 @@ export function WorkflowPreviewCard({
       {/* Workflow visualization (when not in auth mode) */}
       {!needsAuth && (
         <>
-          <div className="px-4 py-4">
-            {/* Desktop: Horizontal */}
-            <div className="hidden sm:flex items-center overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700 pb-2">
+          <div className="px-2 sm:px-4 py-3 sm:py-4">
+            {/* @NEXUS-FIX-103: Unified horizontal scroll for all screen sizes - IDENTICAL mobile/desktop experience - DO NOT REMOVE */}
+            <div className="flex items-center overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700 pb-2 snap-x snap-mandatory touch-pan-x">
               {nodes.map((node, index) => (
-                <MiniNodeHorizontal key={node.id} node={node} isLast={index === nodes.length - 1} />
-              ))}
-            </div>
-
-            {/* Mobile: Vertical */}
-            <div className="sm:hidden flex flex-col space-y-0 max-h-48 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
-              {nodes.map((node, index) => (
-                <MiniNodeVertical key={node.id} node={node} isLast={index === nodes.length - 1} index={index} />
+                <MiniNodeHorizontal
+                  key={node.id}
+                  node={node}
+                  isLast={index === nodes.length - 1}
+                  onRemove={onNodeRemove ? (id) => {
+                    onNodeRemove(id)
+                    setNodes(prev => prev.filter(n => n.id !== id))
+                  } : undefined}
+                  canEdit={phase === 'ready' && !!onNodeRemove}
+                />
               ))}
             </div>
           </div>
@@ -5026,10 +5465,14 @@ export function WorkflowPreviewCard({
           )}
 
           {/* Missing info questions (need answers before execution) */}
-          {workflow.missingInfo && workflow.missingInfo.length > 0 && !isComplete && !hasError && !isExecuting && (
+          {/* @NEXUS-FIX-104: Hide MissingInfoSection when Quick Setup has questions to prevent duplicates - DO NOT REMOVE */}
+          {/* @NEXUS-FIX-108: Pass collectedParams so MissingInfoSection can skip already-answered questions - DO NOT REMOVE */}
+          {workflow.missingInfo && workflow.missingInfo.length > 0 && !isComplete && !hasError && !isExecuting &&
+           !(preFlightResult && preFlightResult.questions && preFlightResult.questions.length > 0) && (
             <MissingInfoSection
               missingInfo={workflow.missingInfo}
               onSelect={onMissingInfoSelect}
+              collectedParams={collectedParams}
             />
           )}
 
@@ -5348,6 +5791,47 @@ export function WorkflowPreviewCard({
                 )}
               </button>
             </div>
+          )}
+
+          {/* Edit Workflow Button - Only show in ready phase when edit callbacks provided */}
+          {phase === 'ready' && onNodeRemove && (
+            <div className="px-4 pb-2 flex justify-end">
+              <button
+                onClick={() => setShowEditPanel(true)}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 px-2 py-1 hover:bg-slate-700/50 rounded transition-colors"
+              >
+                <Pencil className="w-3 h-3" />
+                Edit Workflow
+              </button>
+            </div>
+          )}
+
+          {/* Node Edit Panel */}
+          {showEditPanel && (
+            <NodeEditPanel
+              nodes={nodes}
+              workflowName={workflow.name}
+              onRemoveNode={(id) => {
+                onNodeRemove?.(id)
+                setNodes(prev => prev.filter(n => n.id !== id))
+              }}
+              onAddNode={(integration, actionType) => {
+                if (onNodeAdd) {
+                  onNodeAdd(integration, actionType)
+                  // Also update local state for immediate feedback
+                  const newNode = {
+                    id: `step_${Date.now()}`,
+                    name: `${integration.charAt(0).toUpperCase() + integration.slice(1)} Action`,
+                    type: 'action' as const,
+                    integration: integration.toLowerCase(),
+                    status: 'idle' as const,
+                  }
+                  setNodes(prev => [...prev, newNode])
+                }
+              }}
+              onClose={() => setShowEditPanel(false)}
+              disabled={phase !== 'ready'}
+            />
           )}
 
           {/* NOTE: Removed low confidence blocker - intent-driven system handles everything

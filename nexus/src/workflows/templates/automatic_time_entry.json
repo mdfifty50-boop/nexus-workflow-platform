@@ -1,0 +1,276 @@
+{
+  "id": "automatic_time_entry",
+  "name": "Automatic Time Entry",
+  "name_ar": "تسجيل الوقت التلقائي",
+  "description": "Automatically log billable time based on calendar events, email threads, and document work. Track client meetings, calls, and communications without manual time entry. Integrates with legal billing systems.",
+  "description_ar": "تسجيل الوقت القابل للفوترة تلقائياً بناءً على أحداث التقويم والمراسلات والعمل على المستندات. تتبع اجتماعات العملاء والمكالمات والتواصل دون إدخال يدوي.",
+  "domain": "lawyers",
+  "roiTier": 1,
+  "annualValue": "$52,000/lawyer",
+  "requiredIntegrations": ["googlecalendar", "gmail", "googlesheets"],
+  "optionalIntegrations": ["slack", "zoom", "notion", "toggl"],
+  "exampleUserInput": "Track my billable hours automatically from meetings and emails",
+  "exampleUserInput_ar": "تتبع ساعاتي القابلة للفوترة تلقائياً من الاجتماعات والإيميلات",
+  "keywords": ["time tracking", "billable hours", "time entry", "billing", "timesheet", "legal billing", "hours", "track time", "تتبع الوقت", "ساعات", "فوترة", "فاتورة"],
+  "dynamicParameters": {
+    "hourly_rate": {
+      "type": "number",
+      "default": 200,
+      "label": "Default hourly rate",
+      "label_ar": "السعر الافتراضي للساعة",
+      "required": true
+    },
+    "currency": {
+      "type": "select",
+      "options": ["KWD", "SAR", "AED", "USD"],
+      "default": "KWD",
+      "label": "Currency",
+      "label_ar": "العملة"
+    },
+    "minimum_increment": {
+      "type": "select",
+      "options": ["6", "10", "15", "30"],
+      "default": "6",
+      "label": "Minimum billing increment (minutes)",
+      "label_ar": "أقل وحدة فوترة (دقائق)"
+    },
+    "auto_round": {
+      "type": "boolean",
+      "default": true,
+      "label": "Round time to nearest increment",
+      "label_ar": "تقريب الوقت لأقرب وحدة"
+    },
+    "include_emails": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track time spent on client emails",
+      "label_ar": "تتبع الوقت المنقضي على الإيميلات"
+    },
+    "include_documents": {
+      "type": "boolean",
+      "default": true,
+      "label": "Track time on document editing",
+      "label_ar": "تتبع الوقت على تحرير المستندات"
+    }
+  },
+  "messages": {
+    "time_logged_en": "⏱️ *Time Entry Logged*\n\nClient: {{client_name}}\nMatter: {{matter_name}}\nActivity: {{activity_type}}\nDuration: {{duration}} hours\nAmount: {{currency}} {{amount}}\n\nDescription: {{description}}",
+    "time_logged_ar": "⏱️ *تم تسجيل وقت*\n\nالعميل: {{client_name}}\nالملف: {{matter_name}}\nالنشاط: {{activity_type}}\nالمدة: {{duration}} ساعة\nالمبلغ: {{currency}} {{amount}}\n\nالوصف: {{description}}",
+    "daily_summary_en": "📊 *Daily Time Summary - {{date}}*\n\nTotal Hours: {{total_hours}}\nBillable: {{billable_hours}} ({{billable_percentage}}%)\nNon-Billable: {{non_billable_hours}}\n\nTotal Value: {{currency}} {{total_value}}\n\n*By Client:*\n{{#each clients}}\n• {{name}}: {{hours}} hrs - {{currency}} {{value}}\n{{/each}}\n\n[View Full Timesheet]({{sheet_link}})",
+    "weekly_summary_en": "📈 *Weekly Time Report - Week of {{week_start}}*\n\nTotal Hours: {{total_hours}}\nBillable Hours: {{billable_hours}}\nEfficiency Rate: {{efficiency}}%\n\nTop Clients:\n{{#each top_clients}}\n{{index}}. {{name}} - {{hours}} hrs ({{currency}} {{value}})\n{{/each}}\n\nUnbilled Time: {{unbilled_hours}} hrs worth {{currency}} {{unbilled_value}}",
+    "meeting_logged_en": "✅ Meeting with {{client_name}} logged: {{duration}} hrs",
+    "email_logged_en": "✅ Email correspondence ({{client_name}}): {{duration}} hrs"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Calendar Event Ended",
+        "name_ar": "انتهاء حدث التقويم",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_EVENT_ENDED",
+          "action": "webhook",
+          "params": {
+            "filter": "attendees.length > 1"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Extract Client and Matter",
+        "name_ar": "استخراج العميل والملف",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "extract",
+          "params": {
+            "input": "{{task_1.title}}",
+            "patterns": {
+              "client": "(?:Client:|العميل:)\\s*([^-|]+)",
+              "matter": "(?:Matter:|Re:|الملف:)\\s*([^-|]+)"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Calculate Billable Time",
+        "name_ar": "حساب الوقت القابل للفوترة",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "SYSTEM_PROCESS",
+          "action": "calculate",
+          "params": {
+            "duration_minutes": "{{task_1.duration}}",
+            "minimum_increment": "{{minimum_increment}}",
+            "round_up": "{{auto_round}}",
+            "hourly_rate": "{{hourly_rate}}",
+            "output": {
+              "billable_hours": "rounded_duration / 60",
+              "amount": "billable_hours * hourly_rate"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Log to Timesheet",
+        "name_ar": "تسجيل في جدول الوقت",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_3"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_BATCH_UPDATE",
+          "action": "append",
+          "params": {
+            "spreadsheetId": "{{timesheet_id}}",
+            "sheetName": "Time Entries",
+            "values": [
+              "{{current_date}}",
+              "{{task_2.client}}",
+              "{{task_2.matter}}",
+              "Meeting",
+              "{{task_3.billable_hours}}",
+              "{{hourly_rate}}",
+              "{{task_3.amount}}",
+              "{{currency}}",
+              "{{task_1.title}}",
+              "Auto-logged from calendar"
+            ]
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Confirmation",
+        "name_ar": "إرسال تأكيد",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#time-tracking",
+            "message": "{{messages.time_logged_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Daily Summary (Scheduled)",
+        "name_ar": "الملخص اليومي (مجدول)",
+        "type": "trigger",
+        "integrationId": "system",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "cron",
+          "params": {
+            "schedule": "0 18 * * 0-4",
+            "description": "Daily summary at 6 PM (Sunday-Thursday)",
+            "timezone": "{{timezone}}"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Generate Daily Summary",
+        "name_ar": "إنشاء الملخص اليومي",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_GET_VALUES",
+          "action": "query",
+          "params": {
+            "spreadsheetId": "{{timesheet_id}}",
+            "range": "Time Entries!A:J",
+            "filter": "date = today()"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Daily Summary",
+        "name_ar": "إرسال الملخص اليومي",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_7"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "#time-tracking",
+            "message": "{{messages.daily_summary_en}}"
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "gmail", "googlesheets"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "hourly_rate",
+      "question": "What's your default hourly billing rate?",
+      "question_ar": "ما هو سعر الساعة الافتراضي؟",
+      "type": "number",
+      "default": 200
+    },
+    {
+      "id": "currency",
+      "question": "What currency do you bill in?",
+      "question_ar": "ما هي العملة المستخدمة للفوترة؟",
+      "type": "select",
+      "options": [
+        {"value": "KWD", "label": "Kuwaiti Dinar (KWD)"},
+        {"value": "SAR", "label": "Saudi Riyal (SAR)"},
+        {"value": "AED", "label": "UAE Dirham (AED)"},
+        {"value": "USD", "label": "US Dollar (USD)"}
+      ],
+      "default": "KWD"
+    },
+    {
+      "id": "minimum_increment",
+      "question": "Minimum billing increment (minutes)?",
+      "question_ar": "أقل وحدة فوترة (دقائق)؟",
+      "type": "select",
+      "options": [
+        {"value": "6", "label": "6 minutes (0.1 hour)"},
+        {"value": "15", "label": "15 minutes (0.25 hour)"},
+        {"value": "30", "label": "30 minutes (0.5 hour)"}
+      ],
+      "default": "6"
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultHourlyRate": 150,
+      "vatRate": 0
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultHourlyRate": 1500,
+      "vatRate": 15
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultHourlyRate": 1000,
+      "vatRate": 5
+    }
+  }
+}

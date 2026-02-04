@@ -34,6 +34,9 @@ interface UpdateProfileData {
   emotional_responses?: Record<string, any>
   preferences?: Record<string, any>
   privacy_settings?: Record<string, any>
+  // @NEXUS-FIX-110: Welcome email tracking fields
+  welcome_email_sent?: boolean
+  welcome_email_sent_at?: string
 }
 
 interface UserProfile {

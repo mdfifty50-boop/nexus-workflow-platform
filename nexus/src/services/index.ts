@@ -3,18 +3,22 @@
  *
  * This module exports all services required for autonomous workflow execution:
  *
- * - WorkflowExecutionEngine: Core execution engine with real API integration
+ * - WorkflowExecutionService: Simplified execution via Composio/Rube (ACTIVE)
  * - AIOrchestrator: Smart model selection and cost optimization
  * - BookingService: Travel and restaurant booking (flights, hotels, restaurants, cars)
  * - PaymentService: Payment processing (Stripe, Apple Pay, Google Pay)
  * - BrowserAutomationService: Complex web automation via Playwright
  * - SmartWorkflowEngine: AI-powered workflow generation
  * - NexusWorkflowEngine: Nexus AI methodology implementation
+ *
+ * ARCHIVED (see src/_archived/):
+ * - WorkflowExecutionEngine: Full-featured engine (payments, bookings, retries)
  */
 
-// Core execution engine
-export { WorkflowExecutionEngine, workflowExecutionEngine, DEFAULT_EXECUTION_CONFIG } from './WorkflowExecutionEngine'
-export type { ExecutionConfig, ExecutionStatus, NodeExecutionResult, WorkflowExecutionResult, PendingApproval, ExecutionEvent } from './WorkflowExecutionEngine'
+// Workflow execution service (simplified, uses Composio directly)
+export { workflowExecutionService } from './WorkflowExecutionService'
+export type { ExecutionConfig, ExecutionResult, ExecutionCallbacks } from './WorkflowExecutionService'
+export type { WorkflowNode as ExecutionWorkflowNode } from './WorkflowExecutionService'
 
 // AI orchestration and model routing
 export {
@@ -129,3 +133,50 @@ export type {
   GeneratedWorkflowJSON,
   NLParseResult
 } from './NLWorkflowEngine'
+
+// Voice Configuration Service - AI Voice Call Settings
+export {
+  VoiceConfigService,
+  getVoiceProfiles,
+  getFilteredVoiceProfiles,
+  getDomains,
+  getUserVoiceConfig,
+  saveUserVoiceConfig,
+  getWorkflowVoiceConfig,
+  saveWorkflowVoiceConfig,
+  detectLanguage,
+  previewVoice,
+  getDomainDisplayName,
+  getLanguageDisplayName,
+  getGenderDisplayName
+} from './VoiceConfigService'
+export type {
+  VoiceProfile,
+  DomainOption,
+  UserVoicePreferences,
+  VoiceRecommendation,
+  UserVoiceConfig,
+  WorkflowVoiceConfig
+} from './VoiceConfigService'
+
+// Chat Persistence Service - Dual-write Supabase + localStorage
+// Plan B: User Account System - Cross-device chat history sync
+export {
+  chatPersistenceService
+} from './ChatPersistenceService'
+
+// Workflow Persistence Service - Dual-write Supabase + localStorage
+// Plan B: User Account System - Cross-device workflow sync
+export {
+  workflowPersistenceService
+} from './WorkflowPersistenceService'
+
+// User Preferences Service - Dual-write Supabase + localStorage
+// Plan B: User Account System - Cross-device preferences sync
+export {
+  userPreferencesService
+} from './UserPreferencesService'
+export type {
+  UserPreferences,
+  PreferenceKey
+} from './UserPreferencesService'

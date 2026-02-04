@@ -1,0 +1,302 @@
+{
+  "id": "telehealth_scheduler",
+  "name": "Telehealth Scheduler",
+  "name_ar": "مجدول الاستشارات عن بعد",
+  "description": "Streamline virtual consultation scheduling with automated meeting links, pre-visit instructions, technical check reminders, and seamless integration with video platforms like Zoom or Google Meet.",
+  "description_ar": "تبسيط جدولة الاستشارات الافتراضية مع روابط الاجتماعات الآلية وتعليمات ما قبل الزيارة وتذكيرات الفحص التقني والتكامل السلس مع منصات الفيديو مثل زوم أو جوجل ميت.",
+  "domain": "clinic",
+  "roiTier": 2,
+  "annualValue": "$32,000/year",
+  "requiredIntegrations": ["googlecalendar", "whatsapp", "zoom"],
+  "optionalIntegrations": ["gmail", "googlemeet", "slack"],
+  "exampleUserInput": "Schedule telehealth appointments with video links",
+  "exampleUserInput_ar": "جدولة مواعيد الاستشارات عن بعد مع روابط الفيديو",
+  "keywords": ["telehealth", "virtual", "video", "consultation", "zoom", "remote", "استشارة عن بعد", "افتراضي", "فيديو", "استشارة", "زوم", "عن بعد"],
+  "dynamicParameters": {
+    "video_platform": {
+      "type": "select",
+      "default": "zoom",
+      "options": ["zoom", "googlemeet", "teams"],
+      "label": "Video platform for consultations",
+      "label_ar": "منصة الفيديو للاستشارات"
+    },
+    "send_tech_check_reminder": {
+      "type": "boolean",
+      "default": true,
+      "label": "Send technology check reminder before appointment",
+      "label_ar": "إرسال تذكير بالفحص التقني قبل الموعد"
+    },
+    "reminder_minutes_before": {
+      "type": "number",
+      "default": 15,
+      "label": "Minutes before appointment to send join link",
+      "label_ar": "دقائق قبل الموعد لإرسال رابط الانضمام"
+    },
+    "auto_record_sessions": {
+      "type": "boolean",
+      "default": false,
+      "label": "Automatically record telehealth sessions",
+      "label_ar": "تسجيل جلسات الاستشارات عن بعد تلقائياً"
+    }
+  },
+  "messages": {
+    "booking_confirmed_en": "✅ *Telehealth Appointment Confirmed*\n\nHi {{patient_name}},\n\nYour virtual consultation has been scheduled!\n\n👨‍⚕️ *Doctor:* Dr. {{doctor_name}}\n📅 *Date:* {{appointment_date}}\n⏰ *Time:* {{appointment_time}}\n💻 *Platform:* {{video_platform}}\n\n*Before your appointment:*\n1. Find a quiet, private space\n2. Ensure stable internet connection\n3. Test your camera and microphone\n4. Have your insurance card ready\n5. Prepare a list of questions/concerns\n\n📋 *Join Link:* {{meeting_link}}\n(We'll send this again 15 minutes before)\n\n*Need to reschedule?* Reply RESCHEDULE",
+    "booking_confirmed_ar": "✅ *تم تأكيد موعد الاستشارة عن بعد*\n\nمرحباً {{patient_name}}،\n\nتم جدولة استشارتك الافتراضية!\n\n👨‍⚕️ *الطبيب:* د. {{doctor_name}}\n📅 *التاريخ:* {{appointment_date}}\n⏰ *الوقت:* {{appointment_time}}\n💻 *المنصة:* {{video_platform}}\n\n*قبل موعدك:*\n1. جد مكاناً هادئاً وخاصاً\n2. تأكد من اتصال إنترنت مستقر\n3. اختبر الكاميرا والميكروفون\n4. جهز بطاقة التأمين\n5. حضر قائمة بالأسئلة/المخاوف\n\n📋 *رابط الانضمام:* {{meeting_link}}\n(سنرسله مرة أخرى قبل 15 دقيقة)\n\n*تريد إعادة الجدولة؟* رد بـ إعادة جدولة",
+    "tech_check_en": "🔧 *Technology Check Reminder*\n\nHi {{patient_name}},\n\nYour telehealth appointment is tomorrow!\n\n*Please test your setup now:*\n📷 Camera working?\n🎤 Microphone clear?\n📶 Internet stable?\n🔋 Device charged?\n\n*Test your connection:*\n{{test_link}}\n\n*Troubleshooting tips:*\n• Close other apps\n• Use Chrome or Safari browser\n• Connect to WiFi (not mobile data)\n• Find good lighting\n\n*Having issues?* Reply HELP or call {{tech_support_phone}}",
+    "tech_check_ar": "🔧 *تذكير بالفحص التقني*\n\nمرحباً {{patient_name}}،\n\nموعد استشارتك عن بعد غداً!\n\n*يرجى اختبار إعداداتك الآن:*\n📷 الكاميرا تعمل؟\n🎤 الميكروفون واضح؟\n📶 الإنترنت مستقر؟\n🔋 الجهاز مشحون؟\n\n*اختبر اتصالك:*\n{{test_link}}\n\n*نصائح استكشاف الأخطاء:*\n• أغلق التطبيقات الأخرى\n• استخدم متصفح كروم أو سفاري\n• اتصل بالواي فاي (وليس بيانات الجوال)\n• جد إضاءة جيدة\n\n*لديك مشاكل؟* رد بـ مساعدة أو اتصل على {{tech_support_phone}}",
+    "join_reminder_en": "🔔 *Your Appointment Starts Soon!*\n\nHi {{patient_name}},\n\nYour telehealth consultation with Dr. {{doctor_name}} starts in {{minutes_until}} minutes.\n\n📋 *Click to join:*\n{{meeting_link}}\n\n*Quick checklist:*\n✓ Camera on\n✓ Microphone on\n✓ In a private space\n✓ Good internet\n\nSee you soon! 💙",
+    "join_reminder_ar": "🔔 *موعدك يبدأ قريباً!*\n\nمرحباً {{patient_name}}،\n\nاستشارتك عن بعد مع د. {{doctor_name}} تبدأ بعد {{minutes_until}} دقيقة.\n\n📋 *انقر للانضمام:*\n{{meeting_link}}\n\n*قائمة فحص سريعة:*\n✓ الكاميرا مفتوحة\n✓ الميكروفون مفتوح\n✓ في مكان خاص\n✓ إنترنت جيد\n\nنراك قريباً! 💙",
+    "session_complete_en": "✅ *Telehealth Session Complete*\n\nThank you for your virtual visit, {{patient_name}}!\n\n*Session Summary:*\n👨‍⚕️ Dr. {{doctor_name}}\n📅 {{appointment_date}}\n⏱️ Duration: {{session_duration}}\n\n{{#if prescriptions}}💊 *Prescriptions:* Sent to {{pharmacy_name}}{{/if}}\n{{#if followup_needed}}📅 *Follow-up:* {{followup_recommendation}}{{/if}}\n{{#if referral}}🏥 *Referral:* {{referral_details}}{{/if}}\n\n*Your visit notes will be available in your patient portal.*\n\n*Questions?* Reply to this message or call {{clinic_phone}}",
+    "session_complete_ar": "✅ *اكتملت جلسة الاستشارة عن بعد*\n\nشكراً لزيارتك الافتراضية، {{patient_name}}!\n\n*ملخص الجلسة:*\n👨‍⚕️ د. {{doctor_name}}\n📅 {{appointment_date}}\n⏱️ المدة: {{session_duration}}\n\n{{#if prescriptions}}💊 *الوصفات:* أُرسلت إلى {{pharmacy_name}}{{/if}}\n{{#if followup_needed}}📅 *المتابعة:* {{followup_recommendation}}{{/if}}\n{{#if referral}}🏥 *التحويل:* {{referral_details}}{{/if}}\n\n*ملاحظات زيارتك ستكون متاحة في بوابة المريض.*\n\n*أسئلة؟* رد على هذه الرسالة أو اتصل على {{clinic_phone}}",
+    "doctor_prep_en": "📋 *Upcoming Telehealth Session*\n\n*Patient:* {{patient_name}}\n*Time:* {{appointment_time}}\n*Chief Complaint:* {{chief_complaint}}\n\n*Patient Info:*\n• Age: {{patient_age}}\n• Last Visit: {{last_visit_date}}\n• Chronic Conditions: {{chronic_conditions}}\n• Current Medications: {{medications}}\n\n*Join Link:* {{meeting_link}}\n*Patient Portal:* {{patient_portal_link}}"
+  },
+  "executionPlan": {
+    "tasks": [
+      {
+        "id": "task_1",
+        "name": "Telehealth Appointment Booked",
+        "name_ar": "حجز موعد استشارة عن بعد",
+        "type": "trigger",
+        "integrationId": "googlecalendar",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "GOOGLECALENDAR_EVENT_CREATED",
+          "action": "webhook",
+          "params": {
+            "calendar_id": "{{appointments_calendar}}",
+            "filter": "appointment_type = 'telehealth'"
+          }
+        }
+      },
+      {
+        "id": "task_2",
+        "name": "Create Video Meeting",
+        "name_ar": "إنشاء اجتماع فيديو",
+        "type": "action",
+        "integrationId": "zoom",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "ZOOM_CREATE_MEETING",
+          "action": "create",
+          "params": {
+            "topic": "Telehealth: {{patient_name}} - Dr. {{doctor_name}}",
+            "start_time": "{{appointment_datetime}}",
+            "duration": "{{appointment_duration}}",
+            "settings": {
+              "waiting_room": true,
+              "mute_upon_entry": true,
+              "auto_recording": "{{auto_record_sessions}}"
+            }
+          }
+        }
+      },
+      {
+        "id": "task_3",
+        "name": "Send Booking Confirmation",
+        "name_ar": "إرسال تأكيد الحجز",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_2"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.booking_confirmed_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_4",
+        "name": "Schedule Tech Check Reminder",
+        "name_ar": "جدولة تذكير الفحص التقني",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{appointment_datetime_minus_24h}}",
+            "action": "send_tech_check",
+            "condition": "send_tech_check_reminder = true"
+          }
+        }
+      },
+      {
+        "id": "task_5",
+        "name": "Send Tech Check Reminder",
+        "name_ar": "إرسال تذكير الفحص التقني",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_4"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.tech_check_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_6",
+        "name": "Schedule Join Reminder",
+        "name_ar": "جدولة تذكير الانضمام",
+        "type": "action",
+        "integrationId": "system",
+        "dependencies": ["task_1"],
+        "config": {
+          "toolSlug": "SYSTEM_SCHEDULE",
+          "action": "schedule",
+          "params": {
+            "time": "{{appointment_datetime_minus_{{reminder_minutes_before}}m}}",
+            "action": "send_join_reminder"
+          }
+        }
+      },
+      {
+        "id": "task_7",
+        "name": "Send Join Reminder",
+        "name_ar": "إرسال تذكير الانضمام",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.join_reminder_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_8",
+        "name": "Send Doctor Prep Info",
+        "name_ar": "إرسال معلومات تحضير الطبيب",
+        "type": "action",
+        "integrationId": "slack",
+        "dependencies": ["task_6"],
+        "config": {
+          "toolSlug": "SLACK_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "channel": "@{{doctor_slack_id}}",
+            "message": "{{messages.doctor_prep_en}}"
+          }
+        }
+      },
+      {
+        "id": "task_9",
+        "name": "Meeting Ended",
+        "name_ar": "انتهى الاجتماع",
+        "type": "trigger",
+        "integrationId": "zoom",
+        "dependencies": [],
+        "config": {
+          "toolSlug": "ZOOM_MEETING_ENDED",
+          "action": "webhook",
+          "params": {
+            "meeting_id": "{{meeting_id}}"
+          }
+        }
+      },
+      {
+        "id": "task_10",
+        "name": "Send Session Summary",
+        "name_ar": "إرسال ملخص الجلسة",
+        "type": "action",
+        "integrationId": "whatsapp",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "WHATSAPP_SEND_MESSAGE",
+          "action": "send",
+          "params": {
+            "to": "{{patient_phone}}",
+            "message": "{{messages.session_complete_{{patient_language}}}}"
+          }
+        }
+      },
+      {
+        "id": "task_11",
+        "name": "Log Session",
+        "name_ar": "تسجيل الجلسة",
+        "type": "action",
+        "integrationId": "googlesheets",
+        "dependencies": ["task_9"],
+        "config": {
+          "toolSlug": "GOOGLESHEETS_APPEND_VALUES",
+          "action": "append",
+          "params": {
+            "spreadsheet_id": "{{telehealth_log_sheet}}",
+            "range": "Sessions!A:J",
+            "values": [["{{appointment_date}}", "{{patient_name}}", "{{doctor_name}}", "{{session_duration}}", "{{outcome}}", "{{followup_needed}}", "{{meeting_link}}", "{{recording_link}}", "{{timestamp}}", "{{notes}}"]]
+          }
+        }
+      }
+    ],
+    "requiredIntegrations": ["googlecalendar", "whatsapp", "zoom"]
+  },
+  "preFlightQuestions": [
+    {
+      "id": "video_platform",
+      "question": "Which video platform for telehealth consultations?",
+      "question_ar": "أي منصة فيديو للاستشارات عن بعد؟",
+      "type": "select",
+      "options": [
+        {"value": "zoom", "label": "Zoom"},
+        {"value": "googlemeet", "label": "Google Meet"},
+        {"value": "teams", "label": "Microsoft Teams"}
+      ],
+      "default": "zoom"
+    },
+    {
+      "id": "send_tech_check_reminder",
+      "question": "Send technology check reminder 24 hours before?",
+      "question_ar": "إرسال تذكير بالفحص التقني قبل 24 ساعة؟",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "id": "reminder_minutes_before",
+      "question": "How many minutes before to send the join link?",
+      "question_ar": "كم دقيقة قبل الموعد لإرسال رابط الانضمام؟",
+      "type": "number",
+      "default": 15
+    },
+    {
+      "id": "auto_record_sessions",
+      "question": "Automatically record telehealth sessions?",
+      "question_ar": "تسجيل جلسات الاستشارات عن بعد تلقائياً؟",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "regionalConfig": {
+    "kuwait": {
+      "timezone": "Asia/Kuwait",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "KWD",
+      "defaultLanguage": "bilingual",
+      "healthcareRegulator": "MOH Kuwait",
+      "telehealthRegulations": "MOH Telehealth Guidelines"
+    },
+    "saudi": {
+      "timezone": "Asia/Riyadh",
+      "workDays": [0, 1, 2, 3, 4],
+      "currency": "SAR",
+      "defaultLanguage": "arabic",
+      "healthcareRegulator": "MOH Saudi",
+      "telehealthRegulations": "SEHA Telehealth Platform"
+    },
+    "uae": {
+      "timezone": "Asia/Dubai",
+      "workDays": [1, 2, 3, 4, 5],
+      "currency": "AED",
+      "defaultLanguage": "english",
+      "healthcareRegulator": "DHA/HAAD",
+      "telehealthRegulations": "DHA Telehealth Standards"
+    }
+  }
+}

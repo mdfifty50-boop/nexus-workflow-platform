@@ -21,6 +21,7 @@ import { WorkflowPreviewCard } from './WorkflowPreviewCard'
 import { APIKeyAcquisitionCard } from './APIKeyAcquisitionCard'
 import { useChatState } from './useChatState'
 import type { EmbeddedContent } from './types'
+import type { ChatMode } from './SidebarNavigation'
 // @NEXUS-FIX-027: Get user email for "Send to Myself" button
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -292,6 +293,13 @@ export function ChatContainer({
   showDashboardButton = true,
   renderEmbeddedContent,
 }: ChatContainerProps): React.ReactElement {
+  // @NEXUS-FIX-027: Get user email for "Send to Myself" button - DO NOT REMOVE
+  // Also provides userId for cloud sync (Plan B: User Account System)
+  const { user, userProfile, userId } = useAuth()
+  const userEmail = userProfile?.email || user?.email || null
+
+  // Chat state with optional cloud sync (Plan B: User Account System)
+  // When userId is provided, chat history syncs to Supabase for cross-device access
   const {
     messages,
     isLoading,
@@ -301,11 +309,7 @@ export function ChatContainer({
     startNewSession,
     setIsLoading,
     loadSession,
-  } = useChatState()
-
-  // @NEXUS-FIX-027: Get user email for "Send to Myself" button - DO NOT REMOVE
-  const { user, userProfile } = useAuth()
-  const userEmail = userProfile?.email || user?.email || null
+  } = useChatState({ userId })
 
   // Handle session selection and new chat trigger from localStorage event (triggered by sidebar)
   React.useEffect(() => {
@@ -319,6 +323,11 @@ export function ChatContainer({
     // Check for new chat trigger on mount
     const newChatTrigger = localStorage.getItem('nexus-new-chat-trigger')
     if (newChatTrigger) {
+      // Read chat mode before clearing
+      const mode = localStorage.getItem('nexus-chat-mode') as ChatMode || 'standard'
+      setChatMode(mode)
+      localStorage.removeItem('nexus-chat-mode')
+
       startNewSession()
       localStorage.removeItem('nexus-new-chat-trigger')
       // Reset conversation state
@@ -336,6 +345,11 @@ export function ChatContainer({
         localStorage.removeItem('nexus-pending-session')
       }
       if (e.key === 'nexus-new-chat-trigger' && e.newValue) {
+        // Read chat mode before clearing
+        const mode = localStorage.getItem('nexus-chat-mode') as ChatMode || 'standard'
+        setChatMode(mode)
+        localStorage.removeItem('nexus-chat-mode')
+
         startNewSession()
         localStorage.removeItem('nexus-new-chat-trigger')
         // Reset conversation state
@@ -369,6 +383,9 @@ export function ChatContainer({
   const [pendingQuestions, setPendingQuestions] = React.useState<SmartNexusQuestion[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0)
   const [collectedInfo, setCollectedInfo] = React.useState<Record<string, string>>({})
+
+  // "Think with me" mode - focused problem-solving chat mode
+  const [chatMode, setChatMode] = React.useState<ChatMode>('standard')
 
   // Active workflow tracking - for refinement mode (update existing card instead of creating new)
   const [activeWorkflowId, setActiveWorkflowId] = React.useState<string | null>(null)
@@ -418,10 +435,167 @@ export function ChatContainer({
     }
   }, [pendingCustomIntegrations])
 
+  // ============================================================================
+  // Node Edit Commands (chat-based workflow modification)
+  // ============================================================================
+
+  // Types for edit commands
+  interface NodeEditCommand {
+    type: 'remove' | 'add'
+    target?: string  // Node name/integration for remove
+    integration?: string  // For add
+  }
+
+  // Default actions for auto-detection when adding nodes
+  const defaultActions: Record<string, string> = {
+    slack: 'send_message',
+    gmail: 'send_email',
+    googlesheets: 'append_row',
+    notion: 'create_page',
+    discord: 'send_message',
+    dropbox: 'upload_file',
+    github: 'create_issue',
+    trello: 'create_card',
+    asana: 'create_task',
+    hubspot: 'create_contact',
+    whatsapp: 'send_message',
+    twitter: 'post_tweet',
+    linkedin: 'post_update',
+    zoom: 'create_meeting',
+    stripe: 'create_payment',
+  }
+
+  // Parse edit commands from chat
+  const parseNodeEditCommand = React.useCallback((message: string): NodeEditCommand | null => {
+    const trimmed = message.trim()
+
+    // Remove patterns: "remove gmail", "delete the slack step", "remove node 2"
+    const removePatterns = [
+      /^(?:remove|delete)\s+(?:the\s+)?(?:node\s+|step\s+)?["']?([^"']+?)["']?(?:\s+(?:step|node))?$/i,
+      /^(?:take out|get rid of)\s+(?:the\s+)?["']?(.+?)["']?$/i,
+    ]
+
+    for (const pattern of removePatterns) {
+      const match = trimmed.match(pattern)
+      if (match) return { type: 'remove', target: match[1].trim() }
+    }
+
+    // Add patterns: "add slack", "add a notification step"
+    const addPatterns = [
+      /^add\s+(?:a\s+)?(?:new\s+)?["']?([a-zA-Z]+)["']?\s*(?:step|node|action)?$/i,
+    ]
+
+    for (const pattern of addPatterns) {
+      const match = trimmed.match(pattern)
+      if (match) return { type: 'add', integration: match[1].trim() }
+    }
+
+    return null
+  }, [])
+
+  // Handle node edit command
+  const handleNodeEditCommand = React.useCallback((cmd: NodeEditCommand) => {
+    if (!activeWorkflowId) {
+      addMessage("I don't see an active workflow to edit. Please generate a workflow first.", 'assistant')
+      return true
+    }
+
+    const workflow = generatedWorkflows.get(activeWorkflowId)
+    if (!workflow) {
+      addMessage("The workflow couldn't be found. Try generating a new one.", 'assistant')
+      return true
+    }
+
+    if (cmd.type === 'remove' && cmd.target) {
+      const targetLower = cmd.target.toLowerCase()
+      // Find matching node(s) - use 'tool' property per WorkflowNode type
+      const matches = workflow.nodes.filter(n =>
+        n.name.toLowerCase().includes(targetLower) ||
+        n.tool?.toLowerCase() === targetLower ||
+        n.id === cmd.target
+      )
+
+      if (matches.length === 0) {
+        addMessage(
+          `I couldn't find a step matching "${cmd.target}" in your workflow.\n\n` +
+          `**Current steps:** ${workflow.nodes.map(n => n.name).join(', ')}`,
+          'assistant'
+        )
+      } else if (matches.length === 1) {
+        const node = matches[0]
+        const isTrigger = node.type === 'trigger'
+
+        // Confirmation is handled via the chat - just do it
+        const updatedNodes = workflow.nodes.filter(n => n.id !== node.id)
+        const updatedWorkflow = { ...workflow, nodes: updatedNodes }
+        setGeneratedWorkflows(prev => new Map(prev).set(activeWorkflowId, updatedWorkflow))
+
+        const warningMsg = isTrigger
+          ? '\n\n⚠️ **Note:** This was the trigger node. Your workflow won\'t start automatically now.'
+          : ''
+        addMessage(
+          `✓ Removed **"${node.name}"** from your workflow.${warningMsg}\n\n` +
+          `Your workflow now has ${updatedNodes.length} step${updatedNodes.length !== 1 ? 's' : ''}.`,
+          'assistant'
+        )
+      } else {
+        // Ambiguous - list options
+        addMessage(
+          `I found ${matches.length} steps matching "${cmd.target}":\n\n` +
+          matches.map((n, i) => `${i + 1}. **${n.name}** (${n.tool || 'unknown'})`).join('\n') +
+          `\n\nPlease be more specific, e.g., "remove ${matches[0].name}"`,
+          'assistant'
+        )
+      }
+      return true
+    }
+
+    if (cmd.type === 'add' && cmd.integration) {
+      const integrationLower = cmd.integration.toLowerCase()
+      const actionType = defaultActions[integrationLower] || 'action'
+      const capitalizedIntegration = cmd.integration.charAt(0).toUpperCase() + cmd.integration.slice(1)
+
+      // Create new node matching WorkflowNode type from SmartWorkflowEngine
+      const newNode = {
+        id: `step_${Date.now()}`,
+        name: `${capitalizedIntegration} ${actionType.replace('_', ' ')}`,
+        type: 'action' as const,
+        tool: integrationLower,
+        toolIcon: `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/${integrationLower}.svg`,
+        description: `${actionType.replace('_', ' ')} via ${capitalizedIntegration}`,
+        config: {},
+        position: { x: 0, y: workflow.nodes.length * 100 },
+      }
+
+      const updatedWorkflow = { ...workflow, nodes: [...workflow.nodes, newNode] }
+      setGeneratedWorkflows(prev => new Map(prev).set(activeWorkflowId, updatedWorkflow))
+
+      addMessage(
+        `✓ Added **${newNode.name}** to your workflow.\n\n` +
+        `Your workflow now has ${updatedWorkflow.nodes.length} steps. ` +
+        `Click "Edit Workflow" on the card to configure it, or just run it!`,
+        'assistant'
+      )
+      return true
+    }
+
+    return false
+  }, [activeWorkflowId, generatedWorkflows, addMessage])
+
   // Handle sending a message with REAL AI processing
   const handleSend = React.useCallback(
     async (content: string) => {
       console.log('[ChatContainer] handleSend called with:', content)
+
+      // Check for node edit command FIRST (before adding message)
+      const editCmd = parseNodeEditCommand(content)
+      if (editCmd) {
+        addMessage(content, 'user')  // Show user message
+        handleNodeEditCommand(editCmd)
+        setIsLoading(false)
+        return
+      }
+
       // Add user message
       addMessage(content, 'user')
       setIsLoading(true)
@@ -498,11 +672,12 @@ export function ChatContainer({
         // Templates = Reliable workflow structure generation
         // ======================================================================
 
-        console.log('[ChatContainer] Trying Claude AI first...')
+        console.log('[ChatContainer] Trying Claude AI first...', { chatMode })
 
         try {
           // Try Claude AI for natural conversation
-          const aiResponse = await nexusAIService.chat(content)
+          // Pass chatMode for "Think with me" focused problem-solving
+          const aiResponse = await nexusAIService.chat(content, { chatMode })
           console.log('[ChatContainer] Claude AI response:', aiResponse)
 
           // Store any custom integrations for display
@@ -788,6 +963,19 @@ export function ChatContainer({
         sessionTitle={currentSession?.title}
       />
 
+      {/* Think with me mode indicator */}
+      {chatMode === 'think_with_me' && (
+        <div className="flex justify-center px-4 py-2 bg-purple-500/5 border-b border-purple-500/20">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full">
+            <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span className="text-xs text-purple-300 font-medium">Think with me</span>
+            <span className="text-xs text-purple-400/70">Focused problem-solving mode</span>
+          </div>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
@@ -942,6 +1130,41 @@ export function ChatContainer({
                           console.error('[ChatContainer] Failed to store API key')
                           return false
                         }
+                      }}
+                      // Node editing callbacks - state managed by ChatContainer
+                      onNodeRemove={(nodeId) => {
+                        console.log(`[ChatContainer] Node removed: ${nodeId}`)
+                        setGeneratedWorkflows(prev => {
+                          const updated = new Map(prev)
+                          const existingWorkflow = updated.get(workflowId)
+                          if (existingWorkflow) {
+                            const updatedNodes = existingWorkflow.nodes.filter(n => n.id !== nodeId)
+                            updated.set(workflowId, { ...existingWorkflow, nodes: updatedNodes })
+                          }
+                          return updated
+                        })
+                      }}
+                      onNodeAdd={(integration, actionType) => {
+                        console.log(`[ChatContainer] Node added: ${integration} - ${actionType}`)
+                        const capitalizedIntegration = integration.charAt(0).toUpperCase() + integration.slice(1)
+                        setGeneratedWorkflows(prev => {
+                          const updated = new Map(prev)
+                          const existingWorkflow = updated.get(workflowId)
+                          if (existingWorkflow) {
+                            const newNode = {
+                              id: `step_${Date.now()}`,
+                              name: `${capitalizedIntegration} ${actionType.replace('_', ' ')}`,
+                              type: 'action' as const,
+                              tool: integration.toLowerCase(),
+                              toolIcon: `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/${integration.toLowerCase()}.svg`,
+                              description: `${actionType.replace('_', ' ')} via ${capitalizedIntegration}`,
+                              config: {},
+                              position: { x: 0, y: existingWorkflow.nodes.length * 100 },
+                            }
+                            updated.set(workflowId, { ...existingWorkflow, nodes: [...existingWorkflow.nodes, newNode] })
+                          }
+                          return updated
+                        })
                       }}
                     />
                   )

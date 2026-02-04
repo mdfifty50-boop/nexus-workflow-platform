@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
@@ -26,6 +26,10 @@ import clsx from 'clsx'
 import { RegionalIntelligenceService } from '@/services/RegionalIntelligenceService'
 import { ProactiveSuggestionsService, type ProactiveSuggestion } from '@/services/ProactiveSuggestionsService'
 import { IntegrationDiscoveryService } from '@/services/IntegrationDiscoveryService'
+import { workflowPersistenceService, type SavedWorkflow } from '@/services/WorkflowPersistenceService'
+import { DailyAdviceCard } from '@/components/DailyAdviceCard'
+// @NEXUS-FIX-090: Role-based avatar integration
+import { SmartAvatar } from '@/components/Avatar'
 
 // ============================================
 // SERVICE INTEGRATION: Dashboard Intelligence
@@ -108,40 +112,37 @@ const stats = [
   },
 ]
 
-const recentWorkflows = [
-  {
-    id: 1,
-    name: 'Email to Slack Notifier',
-    lastRun: '2 minutes ago',
-    status: 'active',
-    runs: 156,
-    icon: '📧',
-  },
-  {
-    id: 2,
-    name: 'Lead Scoring Pipeline',
-    lastRun: '15 minutes ago',
-    status: 'active',
-    runs: 89,
-    icon: '🎯',
-  },
-  {
-    id: 3,
-    name: 'Invoice Generator',
-    lastRun: '1 hour ago',
-    status: 'paused',
-    runs: 45,
-    icon: '📄',
-  },
-  {
-    id: 4,
-    name: 'Social Media Scheduler',
-    lastRun: '3 hours ago',
-    status: 'active',
-    runs: 234,
-    icon: '📱',
-  },
-]
+// Display format for recent workflows (unified for persisted + fallback)
+interface DisplayWorkflow {
+  id: string
+  name: string
+  lastRun: string
+  status: 'active' | 'paused' | 'draft' | 'completed' | 'failed'
+  runs: number
+  icon: string
+}
+
+// Convert SavedWorkflow to display format
+function convertToDisplayWorkflow(workflow: SavedWorkflow): DisplayWorkflow {
+  // Map status to display values
+  const statusMap: Record<string, 'active' | 'paused' | 'draft' | 'completed' | 'failed'> = {
+    active: 'active',
+    paused: 'paused',
+    draft: 'draft',
+    completed: 'completed',
+    failed: 'failed',
+    archived: 'paused', // Show archived as paused for display
+  }
+
+  return {
+    id: workflow.id,
+    name: workflow.name,
+    lastRun: formatRelativeTime(workflow.lastExecutedAt),
+    status: statusMap[workflow.status] || 'draft',
+    runs: workflow.executionCount || 0,
+    icon: getWorkflowIcon(workflow),
+  }
+}
 
 const achievements = [
   {
@@ -207,6 +208,91 @@ const fallbackSuggestions: DashboardSuggestion[] = [
   },
 ]
 
+// Helper: Format relative time for "last run" display
+function formatRelativeTime(date: Date | undefined): string {
+  if (!date) return 'Never run'
+
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  return date.toLocaleDateString()
+}
+
+// Helper: Get icon for workflow based on integrations
+function getWorkflowIcon(workflow: SavedWorkflow): string {
+  const integration = workflow.requiredIntegrations?.[0] || workflow.triggerConfig?.integration || ''
+
+  const iconMap: Record<string, string> = {
+    gmail: '📧',
+    email: '📧',
+    slack: '💬',
+    googlesheets: '📊',
+    sheets: '📊',
+    dropbox: '📁',
+    drive: '📁',
+    googledrive: '📁',
+    notion: '📝',
+    calendar: '📅',
+    googlecalendar: '📅',
+    twitter: '🐦',
+    linkedin: '💼',
+    github: '🐙',
+    stripe: '💳',
+    whatsapp: '📱',
+    discord: '🎮',
+    zoom: '📹',
+    hubspot: '🎯',
+    salesforce: '☁️',
+    trello: '📋',
+    asana: '✅',
+  }
+
+  return iconMap[integration.toLowerCase()] || '⚡'
+}
+
+// Fallback workflows when no data exists (demo purposes)
+const fallbackWorkflows = [
+  {
+    id: 'demo-1',
+    name: 'Email to Slack Notifier',
+    lastRun: '2 minutes ago',
+    status: 'active' as const,
+    runs: 156,
+    icon: '📧',
+  },
+  {
+    id: 'demo-2',
+    name: 'Lead Scoring Pipeline',
+    lastRun: '15 minutes ago',
+    status: 'active' as const,
+    runs: 89,
+    icon: '🎯',
+  },
+  {
+    id: 'demo-3',
+    name: 'Invoice Generator',
+    lastRun: '1 hour ago',
+    status: 'paused' as const,
+    runs: 45,
+    icon: '📄',
+  },
+  {
+    id: 'demo-4',
+    name: 'Social Media Scheduler',
+    lastRun: '3 hours ago',
+    status: 'active' as const,
+    runs: 234,
+    icon: '📱',
+  },
+]
+
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -220,6 +306,18 @@ export function Dashboard() {
   // ============================================
   // SERVICE-BASED DATA (Regional + AI Intelligence)
   // ============================================
+
+  // Daily advice visibility (component handles its own dismiss state)
+  const showDailyAdvice = true
+
+  // User context for daily advice (would come from actual user data in production)
+  const dailyAdviceUserContext = useMemo(() => ({
+    connectedIntegrations: ['gmail', 'slack', 'googlesheets'],
+    recentWorkflows: [],
+    region: USER_REGION,
+    businessType: 'saas' as const,
+    teamSize: 'small' as const,
+  }), [])
 
   // Get regional greeting context
   const greetingContext = useMemo(() => {
@@ -245,6 +343,42 @@ export function Dashboard() {
     }
 
     return { timeGreeting, subtitle, isBusinessHours, regional }
+  }, [])
+
+  // ==========================================================================
+  // RECENT WORKFLOWS - Phase 3: WorkflowPersistenceService Integration
+  // ==========================================================================
+
+  const [recentWorkflows, setRecentWorkflows] = useState<DisplayWorkflow[]>(fallbackWorkflows)
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true)
+
+  useEffect(() => {
+    async function loadWorkflows() {
+      try {
+        setIsLoadingWorkflows(true)
+        const { workflows } = await workflowPersistenceService.loadWorkflows()
+
+        if (workflows && workflows.length > 0) {
+          // Get active (non-archived) workflows, sorted by most recently updated
+          const activeWorkflows = workflows
+            .filter(w => w.status !== 'archived')
+            .slice(0, 4) // Show top 4 on dashboard
+            .map(convertToDisplayWorkflow)
+
+          setRecentWorkflows(activeWorkflows)
+        } else {
+          // No saved workflows - show fallback demos
+          setRecentWorkflows(fallbackWorkflows)
+        }
+      } catch (err) {
+        console.warn('[Dashboard] Failed to load workflows:', err)
+        setRecentWorkflows(fallbackWorkflows)
+      } finally {
+        setIsLoadingWorkflows(false)
+      }
+    }
+
+    loadWorkflows()
   }, [])
 
   // Get AI-powered suggestions from ProactiveSuggestionsService
@@ -282,20 +416,32 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Page header */}
+      {/* Page header with Avatar - @NEXUS-FIX-090 */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={stagger}
         className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
-        <div>
-          <motion.h1 variants={fadeInUp} className="text-3xl font-bold text-white">
-            {greetingContext.timeGreeting}, John
-          </motion.h1>
-          <motion.p variants={fadeInUp} className="text-surface-400 mt-1">
-            {greetingContext.subtitle}
-          </motion.p>
+        <div className="flex items-center gap-4">
+          {/* Smart Avatar - auto-detects user role */}
+          <motion.div variants={fadeInUp}>
+            <SmartAvatar
+              size="lg"
+              state="idle"
+              userIndustry="business"
+              showName={false}
+              showTitle={false}
+            />
+          </motion.div>
+          <div>
+            <motion.h1 variants={fadeInUp} className="text-3xl font-bold text-white">
+              {greetingContext.timeGreeting}, John
+            </motion.h1>
+            <motion.p variants={fadeInUp} className="text-surface-400 mt-1">
+              {greetingContext.subtitle}
+            </motion.p>
+          </div>
         </div>
         <motion.div variants={fadeInUp} className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
@@ -304,6 +450,15 @@ export function Dashboard() {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Daily AI Workflow Advice - Featured Tip of the Day */}
+      {showDailyAdvice && (
+        <DailyAdviceCard
+          userContext={dailyAdviceUserContext}
+          personaType="sme"
+          className="w-full"
+        />
+      )}
 
       {/* Nexus Chat Hero Card */}
       <motion.div
@@ -427,36 +582,66 @@ export function Dashboard() {
           </div>
 
           <div className="space-y-3">
-            {recentWorkflows.map((workflow) => (
-              <Link key={workflow.id} to="/workflows">
-                <motion.div
-                  whileHover={{ x: 4 }}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 border border-transparent hover:border-surface-700 transition-all cursor-pointer group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-surface-700/50 flex items-center justify-center text-2xl">
-                    {workflow.icon}
+            {isLoadingWorkflows ? (
+              // Loading skeleton
+              <>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-surface-800/50 animate-pulse">
+                    <div className="w-12 h-12 rounded-xl bg-surface-700/50" />
+                    <div className="flex-1">
+                      <div className="h-4 bg-surface-700/50 rounded w-1/2 mb-2" />
+                      <div className="h-3 bg-surface-700/30 rounded w-1/3" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white truncate">{workflow.name}</p>
-                    <p className="text-sm text-surface-400">{workflow.runs} runs · {workflow.lastRun}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={clsx(
-                      'badge',
-                      workflow.status === 'active' ? 'badge-success' : 'badge-warning'
-                    )}>
-                      {workflow.status}
-                    </span>
-                    <button
-                      onClick={(e) => e.preventDefault()}
-                      className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-surface-700 transition-all"
-                    >
-                      <MoreHorizontal className="w-4 h-4 text-surface-400" />
-                    </button>
-                  </div>
-                </motion.div>
-              </Link>
-            ))}
+                ))}
+              </>
+            ) : recentWorkflows.length === 0 ? (
+              // Empty state
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto rounded-xl bg-surface-800/50 flex items-center justify-center mb-4">
+                  <Zap className="w-8 h-8 text-surface-500" />
+                </div>
+                <p className="text-surface-400 mb-2">No workflows yet</p>
+                <Link to="/chat" className="text-nexus-400 hover:text-nexus-300 text-sm">
+                  Create your first workflow →
+                </Link>
+              </div>
+            ) : (
+              // Workflow list
+              recentWorkflows.map((workflow) => (
+                <Link key={workflow.id} to="/workflows">
+                  <motion.div
+                    whileHover={{ x: 4 }}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-surface-800/50 hover:bg-surface-800 border border-transparent hover:border-surface-700 transition-all cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-surface-700/50 flex items-center justify-center text-2xl">
+                      {workflow.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-white truncate">{workflow.name}</p>
+                      <p className="text-sm text-surface-400">{workflow.runs} runs · {workflow.lastRun}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={clsx(
+                        'badge',
+                        workflow.status === 'active' ? 'badge-success' :
+                        workflow.status === 'completed' ? 'badge-success' :
+                        workflow.status === 'failed' ? 'badge-error' :
+                        'badge-warning'
+                      )}>
+                        {workflow.status}
+                      </span>
+                      <button
+                        onClick={(e) => e.preventDefault()}
+                        className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-surface-700 transition-all"
+                      >
+                        <MoreHorizontal className="w-4 h-4 text-surface-400" />
+                      </button>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))
+            )}
           </div>
         </motion.div>
 
