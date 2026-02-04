@@ -1,5 +1,73 @@
 # Nexus Deployment Guide
 
+## Branch Workflow (IMPORTANT - Read First)
+
+### Branch Structure
+
+```
+golden-path (development)
+     │
+     │ PR: "Ready for Testing"
+     ▼
+  staging (pre-production testing)
+     │
+     │ PR: "Ready for Production"
+     ▼
+   main (production - live site)
+```
+
+### Branch Purposes
+
+| Branch | Purpose | Deploys To | Who Can Push |
+|--------|---------|------------|--------------|
+| `golden-path` | Active development | Dev preview | Anyone |
+| `staging` | Pre-production testing | staging URL | Via PR only |
+| `main` | Production | Live site | Via PR only |
+
+### Daily Development Workflow
+
+```bash
+# 1. Work on golden-path
+git checkout golden-path
+git pull origin golden-path
+# ... make changes ...
+git add . && git commit -m "Feature: description"
+git push origin golden-path
+
+# 2. Ready for testing? Create PR: golden-path → staging
+# On GitHub, create Pull Request
+
+# 3. Tested on staging? Create PR: staging → main
+# On GitHub, create Pull Request to go live
+```
+
+### Quick Reference
+
+| Action | Command |
+|--------|---------|
+| Switch to dev | `git checkout golden-path` |
+| Switch to staging | `git checkout staging` |
+| Sync after merge | `git pull origin <branch>` |
+
+### Emergency Hotfix
+
+```bash
+git checkout main && git pull
+git checkout -b hotfix/bug-name
+# fix the bug
+git add . && git commit -m "Hotfix: description"
+# Create PR: hotfix → main (urgent)
+# Then also merge to staging and golden-path
+```
+
+### Rollback (Vercel)
+
+1. Go to Vercel → Deployments
+2. Find last working deployment
+3. Click "..." → "Promote to Production"
+
+---
+
 ## Prerequisites
 
 ### Required Services
