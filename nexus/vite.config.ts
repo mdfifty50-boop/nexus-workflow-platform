@@ -61,17 +61,14 @@ export default defineConfig({
             return undefined // Skip - marked as external
           }
 
-          // 3D Libraries - Load lazily (used only on landing page)
-          if (id.includes('three') ||
-              id.includes('@react-three') ||
-              id.includes('@splinetool')) {
-            return 'vendor-3d'
-          }
+          // @NEXUS-FIX-103: 3D Libraries - DO NOT manually chunk
+          // Causes circular dependency: vendor-core <-> vendor-3d
+          // Let Vite auto-handle - they're code-split via dynamic imports anyway
+          // The LandingPage uses lazy() import which creates automatic chunks
 
-          // Charts library - Load lazily (used only on analytics/dashboard)
-          if (id.includes('recharts')) {
-            return 'vendor-charts'
-          }
+          // @NEXUS-FIX-103: Charts library - DO NOT manually chunk
+          // Causes circular dependency with vendor-core (recharts uses React)
+          // Auto-chunked via dynamic imports in Analytics page
 
           // Workflow visualization - Load lazily
           if (id.includes('@xyflow') || id.includes('reactflow')) {
@@ -114,8 +111,9 @@ export default defineConfig({
             return 'vendor-icons'
           }
 
-          // React core and essentials - Keep together to prevent circular deps
-          // Include ALL React-related packages in core to avoid cycles
+          // React core and ALL React-dependent essentials - Keep together to prevent circular deps
+          // @NEXUS-FIX-103: Include ALL React-importing packages to prevent circular chunk dependency
+          // DO NOT REMOVE - Causes blank page if circular dependency exists
           if (id.includes('node_modules/react') ||
               id.includes('node_modules/react-dom') ||
               id.includes('node_modules/react-router-dom') ||
@@ -127,14 +125,27 @@ export default defineConfig({
               id.includes('node_modules/react-i18next') ||
               id.includes('node_modules/i18next') ||
               id.includes('node_modules/react-helmet') ||
-              id.includes('node_modules/use-sync-external-store')) {
+              id.includes('node_modules/use-sync-external-store') ||
+              // Additional React-dependent packages that MUST be in core
+              id.includes('node_modules/@radix-ui') ||
+              id.includes('node_modules/@floating-ui') ||
+              id.includes('node_modules/@tanstack') ||
+              id.includes('node_modules/react-hook-form') ||
+              id.includes('node_modules/@hookform') ||
+              id.includes('node_modules/cmdk') ||
+              id.includes('node_modules/sonner') ||
+              id.includes('node_modules/react-day-picker') ||
+              id.includes('node_modules/react-dropzone') ||
+              id.includes('node_modules/react-resizable') ||
+              id.includes('node_modules/react-hotkeys-hook') ||
+              id.includes('node_modules/react-colorful') ||
+              id.includes('node_modules/@dnd-kit') ||
+              id.includes('node_modules/vaul')) {
             return 'vendor-core'
           }
 
-          // Everything else that's not specifically chunked goes to vendor
-          if (id.includes('node_modules')) {
-            return 'vendor'
-          }
+          // Let Vite auto-chunk remaining node_modules to prevent circular dependencies
+          // DO NOT use a catch-all 'vendor' chunk - it causes cycles with vendor-core
           return undefined
         },
       },
