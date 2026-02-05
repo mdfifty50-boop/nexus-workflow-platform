@@ -128,6 +128,10 @@ export function SmartAIChatbot({ position = 'bottom-right' }: SmartAIChatbotProp
   const navigate = useNavigate()
   const location = useLocation()
   const { persona, customPersonaLabel } = usePersonalization()
+
+  // Hide chatbot on landing, auth, and public pages - only show in app context
+  const hiddenRoutes = ['/', '/login', '/sign-up', '/privacy', '/terms', '/help', '/try']
+  const shouldHideOnRoute = hiddenRoutes.includes(location.pathname)
   // Get WorkflowContext for real backend execution
   const workflowContext = useWorkflowContext()
   // User context extraction hook
@@ -160,6 +164,11 @@ export function SmartAIChatbot({ position = 'bottom-right' }: SmartAIChatbotProp
 
   // Don't render chatbot until onboarding is complete
   if (!isOnboardingComplete) {
+    return null
+  }
+
+  // Hide chatbot on landing, auth, and public pages
+  if (shouldHideOnRoute) {
     return null
   }
 

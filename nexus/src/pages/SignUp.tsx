@@ -1,6 +1,8 @@
-import { SignUp as ClerkSignUp } from '@clerk/clerk-react'
+import { SignUp as ClerkSignUp, useAuth } from '@clerk/clerk-react'
 
 export function SignUp() {
+  const { isLoaded } = useAuth()
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <div className="w-full max-w-md">
@@ -14,23 +16,34 @@ export function SignUp() {
           <p className="text-muted-foreground mt-2">Create your account</p>
         </div>
 
-        <ClerkSignUp
-          appearance={{
-            elements: {
-              rootBox: 'w-full',
-              card: 'glass rounded-xl border-2 border-border shadow-2xl',
-              headerTitle: 'hidden',
-              headerSubtitle: 'hidden',
-              socialButtonsBlockButton: 'bg-background hover:bg-muted border-2 border-border',
-              formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
-              footerActionLink: 'text-primary hover:text-primary/80',
-            },
-          }}
-          routing="path"
-          path="/sign-up"
-          signInUrl="/login"
-          fallbackRedirectUrl="/dashboard"
-        />
+        {/* Show loading spinner while Clerk initializes */}
+        {!isLoaded && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-muted-foreground text-sm">Loading sign up...</p>
+          </div>
+        )}
+
+        {/* Only render SignUp when Clerk is loaded */}
+        {isLoaded && (
+          <ClerkSignUp
+            appearance={{
+              elements: {
+                rootBox: 'w-full',
+                card: 'glass rounded-xl border-2 border-border shadow-2xl',
+                headerTitle: 'hidden',
+                headerSubtitle: 'hidden',
+                socialButtonsBlockButton: 'bg-background hover:bg-muted border-2 border-border',
+                formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
+                footerActionLink: 'text-primary hover:text-primary/80',
+              },
+            }}
+            routing="path"
+            path="/sign-up"
+            signInUrl="/login"
+            fallbackRedirectUrl="/dashboard"
+          />
+        )}
       </div>
     </div>
   )

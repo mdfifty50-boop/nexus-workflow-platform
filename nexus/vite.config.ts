@@ -38,10 +38,46 @@ export default defineConfig({
     // Increase chunk size warning limit for better DX
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      // Exclude server-side dependencies from frontend bundle
+      external: [
+        'puppeteer',
+        'playwright',
+        'whatsapp-web.js',
+        '@whiskeysockets/baileys',
+        'express',
+        'cors',
+      ],
       output: {
-        // Fixed chunking to avoid circular dependencies
-        // React MUST be bundled with React-dependent libs to prevent loading order issues
+        // Optimized chunking for performance
+        // Strategy: Separate heavy libs, keep React core together
         manualChunks: (id) => {
+          // Server-side only - should never be bundled (external fallback)
+          if (id.includes('puppeteer') ||
+              id.includes('playwright') ||
+              id.includes('whatsapp-web.js') ||
+              id.includes('@whiskeysockets/baileys') ||
+              id.includes('node_modules/express') ||
+              id.includes('node_modules/cors')) {
+            return undefined // Skip - marked as external
+          }
+
+          // 3D Libraries - Load lazily (used only on landing page)
+          if (id.includes('three') ||
+              id.includes('@react-three') ||
+              id.includes('@splinetool')) {
+            return 'vendor-3d'
+          }
+
+          // Charts library - Load lazily (used only on analytics/dashboard)
+          if (id.includes('recharts')) {
+            return 'vendor-charts'
+          }
+
+          // Workflow visualization - Load lazily
+          if (id.includes('@xyflow') || id.includes('reactflow')) {
+            return 'vendor-flow'
+          }
+
           // Heavy libs that can be split safely (NO React dependency)
           if (id.includes('node_modules/html2canvas')) {
             return 'vendor-html2canvas'
@@ -52,12 +88,50 @@ export default defineConfig({
           if (id.includes('node_modules/dompurify')) {
             return 'vendor-sanitize'
           }
+
+          // Stripe - Load lazily (only on checkout/pricing)
+          if (id.includes('@stripe')) {
+            return 'vendor-stripe'
+          }
+
+          // Auth - Load with core (needed on most pages)
+          if (id.includes('@clerk')) {
+            return 'vendor-auth'
+          }
+
+          // Supabase - Database client
+          if (id.includes('@supabase')) {
+            return 'vendor-supabase'
+          }
+
+          // Animation library - Used widely
+          if (id.includes('framer-motion')) {
+            return 'vendor-animation'
+          }
+
           // Icon library (uses React but loaded async is ok)
           if (id.includes('node_modules/lucide-react')) {
             return 'vendor-icons'
           }
-          // Everything else including React goes to main vendor chunk
-          // This prevents circular dependency: vendor-react <-> vendor
+
+          // React core and essentials - Keep together to prevent circular deps
+          // Include ALL React-related packages in core to avoid cycles
+          if (id.includes('node_modules/react') ||
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/zustand') ||
+              id.includes('node_modules/clsx') ||
+              id.includes('node_modules/tailwind-merge') ||
+              id.includes('node_modules/class-variance-authority') ||
+              id.includes('node_modules/react-i18next') ||
+              id.includes('node_modules/i18next') ||
+              id.includes('node_modules/react-helmet') ||
+              id.includes('node_modules/use-sync-external-store')) {
+            return 'vendor-core'
+          }
+
+          // Everything else that's not specifically chunked goes to vendor
           if (id.includes('node_modules')) {
             return 'vendor'
           }

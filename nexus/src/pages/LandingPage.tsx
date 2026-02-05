@@ -357,11 +357,14 @@ export function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-surface-950 overflow-hidden">
+    <div className="min-h-screen bg-surface-950 overflow-hidden relative">
       {/* 3D Background Cube - Resend-style scroll-reactive animation */}
-      <Suspense fallback={null}>
-        <BackgroundCube />
-      </Suspense>
+      {/* Wrapped in relative container so cube scrolls with hero section */}
+      <div className="absolute top-0 left-0 right-0 h-screen pointer-events-none" style={{ zIndex: 1 }}>
+        <Suspense fallback={null}>
+          <BackgroundCube />
+        </Suspense>
+      </div>
 
       {/* Fixed Background with parallax */}
       <motion.div style={{ scale: bgScale }} className="fixed inset-0 pointer-events-none">
