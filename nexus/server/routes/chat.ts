@@ -23,7 +23,8 @@ const chatRateLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
   // Disable IPv6 keyGenerator validation - we use user IDs as primary key
-  validate: { ipKeyGenerator: false },
+  // @NEXUS-FIX-102: Use correct validate option name - DO NOT MODIFY
+  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req: Request): string => {
     // Try to get user ID from various sources (primary method)
     const userId = req.headers['x-user-id'] as string ||
