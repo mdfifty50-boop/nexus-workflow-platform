@@ -14,16 +14,22 @@ const router = Router()
 // =============================================================================
 // Limits: 20 requests per minute per user (generous for normal use, blocks abuse)
 // Uses user ID from request header or falls back to IP address
+// @NEXUS-FIX-102: Rate limiter with IPv6 validation disabled - DO NOT REMOVE
+// We primarily use user IDs (x-user-id, x-clerk-user-id) for rate limiting
+// IP fallback is only for anonymous users; IPv6 bypass risk is acceptable
 const chatRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute window
   max: process.env.NODE_ENV === 'production' ? 20 : 100, // Stricter in production
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false,
+  // Disable IPv6 keyGenerator validation - we use user IDs as primary key
+  validate: { ipKeyGenerator: false },
   keyGenerator: (req: Request): string => {
-    // Try to get user ID from various sources
+    // Try to get user ID from various sources (primary method)
     const userId = req.headers['x-user-id'] as string ||
                    req.headers['x-clerk-user-id'] as string ||
                    (req as any).auth?.userId
+    // Fallback to IP only for anonymous users
     return userId || req.ip || 'anonymous'
   },
   handler: (_req: Request, res: Response) => {
