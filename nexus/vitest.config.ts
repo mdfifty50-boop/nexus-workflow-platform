@@ -9,7 +9,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', 'tests/e2e'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],  // lcov for SonarCloud
       include: ['src/services/**/*.ts', 'src/lib/**/*.ts', 'src/hooks/**/*.ts'],
       exclude: ['**/*.test.ts', '**/*.d.ts']
     },

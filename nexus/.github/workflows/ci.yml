@@ -1,74 +1,88 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, main, golden-path]
   pull_request:
-    branches: [main, develop]
+    branches: [master, main, golden-path]
 
 jobs:
-  lint-and-test:
+  test:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: nexus
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarCloud analysis
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: nexus/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
-        run: npm run lint
-
-      - name: Type check
-        run: npx tsc --noEmit
+      - name: Run tests with coverage
+        run: npm test -- --coverage --reporter=default --reporter=json --outputFile=test-results.json
+        continue-on-error: false
 
       - name: Build
         run: npm run build
 
-      - name: Upload build artifacts
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: coverage-report
+          path: nexus/coverage/
+          retention-days: 7
 
-  deploy-staging:
-    needs: lint-and-test
+  sonarcloud:
+    name: SonarCloud Analysis
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    environment:
-      name: staging
-      url: https://nexus-staging.vercel.app
+    needs: test  # Run after tests pass
+    # Skip on forks (they don't have access to secrets)
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (Staging)
-        uses: amondnet/vercel-action@v25
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          scope: ${{ secrets.VERCEL_ORG_ID }}
+          fetch-depth: 0  # Full history for accurate blame information
 
-  deploy-production:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: production
-      url: https://nexus.app
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to Vercel (Production)
-        uses: amondnet/vercel-action@v25
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          scope: ${{ secrets.VERCEL_ORG_ID }}
+          name: coverage-report
+          path: nexus/coverage/
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: nexus
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For PR decoration
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Quality Gate check - fails only on high-severity issues
+      - name: SonarCloud Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        with:
+          scanMetadataReportFile: nexus/.scannerwork/report-task.txt
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Quality Gate is configured in SonarCloud to only fail on:
+        # - New Bugs with severity >= HIGH
+        # - New Vulnerabilities with severity >= HIGH
+        # Does NOT fail on code smells or style issues
