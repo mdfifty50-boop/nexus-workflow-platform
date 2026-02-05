@@ -408,10 +408,10 @@ export function LandingPage() {
               {/* Language Toggle */}
               <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={false} />
 
-              <Link to="/dashboard" className="text-surface-300 hover:text-white transition-colors hidden sm:block text-sm">
+              <Link to="/login" className="text-surface-300 hover:text-white transition-colors hidden sm:block text-sm">
                 {t('auth.signIn', 'Sign in')}
               </Link>
-              <Link to="/dashboard" className="hidden sm:block">
+              <Link to="/sign-up" className="hidden sm:block">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -458,13 +458,13 @@ export function LandingPage() {
                     <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={true} />
                   </div>
                   <Link
-                    to="/dashboard"
+                    to="/login"
                     onClick={() => setMobileMenuOpen(false)}
                     className="block px-4 py-3 rounded-xl text-surface-300 hover:text-white hover:bg-white/5 transition-all text-base"
                   >
                     {t('auth.signIn', 'Sign in')}
                   </Link>
-                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block">
+                  <Link to="/sign-up" onClick={() => setMobileMenuOpen(false)} className="block">
                     <button className="w-full btn-gradient py-3 text-base">
                       {t('common.getStarted', 'Get Started Free')}
                     </button>

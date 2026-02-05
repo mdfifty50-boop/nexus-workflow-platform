@@ -239,36 +239,10 @@ function RouteLoadingFallback() {
   )
 }
 
-// Simple test component to verify React rendering
-function TestButton() {
-  console.log('[TestButton] Rendering!')
-  return (
-    <button
-      onClick={() => alert('Test button works!')}
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '20px',
-        zIndex: 99999,
-        padding: '10px 20px',
-        background: 'red',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer'
-      }}
-    >
-      TEST BUTTON
-    </button>
-  )
-}
 
 function App() {
   return (
-    <>
-      {/* Test components OUTSIDE BrowserRouter */}
-      <TestButton />
-      <BrowserRouter>
+    <BrowserRouter>
       <AuthProvider>
         <ErrorTrackingUserSync />
         <SubscriptionProvider>
@@ -300,7 +274,7 @@ function App() {
 
           {/* Auth routes - lazy loaded */}
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          <Route path="/sign-up" element={<SignUp />} />
 
           {/* Onboarding - new user flow (<5 min to first workflow) */}
           <Route
@@ -606,7 +580,6 @@ function App() {
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>
-    </>
   )
 }
 

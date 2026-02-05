@@ -29,8 +29,8 @@ initBrowserCompat().then(({ browser, features }) => {
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 // Check if we have a valid Clerk key
-// TEMPORARY: Force dev mode for testing (bypass auth)
-const BYPASS_AUTH = true // Set to false when auth is fixed
+// Set to true for local development without Clerk, false for production
+const BYPASS_AUTH = false // Auth enabled for production
 const hasClerkKey = !BYPASS_AUTH && !!CLERK_PUBLISHABLE_KEY && CLERK_PUBLISHABLE_KEY !== 'pk_test_your_clerk_publishable_key'
 
 if (!hasClerkKey) {
