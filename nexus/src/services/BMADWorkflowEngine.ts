@@ -15,8 +15,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { EMBEDDED_TOOLS } from './SmartWorkflowEngine'
 import type { GeneratedWorkflow, WorkflowNode, IntegrationTool } from './SmartWorkflowEngine'
 
-// Claude Code Proxy URL (uses Max subscription for free)
-const PROXY_URL = 'http://localhost:4567'
+// Claude Code Proxy URL - skips entirely in production when not configured
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
 
 // Nexus Agent Types
 export type NexusAgent = 'director' | 'analyst' | 'builder' | 'reviewer'
@@ -125,8 +125,15 @@ export class NexusWorkflowEngine {
 
   /**
    * Check if Claude Code proxy is available (uses Max subscription)
+   * Skips check entirely in production when no proxy URL is configured
    */
   private async checkProxyHealth(): Promise<boolean> {
+    // No proxy configured (production without VITE_PROXY_URL) — skip entirely
+    if (!PROXY_URL) {
+      this.proxyAvailable = false
+      return false
+    }
+
     const now = Date.now()
 
     // Use cached result if recent
@@ -348,7 +355,7 @@ Respond with JSON:
         console.log(`[Nexus ${agent.toUpperCase()}] Processing via direct API...`)
 
         const message = await this.client.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-6-20250115',
           max_tokens: 4096,
           system: NEXUS_AGENT_PROMPTS[agent],
           messages: [{ role: 'user', content: userMessage }]

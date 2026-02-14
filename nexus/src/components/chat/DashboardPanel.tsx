@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { QuickStatsWidget, type WorkflowStats } from './QuickStatsWidget'
@@ -101,7 +102,7 @@ const MOCK_WORKFLOWS: RecentWorkflow[] = [
 const QUICK_ACTIONS: QuickAction[] = [
   {
     id: 'new-workflow',
-    label: 'New Workflow',
+    label: 'workflow.create',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -112,7 +113,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     id: 'templates',
-    label: 'Templates',
+    label: 'navigation.templates',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
@@ -123,7 +124,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     id: 'integrations',
-    label: 'Integrations',
+    label: 'navigation.integrations',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -134,7 +135,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     id: 'settings',
-    label: 'Settings',
+    label: 'navigation.settings',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -158,6 +159,7 @@ export function DashboardPanel({
   onWorkflowClick,
   className
 }: DashboardPanelProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [dataLoading, setDataLoading] = useState(loading)
   const [workflowStats, setWorkflowStats] = useState<WorkflowStats>(stats || MOCK_STATS)
@@ -246,7 +248,7 @@ export function DashboardPanel({
       {/* Quick Actions Grid */}
       <div className="px-4 py-4 border-b border-border">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-3">
-          Quick Actions
+          {t('dashboard.quickActions')}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {QUICK_ACTIONS.map(action => (
@@ -261,7 +263,7 @@ export function DashboardPanel({
               )}
             >
               {action.icon}
-              <span className="text-xs font-medium">{action.label}</span>
+              <span className="text-xs font-medium">{t(action.label)}</span>
             </button>
           ))}
         </div>
@@ -290,7 +292,7 @@ export function DashboardPanel({
       {/* Usage/Quota Section */}
       <div className="px-4 py-3 border-t border-border bg-muted/20">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Workflows this month</span>
+          <span className="text-muted-foreground">{t('dashboard.workflowsThisMonth')}</span>
           <span className="font-medium">
             <span className="text-foreground">{workflowStats.total}</span>
             <span className="text-muted-foreground"> / 100</span>
@@ -306,7 +308,7 @@ export function DashboardPanel({
           onClick={() => { navigate('/settings/billing'); onCloseSidebar?.() }}
           className="mt-2 text-xs text-primary hover:underline"
         >
-          Upgrade for unlimited
+          {t('dashboard.upgradeUnlimited')}
         </button>
       </div>
     </div>

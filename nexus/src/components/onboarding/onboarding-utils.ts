@@ -22,6 +22,7 @@ import type {
   BusinessTypeOption,
   CompanySizeOption,
   IndustryOption,
+  RoleOption,
   OnboardingStepConfig,
 } from './onboarding-types'
 
@@ -31,9 +32,14 @@ import {
   CompanySize,
   AutomationGoal,
   Industry,
+  PrimaryRole,
   StepStatus,
   STORAGE_KEYS,
 } from './onboarding-types'
+
+import type { BusinessProfileData } from './business-profile-types'
+import { DEFAULT_BUSINESS_PROFILE } from './business-profile-types'
+import { syncBusinessProfileToCloud } from '@/hooks/useBusinessProfile'
 
 // =============================================================================
 // STEP CONFIGURATIONS
@@ -213,6 +219,18 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
   { id: Industry.REAL_ESTATE, name: 'Real Estate', icon: 'Home' },
   { id: Industry.NON_PROFIT, name: 'Non-Profit', icon: 'Heart' },
   { id: Industry.OTHER, name: 'Other', icon: 'HelpCircle' },
+]
+
+export const ROLE_OPTIONS: RoleOption[] = [
+  { id: PrimaryRole.FOUNDER, name: 'Founder / CEO', icon: 'Crown' },
+  { id: PrimaryRole.EXECUTIVE, name: 'Executive / C-Level', icon: 'Briefcase' },
+  { id: PrimaryRole.MANAGER, name: 'Manager / Team Lead', icon: 'Users' },
+  { id: PrimaryRole.DEVELOPER, name: 'Developer / Engineer', icon: 'Code' },
+  { id: PrimaryRole.MARKETER, name: 'Marketer', icon: 'Megaphone' },
+  { id: PrimaryRole.SALES, name: 'Sales', icon: 'TrendingUp' },
+  { id: PrimaryRole.OPERATIONS, name: 'Operations', icon: 'Settings' },
+  { id: PrimaryRole.SUPPORT, name: 'Support / CS', icon: 'Headphones' },
+  { id: PrimaryRole.OTHER, name: 'Other', icon: 'HelpCircle' },
 ]
 
 export const GOAL_OPTIONS: GoalOption[] = [
@@ -514,8 +532,8 @@ export function createInitialState(): OnboardingWizardState {
       industry: null,
       businessType: null,
       companySize: null,
+      primaryRole: null,
       website: '',
-      role: '',
     },
     goalsSelection: {
       primaryGoals: [],
@@ -610,6 +628,80 @@ export function markWizardSkipped(): void {
 }
 
 /**
+ * Bridge wizard data → nexus_business_profile (for AI Agency features).
+ *
+ * Maps the wizard's simplified types to the comprehensive BusinessProfileData
+ * format that useBusinessProfile, NexusAIService, and the AI Consultancy read.
+ * MUST be called BEFORE markWizardCompleted() clears the wizard state.
+ */
+export function syncWizardToBusinessProfile(state: OnboardingWizardState): void {
+  try {
+    const wp = state.businessProfile
+    const goals = state.goalsSelection
+
+    // Map wizard IndustryType → BusinessProfileData Industry
+    const industryMap: Record<string, string> = {
+      technology: 'saas',
+      healthcare: 'healthcare',
+      finance: 'finance',
+      retail: 'retail',
+      manufacturing: 'manufacturing',
+      education: 'education',
+      marketing: 'agency',
+      consulting: 'consulting',
+      real_estate: 'realestate',
+      non_profit: 'nonprofit',
+      other: 'other',
+    }
+
+    // Map wizard CompanySizeType → BusinessProfileData CompanySize
+    const sizeMap: Record<string, string> = {
+      solo: 'solo',
+      small: '2-10',
+      medium: '11-50',
+      large: '51-200',
+      enterprise: '200+',
+    }
+
+    // Map wizard AutomationGoalType → BusinessProfileData AutomationPriority
+    const goalToPriority: Record<string, string> = {
+      save_time: 'data-entry',
+      reduce_errors: 'data-entry',
+      scale_operations: 'reporting',
+      improve_communication: 'customer-support',
+      customer_experience: 'customer-support',
+      data_management: 'reporting',
+      marketing_automation: 'marketing',
+      sales_pipeline: 'lead-gen',
+      project_management: 'scheduling',
+      reporting: 'reporting',
+    }
+
+    const profile: BusinessProfileData = {
+      ...DEFAULT_BUSINESS_PROFILE,
+      businessName: wp.companyName || '',
+      industry: (wp.industry ? industryMap[wp.industry] || 'other' : null) as BusinessProfileData['industry'],
+      companySize: (wp.companySize ? sizeMap[wp.companySize] || 'solo' : null) as BusinessProfileData['companySize'],
+      primaryRole: (wp.primaryRole || null) as BusinessProfileData['primaryRole'],
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      automationPriorities: goals.primaryGoals
+        .map((g) => goalToPriority[g])
+        .filter(Boolean) as BusinessProfileData['automationPriorities'],
+    }
+
+    localStorage.setItem('nexus_business_profile', JSON.stringify(profile))
+    syncBusinessProfileToCloud(profile)
+    console.log('[Onboarding] Synced wizard data → nexus_business_profile (+ cloud)', {
+      industry: profile.industry,
+      role: profile.primaryRole,
+      companySize: profile.companySize,
+    })
+  } catch (error) {
+    console.error('[Onboarding] Failed to sync business profile:', error)
+  }
+}
+
+/**
  * Check if wizard has been completed
  */
 export function isWizardCompleted(): boolean {
@@ -655,7 +747,8 @@ export function validateBusinessProfile(profile: BusinessProfile): boolean {
   return (
     profile.companyName.trim().length > 0 &&
     profile.businessType !== null &&
-    profile.companySize !== null
+    profile.companySize !== null &&
+    profile.primaryRole !== null
   )
 }
 

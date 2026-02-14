@@ -37,6 +37,7 @@ import voiceRoutes from './routes/voice.js'
 import chatPersistenceRoutes from './routes/chat-persistence.js'
 import workflowPersistenceRoutes from './routes/workflow-persistence.js'
 import userPreferencesRoutes from './routes/user-preferences.js'
+import userProfileRoutes from './routes/user-profile.js'
 import adminAnalyticsRoutes from './routes/admin-analytics.js'
 
 // WhatsApp Business trigger service (auto-initializes and registers message handler)
@@ -91,6 +92,7 @@ app.use('/api/voice', voiceRoutes)
 app.use('/api/chat-persistence', chatPersistenceRoutes)
 app.use('/api/workflow-persistence', workflowPersistenceRoutes)
 app.use('/api/user-preferences', userPreferencesRoutes)
+app.use('/api/user-profile', userProfileRoutes)
 app.use('/api/admin-analytics', adminAnalyticsRoutes)
 
 // Serve static frontend in production

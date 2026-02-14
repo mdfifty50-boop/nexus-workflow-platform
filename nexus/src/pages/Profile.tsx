@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
   Award,
@@ -161,6 +162,7 @@ function buildActivityData(workflows: SavedWorkflow[]) {
 }
 
 export function Profile() {
+  const { t } = useTranslation()
   const { userProfile, user } = useAuth()
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([])
   const [loading, setLoading] = useState(true)
@@ -189,7 +191,7 @@ export function Profile() {
     [workflows],
   )
 
-  const displayName = userProfile?.full_name || user?.user_metadata?.full_name || 'User'
+  const displayName = userProfile?.full_name || user?.user_metadata?.full_name || t('auth.user')
   const initials = displayName
     .split(' ')
     .map(p => p[0])
@@ -207,10 +209,10 @@ export function Profile() {
   const hoursSaved = Math.round((totalExecutions * 5) / 60)
 
   const stats = [
-    { label: 'Workflows Created', value: String(workflows.length), icon: Zap, color: 'text-blue-400' },
-    { label: 'Total Executions', value: formatNumber(totalExecutions), icon: TrendingUp, color: 'text-purple-400' },
-    { label: 'Time Saved', value: `${hoursSaved}h`, icon: Clock, color: 'text-emerald-400' },
-    { label: 'Active Workflows', value: String(workflows.filter(w => w.status === 'active').length), icon: Flame, color: 'text-orange-400' },
+    { label: t('analytics.totalWorkflows'), value: String(workflows.length), icon: Zap, color: 'text-blue-400' },
+    { label: t('analytics.totalExecutions'), value: formatNumber(totalExecutions), icon: TrendingUp, color: 'text-purple-400' },
+    { label: t('dashboard.timeSaved'), value: `${hoursSaved}h`, icon: Clock, color: 'text-emerald-400' },
+    { label: `${t('common.active')} ${t('workflow.title')}`, value: String(workflows.filter(w => w.status === 'active').length), icon: Flame, color: 'text-orange-400' },
   ]
 
   const achievementResults = useMemo(() => {

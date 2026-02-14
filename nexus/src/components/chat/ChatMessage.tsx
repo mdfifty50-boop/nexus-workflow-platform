@@ -10,6 +10,7 @@
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Copy, Check, User, Sparkles } from 'lucide-react'
 import type { ChatMessage as ChatMessageType, EmbeddedContent } from './types'
@@ -204,6 +205,7 @@ export function ChatMessage({
   renderClarifyingOptions,
   className,
 }: ChatMessageProps): React.ReactElement {
+  const { t } = useTranslation()
   const [copied, setCopied] = React.useState(false)
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -341,7 +343,7 @@ export function ChatMessage({
         {/* Header */}
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm text-surface-100">
-            {isUser ? 'You' : 'Nexus AI'}
+            {isUser ? t('chat.you') : t('chat.nexusAI')}
           </span>
           <span className="text-xs text-surface-400">
             {formattedTime}
@@ -349,7 +351,7 @@ export function ChatMessage({
           {isAssistant && (
             <span className="flex items-center gap-1 text-xs text-nexus-400">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              Online
+              {t('chat.online')}
             </span>
           )}
         </div>
@@ -397,17 +399,17 @@ export function ChatMessage({
               'opacity-0 group-hover:opacity-100 transition-all duration-200',
               'mt-2 px-2 py-1 -ml-1 rounded-lg hover:bg-surface-700/50'
             )}
-            aria-label={copied ? 'Copied' : 'Copy message'}
+            aria-label={copied ? t('chat.copied') : t('chat.copyMessage')}
           >
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400">Copied</span>
+                <span className="text-green-400">{t('chat.copied')}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                <span>Copy</span>
+                <span>{t('chat.copy')}</span>
               </>
             )}
           </button>

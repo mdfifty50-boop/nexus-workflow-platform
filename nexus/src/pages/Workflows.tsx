@@ -17,6 +17,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { workflowPersistenceService, type SavedWorkflow } from '@/services/WorkflowPersistenceService'
 
 // ============================================================================
@@ -110,21 +111,22 @@ function convertSavedToDisplay(wf: SavedWorkflow, index: number): DisplayWorkflo
   }
 }
 
-function computeStats(workflows: DisplayWorkflow[]) {
+function computeStats(workflows: DisplayWorkflow[], t: (key: string) => string) {
   const total = workflows.length
   const active = workflows.filter(w => w.status === 'active').length
   const paused = workflows.filter(w => w.status === 'paused' || w.status === 'draft').length
   const errored = workflows.filter(w => w.status === 'error' || w.status === 'failed').length
 
   return [
-    { label: 'Total Workflows', value: String(total), icon: Zap },
-    { label: 'Active', value: String(active), icon: Play },
-    { label: 'Paused', value: String(paused), icon: Pause },
-    { label: 'Error', value: String(errored), icon: AlertCircle },
+    { label: t('workflow.totalRuns'), value: String(total), icon: Zap },
+    { label: t('workflow.status.active'), value: String(active), icon: Play },
+    { label: t('workflow.paused'), value: String(paused), icon: Pause },
+    { label: t('workflow.status.error'), value: String(errored), icon: AlertCircle },
   ]
 }
 
 export function Workflows() {
+  const { t } = useTranslation()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [, setSelectedWorkflow] = useState<string | null>(null)
@@ -155,7 +157,7 @@ export function Workflows() {
     loadWorkflows()
   }, [])
 
-  const stats = useMemo(() => computeStats(workflows), [workflows])
+  const stats = useMemo(() => computeStats(workflows, t), [workflows, t])
 
   const filteredWorkflows = workflows.filter(w =>
     w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,8 +169,8 @@ export function Workflows() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Workflows</h1>
-          <p className="text-sm sm:text-base text-surface-400 mt-1">Manage and monitor your automations</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('workflow.title')}</h1>
+          <p className="text-sm sm:text-base text-surface-400 mt-1">{t('workflow.description')}</p>
         </div>
         <Link to="/chat">
           <motion.button
@@ -177,7 +179,7 @@ export function Workflows() {
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            New Workflow
+            {t('workflow.create')}
           </motion.button>
         </Link>
       </div>
@@ -213,14 +215,14 @@ export function Workflows() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search workflows..."
+            placeholder={t('common.search') + '...'}
             className="input pl-12"
           />
         </div>
         <div className="flex items-center gap-3">
           <button className="btn-secondary flex items-center gap-2 py-3">
             <Filter className="w-4 h-4" />
-            Filters
+            {t('common.filter')}
           </button>
           <div className="flex items-center rounded-xl bg-surface-800 border border-surface-700 p-1">
             <button
@@ -254,7 +256,7 @@ export function Workflows() {
         <div className="flex items-center justify-center py-16">
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 border-2 border-nexus-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-surface-400 text-sm">Loading workflows...</p>
+            <p className="text-surface-400 text-sm">{t('common.loading')}</p>
           </div>
         </div>
       )}
@@ -269,9 +271,9 @@ export function Workflows() {
           <div className="w-20 h-20 rounded-2xl bg-surface-800 border border-surface-700 flex items-center justify-center mb-6">
             <MessageSquare className="w-10 h-10 text-surface-500" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No workflows yet</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">{t('workflow.noWorkflows')}</h3>
           <p className="text-surface-400 text-center max-w-md mb-8">
-            Create your first automation to get started. Tell Nexus what you want to automate and it will build the workflow for you.
+            {t('workflow.noWorkflowsDescription', 'Create your first automation to get started. Tell Nexus what you want to automate and it will build the workflow for you.')}
           </p>
           <Link to="/chat">
             <motion.button
@@ -280,7 +282,7 @@ export function Workflows() {
               className="btn-primary flex items-center gap-2 px-6 py-3"
             >
               <Plus className="w-5 h-5" />
-              Create Your First Workflow
+              {t('workflow.create')}
             </motion.button>
           </Link>
         </motion.div>
@@ -314,7 +316,7 @@ export function Workflows() {
                     {workflow.status === 'active' && <Play className="w-3 h-3 mr-1" />}
                     {workflow.status === 'paused' && <Pause className="w-3 h-3 mr-1" />}
                     {workflow.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
-                    {workflow.status}
+                    {t(`workflow.status.${workflow.status}`, workflow.status)}
                   </span>
                   <button className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-surface-700 transition-all">
                     <MoreHorizontal className="w-4 h-4 text-surface-400" />
@@ -347,15 +349,15 @@ export function Workflows() {
               <div className="pt-4 border-t border-surface-700/50 grid grid-cols-3 gap-2 sm:gap-4">
                 <div>
                   <p className="text-base sm:text-lg font-semibold text-white">{workflow.runs.toLocaleString()}</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Total runs</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.totalRuns')}</p>
                 </div>
                 <div>
                   <p className="text-base sm:text-lg font-semibold text-emerald-400">{workflow.successRate}%</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Success</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.successRate')}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-surface-300">{workflow.lastRun}</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Last run</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.lastRun')}</p>
                 </div>
               </div>
             </motion.div>
@@ -369,13 +371,13 @@ export function Workflows() {
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-surface-700">
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Workflow</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Status</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Trigger</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Runs</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Success Rate</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Last Run</th>
-                <th className="text-right text-sm font-medium text-surface-400 p-4">Actions</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.name')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('common.status', 'Status')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.trigger')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.totalRuns')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.successRate')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.lastRun')}</th>
+                <th className="text-right text-sm font-medium text-surface-400 p-4">{t('workflow.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -411,7 +413,7 @@ export function Workflows() {
                       workflow.status === 'paused' && 'badge-warning',
                       workflow.status === 'error' && 'bg-red-500/20 text-red-400 border-red-500/30'
                     )}>
-                      {workflow.status}
+                      {t(`workflow.status.${workflow.status}`, workflow.status)}
                     </span>
                   </td>
                   <td className="p-4 text-surface-300 text-sm">{workflow.trigger}</td>
@@ -452,7 +454,7 @@ export function Workflows() {
       {!isLoading && workflows.length > 0 && filteredWorkflows.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16">
           <Search className="w-10 h-10 text-surface-500 mb-4" />
-          <p className="text-surface-400">No workflows matching "{searchQuery}"</p>
+          <p className="text-surface-400">{t('workflow.noWorkflowsMatching', 'No workflows matching "{{query}}"', { query: searchQuery })}</p>
         </div>
       )}
     </div>

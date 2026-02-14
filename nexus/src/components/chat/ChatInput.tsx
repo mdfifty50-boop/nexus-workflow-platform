@@ -4,15 +4,18 @@
  * Message input component with:
  * - Auto-expanding textarea
  * - Send button (arrow icon like ChatGPT)
+ * - Professional voice recording UI with live timer, waveform, and stop button
  * - Voice input with GCC dialect support (Kuwaiti, Saudi, Egyptian Arabic)
  * - Enter to send, Shift+Enter for newline
+ * - Language selection switches chat direction (RTL for Arabic)
  * - Optional character/token limit indicator
  * - Disabled state while AI is responding
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { ArrowUp, Loader2, Mic, MicOff, Languages } from 'lucide-react'
+import { ArrowUp, Loader2, Mic, Square, Languages } from 'lucide-react'
 import { useVoiceInput, type VoiceLanguage, VOICE_LANGUAGES } from '@/hooks/useVoiceInput'
 
 // ============================================================================
@@ -26,8 +29,69 @@ interface ChatInputProps {
   maxLength?: number
   showCharacterCount?: boolean
   className?: string
-  enableVoice?: boolean // Enable voice input (default: true)
-  defaultLanguage?: VoiceLanguage // Default voice language (default: en-US)
+  enableVoice?: boolean
+  defaultLanguage?: VoiceLanguage
+  onLanguageChange?: (lang: VoiceLanguage) => void
+}
+
+// ============================================================================
+// Recording Timer Hook
+// ============================================================================
+
+function useRecordingTimer(isListening: boolean) {
+  const [elapsed, setElapsed] = React.useState(0)
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+
+  React.useEffect(() => {
+    if (isListening) {
+      setElapsed(0)
+      intervalRef.current = setInterval(() => {
+        setElapsed(prev => prev + 1)
+      }, 1000)
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      setElapsed(0)
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [isListening])
+
+  const minutes = Math.floor(elapsed / 60)
+  const seconds = elapsed % 60
+  const formatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+
+  return { elapsed, formatted }
+}
+
+// ============================================================================
+// Waveform Bars Component
+// ============================================================================
+
+function WaveformBars({ audioLevel, isActive }: { audioLevel: number; isActive: boolean }) {
+  const barCount = 24
+  return (
+    <div className="flex items-center justify-center gap-[2px] h-8">
+      {Array.from({ length: barCount }).map((_, i) => {
+        const center = barCount / 2
+        const distFromCenter = Math.abs(i - center) / center
+        const base = isActive ? 0.15 : 0.08
+        const height = isActive
+          ? base + audioLevel * (1 - distFromCenter * 0.6) * Math.max(0.3, Math.sin((i * 1.2) + Date.now() / 200) * 0.5 + 0.5)
+          : base
+        return (
+          <div
+            key={i}
+            className="w-[3px] rounded-full bg-gradient-to-t from-cyan-500 to-cyan-300 transition-all duration-75"
+            style={{ height: `${Math.max(4, height * 32)}px`, opacity: isActive ? 0.6 + audioLevel * 0.4 : 0.3 }}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 // ============================================================================
@@ -37,16 +101,19 @@ interface ChatInputProps {
 export function ChatInput({
   onSend,
   disabled = false,
-  placeholder = 'Message Nexus...',
+  placeholder = 'Describe your workflow...',
   maxLength,
   showCharacterCount = false,
   className,
   enableVoice = true,
   defaultLanguage = 'en-US',
+  onLanguageChange,
 }: ChatInputProps): React.ReactElement {
+  const { t } = useTranslation()
   const [value, setValue] = React.useState('')
   const [showLanguageMenu, setShowLanguageMenu] = React.useState(false)
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const languageMenuRef = React.useRef<HTMLDivElement>(null)
 
   // Voice input hook with GCC dialect support
   const {
@@ -63,17 +130,19 @@ export function ChatInput({
     clearError,
   } = useVoiceInput({
     defaultLanguage,
-    autoDetectLanguage: true, // Auto-detect Arabic dialects
+    autoDetectLanguage: true,
     matchResponseLanguage: true,
-    autoClose: false, // Keep listening until user stops
-    silenceTimeout: 5000, // 5 seconds of silence before auto-close
+    autoClose: false,
+    silenceTimeout: 5000,
   })
+
+  // Recording timer
+  const { formatted: recordingTime } = useRecordingTimer(isListening)
 
   // Update text field when voice transcript changes
   React.useEffect(() => {
     if (transcript) {
       setValue(prev => {
-        // If there's existing text, append with space
         if (prev.trim()) {
           return prev + ' ' + transcript
         }
@@ -83,9 +152,30 @@ export function ChatInput({
     }
   }, [transcript, clearTranscript])
 
+  // Notify parent of language changes
+  React.useEffect(() => {
+    if (onLanguageChange) {
+      onLanguageChange(currentLanguage)
+    }
+  }, [currentLanguage, onLanguageChange])
+
+  // Close language menu on outside click
+  React.useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(e.target as Node)) {
+        setShowLanguageMenu(false)
+      }
+    }
+    if (showLanguageMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showLanguageMenu])
+
   const isEmpty = value.trim().length === 0
   const isOverLimit = maxLength ? value.length > maxLength : false
   const canSend = !disabled && !isEmpty && !isOverLimit
+  const isRTL = currentLanguage.startsWith('ar')
 
   // Get current language info
   const currentLangInfo = VOICE_LANGUAGES.find(l => l.code === currentLanguage)
@@ -94,10 +184,7 @@ export function ChatInput({
   const adjustHeight = React.useCallback(() => {
     const textarea = textareaRef.current
     if (!textarea) return
-
-    // Reset height to auto to get the correct scrollHeight
     textarea.style.height = 'auto'
-    // Set to scrollHeight, max 200px
     const newHeight = Math.min(textarea.scrollHeight, 200)
     textarea.style.height = `${newHeight}px`
   }, [])
@@ -115,12 +202,9 @@ export function ChatInput({
 
   const handleSend = React.useCallback(() => {
     if (!canSend) return
-
     const trimmedValue = value.trim()
     onSend(trimmedValue)
     setValue('')
-
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -128,7 +212,6 @@ export function ChatInput({
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Enter without Shift sends the message
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         handleSend()
@@ -137,160 +220,189 @@ export function ChatInput({
     [handleSend]
   )
 
+  const handleLanguageSelect = React.useCallback((lang: VoiceLanguage) => {
+    setLanguage(lang)
+    setShowLanguageMenu(false)
+  }, [setLanguage])
+
   // Focus textarea on mount
   React.useEffect(() => {
-    if (!disabled) {
+    if (!disabled && !isListening) {
       textareaRef.current?.focus()
     }
-  }, [disabled])
+  }, [disabled, isListening])
 
   return (
-    <div className={cn('relative', className)}>
-      <div
-        className={cn(
-          'flex items-end gap-3 p-3 sm:p-4 rounded-2xl border',
-          'bg-surface-800/50 backdrop-blur-sm',
-          isListening
-            ? 'border-cyan-500/50 ring-2 ring-cyan-500/20'
-            : 'border-surface-700/50',
-          'focus-within:ring-2 focus-within:ring-nexus-500/30 focus-within:border-nexus-500/50',
-          'transition-all duration-300',
-          disabled && 'opacity-60 cursor-not-allowed'
-        )}
-      >
-        {/* Voice Input Button */}
-        {enableVoice && (
-          <div className="relative">
-            <button
-              onClick={isListening ? stopListening : startListening}
-              disabled={disabled}
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-xl',
-                'transition-all duration-300',
-                isListening
-                  ? 'bg-cyan-500 text-white animate-pulse'
-                  : 'bg-surface-700 text-surface-400 hover:bg-surface-600 hover:text-surface-200'
-              )}
-              aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-              title={isListening ? 'Stop listening' : `Voice input (${currentLangInfo?.nativeName || 'Auto'})`}
-            >
-              {isListening ? (
-                <MicOff className="w-5 h-5" />
-              ) : (
-                <Mic className="w-5 h-5" />
-              )}
-            </button>
-
-            {/* Audio level indicator */}
-            {isListening && (
-              <div
-                className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-1 bg-cyan-400 rounded-full transition-all"
-                style={{ width: `${Math.max(20, audioLevel * 100)}%` }}
-              />
-            )}
-
-            {/* Language selector button */}
-            <button
-              onClick={() => setShowLanguageMenu(prev => !prev)}
-              className={cn(
-                'absolute -bottom-1 -right-1 p-0.5 rounded-full text-[10px]',
-                'bg-surface-800 border border-surface-600',
-                'hover:bg-surface-700 transition-colors'
-              )}
-              title="Change language"
-            >
-              {currentLangInfo?.flag || '🌐'}
-            </button>
-
-            {/* Language dropdown */}
-            {showLanguageMenu && (
-              <div className="absolute bottom-12 left-0 z-50 min-w-[180px] bg-surface-800 border border-surface-700 rounded-xl shadow-lg overflow-hidden">
-                <div className="p-2 border-b border-surface-700 flex items-center gap-2 text-xs text-surface-400">
-                  <Languages className="w-3 h-3" />
-                  <span>Voice Language</span>
-                </div>
-                {VOICE_LANGUAGES.map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguage(lang.code)
-                      setShowLanguageMenu(false)
-                    }}
-                    className={cn(
-                      'w-full px-3 py-2 text-left text-sm flex items-center gap-2',
-                      'hover:bg-surface-700 transition-colors',
-                      currentLanguage === lang.code
-                        ? 'bg-cyan-500/10 text-cyan-400'
-                        : 'text-surface-300'
-                    )}
-                  >
-                    <span>{lang.flag}</span>
-                    <span>{lang.nativeName}</span>
-                    {currentLanguage === lang.code && (
-                      <span className="ml-auto text-cyan-400">✓</span>
-                    )}
-                  </button>
-                ))}
+    <div className={cn('relative', className)} dir={isRTL ? 'rtl' : 'ltr'}>
+      {/* === RECORDING MODE: Full overlay === */}
+      {isListening ? (
+        <div className="rounded-2xl border border-cyan-500/50 ring-2 ring-cyan-500/20 bg-surface-800/80 backdrop-blur-sm overflow-hidden transition-all duration-300">
+          {/* Recording header bar */}
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* Left: Recording indicator + timer */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center justify-center">
+                <span className="absolute w-3 h-3 rounded-full bg-red-500 animate-ping opacity-50" />
+                <span className="relative w-3 h-3 rounded-full bg-red-500" />
               </div>
+              <span className="text-sm font-mono text-surface-200 tabular-nums">{recordingTime}</span>
+              <span className="text-xs text-surface-400">
+                {currentLangInfo?.flag} {currentLangInfo?.nativeName}
+              </span>
+            </div>
+
+            {/* Right: Stop button */}
+            <button
+              onClick={stopListening}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-red-300 border border-red-500/30 transition-all active:scale-95"
+              aria-label="Stop recording"
+            >
+              <Square className="w-4 h-4 fill-current" />
+              <span className="text-sm font-medium">{t('chat.stopRecording')}</span>
+            </button>
+          </div>
+
+          {/* Waveform visualization */}
+          <div className="px-4 py-2">
+            <WaveformBars audioLevel={audioLevel} isActive={isListening} />
+          </div>
+
+          {/* Interim transcript */}
+          <div className="px-4 pb-3 min-h-[28px]">
+            {interimTranscript ? (
+              <p className={cn(
+                'text-sm text-cyan-300 animate-pulse',
+                isRTL && 'text-right'
+              )} dir={isRTL ? 'rtl' : 'ltr'}>
+                {interimTranscript}
+              </p>
+            ) : (
+              <p className={cn(
+                'text-xs text-surface-500',
+                isRTL && 'text-right'
+              )}>
+                {t('chat.listening')}
+              </p>
             )}
           </div>
-        )}
-
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={isListening
-            ? (currentLanguage.startsWith('ar') ? 'أتحدث الآن... 🎤' : 'Listening... 🎤')
-            : placeholder
-          }
-          disabled={disabled}
-          rows={1}
+        </div>
+      ) : (
+        /* === NORMAL MODE: Text input === */
+        <div
           className={cn(
-            'flex-1 resize-none bg-transparent',
-            'text-surface-100',
-            'placeholder:text-surface-500',
-            'focus:outline-none',
-            'disabled:cursor-not-allowed',
-            'text-base leading-relaxed',
-            'min-h-[24px] max-h-[200px]',
-            'py-1 px-1',
-            currentLanguage.startsWith('ar') && 'text-right' // RTL for Arabic
-          )}
-          aria-label="Chat message input"
-          dir={currentLanguage.startsWith('ar') ? 'rtl' : 'ltr'}
-        />
-
-        {/* Interim transcript indicator */}
-        {interimTranscript && (
-          <div className="absolute -top-8 left-0 right-0 text-center">
-            <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-xs">
-              {interimTranscript}
-            </span>
-          </div>
-        )}
-
-        {/* Send Button */}
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
-          className={cn(
-            'flex-shrink-0 p-2.5 rounded-xl',
+            'flex items-end gap-3 p-3 sm:p-4 rounded-2xl border',
+            'bg-surface-800/50 backdrop-blur-sm',
+            'border-surface-700/50',
+            'focus-within:ring-2 focus-within:ring-nexus-500/30 focus-within:border-nexus-500/50',
             'transition-all duration-300',
-            canSend
-              ? 'bg-gradient-to-r from-nexus-500 to-accent-nexus-500 text-white hover:shadow-lg hover:shadow-nexus-500/30 hover:scale-105'
-              : 'bg-surface-700 text-surface-500 cursor-not-allowed'
+            disabled && 'opacity-60 cursor-not-allowed'
           )}
-          aria-label={disabled ? 'Waiting for response' : 'Send message'}
         >
-          {disabled ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <ArrowUp className="w-5 h-5" />
+          {/* Voice Input Button + Language Selector */}
+          {enableVoice && (
+            <div className="relative" ref={languageMenuRef}>
+              <button
+                onClick={startListening}
+                disabled={disabled}
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-xl',
+                  'transition-all duration-300',
+                  'bg-surface-700 text-surface-400 hover:bg-surface-600 hover:text-surface-200'
+                )}
+                aria-label={t('chat.startVoice')}
+                title={`${t('chat.startVoice')} (${currentLangInfo?.nativeName || 'Auto'})`}
+              >
+                <Mic className="w-5 h-5" />
+              </button>
+
+              {/* Language selector button */}
+              <button
+                onClick={() => setShowLanguageMenu(prev => !prev)}
+                className={cn(
+                  'absolute -bottom-1 -right-1 p-0.5 rounded-full text-[10px]',
+                  'bg-surface-800 border border-surface-600',
+                  'hover:bg-surface-700 transition-colors'
+                )}
+                title={t('chat.changeLanguage')}
+              >
+                {currentLangInfo?.flag || '🌐'}
+              </button>
+
+              {/* Language dropdown */}
+              {showLanguageMenu && (
+                <div className="absolute bottom-12 left-0 z-50 min-w-[180px] bg-surface-800 border border-surface-700 rounded-xl shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-surface-700 flex items-center gap-2 text-xs text-surface-400">
+                    <Languages className="w-3 h-3" />
+                    <span>{t('chat.voiceLanguage')}</span>
+                  </div>
+                  {VOICE_LANGUAGES.map(lang => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageSelect(lang.code)}
+                      className={cn(
+                        'w-full px-3 py-2 text-left text-sm flex items-center gap-2',
+                        'hover:bg-surface-700 transition-colors',
+                        currentLanguage === lang.code
+                          ? 'bg-cyan-500/10 text-cyan-400'
+                          : 'text-surface-300'
+                      )}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.nativeName}</span>
+                      {currentLanguage === lang.code && (
+                        <span className="ml-auto text-cyan-400">✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
-        </button>
-      </div>
+
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled}
+            rows={1}
+            className={cn(
+              'flex-1 resize-none bg-transparent',
+              'text-surface-100',
+              'placeholder:text-surface-500',
+              'focus:outline-none',
+              'disabled:cursor-not-allowed',
+              'text-base leading-relaxed',
+              'min-h-[24px] max-h-[200px]',
+              'py-1 px-1',
+              isRTL && 'text-right'
+            )}
+            aria-label="Chat message input"
+            dir={isRTL ? 'rtl' : 'ltr'}
+          />
+
+          {/* Send Button */}
+          <button
+            onClick={handleSend}
+            disabled={!canSend}
+            className={cn(
+              'flex-shrink-0 p-2.5 rounded-xl',
+              'transition-all duration-300',
+              canSend
+                ? 'bg-gradient-to-r from-nexus-500 to-accent-nexus-500 text-white hover:shadow-lg hover:shadow-nexus-500/30 hover:scale-105'
+                : 'bg-surface-700 text-surface-500 cursor-not-allowed'
+            )}
+            aria-label={disabled ? t('chat.waitingForResponse') : t('chat.sendMessage')}
+          >
+            {disabled ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <ArrowUp className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Voice Error */}
       {voiceError && (
@@ -304,7 +416,8 @@ export function ChatInput({
       {showCharacterCount && maxLength && (
         <div
           className={cn(
-            'absolute -bottom-5 right-3 text-xs',
+            'absolute -bottom-5 text-xs',
+            isRTL ? 'left-3' : 'right-3',
             isOverLimit ? 'text-red-400' : 'text-surface-500'
           )}
         >
@@ -313,18 +426,20 @@ export function ChatInput({
       )}
 
       {/* Hint Text */}
-      <div className="mt-2 text-center">
-        <span className="text-xs text-surface-500">
-          {enableVoice && (
-            <>
-              <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">🎤</kbd>
-              {' '}for voice{' • '}
-            </>
-          )}
-          <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">Enter</kbd> to send{' • '}
-          <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">Shift+Enter</kbd> for new line
-        </span>
-      </div>
+      {!isListening && (
+        <div className="mt-2 text-center">
+          <span className="text-xs text-surface-500">
+            {enableVoice && (
+              <>
+                <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">🎤</kbd>
+                {' '}{t('chat.hintVoice')}{' • '}
+              </>
+            )}
+            <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">Enter</kbd> {t('chat.hintSend')}{' • '}
+            <kbd className="px-1.5 py-0.5 rounded-md bg-surface-700/50 text-surface-400 font-mono text-[10px]">Shift+Enter</kbd> {t('chat.hintNewline')}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

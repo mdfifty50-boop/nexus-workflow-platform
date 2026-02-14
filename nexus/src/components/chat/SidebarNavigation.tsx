@@ -6,6 +6,7 @@
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { ChatSession } from './types'
@@ -182,62 +183,41 @@ function BrainIcon({ className }: { className?: string }) {
   )
 }
 
+function ConsultancyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+      />
+    </svg>
+  )
+}
+
 // =============================================================================
 // NAVIGATION ITEMS
 // =============================================================================
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    id: 'chat',
-    label: 'Chat',
-    path: '/chat-demo',
-    icon: MessageIcon,
-    primary: true,
-    hasDropdown: true
-  },
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/dashboard',
-    icon: DashboardIcon
-  },
-  {
-    id: 'workflows',
-    label: 'Workflows',
-    path: '/workflow-demo',
-    icon: WorkflowIcon
-  },
-  {
-    id: 'templates',
-    label: 'Templates',
-    path: '/templates',
-    icon: TemplatesIcon
-  },
-  {
-    id: 'integrations',
-    label: 'Integrations',
-    path: '/integrations',
-    icon: IntegrationsIcon
-  },
-  {
-    id: 'whatsapp',
-    label: 'WhatsApp',
-    path: '/whatsapp',
-    icon: WhatsAppIcon,
-    badge: 'NEW'
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    path: '/settings',
-    icon: SettingsIcon
-  }
+// NAV_ITEMS structure without labels - labels added via i18n in component
+const NAV_ITEMS_CONFIG: Array<Omit<NavItem, 'label'> & { labelKey: string }> = [
+  { id: 'chat', labelKey: 'chat.chat', path: '/chat-demo', icon: MessageIcon, primary: true, hasDropdown: true },
+  { id: 'dashboard', labelKey: 'navigation.dashboard', path: '/dashboard', icon: DashboardIcon },
+  { id: 'workflows', labelKey: 'navigation.workflows', path: '/workflow-demo', icon: WorkflowIcon },
+  { id: 'templates', labelKey: 'navigation.templates', path: '/templates', icon: TemplatesIcon },
+  { id: 'integrations', labelKey: 'navigation.integrations', path: '/integrations', icon: IntegrationsIcon },
+  { id: 'whatsapp', labelKey: 'chat.whatsApp', path: '/whatsapp', icon: WhatsAppIcon, badge: 'NEW' },
+  { id: 'consultancy', labelKey: 'navigation.aiConsultancy', path: '/meeting-room-demo', icon: ConsultancyIcon, badge: 'AI' },
+  { id: 'settings', labelKey: 'navigation.settings', path: '/settings', icon: SettingsIcon },
 ]
 
 // =============================================================================
 // HELPER: Format relative time
 // =============================================================================
 
+// Note: This function can't use hooks directly (not a component/hook).
+// For now, keep it as a simple formatter. The i18n time keys are used in components.
 function formatRelativeTime(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -265,10 +245,19 @@ export function SidebarNavigation({
   currentSessionId,
   onSelectSession
 }: SidebarNavigationProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [chatDropdownOpen, setChatDropdownOpen] = React.useState(false)
-  const [showNewChatSubmenu, setShowNewChatSubmenu] = React.useState(false)
+
+  // Build NAV_ITEMS with translated labels
+  const NAV_ITEMS: NavItem[] = React.useMemo(() =>
+    NAV_ITEMS_CONFIG.map(({ labelKey, ...rest }) => ({
+      ...rest,
+      label: t(labelKey),
+    })),
+    [t]
+  )
 
   const handleClick = (item: NavItem, e?: React.MouseEvent) => {
     // For chat item, toggle dropdown instead of navigating
@@ -305,7 +294,6 @@ export function SidebarNavigation({
 
   const handleNewChat = (mode: ChatMode = 'standard') => {
     setChatDropdownOpen(false)
-    setShowNewChatSubmenu(false)
     // Store the chat mode BEFORE the trigger so ChatContainer can read it
     localStorage.setItem('nexus-chat-mode', mode)
     // Signal ChatContainer to start a new session via localStorage event
@@ -376,62 +364,38 @@ export function SidebarNavigation({
               )}
             </button>
 
-            {/* Chat History Dropdown */}
+            {/* Chat Dropdown - flat menu with New Chat, Think with me, Recent Chats */}
             {item.id === 'chat' && chatDropdownOpen && (
               <div className="mt-1 ml-4 pl-4 border-l-2 border-muted space-y-1">
-                {/* New Chat section with submenu */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowNewChatSubmenu(!showNewChatSubmenu)}
-                    className={cn(
-                      'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm',
-                      'text-primary hover:bg-primary/10 transition-colors'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">+</span>
-                      <span>New Chat</span>
-                    </div>
-                    <ChevronIcon className="w-3 h-3" expanded={showNewChatSubmenu} />
-                  </button>
-
-                  {/* New Chat Options Submenu */}
-                  {showNewChatSubmenu && (
-                    <div className="mt-1 ml-2 pl-2 border-l border-muted/50 space-y-1">
-                      {/* Standard Chat */}
-                      <button
-                        onClick={() => handleNewChat('standard')}
-                        className={cn(
-                          'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                          'text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors'
-                        )}
-                      >
-                        <MessageIcon className="w-4 h-4" />
-                        <span>New Chat</span>
-                      </button>
-
-                      {/* Think with me */}
-                      <button
-                        onClick={() => handleNewChat('think_with_me')}
-                        className={cn(
-                          'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                          'text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 transition-colors'
-                        )}
-                      >
-                        <BrainIcon className="w-4 h-4" />
-                        <span>Think with me</span>
-                      </button>
-                    </div>
+                {/* New Chat */}
+                <button
+                  onClick={() => handleNewChat('standard')}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
+                    'text-primary hover:bg-primary/10 transition-colors'
                   )}
-                </div>
+                >
+                  <span className="text-lg">+</span>
+                  <span>{t('chat.newChat')}</span>
+                </button>
 
-                {/* History header */}
-                {chatSessions.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
-                    <ClockIcon className="w-3 h-3" />
-                    <span>Recent Chats</span>
-                  </div>
-                )}
+                {/* Think with me */}
+                <button
+                  onClick={() => handleNewChat('think_with_me')}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
+                    'text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 transition-colors'
+                  )}
+                >
+                  <BrainIcon className="w-4 h-4" />
+                  <span>{t('chat.thinkWithMe')}</span>
+                </button>
+
+                {/* Recent Chats header */}
+                <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
+                  <ClockIcon className="w-3 h-3" />
+                  <span>{t('chat.recentChats')}</span>
+                </div>
 
                 {/* Chat sessions list */}
                 {chatSessions.slice(0, 10).map(session => (
@@ -445,7 +409,7 @@ export function SidebarNavigation({
                     )}
                   >
                     <span className="truncate w-full text-foreground">
-                      {session.title || 'New Chat'}
+                      {session.title || t('chat.newChat')}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
                       {formatRelativeTime(session.updatedAt)}
@@ -455,7 +419,7 @@ export function SidebarNavigation({
 
                 {chatSessions.length === 0 && (
                   <div className="px-3 py-2 text-xs text-muted-foreground italic">
-                    No chat history yet
+                    {t('chat.noChatHistory')}
                   </div>
                 )}
               </div>

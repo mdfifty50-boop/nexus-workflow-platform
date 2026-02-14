@@ -71,10 +71,14 @@ export interface InferredParameters {
 class UserContextService {
   private context: UserContext = {};
   private readonly STORAGE_KEY = 'nexus_user_context';
+  private readonly API_BASE = '/api/user-profile';
+  private cloudSyncTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly CLOUD_SYNC_DEBOUNCE_MS = 5000;
 
   constructor() {
     this.loadFromStorage();
     this.initializeRegionalDefaults();
+    this.loadFromCloud();
   }
 
   /**
@@ -106,7 +110,7 @@ class UserContextService {
   }
 
   /**
-   * Save context to localStorage
+   * Save context to localStorage + debounced cloud sync
    */
   private saveToStorage(): void {
     try {
@@ -114,6 +118,59 @@ class UserContextService {
     } catch (e) {
       console.warn('Failed to save user context to storage:', e);
     }
+    this.debouncedCloudSync();
+  }
+
+  /**
+   * Load context from Supabase (cloud wins for cross-device consistency).
+   * Called once in constructor after loadFromStorage().
+   */
+  private async loadFromCloud(): Promise<void> {
+    try {
+      const res = await fetch(`${this.API_BASE}/context`, {
+        headers: { 'x-clerk-user-id': localStorage.getItem('clerk_user_id') || '' },
+      });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data.source === 'supabase' && data.context) {
+        // Cloud wins — merge cloud into local (cloud overwrites shared keys)
+        this.context = { ...this.context, ...data.context };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.context));
+        console.log('[UserContextService] Restored context from cloud');
+      }
+    } catch {
+      // Graceful degradation — localStorage still works
+    }
+  }
+
+  /**
+   * Debounced sync to Supabase — waits 5 seconds after last write
+   * to avoid hammering the API during rapid context updates.
+   */
+  private debouncedCloudSync(): void {
+    if (this.cloudSyncTimer) {
+      clearTimeout(this.cloudSyncTimer);
+    }
+    this.cloudSyncTimer = setTimeout(() => {
+      this.syncToCloud();
+    }, this.CLOUD_SYNC_DEBOUNCE_MS);
+  }
+
+  /**
+   * Sync current context to Supabase (fire-and-forget).
+   */
+  private syncToCloud(): void {
+    fetch(`${this.API_BASE}/context`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-clerk-user-id': localStorage.getItem('clerk_user_id') || '',
+      },
+      body: JSON.stringify({ context: this.context }),
+    }).catch((err) => {
+      console.warn('[UserContextService] Cloud sync failed (non-blocking):', err);
+    });
   }
 
   /**

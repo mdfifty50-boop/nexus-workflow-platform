@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
@@ -26,11 +27,13 @@ import clsx from 'clsx'
 import { RegionalIntelligenceService } from '@/services/RegionalIntelligenceService'
 import { ProactiveSuggestionsService, type ProactiveSuggestion } from '@/services/ProactiveSuggestionsService'
 import { IntegrationDiscoveryService } from '@/services/IntegrationDiscoveryService'
+import { userMemoryService } from '@/services/UserMemoryService'
 import { workflowPersistenceService, type SavedWorkflow } from '@/services/WorkflowPersistenceService'
 import { useAuth } from '@/contexts/AuthContext'
-import { DailyAdviceCard } from '@/components/DailyAdviceCard'
 // @NEXUS-FIX-090: Role-based avatar integration (SmartAvatar kept as fallback)
 import { Spline3DAvatar } from '@/components/Spline3DAvatar'
+import { NEXUS_AGENTS } from '@/lib/nexus-party-mode-service'
+import { useBusinessProfile } from '@/hooks/useBusinessProfile'
 
 // ============================================
 // SERVICE INTEGRATION: Dashboard Intelligence
@@ -294,20 +297,14 @@ export function Dashboard() {
   // SERVICE-BASED DATA (Regional + AI Intelligence)
   // ============================================
 
+  const { t } = useTranslation()
   const { userProfile, user } = useAuth()
   const userName = userProfile?.full_name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || null
 
-  // Daily advice visibility (component handles its own dismiss state)
-  const showDailyAdvice = true
+  const { industryName, hasProfile } = useBusinessProfile()
 
-  // User context for daily advice (would come from actual user data in production)
-  const dailyAdviceUserContext = useMemo(() => ({
-    connectedIntegrations: ['gmail', 'slack', 'googlesheets'],
-    recentWorkflows: [],
-    region: USER_REGION,
-    businessType: 'saas' as const,
-    teamSize: 'small' as const,
-  }), [])
+  // AI Consultancy agents for the agency card
+  const consultants = useMemo(() => Object.values(NEXUS_AGENTS).slice(0, 8), [])
 
   // Get regional greeting context
   const greetingContext = useMemo(() => {
@@ -378,12 +375,13 @@ export function Dashboard() {
 
   // Get AI-powered suggestions from ProactiveSuggestionsService
   const aiSuggestions = useMemo(() => {
-    // Mock user context (would come from actual user data in production)
+    // Build real user context from persistent memory
+    const memory = userMemoryService.buildMemoryProfile()
     const userContext = {
-      connectedIntegrations: ['gmail', 'slack', 'googlesheets'],
-      recentWorkflows: [],
-      region: USER_REGION,
-      businessType: 'saas' as const,
+      connectedIntegrations: memory.topIntegrations.length > 0 ? memory.topIntegrations : ['gmail', 'slack', 'googlesheets'],
+      recentWorkflows: memory.recentWorkflowNames,
+      region: memory.region || USER_REGION,
+      businessType: (memory.industry?.toLowerCase() || 'saas') as 'saas',
     }
 
     const serviceSuggestions = ProactiveSuggestionsService.getSuggestions(userContext)
@@ -443,63 +441,107 @@ export function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Daily AI Workflow Advice - Featured Tip of the Day */}
-      {showDailyAdvice && (
-        <DailyAdviceCard
-          userContext={dailyAdviceUserContext}
-          personaType="sme"
-          className="w-full"
-        />
-      )}
-
-      {/* Nexus Chat Hero Card */}
+      {/* AI Agency Card - Your Team of Expert Consultants */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Link to="/chat">
-          <div className="nexus-hero-card relative overflow-hidden rounded-2xl bg-gradient-to-br from-nexus-600 via-nexus-500 to-accent-500 p-[2px] group cursor-pointer">
-            <div className="relative bg-surface-900/[0.97] rounded-[calc(1rem-2px)] p-6 md:p-8 backdrop-blur-sm">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-nexus-500/20">
-                    <MessageSquare className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                      Nexus Chat
-                      <span className="px-2 py-0.5 text-xs font-medium bg-nexus-500/20 text-nexus-300 rounded-full border border-nexus-500/20">AI-Powered</span>
-                    </h2>
-                    <p className="text-surface-300 text-sm md:text-base max-w-xl">
-                      Describe any workflow in plain English and watch Nexus build it for you instantly.
-                      Connect 500+ apps with zero code.
-                    </p>
-                  </div>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-500 to-cyan-500 p-[2px] group">
+          <div className="relative bg-surface-900/[0.97] rounded-[calc(1rem-2px)] p-6 md:p-8 backdrop-blur-sm">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
+                  <Sparkles className="w-7 h-7 text-white" />
                 </div>
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                    AI Consultancy
+                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/20">8 Experts</span>
+                  </h2>
+                  <p className="text-surface-300 text-sm md:text-base max-w-xl">
+                    {hasProfile && industryName
+                      ? `Your dedicated AI consultancy team, specialized for ${industryName}. Strategy, automation, analytics, compliance, and more.`
+                      : 'Your dedicated team of 8 AI expert consultants. Get real strategic advice on automation, analytics, compliance, and business transformation.'
+                    }
+                  </p>
+                </div>
+              </div>
 
-                <div className="flex-shrink-0">
-                  <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-nexus-500 to-accent-500 text-white font-semibold shadow-lg shadow-nexus-500/25 group-hover:shadow-nexus-500/40 transition-all">
-                    <Sparkles className="w-5 h-5" />
-                    <span>Start Building</span>
+              <div className="flex gap-3 flex-shrink-0">
+                <Link to="/meeting-room-demo">
+                  <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-semibold shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-all cursor-pointer">
+                    <MessageSquare className="w-5 h-5" />
+                    <span>Start Session</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-surface-700/30">
-                <p className="text-xs text-surface-500 mb-3">Try asking:</p>
-                <div className="flex flex-wrap gap-2">
-                  {['Send me an email digest every morning', 'Alert me on Slack when a lead scores high', 'Sync my calendar to Notion'].map((prompt, i) => (
-                    <span key={i} className="px-3 py-1.5 text-sm bg-surface-800/60 text-surface-300 rounded-lg border border-surface-700/30 hover:border-nexus-500/30 hover:bg-surface-800 transition-all">
-                      &ldquo;{prompt}&rdquo;
-                    </span>
-                  ))}
-                </div>
+                </Link>
               </div>
             </div>
+
+            {/* Consultant Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+              {consultants.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-surface-800/40 border border-surface-700/30 hover:border-purple-500/30 hover:bg-surface-800/60 transition-all cursor-default"
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl border-2"
+                    style={{ backgroundColor: `${agent.color}20`, borderColor: agent.color }}
+                  >
+                    {agent.icon}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-medium text-white">{agent.displayName}</p>
+                    <p className="text-[10px] text-surface-500 leading-tight">{agent.title.split(' — ')[0].split(' + ')[0]}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Services Row */}
+            <div className="pt-5 border-t border-surface-700/30">
+              <p className="text-xs text-surface-500 mb-3">Consultancy services:</p>
+              <div className="flex flex-wrap gap-2">
+                {['AI Strategy', 'Process Automation', 'Data Analytics', 'Compliance & Risk', 'Customer Experience', 'Change Management'].map((service, i) => (
+                  <span key={i} className="px-3 py-1.5 text-sm bg-surface-800/60 text-surface-300 rounded-lg border border-surface-700/30">
+                    {service}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Start Row */}
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+              <Link to="/chat" className="flex-1">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-nexus-500/10 border border-nexus-500/20 hover:bg-nexus-500/15 transition-all cursor-pointer">
+                  <div className="w-10 h-10 rounded-lg bg-nexus-500/20 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-nexus-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Build a Workflow</p>
+                    <p className="text-xs text-surface-400">Describe it in plain English</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-surface-500 ml-auto" />
+                </div>
+              </Link>
+              <Link to="/meeting-room-demo" className="flex-1">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 transition-all cursor-pointer">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Consult the Team</p>
+                    <p className="text-xs text-surface-400">Get expert advice from 8 AI consultants</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-surface-500 ml-auto" />
+                </div>
+              </Link>
+            </div>
           </div>
-        </Link>
+        </div>
       </motion.div>
 
       {/* Stats grid - Premium cards with gradient borders */}
@@ -518,7 +560,7 @@ export function Dashboard() {
               <div className="stat-inner">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-2">{stat.name}</p>
+                    <p className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-2">{stat.name === 'Time Saved' ? t('dashboard.timeSaved') : stat.name}</p>
                     <p className="text-4xl font-bold text-white tracking-tight">{stat.value}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg stat-icon-orb`} style={{ animationDelay: `${index * 0.5}s` }}>
@@ -561,12 +603,12 @@ export function Dashboard() {
                 <Zap className="w-4 h-4 text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Recent Workflows</h2>
+                <h2 className="text-lg font-semibold text-white">{t('dashboard.recentWorkflows')}</h2>
                 <p className="text-xs text-surface-500">Your latest automations</p>
               </div>
             </div>
             <Link to="/workflows" className="text-sm text-nexus-400 hover:text-nexus-300 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-surface-800/50">
-              View all
+              {t('common.viewAll')}
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -593,7 +635,7 @@ export function Dashboard() {
                 <p className="text-surface-500 text-sm mb-4">Create your first automation to get started</p>
                 <Link to="/chat" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-nexus-500/10 text-nexus-400 hover:bg-nexus-500/20 border border-nexus-500/20 transition-all text-sm font-medium">
                   <Plus className="w-4 h-4" />
-                  Create workflow
+                  {t('workflow.create')}
                 </Link>
               </div>
             ) : (
@@ -791,7 +833,7 @@ export function Dashboard() {
               </div>
             </div>
             <Link to="/integrations" className="text-sm text-nexus-400 hover:text-nexus-300 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-surface-800/50">
-              View all
+              {t('common.viewAll')}
               <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

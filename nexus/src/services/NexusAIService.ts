@@ -13,6 +13,7 @@
  */
 
 import { EMBEDDED_TOOLS, type GeneratedWorkflow } from './SmartWorkflowEngine'
+import { userMemoryService } from './UserMemoryService'
 
 // Message format for Claude API
 export interface ChatMessage {
@@ -82,6 +83,36 @@ class NexusAIService {
   private conversationHistory: ChatMessage[] = []
 
   /**
+   * Build user context string from stored business profile and preferences.
+   * Uses UserMemoryService to aggregate all data sources into a rich context.
+   */
+  private buildUserContext(): string {
+    try {
+      return userMemoryService.getMemoryForAI()
+    } catch {
+      // Fallback: minimal context if memory service fails
+      const parts: string[] = []
+      try {
+        const profileRaw = localStorage.getItem('nexus_business_profile')
+        if (profileRaw) {
+          const profile = JSON.parse(profileRaw)
+          if (profile.industry) parts.push(`Industry: ${profile.industry}`)
+          if (profile.primaryRole) parts.push(`Role: ${profile.primaryRole}`)
+        }
+      } catch { /* ignore */ }
+      try {
+        const userCtxRaw = localStorage.getItem('nexus_user_context')
+        if (userCtxRaw) {
+          const userCtx = JSON.parse(userCtxRaw)
+          if (userCtx.email) parts.push(`Email: ${userCtx.email}`)
+          if (userCtx.name) parts.push(`Name: ${userCtx.name}`)
+        }
+      } catch { /* ignore */ }
+      return parts.length > 0 ? parts.join('\n') : ''
+    }
+  }
+
+  /**
    * Send a message to Claude and get a response
    * @param userMessage The user's message
    * @param context Optional context including chatMode for "Think with me" mode
@@ -101,6 +132,9 @@ class NexusAIService {
     try {
       console.log('[NexusAIService] Calling Claude AI via /api/chat...', { chatMode: context?.chatMode })
 
+      // Build user context from stored business profile + preferences
+      const userContext = this.buildUserContext()
+
       // Call the backend chat API via Vite proxy (which uses real Claude)
       // Using relative URL so Vite proxy handles it properly
       const response = await fetch('/api/chat', {
@@ -114,7 +148,8 @@ class NexusAIService {
           // Sonnet 4 for workflow generation (fast, reliable, cost-effective)
           model: 'claude-sonnet-4-20250514',
           maxTokens: 4096,
-          chatMode: context?.chatMode || 'standard' // Pass chat mode for "Think with me" feature
+          chatMode: context?.chatMode || 'standard', // Pass chat mode for "Think with me" feature
+          userContext: userContext || undefined // Business profile + preferences for industry-aware AI
         })
       })
 

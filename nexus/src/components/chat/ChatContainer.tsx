@@ -12,7 +12,9 @@
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { changeLanguage as changeI18nLanguage } from '@/i18n'
 import { MessageSquare, Sparkles, Zap, ArrowRight } from 'lucide-react'
 import { ChatHeader } from './ChatHeader'
 import { ChatMessage } from './ChatMessage'
@@ -22,6 +24,7 @@ import { APIKeyAcquisitionCard } from './APIKeyAcquisitionCard'
 import { useChatState } from './useChatState'
 import type { EmbeddedContent } from './types'
 import type { ChatMode } from './SidebarNavigation'
+import type { VoiceLanguage } from '@/hooks/useVoiceInput'
 // @NEXUS-FIX-027: Get user email for "Send to Myself" button
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -32,6 +35,8 @@ import {
 } from '@/services/NexusWorkflowEngine'
 // Real Claude AI service for natural conversation
 import { nexusAIService, type CustomIntegrationInfo } from '@/services/NexusAIService'
+// Persistent user memory tracking
+import { userMemoryService } from '@/services/UserMemoryService'
 // workflowOrchestrator available for future execution features
 
 // ============================================================================
@@ -56,32 +61,34 @@ interface SuggestionCard {
   prompt: string
 }
 
-const SUGGESTIONS: SuggestionCard[] = [
-  {
-    icon: <Zap className="w-5 h-5 text-amber-500" />,
-    title: 'Create a workflow',
-    description: 'Automate repetitive tasks',
-    prompt: 'Help me create a workflow to automate email responses',
-  },
-  {
-    icon: <MessageSquare className="w-5 h-5 text-blue-500" />,
-    title: 'Connect apps',
-    description: 'Integrate your favorite tools',
-    prompt: 'How do I connect Slack with my Gmail?',
-  },
-  {
-    icon: <Sparkles className="w-5 h-5 text-purple-500" />,
-    title: 'Explore templates',
-    description: 'Start with pre-built automations',
-    prompt: 'Show me popular workflow templates',
-  },
-]
-
 interface EmptyStateProps {
   onSuggestionClick: (prompt: string) => void
 }
 
 function EmptyState({ onSuggestionClick }: EmptyStateProps): React.ReactElement {
+  const { t } = useTranslation()
+
+  const suggestions: SuggestionCard[] = [
+    {
+      icon: <Zap className="w-5 h-5 text-amber-500" />,
+      title: t('chat.suggestions.createWorkflow'),
+      description: t('chat.suggestions.createWorkflowDesc'),
+      prompt: t('chat.suggestions.createWorkflowPrompt'),
+    },
+    {
+      icon: <MessageSquare className="w-5 h-5 text-blue-500" />,
+      title: t('chat.suggestions.connectApps'),
+      description: t('chat.suggestions.connectAppsDesc'),
+      prompt: t('chat.suggestions.connectAppsPrompt'),
+    },
+    {
+      icon: <Sparkles className="w-5 h-5 text-purple-500" />,
+      title: t('chat.suggestions.exploreTemplates'),
+      description: t('chat.suggestions.exploreTemplatesDesc'),
+      prompt: t('chat.suggestions.exploreTemplatesPrompt'),
+    },
+  ]
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
       {/* Hero */}
@@ -90,16 +97,16 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps): React.ReactElement 
           <Sparkles className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-surface-100 mb-3">
-          How can I help you today?
+          {t('chat.howCanIHelp')}
         </h1>
         <p className="text-surface-400 max-w-md text-base">
-          Create powerful automations with natural language. Just describe what you want to automate.
+          {t('chat.createPowerful')}
         </p>
       </div>
 
       {/* Suggestion Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl w-full">
-        {SUGGESTIONS.map((suggestion, index) => (
+        {suggestions.map((suggestion, index) => (
           <button
             key={index}
             onClick={() => onSuggestionClick(suggestion.prompt)}
@@ -136,6 +143,7 @@ function EmptyState({ onSuggestionClick }: EmptyStateProps): React.ReactElement 
 // ============================================================================
 
 function ThinkingIndicator(): React.ReactElement {
+  const { t } = useTranslation()
   return (
     <div className="flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 bg-surface-800/30 border-l-2 border-nexus-500/30">
       <div className="flex-shrink-0">
@@ -145,7 +153,7 @@ function ThinkingIndicator(): React.ReactElement {
       </div>
       <div className="flex items-center gap-3">
         <span className="text-surface-300 text-sm font-medium">
-          Nexus AI is thinking
+          {t('chat.thinking')}
         </span>
         <span className="flex gap-1.5">
           <span className="w-2 h-2 bg-nexus-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -176,6 +184,7 @@ function ClarifyingOptionsWithCustomInput({
   data,
   onSelect,
 }: ClarifyingOptionsWithCustomInputProps): React.ReactElement {
+  const { t } = useTranslation()
   const [showCustomInput, setShowCustomInput] = React.useState(false)
   const [customValue, setCustomValue] = React.useState('')
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -227,7 +236,7 @@ function ClarifyingOptionsWithCustomInput({
                 : 'bg-surface-700 text-surface-500 cursor-not-allowed'
             }`}
           >
-            Send
+            {t('chat.send')}
           </button>
         </div>
         <button
@@ -237,7 +246,7 @@ function ClarifyingOptionsWithCustomInput({
           }}
           className="text-xs text-surface-400 hover:text-surface-200 transition-colors"
         >
-          ← Back to options
+          ← {t('chat.backToOptions')}
         </button>
       </div>
     )
@@ -277,7 +286,7 @@ function ClarifyingOptionsWithCustomInput({
         onClick={() => setShowCustomInput(true)}
         className="px-4 py-2.5 text-sm font-medium rounded-xl bg-transparent hover:bg-surface-700/30 text-surface-400 border border-dashed border-surface-600/50 hover:border-accent-nexus-500/50 hover:text-accent-nexus-400 transition-all duration-200"
       >
-        {hasCustomOptionFromAI ? 'Custom...' : 'Other...'}
+        {hasCustomOptionFromAI ? t('chat.custom') : t('chat.other')}
       </button>
     </div>
   )
@@ -293,6 +302,7 @@ export function ChatContainer({
   showDashboardButton = true,
   renderEmbeddedContent,
 }: ChatContainerProps): React.ReactElement {
+  const { t } = useTranslation()
   // @NEXUS-FIX-027: Get user email for "Send to Myself" button - DO NOT REMOVE
   // Also provides userId for cloud sync (Plan B: User Account System)
   const { user, userProfile, userId } = useAuth()
@@ -386,6 +396,16 @@ export function ChatContainer({
 
   // "Think with me" mode - focused problem-solving chat mode
   const [chatMode, setChatMode] = React.useState<ChatMode>('standard')
+
+  // Voice language - when user selects Arabic dialect, entire chat flips to RTL
+  const [chatLanguage, setChatLanguage] = React.useState<VoiceLanguage>('en-US')
+  const isRTL = chatLanguage.startsWith('ar')
+
+  // Bridge voice language selector → global i18n system
+  React.useEffect(() => {
+    const lang = chatLanguage.startsWith('ar') ? 'ar' : 'en'
+    changeI18nLanguage(lang as 'en' | 'ar')
+  }, [chatLanguage])
 
   // Active workflow tracking - for refinement mode (update existing card instead of creating new)
   const [activeWorkflowId, setActiveWorkflowId] = React.useState<string | null>(null)
@@ -600,6 +620,9 @@ export function ChatContainer({
       addMessage(content, 'user')
       setIsLoading(true)
 
+      // Record chat event for persistent memory
+      userMemoryService.recordEvent('chat_sent')
+
       try {
         // If we're in question-asking mode, collect the answer
         if (conversationState === 'asking_questions' && pendingQuestions.length > 0) {
@@ -774,6 +797,11 @@ export function ChatContainer({
               // Create NEW workflow card
               workflowDisplayId = `workflow-${Date.now()}`
               setGeneratedWorkflows(prev => new Map(prev).set(workflowDisplayId, workflow))
+              // Record workflow creation for persistent memory
+              userMemoryService.recordEvent('workflow_created', {
+                name: workflow.name,
+                integrations: workflow.requiredIntegrations,
+              })
             }
 
             // Set this as the active workflow for future refinements
@@ -953,6 +981,7 @@ export function ChatContainer({
         'bg-surface-950',
         className
       )}
+      dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Header */}
       <ChatHeader
@@ -970,8 +999,8 @@ export function ChatContainer({
             <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
-            <span className="text-xs text-purple-300 font-medium">Think with me</span>
-            <span className="text-xs text-purple-400/70">Focused problem-solving mode</span>
+            <span className="text-xs text-purple-300 font-medium">{t('chat.thinkWithMe')}</span>
+            <span className="text-xs text-purple-400/70">{t('chat.focusedMode')}</span>
           </div>
         </div>
       )}
@@ -1228,7 +1257,8 @@ export function ChatContainer({
           <ChatInput
             onSend={handleSend}
             disabled={isLoading}
-            placeholder="Describe your workflow..."
+            placeholder={t('chat.describeWorkflow')}
+            onLanguageChange={setChatLanguage}
           />
         </div>
       </div>

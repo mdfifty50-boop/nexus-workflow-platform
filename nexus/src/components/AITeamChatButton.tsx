@@ -4,9 +4,11 @@
  * Only shows on workflow-related pages, NOT on landing page
  */
 
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 export function AITeamChatButton() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -24,14 +26,14 @@ export function AITeamChatButton() {
   }
 
   return (
-    // Hidden on mobile (md:flex), positioned above chatbot
-    <div className="hidden md:flex fixed bottom-28 right-4 md:right-6 z-40">
+    // Visible on all screen sizes, positioned above chatbot
+    <div className="flex fixed bottom-28 right-4 md:right-6 z-40">
       <button
         onClick={handleClick}
         className="group relative w-14 h-14 rounded-full shadow-lg transition-all duration-300 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 hover:scale-110"
-        aria-label="AI Team Chat"
+        aria-label={t('accessibility.aiConsultancy', 'AI Consultancy')}
       >
-        {/* Icon - multiple people/agents */}
+        {/* Icon - consultancy briefcase with people */}
         <div className="absolute inset-0 flex items-center justify-center">
           <svg
             className="w-7 h-7 text-white"
@@ -53,7 +55,7 @@ export function AITeamChatButton() {
 
         {/* Tooltip */}
         <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-800 text-white text-sm rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
-          AI Team Chat
+          {t('accessibility.aiConsultancy', 'AI Consultancy')}
         </span>
       </button>
     </div>

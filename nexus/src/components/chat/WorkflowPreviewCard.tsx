@@ -24,6 +24,8 @@ import {
   Sparkles,
   RefreshCw,
   Pencil,
+  FlaskConical,
+  Rocket,
 } from 'lucide-react'
 import { NodeEditPanel } from './NodeEditPanel'
 import {
@@ -67,6 +69,8 @@ import {
   type DiscoveredTool as _DiscoveredTool,
   type CollectionQuestion,
 } from '@/services/orchestration'
+// Persistent user memory tracking
+import { userMemoryService } from '@/services/UserMemoryService'
 
 // ============================================================================
 // Feature Flags
@@ -1929,27 +1933,35 @@ function MiniNodeHorizontal({
   node,
   isLast,
   onRemove,
-  canEdit = false
+  canEdit = false,
+  onSelect,
+  isSelected = false
 }: {
   node: WorkflowNode;
   isLast: boolean;
   onRemove?: (nodeId: string) => void;
   canEdit?: boolean;
+  onSelect?: (nodeId: string) => void;
+  isSelected?: boolean;
 }) {
   const colors = statusColors[node.status]
-  // State for click-based tooltip (mobile/accessibility)
-  const [showTooltip, setShowTooltip] = React.useState(false)
+  // @NEXUS-FIX-121: Ref to prevent touch+click double-fire on mobile - DO NOT REMOVE
+  const touchFiredRef = React.useRef(false)
 
-  // @NEXUS-FIX-099: Handle touch events for mobile - long press shows tooltip
-  const handleTouchStart = React.useCallback(() => {
-    // On touch, always show tooltip
-    setShowTooltip(true)
-  }, [])
-
+  // @NEXUS-FIX-099: Handle touch events for mobile - DO NOT REMOVE
   const handleTouchEnd = React.useCallback(() => {
-    // Keep tooltip visible for a moment after touch ends
-    setTimeout(() => setShowTooltip(false), 2000)
-  }, [])
+    // Mark that touch fired so onClick can skip
+    touchFiredRef.current = true
+    if (onSelect) onSelect(node.id)
+    // Reset flag after click event would have fired (~400ms)
+    setTimeout(() => { touchFiredRef.current = false }, 400)
+  }, [onSelect, node.id])
+
+  const handleClick = React.useCallback(() => {
+    // @NEXUS-FIX-121: Skip if this click was triggered by a touch event
+    if (touchFiredRef.current) return
+    if (onSelect) onSelect(node.id)
+  }, [onSelect, node.id])
 
   return (
     <div className="flex items-center flex-shrink-0 snap-start">
@@ -1964,14 +1976,15 @@ function MiniNodeHorizontal({
             colors.border,
             node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
             node.status === 'success' && 'shadow-lg shadow-emerald-500/20',
+            isSelected && 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-900 shadow-lg shadow-cyan-500/20',
             'hover:scale-105 hover:shadow-lg active:scale-95' // Active state for touch feedback
           )}
-          onClick={() => setShowTooltip(!showTooltip)}
-          onTouchStart={handleTouchStart}
+          onClick={handleClick}
           onTouchEnd={handleTouchEnd}
           role="button"
           tabIndex={0}
           aria-label={`${node.name} - ${node.type} - ${node.status}${node.description ? `: ${node.description}` : ''}`}
+          aria-expanded={isSelected}
         >
           <span className="text-base sm:text-lg">{getIcon(node.integration)}</span>
           <span className="text-[10px] sm:text-xs font-medium text-white truncate max-w-[80px] sm:max-w-[120px]">
@@ -1985,15 +1998,6 @@ function MiniNodeHorizontal({
             )}
           />
         </div>
-
-        {/* Tooltip - uses CSS group-hover for desktop, click/touch state for mobile */}
-        <NodeTooltip
-          node={node}
-          isOpen={showTooltip}
-          onClose={() => setShowTooltip(false)}
-          position="top"
-          useHoverClass={true}
-        />
 
         {/* Remove button - appears on hover when editing enabled */}
         {canEdit && onRemove && (
@@ -2651,9 +2655,8 @@ function MissingInfoSection({
     return null
   }
 
-  // FIX-108: Count both local answers and collected params for progress
-  const totalAnswered = localAnsweredFields.size + Object.keys(collectedParams).filter(k => collectedParams[k] && collectedParams[k] !== '').length
-  const progressPercent = Math.round((totalAnswered / missingInfo.length) * 100)
+  // FIX-108: Progress based on answered vs total questions (clamped to 0-100%)
+  const progressPercent = missingInfo.length > 0 ? Math.min(100, Math.round(((missingInfo.length - unansweredQuestions.length) / missingInfo.length) * 100)) : 0
   const remaining = unansweredQuestions.length
 
   // @NEXUS-UX-002: Parameter collection with VIP hospitality - DO NOT REMOVE
@@ -3609,6 +3612,13 @@ export function WorkflowPreviewCard({
       status: 'idle' as NodeStatus,
     }))
   )
+
+  // @NEXUS-FIX-121: Track which node is selected for detail panel (outside scroll overflow) - DO NOT REMOVE
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
+  const handleNodeSelect = React.useCallback((nodeId: string) => {
+    setSelectedNodeId(prev => prev === nodeId ? null : nodeId)
+  }, [])
+  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) ?? null : null
 
   // Run validation on mount and when workflow changes
   React.useEffect(() => {
@@ -5753,6 +5763,7 @@ export function WorkflowPreviewCard({
         )
 
         setPhase('error')
+        userMemoryService.recordEvent('workflow_executed', { success: false, name: workflow.name })
         onExecutionComplete?.(false)
         return
       }
@@ -5761,6 +5772,11 @@ export function WorkflowPreviewCard({
     // All done!
     addLog('Workflow completed successfully!')
     setPhase('complete')
+    userMemoryService.recordEvent('workflow_executed', {
+      success: true,
+      name: workflow.name,
+      integrations: requiredIntegrations.map(i => i.toolkit),
+    })
     onExecutionComplete?.(true)
   // @NEXUS-FIX-023: Added triggerSampleData to dependencies to fix stale closure bug - DO NOT REMOVE
   }, [phase, requiredIntegrations.length, nodes, checkConnections, addLog, onExecutionComplete, triggerSampleData])
@@ -6011,9 +6027,56 @@ export function WorkflowPreviewCard({
                     setNodes(prev => prev.filter(n => n.id !== id))
                   } : undefined}
                   canEdit={phase === 'ready' && !!onNodeRemove}
+                  onSelect={handleNodeSelect}
+                  isSelected={selectedNodeId === node.id}
                 />
               ))}
             </div>
+
+            {/* @NEXUS-FIX-121: Selected node detail panel - renders OUTSIDE scroll overflow so it's always visible - DO NOT REMOVE */}
+            {selectedNode && (
+              <div className="mt-2 mx-1 p-3 rounded-lg bg-slate-800/90 border border-slate-600 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{getIcon(selectedNode.integration)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white leading-snug">{selectedNode.name}</p>
+                      {selectedNode.integration && (
+                        <p className="text-xs text-cyan-400 mt-0.5 capitalize">{selectedNode.integration}</p>
+                      )}
+                      {selectedNode.description && (
+                        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">{selectedNode.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-slate-400">
+                          {selectedNode.type === 'trigger' ? '⚡ Trigger' : selectedNode.type === 'output' ? '📤 Output' : '⚙️ Action'}
+                        </span>
+                        <span className={cn(
+                          'text-xs px-2 py-0.5 rounded-full',
+                          selectedNode.status === 'success' && 'bg-emerald-500/20 text-emerald-400',
+                          selectedNode.status === 'connecting' && 'bg-amber-500/20 text-amber-400',
+                          selectedNode.status === 'error' && 'bg-red-500/20 text-red-400',
+                          selectedNode.status === 'idle' && 'bg-slate-600/50 text-slate-400',
+                          selectedNode.status === 'pending' && 'bg-blue-500/20 text-blue-400'
+                        )}>
+                          {selectedNode.status === 'idle' ? 'Waiting' : selectedNode.status === 'pending' ? 'Pending' : selectedNode.status === 'connecting' ? 'Running...' : selectedNode.status === 'success' ? 'Complete' : 'Failed'}
+                        </span>
+                      </div>
+                      {selectedNode.error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 p-2 rounded-lg mt-2">{selectedNode.error}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNodeId(null)}
+                    className="text-slate-400 hover:text-white transition-colors p-1 -mt-1 -mr-1 flex-shrink-0"
+                    aria-label="Close node details"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Progress bar */}
@@ -6162,7 +6225,7 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  🧪 Beta Test
+                  <FlaskConical className="w-3.5 h-3.5" /> Beta Test
                   <span className="text-[10px] opacity-70">(Your Account)</span>
                 </button>
                 <button
@@ -6174,7 +6237,7 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  🚀 Production
+                  <Rocket className="w-3.5 h-3.5" /> Production
                   <span className="text-[10px] opacity-70">(Client)</span>
                 </button>
               </div>
@@ -6389,8 +6452,8 @@ export function WorkflowPreviewCard({
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4" />
-                    {executionMode === 'beta' ? '🧪 Run Beta Test' : '🚀 Execute Now'}
+                    {executionMode === 'beta' ? <FlaskConical className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {executionMode === 'beta' ? 'Run Beta Test' : 'Execute Now'}
                   </>
                 )}
               </button>

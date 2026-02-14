@@ -17,6 +17,7 @@ import {
 } from '../lib/nexus-party-mode-service'
 import { humanTTSService } from '../lib/human-tts-service'
 import { useSwipeToDismiss } from '../hooks/useSwipeNavigation'
+import { useBusinessProfile } from '../hooks/useBusinessProfile'
 
 // =============================================================================
 // MOBILE HOOKS & UTILITIES
@@ -131,6 +132,7 @@ export function AIMeetingRoomV2({
 
   const isMobile = useIsMobile()
   const keyboard = useKeyboardVisible()
+  const { industryName } = useBusinessProfile()
 
   const agents = Object.values(NEXUS_AGENTS)
 
@@ -191,6 +193,7 @@ export function AIMeetingRoomV2({
         userPrompt || undefined
       )
 
+      // Generate industry-aware responses for each agent
       for (const message of result.messages) {
         if (!discussionRef.current) break
 
@@ -243,15 +246,19 @@ export function AIMeetingRoomV2({
     if (isOpen && messages.length === 0) {
       const hasWorkflow = workflowContext || workflowTitle
 
+      const industryGreeting = industryName
+        ? ` Our consultants are specialized for the ${industryName} industry.`
+        : ''
+
       const welcomeMessage: PartyModeMessage = {
         id: 'welcome-' + Date.now(),
         agentId: 'system',
-        agentName: 'Nexus AI Team',
-        agentIcon: '🎉',
+        agentName: 'Nexus AI Consultancy',
+        agentIcon: '🏢',
         role: 'System',
         text: hasWorkflow
-          ? `Welcome! Our 8 expert agents are ready to help with "${workflowTitle || 'your workflow'}". What would you like to know or discuss?`
-          : `Welcome! All 8 Nexus agents are here. What would you like to discuss?`,
+          ? `Welcome to your AI Consultancy session.${industryGreeting} Our 8 expert consultants are ready to help with "${workflowTitle || 'your project'}". What would you like to explore?`
+          : `Welcome to the Nexus AI Consultancy.${industryGreeting} You have 8 expert consultants spanning strategy, architecture, automation, analytics, operations, compliance, customer experience, and knowledge management. What challenge can we help you with?`,
         timestamp: new Date()
       }
       setMessages([welcomeMessage])
@@ -260,7 +267,7 @@ export function AIMeetingRoomV2({
       // Wait for user to ask their actual question
       humanTTSService.queueSpeech(welcomeMessage.text, 'system')
     }
-  }, [isOpen, workflowContext, workflowTitle])
+  }, [isOpen, workflowContext, workflowTitle, industryName])
 
   const handleSendMessage = () => {
     if (!userInput.trim() || isDiscussing) return
@@ -387,10 +394,10 @@ export function AIMeetingRoomV2({
             )}
             <div>
               <h2 id="meeting-room-title" className="font-semibold text-slate-900 dark:text-white">
-                AI Team Chat
+                AI Consultancy
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {isDiscussing ? 'Discussing...' : `${agents.length} agents available`}
+                {isDiscussing ? 'Consulting...' : `${agents.length} expert consultants`}
               </p>
             </div>
           </div>
@@ -558,7 +565,7 @@ export function AIMeetingRoomV2({
                       handleSendMessage()
                     }
                   }}
-                  placeholder={isDiscussing ? "Agents are discussing..." : "Ask the team..."}
+                  placeholder={isDiscussing ? "Consultants are analyzing..." : "Ask your consultants anything..."}
                   disabled={isDiscussing}
                   className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 border-0 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
                 />
@@ -574,34 +581,34 @@ export function AIMeetingRoomV2({
               {/* Quick Actions - Reduced to 5 */}
               <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
                 <button
-                  onClick={() => setUserInput('How can we improve performance?')}
+                  onClick={() => setUserInput('What AI strategy should we adopt for our business?')}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
                 >
-                  ⚡ Performance
+                  🎯 AI Strategy
                 </button>
                 <button
-                  onClick={() => setUserInput('What are the risks?')}
+                  onClick={() => setUserInput('What processes should we automate first for maximum ROI?')}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
                 >
-                  ⚠️ Risks
+                  ⚡ Automation
                 </button>
                 <button
-                  onClick={() => setUserInput('How can we improve UX?')}
+                  onClick={() => setUserInput('How can we use data analytics to improve our decision making?')}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
                 >
-                  ✨ UX
+                  📊 Analytics
                 </button>
                 <button
-                  onClick={() => setUserInput('What tests should we add?')}
+                  onClick={() => setUserInput('What compliance and risk considerations do we need for AI?')}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
                 >
-                  🧪 Testing
+                  🛡️ Compliance
                 </button>
                 <button
-                  onClick={() => setUserInput('How can we reduce costs?')}
+                  onClick={() => setUserInput('How can we improve our customer experience using AI?')}
                   className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
                 >
-                  💰 Cost
+                  ✨ Customer Experience
                 </button>
               </div>
             </div>
@@ -618,7 +625,7 @@ export function AIMeetingRoomV2({
             >
               {/* Panel Header */}
               <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-900 dark:text-white">AI Team ({agents.length})</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Consultants ({agents.length})</h3>
                 <button
                   onClick={() => setShowAgentsList(false)}
                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"

@@ -45,8 +45,8 @@ interface BuildWorkflowParams {
   persona: string
 }
 
-// Claude Code proxy configuration
-const PROXY_URL = 'http://localhost:4567'
+// Claude Code proxy configuration - uses env var, skips entirely if not configured in production
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
 
 export class NexusWorkflowEngine {
   private proxyAvailable: boolean | null = null
@@ -55,8 +55,15 @@ export class NexusWorkflowEngine {
 
   /**
    * Check if Claude Code proxy is available
+   * Skips check entirely in production when no proxy URL is configured
    */
   private async checkProxyHealth(): Promise<boolean> {
+    // No proxy configured (production without VITE_PROXY_URL) — skip entirely
+    if (!PROXY_URL) {
+      this.proxyAvailable = false
+      return false
+    }
+
     const now = Date.now()
     if (this.proxyAvailable !== null && (now - this.lastProxyCheck) < this.PROXY_CHECK_INTERVAL) {
       return this.proxyAvailable

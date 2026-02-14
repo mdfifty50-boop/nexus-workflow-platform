@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useRef, useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
 import { PricingSection } from '@/components/PricingSection'
-// @NEXUS-FIX-090: Role-based avatar integration
-import { Avatar } from '@/components/Avatar'
+// @NEXUS-FIX-090: Role-based avatar integration — 3D robot avatar for chat section
+import { Spline3DAvatar } from '@/components/Spline3DAvatar'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 // Lazy load 3D background for performance
@@ -109,73 +109,93 @@ const floatingApps = [
   { icon: BarChart3, color: '#10B981', name: 'Analytics', delay: 3.5 },
 ]
 
-const features = [
+const featuresDef = [
   {
     icon: Bot,
-    title: 'AI-Powered Automation',
-    description: 'Describe what you want in natural language and watch Nexus build your workflows automatically.',
+    titleKey: 'landing.features.aiPowered.title',
+    titleDefault: 'AI-Powered Automation',
+    descKey: 'landing.features.aiPowered.description',
+    descDefault: 'Describe what you want in natural language and watch Nexus build your workflows automatically.',
     color: 'from-blue-500 to-cyan-500',
   },
   {
     icon: Workflow,
-    title: '800+ Integrations',
-    description: 'Connect to all your favorite apps including Gmail, Slack, Notion, Salesforce, and more.',
+    titleKey: 'landing.features.integrations.title',
+    titleDefault: '800+ Integrations',
+    descKey: 'landing.features.integrations.description',
+    descDefault: 'Connect to all your favorite apps including Gmail, Slack, Notion, Salesforce, and more.',
     color: 'from-purple-500 to-pink-500',
   },
   {
     icon: Shield,
-    title: 'Enterprise Security',
-    description: 'Bank-grade encryption and compliance with SOC 2, GDPR, and regional data requirements.',
+    titleKey: 'landing.features.security.title',
+    titleDefault: 'Enterprise Security',
+    descKey: 'landing.features.security.description',
+    descDefault: 'Bank-grade encryption and compliance with SOC 2, GDPR, and regional data requirements.',
     color: 'from-emerald-500 to-teal-500',
   },
   {
     icon: Globe,
-    title: 'Regional Intelligence',
-    description: 'Built-in knowledge of regional business practices, currencies, and work schedules.',
+    titleKey: 'landing.features.regional.title',
+    titleDefault: 'Regional Intelligence',
+    descKey: 'landing.features.regional.description',
+    descDefault: 'Built-in knowledge of regional business practices, currencies, and work schedules.',
     color: 'from-orange-500 to-red-500',
   },
 ]
 
-const testimonials = [
+const testimonialsDef = [
   {
-    name: 'Sarah Chen',
-    role: 'Operations Manager',
-    company: 'TechFlow Inc',
-    content: 'Nexus cut our manual processes by 80%. The AI understands exactly what we need.',
+    nameKey: 'landing.testimonials.t1.name',
+    nameDefault: 'Sarah Chen',
+    roleKey: 'landing.testimonials.t1.role',
+    roleDefault: 'Operations Manager',
+    companyKey: 'landing.testimonials.t1.company',
+    companyDefault: 'TechFlow Inc',
+    contentKey: 'landing.testimonials.t1.content',
+    contentDefault: 'Nexus cut our manual processes by 80%. The AI understands exactly what we need.',
     avatar: 'SC',
     rating: 5,
   },
   {
-    name: 'Ahmed Al-Rashid',
-    role: 'CEO',
-    company: 'Gulf Ventures',
-    content: 'Finally, a platform that understands Kuwait business requirements out of the box.',
+    nameKey: 'landing.testimonials.t2.name',
+    nameDefault: 'Ahmed Al-Rashid',
+    roleKey: 'landing.testimonials.t2.role',
+    roleDefault: 'CEO',
+    companyKey: 'landing.testimonials.t2.company',
+    companyDefault: 'Gulf Ventures',
+    contentKey: 'landing.testimonials.t2.content',
+    contentDefault: 'Finally, a platform that understands Kuwait business requirements out of the box.',
     avatar: 'AR',
     rating: 5,
   },
   {
-    name: 'Maria Garcia',
-    role: 'Product Lead',
-    company: 'Innovate Labs',
-    content: 'The workflow builder is intuitive, but the AI chat is where the magic happens.',
+    nameKey: 'landing.testimonials.t3.name',
+    nameDefault: 'Maria Garcia',
+    roleKey: 'landing.testimonials.t3.role',
+    roleDefault: 'Product Lead',
+    companyKey: 'landing.testimonials.t3.company',
+    companyDefault: 'Innovate Labs',
+    contentKey: 'landing.testimonials.t3.content',
+    contentDefault: 'The workflow builder is intuitive, but the AI chat is where the magic happens.',
     avatar: 'MG',
     rating: 5,
   },
 ]
 
-const stats = [
-  { value: '800+', label: 'Integrations' },
-  { value: '10M+', label: 'Workflows Run' },
-  { value: '99.9%', label: 'Uptime' },
-  { value: '<1s', label: 'Avg Response' },
+const statsDef = [
+  { value: '800+', labelKey: 'landing.stats.integrations', labelDefault: 'Integrations' },
+  { value: '10M+', labelKey: 'landing.stats.workflowsRun', labelDefault: 'Workflows Run' },
+  { value: '99.9%', labelKey: 'landing.stats.uptime', labelDefault: 'Uptime' },
+  { value: '<1s', labelKey: 'landing.stats.avgResponse', labelDefault: 'Avg Response' },
 ]
 
 // Workflow steps for the hero visualization - using real app logos
-const workflowSteps = [
-  { id: 1, Logo: GmailLogo, label: 'New Email', app: 'Gmail', type: 'trigger', color: '#EA4335', bgColor: '#FEF3F2' },
-  { id: 2, Logo: NexusAILogo, label: 'AI Analysis', app: 'Nexus AI', type: 'ai', color: '#8B5CF6', bgColor: '#F3E8FF' },
-  { id: 3, Logo: NotionLogo, label: 'Create Doc', app: 'Notion', type: 'action', color: '#191919', bgColor: '#FFFFFF' },
-  { id: 4, Logo: SlackLogo, label: 'Notify Team', app: 'Slack', type: 'action', color: '#4A154B', bgColor: '#F9F5FF' },
+const workflowStepsDef = [
+  { id: 1, Logo: GmailLogo, labelKey: 'landing.hero.workflow.newEmail', labelDefault: 'New Email', app: 'Gmail', type: 'trigger', color: '#EA4335', bgColor: '#FEF3F2' },
+  { id: 2, Logo: NexusAILogo, labelKey: 'landing.hero.workflow.aiAnalysis', labelDefault: 'AI Analysis', app: 'Nexus AI', type: 'ai', color: '#8B5CF6', bgColor: '#F3E8FF' },
+  { id: 3, Logo: NotionLogo, labelKey: 'landing.hero.workflow.createDoc', labelDefault: 'Create Doc', app: 'Notion', type: 'action', color: '#191919', bgColor: '#FFFFFF' },
+  { id: 4, Logo: SlackLogo, labelKey: 'landing.hero.workflow.notifyTeam', labelDefault: 'Notify Team', app: 'Slack', type: 'action', color: '#4A154B', bgColor: '#F9F5FF' },
 ]
 
 // Animation variants
@@ -206,17 +226,28 @@ function RevealSection({ children, className = '' }: { children: React.ReactNode
   )
 }
 
-// Workflow Node Component
+// Workflow Node Component — shows connecting purple lines on ALL screen sizes
 function WorkflowNode({
   step,
   index,
   isActive,
+  totalSteps,
 }: {
-  step: typeof workflowSteps[0]
+  step: typeof workflowStepsDef[0]
   index: number
   isActive: boolean
+  totalSteps: number
 }) {
+  const { t } = useTranslation()
   const Logo = step.Logo
+
+  // On mobile 2x2 grid: node 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right
+  // Lines: 0→1 (horizontal top), 1→2 (diagonal/vertical), 2→3 (horizontal bottom)
+  const showDesktopLine = index > 0 // horizontal line left of each node (desktop row)
+  // Mobile: show right-pointing line from left column nodes (index 0, 2)
+  const showMobileHorizontalRight = index % 2 === 0 && index < totalSteps - 1
+  // Mobile: show downward line from top-right node (index 1) to bottom-left (index 2)
+  const showMobileVerticalDown = index === 0
 
   return (
     <motion.div
@@ -225,8 +256,8 @@ function WorkflowNode({
       transition={{ delay: 0.5 + index * 0.15, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="relative flex flex-col items-center"
     >
-      {/* Connection line - hidden on mobile (2x2 grid) */}
-      {index > 0 && (
+      {/* Desktop: horizontal connection line to the left of each node */}
+      {showDesktopLine && (
         <motion.div
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
@@ -236,7 +267,6 @@ function WorkflowNode({
             background: `linear-gradient(90deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.8))`,
           }}
         >
-          {/* Animated pulse on the line */}
           <motion.div
             animate={{ x: ['-100%', '100%'] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.3 }}
@@ -245,7 +275,46 @@ function WorkflowNode({
         </motion.div>
       )}
 
-      {/* Node - with real app logo */}
+      {/* Mobile: horizontal line going right from left-column nodes (0→1, 2→3) */}
+      {showMobileHorizontalRight && (
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.8 + index * 0.15, duration: 0.4 }}
+          className="md:hidden absolute left-full top-8 w-[calc(100%-8px)] h-0.5 origin-left z-10"
+          style={{
+            background: `linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3))`,
+          }}
+        >
+          <motion.div
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.3 }}
+            className="absolute inset-y-0 w-6 bg-gradient-to-r from-transparent via-purple-400 to-transparent"
+          />
+        </motion.div>
+      )}
+
+      {/* Mobile: vertical line going down from node 0 (top-left to bottom-left, connecting row 1→2) */}
+      {showMobileVerticalDown && (
+        <motion.div
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ delay: 1.0, duration: 0.4 }}
+          className="md:hidden absolute top-full left-1/2 -translate-x-1/2 w-0.5 h-[calc(100%-16px)] origin-top z-10"
+          style={{
+            background: `linear-gradient(180deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3))`,
+            marginTop: '4px',
+          }}
+        >
+          <motion.div
+            animate={{ y: ['-100%', '100%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+            className="absolute inset-x-0 h-6 bg-gradient-to-b from-transparent via-purple-400 to-transparent"
+          />
+        </motion.div>
+      )}
+
+      {/* Node — with real app logo */}
       <motion.div
         whileHover={{ scale: 1.05 }}
         className={`relative w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-all duration-300 ${
@@ -274,11 +343,11 @@ function WorkflowNode({
 
       {/* Label */}
       <div className="mt-3 text-center">
-        <p className="text-sm font-medium text-white">{step.label}</p>
+        <p className="text-sm font-medium text-white">{t(step.labelKey, step.labelDefault)}</p>
         <p className="text-xs text-surface-400">{step.app}</p>
       </div>
 
-      {/* Type badge - positioned below label for cleaner look */}
+      {/* Type badge */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
@@ -334,6 +403,7 @@ function FloatingAppIcon({ app, index }: { app: typeof floatingApps[0]; index: n
 
 export function LandingPage() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const isRTL = i18n.language === 'ar'
   const heroRef = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -357,15 +427,20 @@ export function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-surface-950 overflow-hidden relative">
-      {/* 3D Background Cube - Resend-style scroll-reactive animation */}
-      {/* Wrapped in relative container so cube scrolls with hero section */}
-      <div className="absolute top-0 left-0 right-0 h-screen pointer-events-none" style={{ zIndex: 1 }}>
-        <Suspense fallback={null}>
-          <BackgroundCube />
-        </Suspense>
-      </div>
+    <>
+    {/* 3D Background Cube — MUST be outside the overflow container so position:fixed works.
+        overflow-x-hidden on a parent breaks fixed positioning in all browsers. */}
+    <motion.div
+      style={{ opacity: heroOpacity }}
+      className="fixed top-0 left-0 right-0 h-screen pointer-events-none z-[1]"
+      aria-hidden="true"
+    >
+      <Suspense fallback={null}>
+        <BackgroundCube />
+      </Suspense>
+    </motion.div>
 
+    <div className="min-h-screen bg-surface-950 relative overflow-x-hidden">
       {/* Fixed Background with parallax */}
       <motion.div style={{ scale: bgScale }} className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-nexus-500/5 via-transparent to-accent-500/5" />
@@ -395,7 +470,7 @@ export function LandingPage() {
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center shadow-lg shadow-nexus-500/30 group-hover:shadow-nexus-500/50 transition-shadow">
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="text-lg sm:text-xl font-bold text-white">Nexus</span>
+              <span className="text-lg sm:text-xl font-bold text-white">{t('app.name', 'Nexus')}</span>
             </Link>
 
             {/* Desktop nav links */}
@@ -414,15 +489,14 @@ export function LandingPage() {
               <Link to="/login" className="text-surface-300 hover:text-white transition-colors hidden sm:block text-sm">
                 {t('auth.signIn', 'Sign in')}
               </Link>
-              <Link to="/sign-up" className="hidden sm:block">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn-primary text-sm"
-                >
-                  {t('common.getStarted', 'Get Started Free')}
-                </motion.button>
-              </Link>
+              <motion.button
+                onClick={() => navigate('/sign-up')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="btn-primary text-sm hidden sm:block"
+              >
+                {t('common.getStarted', 'Get Started Free')}
+              </motion.button>
               {/* Mobile hamburger menu */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -467,11 +541,12 @@ export function LandingPage() {
                   >
                     {t('auth.signIn', 'Sign in')}
                   </Link>
-                  <Link to="/sign-up" onClick={() => setMobileMenuOpen(false)} className="block">
-                    <button className="w-full btn-gradient py-3 text-base">
-                      {t('common.getStarted', 'Get Started Free')}
-                    </button>
-                  </Link>
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); navigate('/sign-up') }}
+                    className="w-full btn-gradient py-3 text-base"
+                  >
+                    {t('common.getStarted', 'Get Started Free')}
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -509,16 +584,15 @@ export function LandingPage() {
                 </motion.p>
 
                 <motion.div variants={fadeInUp} className={`flex flex-col sm:flex-row gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-                  <Link to="/chat">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`btn-gradient text-base px-8 py-4 w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
-                    >
-                      {t('landing.cta.button', 'Start Building Free')}
-                      <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
-                    </motion.button>
-                  </Link>
+                  <motion.button
+                    onClick={() => navigate('/chat')}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`btn-gradient text-base px-8 py-4 w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    {t('landing.cta.button', 'Start Building Free')}
+                    <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
+                  </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -526,7 +600,7 @@ export function LandingPage() {
                     className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all cursor-pointer"
                   >
                     <Play className="w-5 h-5" />
-                    {isRTL ? 'شاهد العرض' : 'Watch Demo'}
+                    {t('landing.hero.watchDemo', 'Watch Demo')}
                   </motion.button>
                 </motion.div>
 
@@ -562,26 +636,27 @@ export function LandingPage() {
                         <Sparkles className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">Email Intelligence Workflow</h3>
-                        <p className="text-xs text-surface-400">Automatically process and route emails</p>
+                        <h3 className="font-semibold text-white">{t('landing.hero.workflowCard.title', 'Email Intelligence Workflow')}</h3>
+                        <p className="text-xs text-surface-400">{t('landing.hero.workflowCard.subtitle', 'Automatically process and route emails')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                        Live
+                        {t('landing.hero.workflowCard.live', 'Live')}
                       </span>
                     </div>
                   </div>
 
                   {/* Workflow nodes - 2x2 grid on mobile, horizontal on desktop - Force LTR for workflow visualization */}
-                  <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-6 md:gap-4 pt-4 pb-4" dir="ltr">
-                    {workflowSteps.map((step, index) => (
+                  <div className="grid grid-cols-2 md:flex md:items-center md:justify-between gap-y-10 gap-x-6 md:gap-4 pt-4 pb-4" dir="ltr">
+                    {workflowStepsDef.map((step, index) => (
                       <WorkflowNode
                         key={step.id}
                         step={step}
                         index={index}
                         isActive={index === 1}
+                        totalSteps={workflowStepsDef.length}
                       />
                     ))}
                   </div>
@@ -590,15 +665,15 @@ export function LandingPage() {
                   <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-3 gap-4">
                     <div>
                       <p className="text-2xl font-bold text-white">2.4K</p>
-                      <p className="text-xs text-surface-400">Runs today</p>
+                      <p className="text-xs text-surface-400">{t('landing.hero.workflowCard.runsToday', 'Runs today')}</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-emerald-400">99.8%</p>
-                      <p className="text-xs text-surface-400">Success rate</p>
+                      <p className="text-xs text-surface-400">{t('landing.hero.workflowCard.successRate', 'Success rate')}</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-white">~4h</p>
-                      <p className="text-xs text-surface-400">Saved daily</p>
+                      <p className="text-xs text-surface-400">{t('landing.hero.workflowCard.savedDaily', 'Saved daily')}</p>
                     </div>
                   </div>
                 </div>
@@ -615,8 +690,8 @@ export function LandingPage() {
                       <Check className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">Workflow deployed!</p>
-                      <p className="text-xs text-surface-400">Just now</p>
+                      <p className="text-sm font-medium text-white">{t('landing.hero.notifications.deployed', 'Workflow deployed!')}</p>
+                      <p className="text-xs text-surface-400">{t('landing.hero.notifications.justNow', 'Just now')}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -632,8 +707,8 @@ export function LandingPage() {
                       <Bell className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">+847 runs this week</p>
-                      <p className="text-xs text-surface-400">↑ 23% vs last week</p>
+                      <p className="text-sm font-medium text-white">{t('landing.hero.notifications.runsThisWeek', '+847 runs this week')}</p>
+                      <p className="text-xs text-surface-400">{t('landing.hero.notifications.percentUp', '↑ 23% vs last week')}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -647,7 +722,7 @@ export function LandingPage() {
       <RevealSection className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
+            {statsDef.map((stat, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -657,7 +732,7 @@ export function LandingPage() {
                 className="text-center"
               >
                 <p className="text-4xl md:text-5xl font-bold gradient-text mb-2">{stat.value}</p>
-                <p className="text-surface-400">{stat.label}</p>
+                <p className="text-surface-400">{t(stat.labelKey, stat.labelDefault)}</p>
               </motion.div>
             ))}
           </div>
@@ -671,37 +746,31 @@ export function LandingPage() {
             <div className="text-center mb-12">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-nexus-500/10 border border-nexus-500/20 mb-6 text-sm text-nexus-400">
                 <MessageSquare className="w-4 h-4" />
-                AI-Powered Chat Interface
+                {t('landing.chat.badge', 'AI-Powered Chat Interface')}
               </span>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Just tell Nexus what you need
+                {t('landing.chat.title', 'Just tell Nexus what you need')}
               </h2>
               <p className="text-xl text-surface-400 max-w-2xl mx-auto">
-                Describe your automation in plain English. Nexus builds it instantly.
+                {t('landing.chat.subtitle', 'Describe your automation in plain English. Nexus builds it instantly.')}
               </p>
             </div>
 
             {/* Chat Interface Preview */}
-            <Link to="/chat" className="block group">
-              <motion.div
-                whileHover={{ scale: 1.01 }}
-                className="relative bg-gradient-to-br from-surface-800/90 to-surface-900/90 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl shadow-nexus-500/10 group-hover:border-nexus-500/30 transition-all"
-              >
-                {/* Chat Header - @NEXUS-FIX-090 with Avatar */}
+            <motion.div
+              onClick={() => navigate('/chat')}
+              whileHover={{ scale: 1.01 }}
+              className="group relative bg-gradient-to-br from-surface-800/90 to-surface-900/90 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl shadow-nexus-500/10 hover:border-nexus-500/30 transition-all cursor-pointer"
+            >
+                {/* Chat Header - @NEXUS-FIX-090 with 3D Robot Avatar */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-white/5 bg-surface-800/50">
-                  <Avatar
-                    role="default"
-                    size="sm"
-                    state="idle"
-                    showName={false}
-                    showTitle={false}
-                  />
+                  <Spline3DAvatar size="sm" className="flex-shrink-0" />
                   <div>
                     <h3 className="font-semibold text-white flex items-center gap-2">
-                      Nexus Chat
-                      <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">Online</span>
+                      {t('landing.chat.header.title', 'Nexus Chat')}
+                      <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">{t('landing.chat.header.online', 'Online')}</span>
                     </h3>
-                    <p className="text-xs text-surface-400">Your AI workflow assistant</p>
+                    <p className="text-xs text-surface-400">{t('landing.chat.header.subtitle', 'Your AI workflow assistant')}</p>
                   </div>
                 </div>
 
@@ -710,47 +779,40 @@ export function LandingPage() {
                   {/* User message */}
                   <div className="flex justify-end">
                     <div className="max-w-[80%] bg-nexus-500/20 border border-nexus-500/30 rounded-2xl rounded-br-md px-4 py-3">
-                      <p className="text-white text-sm">When I get an email from a client, analyze it and create a task in Notion, then notify me on Slack</p>
+                      <p className="text-white text-sm">{t('landing.chat.demo.userMessage', 'When I get an email from a client, analyze it and create a task in Notion, then notify me on Slack')}</p>
                     </div>
                   </div>
 
-                  {/* Nexus response - @NEXUS-FIX-090 with Avatar */}
+                  {/* Nexus response - @NEXUS-FIX-090 with 3D Robot Avatar */}
                   <div className="flex gap-3">
-                    <Avatar
-                      role="default"
-                      size="sm"
-                      state="idle"
-                      showName={false}
-                      showTitle={false}
-                      className="flex-shrink-0"
-                    />
+                    <Spline3DAvatar size="sm" className="flex-shrink-0" />
                     <div className="flex-1">
                       <div className="bg-surface-700/50 border border-white/5 rounded-2xl rounded-tl-md px-4 py-3">
-                        <p className="text-surface-300 text-sm mb-3">Perfect! I'll create a workflow that:</p>
+                        <p className="text-surface-300 text-sm mb-3">{t('landing.chat.demo.aiIntro', "Perfect! I'll create a workflow that:")}</p>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm">
                             <div className="w-6 h-6 rounded-md bg-red-500/20 flex items-center justify-center">
                               <GmailLogo className="w-4 h-4" />
                             </div>
-                            <span className="text-surface-300">Triggers on new client emails</span>
+                            <span className="text-surface-300">{t('landing.chat.demo.step1', 'Triggers on new client emails')}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <div className="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center">
                               <Bot className="w-4 h-4 text-purple-400" />
                             </div>
-                            <span className="text-surface-300">Analyzes content with AI</span>
+                            <span className="text-surface-300">{t('landing.chat.demo.step2', 'Analyzes content with AI')}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <div className="w-6 h-6 rounded-md bg-surface-600 flex items-center justify-center">
                               <NotionLogo className="w-4 h-4" />
                             </div>
-                            <span className="text-surface-300">Creates task in Notion</span>
+                            <span className="text-surface-300">{t('landing.chat.demo.step3', 'Creates task in Notion')}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <div className="w-6 h-6 rounded-md bg-purple-500/10 flex items-center justify-center">
                               <SlackLogo className="w-4 h-4" />
                             </div>
-                            <span className="text-surface-300">Sends Slack notification</span>
+                            <span className="text-surface-300">{t('landing.chat.demo.step4', 'Sends Slack notification')}</span>
                           </div>
                         </div>
                       </div>
@@ -763,7 +825,7 @@ export function LandingPage() {
                   <div className="relative">
                     <div className="flex items-center gap-3 px-4 py-3 bg-surface-700/50 border border-white/10 rounded-xl group-hover:border-nexus-500/30 transition-colors">
                       <MessageSquare className="w-5 h-5 text-surface-500" />
-                      <span className="flex-1 text-surface-500 text-sm">Describe your workflow...</span>
+                      <span className="flex-1 text-surface-500 text-sm">{t('landing.chat.inputPlaceholder', 'Describe your workflow...')}</span>
                       <div className="flex items-center gap-2">
                         <kbd className="hidden sm:inline-flex items-center px-2 py-1 text-xs font-medium text-surface-400 bg-surface-800 border border-surface-600 rounded">Enter</kbd>
                         <motion.div
@@ -786,31 +848,30 @@ export function LandingPage() {
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-nexus-500 to-accent-500 text-white font-semibold shadow-lg shadow-nexus-500/30"
                   >
                     <Sparkles className="w-5 h-5" />
-                    Try Nexus Chat
+                    {t('landing.chat.tryCta', 'Try Nexus Chat')}
                     <ArrowRight className="w-5 h-5" />
                   </motion.div>
                 </div>
               </motion.div>
-            </Link>
 
             {/* Example Prompts */}
             <div className="mt-8 text-center">
-              <p className="text-sm text-surface-500 mb-4">Try these examples:</p>
+              <p className="text-sm text-surface-500 mb-4">{t('landing.chat.examplesLabel', 'Try these examples:')}</p>
               <div className="flex flex-wrap justify-center gap-3">
                 {[
-                  'Send me a daily email summary of my calendar',
-                  'Create Jira tickets from Slack messages',
-                  'Sync new leads to Google Sheets',
+                  t('landing.chat.example1', 'Send me a daily email summary of my calendar'),
+                  t('landing.chat.example2', 'Create Jira tickets from Slack messages'),
+                  t('landing.chat.example3', 'Sync new leads to Google Sheets'),
                 ].map((prompt, i) => (
-                  <Link key={i} to="/chat">
-                    <motion.button
-                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
-                      whileTap={{ scale: 0.98 }}
-                      className="px-4 py-2 text-sm bg-surface-800/80 text-surface-300 rounded-lg border border-surface-700/50 hover:border-nexus-500/30 hover:text-white transition-all"
-                    >
-                      "{prompt}"
-                    </motion.button>
-                  </Link>
+                  <motion.button
+                    key={i}
+                    onClick={() => navigate('/chat')}
+                    whileHover={{ scale: 1.02, backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
+                    whileTap={{ scale: 0.98 }}
+                    className="px-4 py-2 text-sm bg-surface-800/80 text-surface-300 rounded-lg border border-surface-700/50 hover:border-nexus-500/30 hover:text-white transition-all"
+                  >
+                    "{prompt}"
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -830,7 +891,7 @@ export function LandingPage() {
               {t('landing.howItWorks.title', 'How Nexus works')}
             </h2>
             <p className="text-xl text-surface-400 max-w-2xl mx-auto">
-              {isRTL ? 'من الفكرة إلى الأتمتة في أقل من دقيقة' : 'From idea to automation in under a minute'}
+              {t('landing.howItWorks.description', 'From idea to automation in under a minute')}
             </p>
           </RevealSection>
 
@@ -900,7 +961,7 @@ export function LandingPage() {
           </RevealSection>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {features.map((feature, index) => (
+            {featuresDef.map((feature, index) => (
               <RevealSection key={index}>
                 <motion.div
                   whileHover={{ y: -5 }}
@@ -909,8 +970,8 @@ export function LandingPage() {
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
                     <feature.icon className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                  <p className="text-surface-400 leading-relaxed">{feature.description}</p>
+                  <h3 className="text-xl font-semibold text-white mb-3">{t(feature.titleKey, feature.titleDefault)}</h3>
+                  <p className="text-surface-400 leading-relaxed">{t(feature.descKey, feature.descDefault)}</p>
                 </motion.div>
               </RevealSection>
             ))}
@@ -931,7 +992,7 @@ export function LandingPage() {
           </RevealSection>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
+            {testimonialsDef.map((testimonial, index) => (
               <RevealSection key={index}>
                 <motion.div
                   whileHover={{ y: -5 }}
@@ -944,7 +1005,7 @@ export function LandingPage() {
                   </div>
 
                   <p className="text-surface-300 mb-6 leading-relaxed">
-                    "{testimonial.content}"
+                    "{t(testimonial.contentKey, testimonial.contentDefault)}"
                   </p>
 
                   <div className="flex items-center gap-3">
@@ -952,8 +1013,8 @@ export function LandingPage() {
                       {testimonial.avatar}
                     </div>
                     <div>
-                      <p className="font-medium text-white">{testimonial.name}</p>
-                      <p className="text-sm text-surface-400">{testimonial.role} at {testimonial.company}</p>
+                      <p className="font-medium text-white">{t(testimonial.nameKey, testimonial.nameDefault)}</p>
+                      <p className="text-sm text-surface-400">{t(testimonial.roleKey, testimonial.roleDefault)} {t('landing.testimonials.at', 'at')} {t(testimonial.companyKey, testimonial.companyDefault)}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -1007,20 +1068,17 @@ export function LandingPage() {
                     {t('landing.cta.title', 'Ready to automate?')}
                   </h2>
                   <p className="text-xl text-surface-300 mb-8 max-w-xl mx-auto">
-                    {isRTL
-                      ? 'ابدأ ببناء سير العمل الذكي في دقائق، وليس أشهر. مجاني للأفراد إلى الأبد.'
-                      : 'Start building intelligent workflows in minutes, not months. Free forever for individuals.'}
+                    {t('landing.cta.subtitle', 'Start building intelligent workflows in minutes, not months. Free forever for individuals.')}
                   </p>
-                  <Link to="/chat">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="btn-gradient text-lg px-10 py-4"
-                    >
-                      {t('landing.cta.button', 'Get Started for Free')}
-                      <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
-                    </motion.button>
-                  </Link>
+                  <motion.button
+                    onClick={() => navigate('/chat')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn-gradient text-lg px-10 py-4"
+                  >
+                    {t('landing.cta.button', 'Get Started for Free')}
+                    <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
+                  </motion.button>
                 </motion.div>
               </div>
             </div>
@@ -1051,5 +1109,6 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
+    </>
   )
 }

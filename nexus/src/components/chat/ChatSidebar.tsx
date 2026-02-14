@@ -7,7 +7,9 @@
  */
 
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { Spline3DAvatar } from '@/components/Spline3DAvatar'
 import { useChatLayout } from './ChatLayoutContext'
 import { DashboardPanel } from './DashboardPanel'
 import type { RecentWorkflow } from './RecentWorkflowsList'
@@ -60,16 +62,6 @@ function CloseIcon({ className }: { className?: string }) {
   )
 }
 
-function NexusLogo({ className }: { className?: string }) {
-  return (
-    <div className={cn('relative', className)}>
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/30">
-        <span className="text-white font-bold text-lg">N</span>
-      </div>
-    </div>
-  )
-}
-
 // =============================================================================
 // SIDEBAR HEADER
 // =============================================================================
@@ -79,14 +71,15 @@ interface SidebarHeaderProps {
 }
 
 function SidebarHeader({ onClose }: SidebarHeaderProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-between p-4 border-b border-border">
-      {/* Logo */}
+      {/* Logo with 3D Avatar */}
       <div className="flex items-center gap-3">
-        <NexusLogo />
+        <Spline3DAvatar size="xs" className="rounded-xl" />
         <div>
-          <h1 className="font-bold text-lg text-foreground">Nexus</h1>
-          <p className="text-xs text-muted-foreground">AI Workflow Studio</p>
+          <h1 className="font-bold text-lg text-foreground">{t('app.name')}</h1>
+          <p className="text-xs text-muted-foreground">{t('chat.aiWorkflowStudio')}</p>
         </div>
       </div>
 
@@ -97,7 +90,7 @@ function SidebarHeader({ onClose }: SidebarHeaderProps) {
           'p-2 rounded-lg transition-colors',
           'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
         )}
-        aria-label="Close sidebar"
+        aria-label={t('chat.closeSidebar')}
       >
         <CloseIcon className="w-5 h-5" />
       </button>
@@ -114,6 +107,7 @@ export interface SidebarToggleButtonProps {
 }
 
 export function SidebarToggleButton({ className }: SidebarToggleButtonProps) {
+  const { t } = useTranslation()
   const { sidebarOpen, toggleSidebar } = useChatLayout()
 
   return (
@@ -124,7 +118,7 @@ export function SidebarToggleButton({ className }: SidebarToggleButtonProps) {
         'hover:bg-muted/50 text-muted-foreground hover:text-foreground',
         className
       )}
-      aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+      aria-label={sidebarOpen ? t('chat.closeSidebar') : t('chat.openSidebar')}
       aria-expanded={sidebarOpen}
     >
       <MenuIcon className="w-5 h-5" />
@@ -143,6 +137,7 @@ export function ChatSidebar({
   onWorkflowClick,
   className
 }: ChatSidebarProps) {
+  const { t } = useTranslation()
   const { sidebarOpen, sidebarWidth, isMobile, closeSidebar } = useChatLayout()
   const sidebarRef = useRef<HTMLDivElement>(null)
 
@@ -235,7 +230,7 @@ export function ChatSidebar({
           width: isMobile ? 260 : sidebarWidth
         }}
         role="complementary"
-        aria-label="Chat sidebar"
+        aria-label={t('chat.chatSidebar')}
       >
         {/* Header */}
         <SidebarHeader onClose={closeSidebar} />

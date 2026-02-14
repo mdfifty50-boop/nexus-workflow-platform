@@ -1,6 +1,8 @@
 import { SignIn, useAuth } from '@clerk/clerk-react'
+import { useTranslation } from 'react-i18next'
 
 export function Login() {
+  const { t } = useTranslation()
   const { isLoaded } = useAuth()
 
   return (
@@ -12,15 +14,15 @@ export function Login() {
               <span className="text-2xl font-bold text-white">N</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold gradient-text">Nexus</h1>
-          <p className="text-muted-foreground mt-2">Sign in to your account</p>
+          <h1 className="text-3xl font-bold gradient-text">{t('app.name')}</h1>
+          <p className="text-muted-foreground mt-2">{t('auth.signInToContinue')}</p>
         </div>
 
         {/* Show loading spinner while Clerk initializes */}
         {!isLoaded && (
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-muted-foreground text-sm">Loading sign in...</p>
+            <p className="text-muted-foreground text-sm">{t('common.loading')}</p>
           </div>
         )}
 

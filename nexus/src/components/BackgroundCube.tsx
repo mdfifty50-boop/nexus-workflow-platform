@@ -129,9 +129,6 @@ export function BackgroundCube() {
       className="absolute top-0 right-0 pointer-events-none overflow-visible"
       style={{
         zIndex: 0,
-        // Use absolute positioning relative to the parent's content flow
-        // This allows the cube to scroll with the page
-        position: 'absolute',
       }}
       aria-hidden="true"
     >

@@ -13,13 +13,14 @@
  */
 
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { Spline3DAvatar } from '@/components/Spline3DAvatar'
 import {
   LayoutDashboard,
   Plus,
   Settings,
   ChevronDown,
-  Sparkles,
   History,
   Trash2,
   Moon,
@@ -49,16 +50,15 @@ interface ChatHeaderProps {
 // ============================================================================
 
 function NexusLogo(): React.ReactElement {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center gap-2.5">
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-nexus-500 to-accent-nexus-500 flex items-center justify-center shadow-lg shadow-nexus-500/30">
-        <Sparkles className="w-5 h-5 text-white" />
-      </div>
+      <Spline3DAvatar size="xs" className="rounded-xl" />
       <div className="flex flex-col">
         <span className="text-lg font-bold text-surface-100">
-          Nexus
+          {t('app.name')}
         </span>
-        <span className="text-[10px] text-nexus-400 font-medium -mt-0.5">AI Workflows</span>
+        <span className="text-[10px] text-nexus-400 font-medium -mt-0.5">{t('chat.aiWorkflowStudio')}</span>
       </div>
     </div>
   )
@@ -77,6 +77,7 @@ function SettingsDropdown({
   onOpenSettings,
   onClearHistory,
 }: SettingsDropdownProps): React.ReactElement {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = React.useState(false)
   const [isDark, setIsDark] = React.useState(() =>
     document.documentElement.classList.contains('dark')
@@ -111,19 +112,19 @@ function SettingsDropdown({
   const menuItems = [
     {
       icon: isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />,
-      label: isDark ? 'Light Mode' : 'Dark Mode',
+      label: isDark ? t('chat.lightMode') : t('chat.darkMode'),
       onClick: toggleTheme,
     },
     {
       icon: <History className="w-4 h-4" />,
-      label: 'Chat History',
+      label: t('chat.chatHistory'),
       onClick: () => {
         void 0
       },
     },
     {
       icon: <Settings className="w-4 h-4" />,
-      label: 'Settings',
+      label: t('navigation.settings'),
       onClick: () => {
         onOpenSettings?.()
         setIsOpen(false)
@@ -131,7 +132,7 @@ function SettingsDropdown({
     },
     {
       icon: <Trash2 className="w-4 h-4 text-red-500" />,
-      label: 'Clear History',
+      label: t('chat.clearHistory'),
       onClick: () => {
         onClearHistory?.()
         setIsOpen(false)
@@ -150,7 +151,7 @@ function SettingsDropdown({
           'hover:bg-surface-800 hover:text-surface-200',
           'transition-all duration-200'
         )}
-        aria-label="Settings menu"
+        aria-label={t('chat.settingsMenu')}
         aria-expanded={isOpen}
       >
         <Settings className="w-5 h-5" />
@@ -210,6 +211,7 @@ export function ChatHeader({
   sessionTitle,
   className,
 }: ChatHeaderProps): React.ReactElement {
+  const { t } = useTranslation()
   // Try to get ChatLayoutContext - may not exist if not wrapped in provider
   let chatLayout: ReturnType<typeof useChatLayout> | null = null
   try {
@@ -248,9 +250,9 @@ export function ChatHeader({
               'hover:bg-surface-800 hover:text-surface-200',
               'transition-all duration-200'
             )}
-            aria-label={chatLayout.sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-label={chatLayout.sidebarOpen ? t('chat.closeSidebar') : t('chat.openSidebar')}
             aria-expanded={chatLayout.sidebarOpen}
-            title="Toggle sidebar (Ctrl+B)"
+            title={`${t('chat.toggleSidebar')} (Ctrl+B)`}
           >
             {chatLayout.sidebarOpen ? (
               <PanelLeftClose className="w-5 h-5" />
@@ -283,10 +285,10 @@ export function ChatHeader({
             'hover:bg-surface-800 hover:text-surface-100',
             'transition-all duration-200'
           )}
-          aria-label="Start new chat"
+          aria-label={t('chat.newChat')}
         >
           <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline text-sm font-medium">New Chat</span>
+          <span className="hidden sm:inline text-sm font-medium">{t('chat.newChat')}</span>
         </button>
 
         {/* PROMINENT Dashboard Button */}
@@ -301,10 +303,10 @@ export function ChatHeader({
               'transition-all duration-300',
               'active:scale-95'
             )}
-            aria-label="Open dashboard"
+            aria-label={t('navigation.dashboard')}
           >
             <LayoutDashboard className="w-5 h-5" />
-            <span className="text-sm">Dashboard</span>
+            <span className="text-sm">{t('navigation.dashboard')}</span>
           </button>
         )}
 

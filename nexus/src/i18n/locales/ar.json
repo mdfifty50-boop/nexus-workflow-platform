@@ -18,7 +18,8 @@
     "settings": "الإعدادات",
     "help": "المساعدة",
     "analytics": "التحليلات",
-    "admin": "لوحة الإدارة"
+    "admin": "لوحة الإدارة",
+    "aiConsultancy": "استشارات AI"
   },
 
   "common": {
@@ -295,7 +296,9 @@
       "title": "سير عمل متعدد الوكلاء",
       "subtitle": "عدة وكلاء ذكاء اصطناعي يعملون معاً!",
       "launch": "تشغيل سير العمل المتقدم"
-    }
+    },
+    "workflowsThisMonth": "سير العمل هذا الشهر",
+    "upgradeUnlimited": "ترقية للاستخدام غير المحدود"
   },
 
   "time": {
@@ -333,7 +336,8 @@
     "currentPage": "الصفحة الحالية",
     "newWindow": "يفتح في نافذة جديدة",
     "required": "مطلوب",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "aiTeamChat": "محادثة فريق الذكاء الاصطناعي"
   },
 
   "hints": {
@@ -342,6 +346,15 @@
     "quickSearch": "بحث سريع",
     "pressKey": "اضغط",
     "toOpen": "للفتح"
+  },
+
+  "dailyAdvice": {
+    "title": "نصيحة اليوم",
+    "dismissTip": "إغلاق النصيحة اليومية",
+    "buildAutomation": "ابنِ هذه الأتمتة",
+    "automateThis": "أتمت هذا",
+    "impact": "تأثير {{priority}}",
+    "savesTime": "يوفر 3+ ساعات/أسبوع"
   },
 
   "settings": {
@@ -633,7 +646,29 @@
     "title": "الصفحة غير موجودة",
     "message": "عذراً، الصفحة التي تبحث عنها غير موجودة.",
     "goHome": "العودة للرئيسية",
-    "goBack": "العودة للخلف"
+    "goBack": "العودة للخلف",
+    "goToDashboard": "الذهاب للوحة التحكم",
+    "lookingFor": "تبحث عن:",
+    "searchPlaceholder": "ابحث عن سير العمل، القوالب، أو المساعدة...",
+    "recentPages": "صفحاتك الأخيرة:",
+    "popularPages": "أو جرّب هذه الصفحات الشائعة:",
+    "stillLooking": "لا تزال تبحث عما تريد؟",
+    "contactSupport": "تواصل مع الدعم",
+    "reportBrokenLink": "الإبلاغ عن رابط معطل",
+    "links": {
+      "dashboard": "لوحة التحكم",
+      "dashboardDesc": "عرض نظرتك العامة والإجراءات السريعة",
+      "workflows": "سير العمل",
+      "workflowsDesc": "إدارة سير العمل المؤتمت",
+      "templates": "القوالب",
+      "templatesDesc": "تصفح قوالب سير العمل الجاهزة",
+      "integrations": "التكاملات",
+      "integrationsDesc": "ربط تطبيقاتك المفضلة",
+      "helpCenter": "مركز المساعدة",
+      "helpCenterDesc": "احصل على المساعدة وابحث عن إجابات",
+      "settings": "الإعدادات",
+      "settingsDesc": "إعداد حسابك"
+    }
   },
 
   "landing": {
@@ -881,6 +916,68 @@
       "confirm": "أكيد تبي أسوي كذا؟",
       "askAgain": "ممكن تعيد السؤال؟"
     }
+  },
+
+  "chat": {
+    "nexusAI": "نيكسوس AI",
+    "you": "أنت",
+    "online": "متصل",
+    "thinking": "نيكسوس يفكر",
+    "copied": "تم النسخ",
+    "copyMessage": "نسخ الرسالة",
+    "copy": "نسخ",
+    "newChat": "محادثة جديدة",
+    "thinkWithMe": "فكّر معي",
+    "recentChats": "المحادثات الأخيرة",
+    "noChatHistory": "لا توجد محادثات سابقة",
+    "describeWorkflow": "صف سير العمل الخاص بك...",
+    "stopRecording": "إيقاف",
+    "listening": "جاري الاستماع...",
+    "voiceLanguage": "لغة الصوت",
+    "startVoice": "بدء الإدخال الصوتي",
+    "changeLanguage": "تغيير اللغة",
+    "sendMessage": "إرسال الرسالة",
+    "waitingForResponse": "في انتظار الرد",
+    "hintVoice": "للصوت",
+    "hintSend": "Enter للإرسال",
+    "hintNewline": "Shift+Enter لسطر جديد",
+    "focusedMode": "وضع التفكير المركّز",
+    "chatSidebar": "الشريط الجانبي",
+    "closeSidebar": "إغلاق الشريط الجانبي",
+    "openSidebar": "فتح الشريط الجانبي",
+    "toggleSidebar": "تبديل الشريط الجانبي",
+    "lightMode": "الوضع الفاتح",
+    "darkMode": "الوضع الداكن",
+    "chatHistory": "سجل المحادثات",
+    "clearHistory": "مسح السجل",
+    "settingsMenu": "قائمة الإعدادات",
+    "howCanIHelp": "كيف أقدر أساعدك اليوم؟",
+    "createPowerful": "أنشئ أتمتة قوية باللغة الطبيعية. فقط صف ما تريد أتمتته.",
+    "aiWorkflowStudio": "ستوديو سير العمل الذكي",
+    "suggestions": {
+      "createWorkflow": "أنشئ سير عمل",
+      "createWorkflowDesc": "أتمتة المهام المتكررة",
+      "createWorkflowPrompt": "ساعدني أنشئ سير عمل لأتمتة ردود الإيميل",
+      "connectApps": "ربط التطبيقات",
+      "connectAppsDesc": "اربط أدواتك المفضلة",
+      "connectAppsPrompt": "كيف أربط سلاك مع الجيميل؟",
+      "exploreTemplates": "استكشف القوالب",
+      "exploreTemplatesDesc": "ابدأ بأتمتة جاهزة",
+      "exploreTemplatesPrompt": "وريني القوالب الشائعة"
+    },
+    "retrying": "جاري إعادة المحاولة...",
+    "noEmailFound": "ما قدرت ألقى بريدك الإلكتروني. أدخل بريدك يدوياً.",
+    "workflowReady": "سير العمل جاهز!",
+    "clickExecute": "اضغط تنفيذ سير العمل لتشغيله الحين!",
+    "buildingWorkflow": "خلني أبني سير عملك...",
+    "quickQuestion": "بس سؤال واحد عشان أجهز هالشي:",
+    "quickQuestions": "بس {{count}} أسئلة عشان أجهز هالشي:",
+    "send": "إرسال",
+    "backToOptions": "الرجوع للخيارات",
+    "custom": "مخصص...",
+    "other": "غيره...",
+    "chat": "المحادثة",
+    "whatsApp": "واتساب"
   },
 
   "onboarding": {

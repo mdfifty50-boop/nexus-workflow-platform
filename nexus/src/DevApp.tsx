@@ -72,6 +72,7 @@ function DevApp() {
             {/* In dev mode, auto-redirect to dashboard (no auth required) */}
             <Route path="/login" element={<Navigate to="/dashboard" replace />} />
             <Route path="/signup" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/sign-up" element={<Navigate to="/dashboard" replace />} />
             <Route path="/try" element={<Try />} />
             <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
             <Route path="/privacy" element={<Privacy />} />
