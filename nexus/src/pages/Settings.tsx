@@ -14,7 +14,6 @@ import {
   Sun,
   Check,
   ChevronRight,
-  ExternalLink,
   Mic,
   Cloud,
 } from 'lucide-react'
@@ -142,15 +141,15 @@ export function Settings() {
                 <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
                   <div className="relative">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center text-xl sm:text-2xl font-bold text-white">
-                      JD
+                      <User className="w-8 h-8 sm:w-10 sm:h-10" />
                     </div>
                     <button className="absolute -bottom-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-700 border border-surface-600 flex items-center justify-center text-surface-300 hover:bg-surface-600 transition-colors">
                       <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-white">John Doe</h3>
-                    <p className="text-sm sm:text-base text-surface-400">john@example.com</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-white">Your Profile</h3>
+                    <p className="text-sm sm:text-base text-surface-400">Update your personal information</p>
                   </div>
                 </div>
 
@@ -160,7 +159,7 @@ export function Settings() {
                       <label className="block text-sm font-medium text-surface-300 mb-2">First Name</label>
                       <input
                         type="text"
-                        defaultValue="John"
+                        placeholder="Enter your first name"
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -172,7 +171,7 @@ export function Settings() {
                       <label className="block text-sm font-medium text-surface-300 mb-2">Last Name</label>
                       <input
                         type="text"
-                        defaultValue="Doe"
+                        placeholder="Enter your last name"
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -185,7 +184,7 @@ export function Settings() {
                     <label className="block text-sm font-medium text-surface-300 mb-2">Email</label>
                     <input
                       type="email"
-                      defaultValue="john@example.com"
+                      placeholder="Enter your email address"
                       className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                       style={{
                         backgroundColor: '#1e293b',
@@ -391,13 +390,13 @@ export function Settings() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="badge-primary mb-2">Current Plan</span>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white">Pro Plan</h3>
-                    <p className="text-sm sm:text-base text-surface-400">$79/month · Renews Jan 15, 2025</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">Free Plan</h3>
+                    <p className="text-sm sm:text-base text-surface-400">Get started with basic features</p>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-secondary w-full sm:w-auto"
+                    className="btn-primary w-full sm:w-auto"
                   >
                     Upgrade Plan
                   </motion.button>
@@ -406,43 +405,19 @@ export function Settings() {
 
               <div className="card">
                 <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Payment Method</h2>
-                <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-7 sm:w-12 sm:h-8 rounded bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center text-white text-[10px] sm:text-xs font-bold">
-                      VISA
-                    </div>
-                    <div>
-                      <p className="text-sm sm:text-base font-medium text-white">•••• •••• •••• 4242</p>
-                      <p className="text-xs sm:text-sm text-surface-400">Expires 12/25</p>
-                    </div>
-                  </div>
-                  <button className="text-xs sm:text-sm text-nexus-400 hover:text-nexus-300 transition-colors">
-                    Update
+                <div className="p-6 text-center">
+                  <CreditCard className="w-10 h-10 text-surface-500 mx-auto mb-3" />
+                  <p className="text-sm text-surface-400 mb-4">No payment method on file</p>
+                  <button className="btn-secondary text-sm">
+                    Add Payment Method
                   </button>
                 </div>
               </div>
 
               <div className="card">
                 <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Billing History</h2>
-                <div className="space-y-3">
-                  {[
-                    { date: 'Dec 15, 2024', amount: '$79.00', status: 'Paid' },
-                    { date: 'Nov 15, 2024', amount: '$79.00', status: 'Paid' },
-                    { date: 'Oct 15, 2024', amount: '$79.00', status: 'Paid' },
-                  ].map((invoice, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
-                      <div>
-                        <p className="text-sm sm:text-base font-medium text-white">{invoice.date}</p>
-                        <p className="text-xs sm:text-sm text-surface-400">{invoice.amount}</p>
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-4">
-                        <span className="badge-success text-xs sm:text-sm">{invoice.status}</span>
-                        <button className="text-surface-400 hover:text-white transition-colors">
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="p-6 text-center">
+                  <p className="text-sm text-surface-400">No billing history yet</p>
                 </div>
               </div>
             </motion.div>
@@ -511,7 +486,7 @@ export function Settings() {
                     </div>
                     <div>
                       <p className="text-sm sm:text-base font-medium text-white">Authenticator App</p>
-                      <p className="text-xs sm:text-sm text-emerald-400">Enabled</p>
+                      <p className="text-xs sm:text-sm text-surface-400">Not configured</p>
                     </div>
                   </div>
                   <button className="text-xs sm:text-sm text-surface-400 hover:text-white transition-colors flex items-center gap-1">

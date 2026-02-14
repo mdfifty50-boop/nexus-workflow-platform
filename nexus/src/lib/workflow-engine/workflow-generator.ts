@@ -224,7 +224,7 @@ Output: {suggestedItems: [{id, name, price, reason}], totalEstimate: number}`,
 4. Document type and purpose
 
 Output as JSON: {text, tables: [{headers, rows}], entities: [{type, value}], documentType, summary}`,
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-6-20250115',
         },
         dependsOn: ['receive_document'],
       },
@@ -707,7 +707,7 @@ Keep the workflow practical and efficient. Include user confirmations for import
     const aiGenerationStart = Date.now()
     try {
       workflowLogger.debug('Calling AI for workflow generation', {
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6-20250115',
         maxTokens: 2000,
         rawInput: intent.rawInput?.substring(0, 100)
       })
@@ -720,7 +720,7 @@ Keep the workflow practical and efficient. Include user confirmations for import
           },
         ],
         systemPrompt,
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6-20250115',
         maxTokens: 2000,
       })
 
@@ -783,7 +783,7 @@ Consider:
 4. What actions should be taken?
 
 Provide a structured plan.`,
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-6-20250115',
         },
         dependsOn: [],
         timeout: 30000,

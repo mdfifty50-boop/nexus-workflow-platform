@@ -472,6 +472,10 @@ export class ServiceIntegrationManager {
    */
   private async loadConnectedServices(): Promise<void> {
     try {
+      // Only query if we have an authenticated user session (RLS requires auth.uid())
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
       const { data, error } = await supabase
         .from('integration_credentials')
         .select('provider, updated_at')

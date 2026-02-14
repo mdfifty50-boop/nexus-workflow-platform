@@ -645,20 +645,54 @@ router.post('/execute', async (req: Request, res: Response) => {
           }
 
           // Use executeWithAccountId for reliable execution with ANY connection
+          // @NEXUS-FIX-111: Backend auto-retry for transient failures - DO NOT REMOVE
           console.log(`[Rube] Using accountId ${connectionStatus.accountId} for ${tool.tool_slug}`)
-          const result = await composioService.executeWithAccountId(
-            connectionStatus.accountId,
-            tool.tool_slug,
-            tool.arguments || {}
-          )
+          const MAX_RETRIES = 2
+          let lastResult = null
+          for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            const result = await composioService.executeWithAccountId(
+              connectionStatus.accountId,
+              tool.tool_slug,
+              tool.arguments || {}
+            )
+            lastResult = result
+
+            if (result.success) {
+              return {
+                tool_slug: tool.tool_slug,
+                success: true,
+                error: null,
+                data: result.data,
+                executionTimeMs: result.executionTimeMs,
+              }
+            }
+
+            // Check if error is retryable
+            const errMsg = (result.error || '').toLowerCase()
+            const isRetryable = errMsg.includes('rate limit') ||
+              errMsg.includes('429') ||
+              errMsg.includes('timeout') ||
+              errMsg.includes('timed out') ||
+              errMsg.includes('network') ||
+              errMsg.includes('econnrefused') ||
+              errMsg.includes('503') ||
+              errMsg.includes('502')
+
+            if (!isRetryable || attempt === MAX_RETRIES) break
+
+            const backoffMs = 2000 * Math.pow(2, attempt)
+            console.log(`[Rube] Retrying ${tool.tool_slug} in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`)
+            await new Promise(r => setTimeout(r, backoffMs))
+          }
 
           return {
             tool_slug: tool.tool_slug,
-            success: result.success,
-            error: result.error || null,
-            data: result.data,
-            executionTimeMs: result.executionTimeMs,
+            success: lastResult?.success ?? false,
+            error: lastResult?.error || null,
+            data: lastResult?.data,
+            executionTimeMs: lastResult?.executionTimeMs,
           }
+          // @NEXUS-FIX-111-END
         } catch (toolError) {
           console.error(`[Rube] Tool ${tool.tool_slug} failed:`, toolError)
           return {

@@ -155,7 +155,7 @@ const SUGGESTION_RULES: Array<{
       type: 'integration',
       title: 'Connect WhatsApp Business',
       description: 'Automate customer communication on the most popular messaging platform',
-      reason: `WhatsApp is the primary business communication tool in ${user.region}`,
+      reason: `WhatsApp is the primary business communication tool in ${(user.region || 'the GCC').replace(/^\w/, c => c.toUpperCase())}`,
       priority: 'high',
       relevanceScore: 95,
       actionType: 'connect_integration',

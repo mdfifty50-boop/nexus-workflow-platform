@@ -9,10 +9,10 @@ import { AuthContext, type UserProfile, type LegacyUser, type AuthContextType } 
 const MOCK_USER_ID = 'dev-user-123'
 const MOCK_USER: LegacyUser = {
   id: MOCK_USER_ID,
-  email: 'dev@nexus.local',
+  email: '',
   created_at: new Date().toISOString(),
   user_metadata: {
-    full_name: 'Development User',
+    full_name: null,
     avatar_url: null,
   },
 }
@@ -20,8 +20,8 @@ const MOCK_USER: LegacyUser = {
 const MOCK_PROFILE: UserProfile = {
   id: 'profile-dev-123',
   clerk_user_id: MOCK_USER_ID,
-  email: 'dev@nexus.local',
-  full_name: 'Development User',
+  email: '',
+  full_name: null,
   avatar_url: null,
   thinking_patterns: {},
   behavior_patterns: {},

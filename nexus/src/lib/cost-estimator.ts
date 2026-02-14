@@ -7,19 +7,25 @@
 
 // Token pricing (as of 2025 - update as needed)
 export const PRICING = {
-  // Claude 3.5 Sonnet (default model)
+  // Claude Sonnet 4 (fast model)
   'claude-sonnet-4-20250514': {
     input: 0.003, // $3 per 1M input tokens
     output: 0.015, // $15 per 1M output tokens
     name: 'Claude Sonnet 4',
   },
-  // Claude 3.5 Haiku (fast model)
+  // Claude 3.5 Haiku (economy model)
   'claude-3-5-haiku-20241022': {
     input: 0.00025, // $0.25 per 1M input tokens
     output: 0.00125, // $1.25 per 1M output tokens
     name: 'Claude 3.5 Haiku',
   },
-  // Claude Opus 4.5 (premium model)
+  // Claude Opus 4.6 (default premium model)
+  'claude-opus-4-6-20250115': {
+    input: 0.015, // $15 per 1M input tokens
+    output: 0.075, // $75 per 1M output tokens
+    name: 'Claude Opus 4.6',
+  },
+  // Legacy Opus 4.5 ID (backward compatibility)
   'claude-opus-4-5-20251101': {
     input: 0.015, // $15 per 1M input tokens
     output: 0.075, // $75 per 1M output tokens
@@ -130,7 +136,7 @@ export function estimateStepTokens(stepType: string): { input: number; output: n
  */
 export function estimateWorkflowCost(
   complexity: WorkflowComplexity,
-  modelId: ModelId = 'claude-sonnet-4-20250514'
+  modelId: ModelId = 'claude-opus-4-6-20250115'
 ): CostEstimate {
   const pricing = PRICING[modelId]
   const breakdown: CostEstimate['breakdown'] = []
@@ -281,7 +287,7 @@ export function formatCostRange(min: number, max: number): string {
  */
 export function quickEstimate(
   stepCount: number,
-  modelId: ModelId = 'claude-sonnet-4-20250514'
+  modelId: ModelId = 'claude-opus-4-6-20250115'
 ): string {
   const estimate = estimateWorkflowCost(
     {
@@ -363,7 +369,7 @@ export interface CostEstimateDisplayProps {
 // Export utility for React components
 export function useCostEstimate(
   workflowDefinition: Parameters<typeof analyzeWorkflowComplexity>[0] | null,
-  modelId: ModelId = 'claude-sonnet-4-20250514'
+  modelId: ModelId = 'claude-opus-4-6-20250115'
 ): CostEstimate | null {
   if (!workflowDefinition) return null
 

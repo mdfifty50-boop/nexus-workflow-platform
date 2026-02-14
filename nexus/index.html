@@ -69,22 +69,13 @@
     <!-- Windows Tiles -->
     <meta name="msapplication-TileImage" content="/icons/icon-144x144.png" />
 
-    <!-- Content Security Policy
-         Security hardening to prevent XSS, clickjacking, and other injection attacks.
-
-         Allowed sources:
-         - 'self': Same origin resources
-         - fonts.googleapis.com, fonts.gstatic.com: Google Fonts
-         - 'unsafe-inline' for styles: Required for Tailwind/CSS-in-JS (use nonce in production)
-         - data: for images: Required for base64 images/icons
-         - blob: for workers: Required for Web Workers
-         - wss: for WebSocket: Required for HMR in development and real-time features
-         - https: for connect-src: Required for API calls to various services
-
-         Frame ancestors 'self' prevents clickjacking.
-         upgrade-insecure-requests forces HTTPS.
+    <!-- @NEXUS-FIX-105: CSP delivered via vercel.json HTTP header ONLY (not meta tag)
+         Meta tag CSP was removed because:
+         1. frame-ancestors directive is ignored in meta tags (browser warning)
+         2. Duplicate CSP with vercel.json caused conflicts
+         3. HTTP header CSP in vercel.json is the authoritative source
+         Dev server CSP is handled by vite.config.ts headers.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob: https://img.clerk.com; connect-src 'self' https: wss: http://localhost:* ws://localhost:* https://img.clerk.com; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://js.stripe.com https://*.clerk.accounts.dev https://clerk.com; frame-ancestors 'self'; form-action 'self'; base-uri 'self';" />
 
     <!-- Premium Font Stack (Inter like ChatGPT + SF Pro fallback) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

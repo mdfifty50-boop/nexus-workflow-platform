@@ -150,15 +150,13 @@ export function DailyAdviceCard({ userContext, personaType, className = '' }: Da
 
           {/* CTA Button */}
           <Link to="/chat">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`w-full py-3 rounded-xl bg-gradient-to-r ${gradientColor} text-white font-medium flex items-center justify-center gap-2 hover:shadow-lg transition-shadow`}
+            <button
+              className={`w-full py-3 rounded-xl bg-gradient-to-r ${gradientColor} text-white font-medium flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all hover:shadow-lg`}
             >
               <Sparkles className="w-5 h-5" />
               Build This Automation
               <ArrowRight className="w-5 h-5" />
-            </motion.button>
+            </button>
           </Link>
 
           {/* Reason/context */}

@@ -1,15 +1,26 @@
 /**
  * AITeamChatButton - Floating button to access AI team meeting room
  * Positioned above the chatbot button on desktop only
+ * Only shows on workflow-related pages, NOT on landing page
  */
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export function AITeamChatButton() {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Only show on workflow/dashboard pages, not on landing, login, signup, etc.
+  const hiddenRoutes = ['/', '/login', '/sign-up', '/privacy', '/terms', '/help', '/try']
+  const shouldShow = !hiddenRoutes.includes(location.pathname)
 
   const handleClick = () => {
     navigate('/meeting-room-demo')
+  }
+
+  // Don't render on hidden routes
+  if (!shouldShow) {
+    return null
   }
 
   return (

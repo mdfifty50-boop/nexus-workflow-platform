@@ -200,7 +200,7 @@ export function LandingPageSEO() {
   const faqs = [
     {
       question: 'What is Nexus?',
-      answer: 'Nexus is an AI-powered workflow automation platform that lets you describe tasks in plain English and instantly builds automations for you. Connect 8,500+ apps and services with intelligent AI agents.',
+      answer: 'Nexus is an AI-powered workflow automation platform that lets you describe tasks in plain English and instantly builds automations for you. Connect 800+ apps and services with intelligent AI agents.',
     },
     {
       question: 'How does AI workflow building work?',
@@ -212,7 +212,7 @@ export function LandingPageSEO() {
     },
     {
       question: 'What apps can I connect with Nexus?',
-      answer: 'Nexus connects with over 8,500 apps and services including Gmail, Slack, Google Sheets, Salesforce, HubSpot, Notion, Trello, and many more. New integrations are added regularly.',
+      answer: 'Nexus connects with over 800 apps and services including Gmail, Slack, Google Sheets, Salesforce, HubSpot, Notion, Trello, and many more. New integrations are added regularly.',
     },
     {
       question: 'How is Nexus different from Zapier or Make?',
@@ -227,7 +227,7 @@ export function LandingPageSEO() {
   return (
     <SEOHead
       title="AI-Powered Workflow Automation | Build Automations in Seconds"
-      description="Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps. Start free."
+      description="Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 800+ apps. Start free."
       keywords="AI workflow automation, no-code automation, business process automation, AI agents, task automation, Zapier alternative, Make alternative, n8n alternative"
       canonical="/"
       ogType="website"
@@ -296,8 +296,8 @@ export function DashboardPageSEO() {
 export function IntegrationsPageSEO() {
   return (
     <SEOHead
-      title="Integrations | Connect 8,500+ Apps"
-      description="Connect Nexus to 8,500+ apps and services. Gmail, Slack, Salesforce, Google Sheets, and more. Seamless integrations for powerful automation."
+      title="Integrations | Connect 800+ Apps"
+      description="Connect Nexus to 800+ apps and services. Gmail, Slack, Salesforce, Google Sheets, and more. Seamless integrations for powerful automation."
       keywords="integrations, app connections, API integrations, Gmail integration, Slack integration, Salesforce integration, Google Sheets integration"
       canonical="/integrations"
       ogType="website"

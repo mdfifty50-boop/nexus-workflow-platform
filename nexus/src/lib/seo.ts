@@ -10,7 +10,7 @@
 export const SITE_CONFIG = {
   name: 'Nexus',
   tagline: 'AI Workflow Automation',
-  description: 'Nexus - AI-powered workflow automation platform. Describe any task in plain English and our AI agents build it instantly. Connect 8,500+ apps with intelligent automation.',
+  description: 'Nexus - AI-powered workflow automation platform. Describe any task in plain English and our AI agents build it instantly. Connect 800+ apps with intelligent automation.',
   url: 'https://nexus.app', // Update with actual production URL
   domain: 'nexus.app',
   logo: '/icons/icon-512x512.png',
@@ -61,7 +61,7 @@ export interface PageSEO {
 export const PAGE_SEO: Record<string, PageSEO> = {
   home: {
     title: 'Nexus - AI-Powered Workflow Automation | Build Automations in Seconds',
-    description: 'Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 8,500+ apps. Start free.',
+    description: 'Transform your business with AI-powered workflow automation. Describe tasks in plain English and watch Nexus build them instantly. Connect 800+ apps. Start free.',
     keywords: 'AI workflow automation, no-code automation, business process automation, AI agents, task automation, Zapier alternative',
     type: 'website',
   },
@@ -98,8 +98,8 @@ export const PAGE_SEO: Record<string, PageSEO> = {
     noIndex: true,
   },
   integrations: {
-    title: 'Integrations | Connect 8,500+ Apps | Nexus',
-    description: 'Connect Nexus to 8,500+ apps and services. Gmail, Slack, Salesforce, Google Sheets, and more. Seamless integrations for powerful automation.',
+    title: 'Integrations | Connect 800+ Apps | Nexus',
+    description: 'Connect Nexus to 800+ apps and services. Gmail, Slack, Salesforce, Google Sheets, and more. Seamless integrations for powerful automation.',
     keywords: 'integrations, app connections, API integrations, Gmail integration, Slack integration, Salesforce integration',
   },
   settings: {
@@ -220,7 +220,7 @@ export function generateSoftwareApplicationSchema() {
     featureList: [
       'AI-powered workflow building',
       'Natural language automation',
-      '8,500+ app integrations',
+      '800+ app integrations',
       'Visual workflow editor',
       'Real-time execution monitoring',
       'Team collaboration',
@@ -295,7 +295,7 @@ export function generateWebPageSchema(page: {
 export const LANDING_PAGE_FAQS = [
   {
     question: 'What is Nexus?',
-    answer: 'Nexus is an AI-powered workflow automation platform that lets you describe tasks in plain English and instantly builds automations for you. Connect 8,500+ apps and services with intelligent AI agents.',
+    answer: 'Nexus is an AI-powered workflow automation platform that lets you describe tasks in plain English and instantly builds automations for you. Connect 800+ apps and services with intelligent AI agents.',
   },
   {
     question: 'How does AI workflow building work?',
@@ -307,7 +307,7 @@ export const LANDING_PAGE_FAQS = [
   },
   {
     question: 'What apps can I connect with Nexus?',
-    answer: 'Nexus connects with over 8,500 apps and services including Gmail, Slack, Google Sheets, Salesforce, HubSpot, Notion, Trello, and many more. New integrations are added regularly.',
+    answer: 'Nexus connects with over 800 apps and services including Gmail, Slack, Google Sheets, Salesforce, HubSpot, Notion, Trello, and many more. New integrations are added regularly.',
   },
   {
     question: 'How is Nexus different from Zapier or Make?',

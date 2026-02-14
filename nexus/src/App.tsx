@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { initErrorTracking, setUserId } from '@/lib/errorTracking'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
-import { userPreferencesService } from '@/services'
+// @NEXUS-FIX-104: Import directly from file, NOT from barrel export (@/services)
+// Barrel import triggers ALL 80+ services to load at parse time, causing circular
+// dependency in vendor-core chunk → ReferenceError: Cannot access 'ao' before initialization
+import { userPreferencesService } from '@/services/UserPreferencesService'
 
 // Initialize theme immediately on app load (before first paint)
 userPreferencesService.initializeTheme()

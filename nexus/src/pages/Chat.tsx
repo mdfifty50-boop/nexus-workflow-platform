@@ -24,36 +24,24 @@ import { Avatar } from '@/components/Avatar'
 // SAMPLE DATA
 // =============================================================================
 
-const sampleConversation = [
-  {
-    id: 1,
-    role: 'assistant',
-    content: "Hello! I'm Nexus, your AI workflow assistant. How can I help you automate your work today?",
-    timestamp: new Date(Date.now() - 300000),
-  },
-  {
-    id: 2,
-    role: 'user',
-    content: 'I want to automatically save Gmail attachments to Google Drive and notify me on Slack',
-    timestamp: new Date(Date.now() - 240000),
-  },
-  {
-    id: 3,
-    role: 'assistant',
-    content: "Great idea! I'll create a workflow that monitors your Gmail for new attachments, saves them to a designated Google Drive folder, and sends you a Slack notification with the file details.",
-    timestamp: new Date(Date.now() - 180000),
-    workflow: {
-      name: 'Gmail Attachments to Drive + Slack',
-      steps: [
-        { name: 'New Email', app: 'Gmail', type: 'trigger', icon: '📧', color: 'from-red-500 to-red-600' },
-        { name: 'Extract', app: 'Gmail', type: 'action', icon: '📎', color: 'from-red-400 to-red-500' },
-        { name: 'Upload', app: 'Drive', type: 'action', icon: '💾', color: 'from-green-500 to-green-600' },
-        { name: 'Notify', app: 'Slack', type: 'action', icon: '💬', color: 'from-purple-500 to-purple-600' },
-      ],
-      estimatedTime: '2 hours/week',
-    },
-  },
-]
+interface ChatMessage {
+  id: number
+  role: 'assistant' | 'user'
+  content: string
+  timestamp: Date
+  workflow?: {
+    name: string
+    steps: { name: string; app: string; type: string; icon: string; color: string }[]
+    estimatedTime: string
+  }
+}
+
+const initialGreeting: ChatMessage = {
+  id: 1,
+  role: 'assistant',
+  content: "Hello! I'm Nexus, your AI workflow assistant. Describe any workflow in plain English and I'll build it for you instantly.",
+  timestamp: new Date(),
+}
 
 const quickSuggestions = [
   { icon: '📊', text: 'Lead scoring workflow' },
@@ -258,17 +246,19 @@ function MobileWorkflowCard({ name, steps, estimatedTime }: MobileWorkflowCardPr
 // =============================================================================
 
 export default function Chat() {
+  const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting])
   const [message, setMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const nextIdRef = useRef(2)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [sampleConversation, isTyping])
+  }, [messages, isTyping])
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -279,13 +269,29 @@ export default function Chat() {
 
   const handleSend = () => {
     if (!message.trim()) return
+    const userMsg = {
+      id: nextIdRef.current++,
+      role: 'user' as const,
+      content: message.trim(),
+      timestamp: new Date(),
+    }
+    setMessages(prev => [...prev, userMsg])
     setMessage('')
     setShowSuggestions(false)
     setIsTyping(true)
     if (inputRef.current) {
       inputRef.current.style.height = 'auto'
     }
-    setTimeout(() => setIsTyping(false), 2000)
+    // Simulate assistant acknowledgment
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: nextIdRef.current++,
+        role: 'assistant' as const,
+        content: "I'm analyzing your request and building the workflow. This is a demo preview — full AI responses are available when the backend is connected.",
+        timestamp: new Date(),
+      }])
+      setIsTyping(false)
+    }, 2000)
   }
 
   return (
@@ -413,7 +419,7 @@ export default function Chat() {
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-6 space-y-4 md:space-y-6">
-          {sampleConversation.map((msg) => (
+          {messages.map((msg) => (
             <motion.div
               key={msg.id}
               initial={{ opacity: 0, y: 10 }}

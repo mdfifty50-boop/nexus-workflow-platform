@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { HelmetProvider } from 'react-helmet-async'
@@ -26,16 +26,17 @@ initBrowserCompat().then(({ browser, features }) => {
 })
 
 // Import Clerk publishable key from environment
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()
 
 // Check if we have a valid Clerk key
-// Set to true for local development without Clerk, false for production
-const BYPASS_AUTH = false // Auth enabled for production
-const hasClerkKey = !BYPASS_AUTH && !!CLERK_PUBLISHABLE_KEY && CLERK_PUBLISHABLE_KEY !== 'pk_test_your_clerk_publishable_key'
+// Both pk_test_ and pk_live_ keys work from any domain — test mode is not domain-restricted
+const isPlaceholder = !CLERK_PUBLISHABLE_KEY || CLERK_PUBLISHABLE_KEY === 'pk_test_your_clerk_publishable_key'
+const hasClerkKey = !isPlaceholder && (
+  CLERK_PUBLISHABLE_KEY.startsWith('pk_test_') || CLERK_PUBLISHABLE_KEY.startsWith('pk_live_')
+)
 
 if (!hasClerkKey) {
-  console.warn('⚠️ DEVELOPMENT MODE: Running without Clerk authentication')
-  console.warn('   Add VITE_CLERK_PUBLISHABLE_KEY to .env for full authentication')
+  console.info('[Auth] No valid Clerk key — running in dev mode')
 }
 
 // Register Service Worker for offline support
@@ -73,13 +74,54 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+// Wrapper that detects Clerk CDN load failure and falls back to DevApp
+function ClerkWithFallback({ publishableKey }: { publishableKey: string }) {
+  const [clerkFailed, setClerkFailed] = useState(false)
+
+  const handleClerkError = useCallback(() => {
+    console.warn('[Auth] Clerk failed to load — falling back to dev mode')
+    setClerkFailed(true)
+  }, [])
+
+  useEffect(() => {
+    // Listen for Clerk script load failures (fires on net::ERR_FAILED)
+    const handler = (e: ErrorEvent) => {
+      if (e.message?.includes('clerk') || e.filename?.includes('clerk')) {
+        handleClerkError()
+      }
+    }
+    window.addEventListener('error', handler)
+
+    // Timeout: if Clerk hasn't loaded after 10s, fall back
+    const timeout = window.setTimeout(() => {
+      const clerkLoaded = !!(window as unknown as Record<string, unknown>).Clerk
+      if (!clerkLoaded) {
+        handleClerkError()
+      }
+    }, 10000)
+
+    return () => {
+      window.removeEventListener('error', handler)
+      window.clearTimeout(timeout)
+    }
+  }, [handleClerkError])
+
+  if (clerkFailed) {
+    return <DevApp />
+  }
+
+  return (
+    <ClerkProvider publishableKey={publishableKey}>
+      <App />
+    </ClerkProvider>
+  )
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>
       {hasClerkKey ? (
-        <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-          <App />
-        </ClerkProvider>
+        <ClerkWithFallback publishableKey={CLERK_PUBLISHABLE_KEY} />
       ) : (
         <DevApp />
       )}

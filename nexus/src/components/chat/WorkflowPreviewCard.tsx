@@ -740,6 +740,140 @@ const TOOL_SLUGS: Record<string, Record<string, string>> = {
     trigger: 'WEBHOOK_TRIGGER',
     post: 'WEBHOOK_TRIGGER',
   },
+
+  // @NEXUS-FIX-114: Additional integrations for domain pain points - DO NOT REMOVE
+  // These cover the 67 workflow templates across 8 domains (Lawyers, SME Owners, Doctors, etc.)
+
+  // E-commerce
+  shopify: {
+    create: 'SHOPIFY_CREATE_PRODUCT',
+    list: 'SHOPIFY_LIST_PRODUCTS',
+    order: 'SHOPIFY_CREATE_ORDER',
+    update: 'SHOPIFY_UPDATE_PRODUCT',
+    inventory: 'SHOPIFY_UPDATE_INVENTORY',
+    trigger: 'SHOPIFY_NEW_ORDER_TRIGGER',
+    receive: 'SHOPIFY_NEW_ORDER_TRIGGER',
+  },
+  woocommerce: {
+    create: 'WOOCOMMERCE_CREATE_PRODUCT',
+    list: 'WOOCOMMERCE_LIST_PRODUCTS',
+    order: 'WOOCOMMERCE_CREATE_ORDER',
+    update: 'WOOCOMMERCE_UPDATE_PRODUCT',
+    trigger: 'WOOCOMMERCE_NEW_ORDER_TRIGGER',
+  },
+  square: {
+    create: 'SQUARE_CREATE_PAYMENT',
+    list: 'SQUARE_LIST_PAYMENTS',
+    invoice: 'SQUARE_CREATE_INVOICE',
+    customer: 'SQUARE_CREATE_CUSTOMER',
+  },
+
+  // Forms & Surveys
+  typeform: {
+    create: 'TYPEFORM_CREATE_FORM',
+    list: 'TYPEFORM_LIST_RESPONSES',
+    trigger: 'TYPEFORM_NEW_RESPONSE_TRIGGER',
+    receive: 'TYPEFORM_NEW_RESPONSE_TRIGGER',
+    response: 'TYPEFORM_LIST_RESPONSES',
+  },
+  googleforms: {
+    create: 'GOOGLEFORMS_CREATE_FORM',
+    list: 'GOOGLEFORMS_LIST_RESPONSES',
+    trigger: 'GOOGLEFORMS_NEW_RESPONSE_TRIGGER',
+    receive: 'GOOGLEFORMS_NEW_RESPONSE_TRIGGER',
+  },
+
+  // Scheduling
+  calendly: {
+    create: 'CALENDLY_CREATE_EVENT',
+    list: 'CALENDLY_LIST_EVENTS',
+    schedule: 'CALENDLY_CREATE_EVENT',
+    trigger: 'CALENDLY_NEW_EVENT_TRIGGER',
+    cancel: 'CALENDLY_CANCEL_EVENT',
+  },
+
+  // Communication
+  twilio: {
+    send: 'TWILIO_SEND_SMS',
+    sms: 'TWILIO_SEND_SMS',
+    call: 'TWILIO_MAKE_CALL',
+    message: 'TWILIO_SEND_SMS',
+    trigger: 'TWILIO_NEW_SMS_TRIGGER',
+  },
+  telegram: {
+    send: 'TELEGRAM_SEND_MESSAGE',
+    message: 'TELEGRAM_SEND_MESSAGE',
+    photo: 'TELEGRAM_SEND_PHOTO',
+    trigger: 'TELEGRAM_NEW_MESSAGE_TRIGGER',
+  },
+
+  // Documents & Signing
+  docusign: {
+    create: 'DOCUSIGN_CREATE_ENVELOPE',
+    send: 'DOCUSIGN_SEND_ENVELOPE',
+    sign: 'DOCUSIGN_CREATE_ENVELOPE',
+    list: 'DOCUSIGN_LIST_ENVELOPES',
+    trigger: 'DOCUSIGN_ENVELOPE_COMPLETED_TRIGGER',
+  },
+
+  // Cloud Storage (additional)
+  box: {
+    upload: 'BOX_UPLOAD_FILE',
+    save: 'BOX_UPLOAD_FILE',
+    list: 'BOX_LIST_FILES',
+    download: 'BOX_DOWNLOAD_FILE',
+    create: 'BOX_CREATE_FOLDER',
+  },
+
+  // Accounting
+  freshbooks: {
+    create: 'FRESHBOOKS_CREATE_INVOICE',
+    invoice: 'FRESHBOOKS_CREATE_INVOICE',
+    list: 'FRESHBOOKS_LIST_INVOICES',
+    client: 'FRESHBOOKS_CREATE_CLIENT',
+  },
+
+  // Help Desk
+  helpscout: {
+    create: 'HELPSCOUT_CREATE_CONVERSATION',
+    list: 'HELPSCOUT_LIST_CONVERSATIONS',
+    send: 'HELPSCOUT_SEND_REPLY',
+    trigger: 'HELPSCOUT_NEW_CONVERSATION_TRIGGER',
+  },
+
+  // Database
+  supabase: {
+    create: 'SUPABASE_INSERT_ROW',
+    read: 'SUPABASE_SELECT_ROWS',
+    update: 'SUPABASE_UPDATE_ROW',
+    delete: 'SUPABASE_DELETE_ROW',
+    list: 'SUPABASE_SELECT_ROWS',
+    insert: 'SUPABASE_INSERT_ROW',
+  },
+  firebase: {
+    create: 'FIREBASE_SET_DATA',
+    read: 'FIREBASE_GET_DATA',
+    update: 'FIREBASE_UPDATE_DATA',
+    delete: 'FIREBASE_DELETE_DATA',
+    push: 'FIREBASE_PUSH_DATA',
+  },
+
+  // Analytics
+  googleanalytics: {
+    report: 'GOOGLEANALYTICS_GET_REPORT',
+    list: 'GOOGLEANALYTICS_LIST_ACCOUNTS',
+    get: 'GOOGLEANALYTICS_GET_REPORT',
+    fetch: 'GOOGLEANALYTICS_GET_REPORT',
+  },
+
+  // SMS Marketing
+  sendinblue: {
+    send: 'SENDINBLUE_SEND_EMAIL',
+    email: 'SENDINBLUE_SEND_EMAIL',
+    sms: 'SENDINBLUE_SEND_SMS',
+    campaign: 'SENDINBLUE_CREATE_CAMPAIGN',
+  },
+  // @NEXUS-FIX-114-END
 }
 
 // Common action keywords that hint at the operation type
@@ -834,6 +968,36 @@ const ACTION_KEYWORDS: Record<string, string> = {
   remove: 'delete',
   clear: 'delete',
   archive: 'archive',
+
+  // @NEXUS-FIX-114: Additional action verbs for domain workflows - DO NOT REMOVE
+  // Workflow verbs
+  track: 'create',
+  sync: 'update',
+  backup: 'upload',
+  assign: 'update',
+  approve: 'update',
+  reject: 'update',
+  close: 'update',
+  open: 'create',
+  convert: 'create',
+  classify: 'create',
+  tag: 'update',
+  label: 'update',
+  categorize: 'create',
+  route: 'send',
+  forward: 'send',
+  transfer: 'send',
+  submit: 'create',
+  request: 'create',
+  invite: 'send',
+  remind: 'send',
+  escalate: 'send',
+  summarize: 'get',
+  compile: 'get',
+  collect: 'list',
+  gather: 'list',
+  aggregate: 'list',
+  // @NEXUS-FIX-114-END
 }
 
 // @NEXUS-FIX-019 & @NEXUS-FIX-020: Tool validation and fallback system - DO NOT REMOVE
@@ -1239,6 +1403,17 @@ function getDefaultParams(
       if (result?.type === 'ai_processing' && result.data) {
         Object.assign(flowData, result.data)
       }
+      // @NEXUS-FIX-113: Capture action node results for downstream use - DO NOT REMOVE
+      // When a previous action node returned data, make it available to subsequent nodes
+      if (prev.result && typeof prev.result === 'object' && !result?.type) {
+        const actionResult = prev.result as Record<string, unknown>
+        // Capture common fields from API responses
+        if (actionResult.id) flowData.previous_id = actionResult.id
+        if (actionResult.url) flowData.previous_url = actionResult.url
+        if (actionResult.name) flowData.previous_name = actionResult.name
+        if (actionResult.text) flowData.previous_text = actionResult.text
+        if (actionResult.message) flowData.previous_message = actionResult.message
+      }
     }
   }
 
@@ -1260,10 +1435,11 @@ function getDefaultParams(
       body: extractedParams.body || null,
     },
 
-    // Slack - NO hardcoded channels
+    // @NEXUS-FIX-113: Smart defaults - use flow data from previous nodes - DO NOT REMOVE
+    // Slack - default channel to 'general' if not specified, use flow data for text
     SLACK_SEND_MESSAGE: {
-      channel: extractedParams.channel || null, // Must be specified
-      text: extractedParams.text || extractedParams.message || null,
+      channel: extractedParams.channel || flowData.channel || 'general',
+      text: extractedParams.text || extractedParams.message || flowData.generated_message || flowData.notification_text || null,
     },
 
     // Google Sheets
@@ -1277,16 +1453,23 @@ function getDefaultParams(
       values: extractedParams.values || [['Data from workflow', new Date().toISOString()]],
     },
 
-    // Google Calendar
-    GOOGLECALENDAR_CREATE_EVENT: {
-      summary: extractedParams.title || extractedParams.summary || `Event: ${node.name}`,
-      start_datetime: extractedParams.start || extractedParams.startTime || null,
-      end_datetime: extractedParams.end || extractedParams.endTime || null,
-      description: extractedParams.description || undefined,
-      attendees: extractedParams.attendees || undefined,
-    },
+    // @NEXUS-FIX-113: Calendar smart defaults - auto-generate start/end times - DO NOT REMOVE
+    GOOGLECALENDAR_CREATE_EVENT: (() => {
+      // Default to a 1-hour event starting in 1 hour from now
+      const now = new Date()
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000)
+      return {
+        summary: extractedParams.title || extractedParams.summary || `Event: ${node.name}`,
+        start_datetime: extractedParams.start || extractedParams.startTime || oneHourLater.toISOString(),
+        end_datetime: extractedParams.end || extractedParams.endTime || twoHoursLater.toISOString(),
+        description: extractedParams.description || undefined,
+        attendees: extractedParams.attendees || undefined,
+      }
+    })(),
     GOOGLECALENDAR_EVENTS_LIST: {
       maxResults: extractedParams.maxResults || 10,
+      timeMin: extractedParams.timeMin || new Date().toISOString(),
     },
 
     // Google Drive
@@ -1367,6 +1550,82 @@ function getDefaultParams(
       name: extractedParams.name || extractedParams.title || `Task: ${node.name}`,
       notes: extractedParams.notes || extractedParams.description || undefined,
     },
+
+    // @NEXUS-FIX-113: Additional smart defaults for commonly-failing tools - DO NOT REMOVE
+    // Discord - use flow data for message content
+    DISCORD_SEND_MESSAGE: {
+      content: extractedParams.content || extractedParams.message || flowData.generated_message || flowData.notification_text || null,
+    },
+
+    // WhatsApp - use flow data for message
+    WHATSAPP_SEND_MESSAGE: {
+      to: extractedParams.to || extractedParams.phone || null,
+      message: extractedParams.message || extractedParams.text || flowData.notification_text || null,
+    },
+
+    // Dropbox - default path
+    DROPBOX_UPLOAD_FILE: {
+      path: extractedParams.path || extractedParams.folder || '/Nexus Uploads/',
+      file_name: extractedParams.file_name || extractedParams.name || `nexus_${new Date().toISOString().split('T')[0]}.txt`,
+    },
+    DROPBOX_LIST_FOLDER: {
+      path: extractedParams.path || extractedParams.folder || '',
+    },
+
+    // ClickUp - defaults
+    CLICKUP_CREATE_TASK: {
+      list_id: extractedParams.list_id || null,
+      name: extractedParams.name || extractedParams.title || `Task: ${node.name}`,
+      description: extractedParams.description || undefined,
+    },
+
+    // Linear
+    LINEAR_CREATE_ISSUE: {
+      title: extractedParams.title || extractedParams.name || `Issue: ${node.name}`,
+      description: extractedParams.description || undefined,
+    },
+
+    // Jira
+    JIRA_CREATE_ISSUE: {
+      summary: extractedParams.summary || extractedParams.title || `Issue: ${node.name}`,
+      description: extractedParams.description || undefined,
+      issuetype: extractedParams.issuetype || 'Task',
+    },
+
+    // Twitter/X
+    TWITTER_CREATE_TWEET: {
+      text: extractedParams.text || extractedParams.message || null,
+    },
+
+    // LinkedIn
+    LINKEDIN_CREATE_POST: {
+      text: extractedParams.text || extractedParams.message || null,
+    },
+
+    // Stripe
+    STRIPE_CREATE_CUSTOMER: {
+      email: extractedParams.email || null,
+      name: extractedParams.name || undefined,
+    },
+
+    // Zendesk
+    ZENDESK_CREATE_TICKET: {
+      subject: extractedParams.subject || extractedParams.title || `Support: ${node.name}`,
+      description: extractedParams.description || extractedParams.body || undefined,
+    },
+
+    // Zoom
+    ZOOM_CREATE_MEETING: {
+      topic: extractedParams.topic || extractedParams.title || `Meeting: ${node.name}`,
+      duration: extractedParams.duration || 30,
+      type: 2, // scheduled meeting
+    },
+
+    // Google Drive
+    GOOGLEDRIVE_UPLOAD_FILE: {
+      name: extractedParams.name || extractedParams.file_name || `nexus_upload_${Date.now()}`,
+    },
+    // @NEXUS-FIX-113-END
   }
 
   const defaults = smartDefaults[toolSlug] || {}
@@ -1465,6 +1724,73 @@ function validateRequiredParams(toolSlug: string, params: Record<string, unknown
 
   return missing
 }
+
+// @NEXUS-FIX-118: URL-to-ID extraction for user-provided URLs - DO NOT REMOVE
+// Problem: Users paste full URLs (e.g., Google Sheets URL) but Composio APIs need just the ID
+// Solution: Auto-extract IDs from common URL patterns before storing/using params
+function extractIdFromUrl(paramName: string, value: string): string {
+  if (!value || typeof value !== 'string') return value
+  const trimmed = value.trim()
+
+  // Google Sheets URL → spreadsheet_id
+  // Format: https://docs.google.com/spreadsheets/d/{ID}/edit...
+  if (paramName === 'spreadsheet_id' || paramName === 'sheet_id' || paramName === 'google_sheet') {
+    const sheetsMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)
+    if (sheetsMatch) return sheetsMatch[1]
+  }
+
+  // Google Docs URL → document_id
+  if (paramName === 'document_id' || paramName === 'doc_id') {
+    const docsMatch = trimmed.match(/\/document\/d\/([a-zA-Z0-9_-]+)/)
+    if (docsMatch) return docsMatch[1]
+  }
+
+  // Notion page URL → page_id
+  // Format: https://www.notion.so/{workspace}/{Page-Name-{id}} or https://notion.so/{id}
+  if (paramName === 'page_id' || paramName === 'notion_page') {
+    const notionMatch = trimmed.match(/notion\.so\/(?:[^/]*\/)?[^?#]*?([a-f0-9]{32})/)
+    if (notionMatch) return notionMatch[1]
+    // UUID format
+    const notionUuid = trimmed.match(/notion\.so\/(?:[^/]*\/)?([a-f0-9-]{36})/)
+    if (notionUuid) return notionUuid[1]
+  }
+
+  // GitHub URL → owner or repo
+  // Format: https://github.com/{owner}/{repo}
+  if (paramName === 'owner' || paramName === 'repo') {
+    const githubMatch = trimmed.match(/github\.com\/([^/\s?#]+)\/([^/\s?#]+)/)
+    if (githubMatch) {
+      return paramName === 'owner' ? githubMatch[1] : githubMatch[2].replace(/\.git$/, '')
+    }
+  }
+
+  // Trello board URL → board_id
+  if (paramName === 'board_id' && trimmed.includes('trello.com')) {
+    const trelloMatch = trimmed.match(/trello\.com\/b\/([a-zA-Z0-9]+)/)
+    if (trelloMatch) return trelloMatch[1]
+  }
+
+  // Airtable base URL → base_id
+  if (paramName === 'base_id' && trimmed.includes('airtable.com')) {
+    const airtableMatch = trimmed.match(/airtable\.com\/(app[a-zA-Z0-9]+)/)
+    if (airtableMatch) return airtableMatch[1]
+  }
+
+  // ClickUp list URL → list_id
+  if (paramName === 'list_id' && trimmed.includes('clickup.com')) {
+    const clickupMatch = trimmed.match(/clickup\.com\/[^/]*\/v\/li\/(\d+)/)
+    if (clickupMatch) return clickupMatch[1]
+  }
+
+  // Jira project URL → project_key
+  if (paramName === 'project_key' && trimmed.includes('atlassian.net')) {
+    const jiraMatch = trimmed.match(/\/projects\/([A-Z0-9]+)/)
+    if (jiraMatch) return jiraMatch[1]
+  }
+
+  return trimmed
+}
+// @NEXUS-FIX-118-END
 
 // ============================================================================
 // Node Tooltip Component (hover on desktop, click on mobile)
@@ -2764,6 +3090,19 @@ function mapCollectedParamsToToolParams(
     }
   }
 
+  // @NEXUS-FIX-118: Apply URL-to-ID extraction on all values as safety net - DO NOT REMOVE
+  // Even if handlePreFlightAnswer already extracted, this catches params from other sources
+  // (e.g., chatbot Quick Questions, AI-inferred params, node config)
+  for (const [key, val] of Object.entries(result)) {
+    if (typeof val === 'string' && val.includes('://')) {
+      const extracted = extractIdFromUrl(key, val)
+      if (extracted !== val) {
+        console.log(`[FIX-118] URL extraction in param mapping: ${key} → ${extracted}`)
+        result[key] = extracted
+      }
+    }
+  }
+
   return result
 }
 
@@ -3880,16 +4219,23 @@ export function WorkflowPreviewCard({
       }
     }
 
-    console.log('[WorkflowPreviewCard] Pre-flight answer:', { questionId, paramName, value })
+    // @NEXUS-FIX-118: Extract IDs from URLs before storing - DO NOT REMOVE
+    // Users often paste full URLs (Google Sheets, Notion, GitHub) but APIs need just the ID
+    const extractedValue = extractIdFromUrl(paramName, value)
+    if (extractedValue !== value) {
+      console.log(`[FIX-118] URL extraction: ${paramName} URL → ID: ${extractedValue}`)
+    }
 
-    // Store the answer
-    setPreFlightAnswers(prev => ({ ...prev, [paramName]: value }))
+    console.log('[WorkflowPreviewCard] Pre-flight answer:', { questionId, paramName, value: extractedValue })
+
+    // Store the answer (with extracted ID, not raw URL)
+    setPreFlightAnswers(prev => ({ ...prev, [paramName]: extractedValue }))
 
     // @NEXUS-FIX-040: Removed setAnsweredQuestionIds - collectedParams handles tracking
     // The pre-flight check re-runs on collectedParams change, filtering answered questions
 
     // Also store in collectedParams for execution
-    setCollectedParams(prev => ({ ...prev, [paramName]: value }))
+    setCollectedParams(prev => ({ ...prev, [paramName]: extractedValue }))
 
     // Also notify parent (for ChatContainer to track)
     onMissingInfoSelect?.(paramName, value)
@@ -3928,6 +4274,172 @@ export function WorkflowPreviewCard({
     // questions array only contains unanswered questions - if empty, all answered
     return preFlightResult.questions.length === 0
   }, [preFlightResult])
+
+  // @NEXUS-FIX-118: Execution Dry-Run Validation Gate - DO NOT REMOVE
+  // Problem: Pre-flight checks integration-level params (e.g., "googlesheets" needs "spreadsheet_id")
+  // but execution checks tool-slug-level params (e.g., "GOOGLESHEETS_BATCH_UPDATE" needs "spreadsheet_id").
+  // These can drift out of sync, causing execution failures even after pre-flight passes.
+  // Solution: When all pre-flight questions are answered, do a "dry-run" that mirrors
+  // execution's param resolution — same tool slug, same defaults, same merge — and validate.
+  // If any params are still missing, add them as new questions BEFORE execution starts.
+  const dryRunCompletedRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    // Only run when pre-flight questions are all answered
+    if (!preFlightResult || preFlightResult.questions.length > 0) return
+    if (phase !== 'ready') return
+
+    // Create a fingerprint of current collected params to avoid re-running
+    const paramsFingerprint = JSON.stringify(collectedParams)
+    if (dryRunCompletedRef.current === paramsFingerprint) return
+    dryRunCompletedRef.current = paramsFingerprint
+
+    console.log('[FIX-118] Running execution dry-run validation...')
+
+    const missingQuestions: PreFlightQuestion[] = []
+
+    for (const rawNode of workflow.nodes) {
+      // Construct a proper WorkflowNode with status field for getDefaultParams compatibility
+      const node: WorkflowNode = {
+        id: rawNode.id,
+        name: rawNode.name,
+        type: (rawNode.type as 'trigger' | 'action' | 'output') || 'action',
+        integration: rawNode.integration,
+        status: 'idle',
+        config: (rawNode as Record<string, unknown>).config as Record<string, unknown> | undefined,
+        description: (rawNode as Record<string, unknown>).description as string | undefined,
+      }
+      const integrationInfo = getIntegrationInfo(node.integration || node.name)
+
+      // Skip trigger, AI, internal nodes — same logic as executeWorkflow
+      const isTriggerNode = node.type === 'trigger' ||
+        node.name.toLowerCase().includes('monitor') ||
+        node.name.toLowerCase().includes('watch') ||
+        node.name.toLowerCase().includes('listen') ||
+        node.name.toLowerCase().includes('receive')
+
+      if (isTriggerNode) continue
+
+      const hasRealIntegration = integrationInfo.toolkit !== 'ai' &&
+        integrationInfo.toolkit !== 'nexus' &&
+        integrationInfo.toolkit !== 'unknown' &&
+        integrationInfo.toolkit !== 'default' &&
+        node.integration?.toLowerCase() !== 'ai' &&
+        node.integration?.toLowerCase() !== 'nexus'
+
+      if (!hasRealIntegration) continue // AI/internal node
+
+      // Resolve tool slug — same as execution
+      const toolkitLower = integrationInfo.toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
+      let toolSlug: string | null = null
+
+      const storedOrchResult = orchestrationResults.get(node.id)
+      if (storedOrchResult?.slug) {
+        toolSlug = storedOrchResult.slug
+        if (isToolkitKnown(toolkitLower)) {
+          const legacySlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
+          if (legacySlug) toolSlug = legacySlug
+        }
+      } else if (isToolkitKnown(toolkitLower)) {
+        toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
+      }
+
+      if (!toolSlug) continue // Can't validate without a tool slug
+
+      // Get params — same merge as execution
+      // @NEXUS-FIX-118: Provide synthetic flow data for dry-run - DO NOT REMOVE
+      // Problem: Params like SLACK_SEND_MESSAGE.text depend on trigger data flowing from previous nodes.
+      // In dry-run there's no actual execution, so flowData is empty and these params show as "missing".
+      // Solution: Provide synthetic previous results so getDefaultParams can generate flow-dependent defaults.
+      // This prevents false "missing param" questions for params that WILL be available at execution time.
+      const nodeIdx = workflow.nodes.findIndex(n => n.id === rawNode.id)
+      const syntheticPreviousResults = workflow.nodes.slice(0, nodeIdx).map(prevRawNode => ({
+        node: {
+          id: prevRawNode.id,
+          name: prevRawNode.name,
+          type: (prevRawNode.type as 'trigger' | 'action' | 'output') || 'action',
+          integration: prevRawNode.integration,
+          status: 'success' as NodeStatus,
+        },
+        result: prevRawNode.type === 'trigger' ? {
+          type: 'trigger_sample_data',
+          data: {
+            from: 'trigger@example.com',
+            subject: 'Workflow Trigger Event',
+            body: 'Data from workflow trigger step',
+            sender_name: 'Nexus Workflow',
+            message: 'Trigger data flowing to next step',
+          }
+        } : {
+          type: 'action_result',
+          id: `prev_${prevRawNode.id}`,
+          text: 'Result from previous step',
+          message: 'Data from previous action',
+        }
+      }))
+
+      const defaultParams = getDefaultParams(toolSlug, node, syntheticPreviousResults, {
+        name: workflow.name,
+        description: workflow.description,
+      })
+      const collectedToolParams = mapCollectedParamsToToolParams(
+        collectedParams as Record<string, string>,
+        integrationInfo.toolkit,
+        toolSlug
+      )
+      const mergedParams = { ...defaultParams, ...collectedToolParams }
+
+      // Validate — same as execution
+      const missing = validateRequiredParams(toolSlug, mergedParams)
+
+      if (missing.length > 0) {
+        console.log(`[FIX-118] Dry-run found missing params for ${node.name} (${toolSlug}):`, missing)
+        for (const paramName of missing) {
+          // Don't re-ask params that are already in collected
+          const isAlreadyCollected = Object.keys(collectedParams).some(k =>
+            k === paramName || k.endsWith(`.${paramName}`)
+          )
+          if (isAlreadyCollected) continue
+
+          const friendlyPrompt = getParamFixSuggestion(paramName, integrationInfo.toolkit)
+          missingQuestions.push({
+            id: `dryrun_${node.id}_${paramName}`,
+            nodeId: node.id,
+            nodeName: node.name,
+            integration: integrationInfo.toolkit.toLowerCase(),
+            paramName,
+            displayName: paramName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            prompt: friendlyPrompt || `What ${paramName.replace(/_/g, ' ')} should I use for ${node.name}?`,
+            quickActions: [],
+            inputType: 'text',
+            placeholder: `Enter ${paramName.replace(/_/g, ' ')}...`,
+            required: true
+          })
+        }
+      }
+    }
+
+    if (missingQuestions.length > 0) {
+      console.log(`[FIX-118] Dry-run validation found ${missingQuestions.length} additional params needed:`,
+        missingQuestions.map(q => `${q.nodeName}:${q.paramName}`))
+
+      // Reset dry-run fingerprint so it can re-check after user answers these
+      dryRunCompletedRef.current = null
+
+      // Add missing questions to pre-flight result
+      setPreFlightResult(prev => prev ? {
+        ...prev,
+        ready: false,
+        questions: missingQuestions,
+        summary: { ...prev.summary, totalQuestions: missingQuestions.length }
+      } : null)
+      setShowPreFlight(true)
+      setCurrentQuestionIndex(0)
+    } else {
+      console.log('[FIX-118] Dry-run validation passed — all nodes have required params!')
+    }
+  }, [preFlightResult, collectedParams, phase, workflow, orchestrationResults])
+  // @NEXUS-FIX-118-END
 
   // Listen for OAuth callback messages from popup windows
   React.useEffect(() => {
@@ -4715,8 +5227,13 @@ export function WorkflowPreviewCard({
     }
   }, [authState, addLog])
 
+  // @NEXUS-FIX-111: Track retry counts per node to prevent infinite retries - DO NOT REMOVE
+  const nodeRetryCounts = React.useRef<Map<string, number>>(new Map())
+
   // Execute workflow with REAL API calls via Composio
   const executeWorkflow = React.useCallback(async () => {
+    // Reset retry counts for fresh execution
+    nodeRetryCounts.current.clear()
     // First check if we need authentication
     if (phase === 'ready' && requiredIntegrations.length > 0) {
       const allConnected = await checkConnections()
@@ -4767,34 +5284,45 @@ export function WorkflowPreviewCard({
           node.name.toLowerCase().includes('capture') ||
           node.name.toLowerCase().includes('incoming')
 
-        const isAINode = integrationInfo.toolkit === 'ai' ||
-          node.integration?.toLowerCase() === 'ai' ||
-          node.name.toLowerCase().includes('extract') ||
-          node.name.toLowerCase().includes('analyze') ||
-          node.name.toLowerCase().includes('validate') ||
-          node.name.toLowerCase().includes('generate') ||
-          node.name.toLowerCase().includes('process')
+        // @NEXUS-FIX-110: Tightened AI/Internal node classification - DO NOT REMOVE
+        // Problem: Keywords like 'extract', 'analyze', 'generate', 'process' caused REAL
+        // action nodes (e.g., "Extract Email Attachments", "Generate Invoice", "Process Payment")
+        // to be skipped as "AI processing" when they are actually real API calls.
+        // Solution: ONLY classify as AI/internal when the integration is EXPLICITLY 'ai' or 'nexus'.
+        // Nodes with real integrations (gmail, slack, etc.) should ALWAYS go through execution.
+        const hasRealIntegration = integrationInfo.toolkit !== 'ai' &&
+          integrationInfo.toolkit !== 'nexus' &&
+          integrationInfo.toolkit !== 'unknown' &&
+          integrationInfo.toolkit !== 'default' &&
+          node.integration?.toLowerCase() !== 'ai' &&
+          node.integration?.toLowerCase() !== 'nexus'
+
+        const isAINode = !hasRealIntegration && (
+          integrationInfo.toolkit === 'ai' ||
+          node.integration?.toLowerCase() === 'ai'
+        )
 
         // Detect internal/output nodes that don't need external API calls
         // These are Nexus-internal steps like "Display Results", "Show Summary", etc.
-        // Be conservative - only catch nodes that are clearly internal output steps
+        // CRITICAL: Only treat as internal if the node does NOT have a real integration
         const nodeNameLower = node.name.toLowerCase()
         const hasOutputPattern = nodeNameLower.includes('display') ||
-          nodeNameLower.includes('show') ||
-          nodeNameLower.includes('output') ||
-          nodeNameLower.includes('result') ||
-          nodeNameLower.includes('summary') ||
-          nodeNameLower.includes('present') ||
-          nodeNameLower.includes('format') ||
-          nodeNameLower.includes('deliver') ||
+          nodeNameLower.includes('show output') ||
+          nodeNameLower.includes('show result') ||
+          nodeNameLower.includes('show summary') ||
+          nodeNameLower.includes('present result') ||
+          nodeNameLower.includes('format output') ||
           nodeNameLower.includes('notify user') ||
-          nodeNameLower.includes('complete')
+          nodeNameLower.includes('workflow complete')
 
-        const isInternalNode = (integrationInfo.toolkit === 'nexus' ||
+        const isInternalNode = !hasRealIntegration && (
+          integrationInfo.toolkit === 'nexus' ||
           node.integration?.toLowerCase() === 'nexus' ||
-          node.type === 'output') ||
-          // For unknown toolkit, only treat as internal if it has output patterns
+          node.type === 'output' ||
+          // For unknown/default toolkit, only treat as internal if it has output patterns
           ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') && hasOutputPattern)
+        )
+        // @NEXUS-FIX-110-END
 
         // Handle trigger nodes - they need sample data for beta testing
         if (isTriggerNode) {
@@ -4990,8 +5518,9 @@ export function WorkflowPreviewCard({
         }
 
         // Get params and validate required ones before execution
-        // Pass workflow context for better parameter inference
-        const defaultParams = getDefaultParams(toolSlug, node, undefined, {
+        // @NEXUS-FIX-113: Pass previous node results for data flow between steps - DO NOT REMOVE
+        const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
+        const defaultParams = getDefaultParams(toolSlug, node, previousNodeResults, {
           name: workflow.name,
           description: workflow.description,
         })
@@ -5052,6 +5581,21 @@ export function WorkflowPreviewCard({
             friendlyPrompts.map(p => `• ${p}`).join('\n')
           )
         }
+
+        // @NEXUS-FIX-115: Pre-execution connection validation - DO NOT REMOVE
+        // Problem: Expired OAuth tokens caused execution failures mid-workflow
+        // Solution: Check connection status before executing and warn early
+        try {
+          const connStatus = await rubeClient.checkConnection(integrationInfo.toolkit)
+          if (!connStatus.connected) {
+            addLog(`⚠️ ${integrationInfo.name} connection may be expired — attempting execution anyway...`)
+            console.warn(`[FIX-115] ${integrationInfo.toolkit} not connected before execution. Will attempt anyway.`)
+          }
+        } catch (connCheckErr) {
+          // Non-blocking — don't fail the workflow just because connection check failed
+          console.warn(`[FIX-115] Connection pre-check failed for ${integrationInfo.toolkit}:`, connCheckErr)
+        }
+        // @NEXUS-FIX-115-END
 
         // @NEXUS-FIX-041: Execute with VERIFICATION via VerifiedExecutor - DO NOT REMOVE
         // This replaces direct rubeClient.executeTool() to fix silent failures
@@ -5125,6 +5669,37 @@ export function WorkflowPreviewCard({
         })
         const friendlyMsg = errorAnalysis.friendlyMessage
 
+        // @NEXUS-FIX-111: Auto-retry for recoverable errors - DO NOT REMOVE
+        // Problem: Transient errors (rate limits, network, timeouts) killed the entire workflow
+        // Solution: Classify the error and retry recoverable ones with exponential backoff
+        const retryableCategories = ['rate_limited', 'network_error', 'timeout', 'service_unavailable']
+        const errorCategory = errorAnalysis.classification?.category || 'unknown'
+        const isRetryable = retryableCategories.includes(errorCategory)
+        const maxRetries = errorCategory === 'rate_limited' ? 3 : 2
+        const nodeRetryKey = `retry_${node.id}`
+        const currentRetry = (nodeRetryCounts.current.get(nodeRetryKey) || 0)
+
+        if (isRetryable && currentRetry < maxRetries) {
+          // Increment retry count
+          nodeRetryCounts.current.set(nodeRetryKey, currentRetry + 1)
+          const backoffMs = Math.min(2000 * Math.pow(2, currentRetry), 15000)
+          addLog(`⏳ ${node.name}: ${friendlyMsg} — Retrying in ${Math.round(backoffMs / 1000)}s (attempt ${currentRetry + 1}/${maxRetries})...`)
+
+          // Set node to connecting status during retry wait
+          setNodes((prev) =>
+            prev.map((n, idx) => ({
+              ...n,
+              status: idx === i ? 'connecting' : idx < i ? 'success' : 'pending',
+            }))
+          )
+
+          // Wait then retry this node by decrementing i
+          await new Promise(resolve => setTimeout(resolve, backoffMs))
+          i-- // Will be incremented by for loop, net effect: retry same node
+          continue
+        }
+        // @NEXUS-FIX-111-END
+
         // @NEXUS-FIX-020: Tool-not-found detection with fallback suggestions - DO NOT REMOVE
         if (isToolNotFoundError(error as Error)) {
           // Re-compute tool slug in catch block since try-block variables are out of scope
@@ -5140,6 +5715,35 @@ export function WorkflowPreviewCard({
           addLog(`✗ ${node.name}: ${friendlyMsg}`)
         }
 
+        // @NEXUS-FIX-112: Continue-on-error for non-critical nodes - DO NOT REMOVE
+        // Problem: Any node failure killed the entire workflow, even for non-critical steps
+        // Solution: Notification/output/non-critical nodes show warning but don't stop execution
+        const catchNodeNameLower = node.name.toLowerCase()
+        const isNonCriticalNode = catchNodeNameLower.includes('notify') ||
+          catchNodeNameLower.includes('alert') ||
+          catchNodeNameLower.includes('log') ||
+          catchNodeNameLower.includes('notification') ||
+          node.type === 'output' ||
+          (i === nodes.length - 1 && catchNodeNameLower.includes('summary'))
+
+        if (isNonCriticalNode && !errorMessage.includes('Missing Information')) {
+          addLog(`⚠️ ${node.name}: Skipped (non-critical) — ${friendlyMsg}`)
+          setNodes((prev) =>
+            prev.map((n, idx) => ({
+              ...n,
+              status: idx === i ? 'success' : idx < i ? 'success' : 'pending',
+              result: idx === i ? {
+                _skipped: true,
+                _warning: friendlyMsg,
+                _error: errorMessage,
+              } : n.result,
+            }))
+          )
+          continue // Skip this node and continue workflow
+        }
+        // @NEXUS-FIX-112-END
+
+        // Execution genuinely failed — show the error to the user
         setNodes((prev) =>
           prev.map((n, idx) => ({
             ...n,
@@ -6050,16 +6654,70 @@ export function WorkflowPreviewCard({
                     }
                   }
 
-                  // @NEXUS-UX-001: Default error with buttons - DO NOT REMOVE
+                  // @NEXUS-FIX-117: Additional Composio-specific error patterns - DO NOT REMOVE
+                  // Problem: Many Composio errors fell through to generic "Oops!" message
+                  // Solution: Catch entity errors, SDK errors, connection errors specifically
+
+                  // Composio entity/connection errors
+                  if (errorLower.includes('entity') || errorLower.includes('no active connection') || errorLower.includes('connection not found') || errorLower.includes('no connected account')) {
+                    return {
+                      title: 'Account Not Connected',
+                      guidance: 'This service needs to be connected before it can run.',
+                      buttons: [
+                        { label: '🔗 Connect Now', value: 'connect this service', primary: true },
+                        { label: '🔄 Try Again', value: 'retry the workflow', primary: false },
+                      ],
+                    }
+                  }
+
+                  // Invalid/missing parameters from Composio
+                  if (errorLower.includes('invalid') || errorLower.includes('required field') || errorLower.includes('missing required') || errorLower.includes('validation failed') || errorLower.includes('missing information')) {
+                    return {
+                      title: 'One More Thing Needed',
+                      guidance: 'I need a bit more information to complete this step.',
+                      buttons: [
+                        { label: '💬 Provide Details', value: 'I will provide the missing details', primary: true },
+                        { label: '🔍 Help Me', value: 'help me figure out what is needed', primary: false },
+                      ],
+                      inputPrompt: 'Enter the required information...',
+                    }
+                  }
+
+                  // Quota/billing errors
+                  if (errorLower.includes('quota') || errorLower.includes('billing') || errorLower.includes('plan') || errorLower.includes('upgrade') || errorLower.includes('subscription')) {
+                    return {
+                      title: 'Service Limit Reached',
+                      guidance: 'This service has a usage limit that was reached.',
+                      buttons: [
+                        { label: '📊 Check Usage', value: 'check my service usage', primary: true },
+                        { label: '🔄 Try Again Later', value: 'retry later', primary: false },
+                      ],
+                    }
+                  }
+
+                  // Composio SDK errors
+                  if (errorLower.includes('composio') || errorLower.includes('sdk') || errorLower.includes('api key')) {
+                    return {
+                      title: 'Service Configuration',
+                      guidance: 'The integration service needs to be configured.',
+                      buttons: [
+                        { label: '🔧 Configure', value: 'configure the integration', primary: true },
+                        { label: '🔄 Try Again', value: 'retry the workflow', primary: false },
+                      ],
+                    }
+                  }
+
+                  // @NEXUS-FIX-117: Improved default - never say "Oops!" - DO NOT REMOVE
                   return {
-                    title: 'Oops! Something Unexpected',
-                    guidance: 'I hit a snag, but we can work through it!',
+                    title: 'Almost There!',
+                    guidance: 'This step needs a small adjustment. Let me help you fix it.',
                     buttons: [
                       { label: '🔄 Try Again', value: 'retry the workflow', primary: true },
-                      { label: '💬 Tell Me What Happened', value: 'describe the issue', primary: false },
-                      { label: '🆘 Get Help', value: 'help me troubleshoot this', primary: false },
+                      { label: '💬 Help Me Fix It', value: 'help me troubleshoot this step', primary: false },
+                      { label: '⏭️ Skip This Step', value: 'skip this step and continue', primary: false },
                     ],
                   }
+                  // @NEXUS-FIX-117-END
                 }
 
                 // @NEXUS-UX-001: Extract buttons for actionable error recovery - DO NOT REMOVE

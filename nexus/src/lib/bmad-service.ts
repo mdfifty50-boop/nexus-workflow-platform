@@ -3,8 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 // Nexus Workflow Execution Service
 // Integrates with Claude Code Proxy (Max subscription) or direct API
 
-// Production-ready: Use env var or fallback to localhost for development
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:4567'
+// Production-ready: Use env var, skip proxy entirely in production when not configured
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
 
 export interface NexusWorkflowConfig {
   type: 'Nexus' | 'Simple' | 'Scheduled'
@@ -47,6 +47,12 @@ class NexusService {
    * Check if the Claude Code proxy is available
    */
   private async checkProxyHealth(): Promise<boolean> {
+    // No proxy configured (production without VITE_PROXY_URL) — skip entirely
+    if (!PROXY_URL) {
+      this.proxyAvailable = false
+      return false
+    }
+
     const now = Date.now()
 
     // Use cached result if recent
@@ -122,7 +128,7 @@ class NexusService {
       throw new Error('No API client configured')
     }
 
-    const model = config.model || 'claude-sonnet-4-20250514'
+    const model = config.model || 'claude-opus-4-6-20250115'
     const maxTokens = config.maxTokens || 4096
     const temperature = config.temperature || 1.0
 
@@ -228,12 +234,13 @@ Provide a summary of the execution and any relevant results.`
    */
   private calculateCost(model: string, inputTokens: number, outputTokens: number): number {
     const pricing: Record<string, { input: number; output: number }> = {
+      'claude-opus-4-6-20250115': { input: 15.0, output: 75.0 },
       'claude-opus-4-5-20251101': { input: 15.0, output: 75.0 },
       'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
       'claude-3-5-haiku-20241022': { input: 1.0, output: 5.0 },
     }
 
-    const modelPricing = pricing[model] || pricing['claude-sonnet-4-20250514']
+    const modelPricing = pricing[model] || pricing['claude-opus-4-6-20250115']
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output
 

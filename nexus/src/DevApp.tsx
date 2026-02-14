@@ -66,23 +66,6 @@ function DevApp() {
             <CommandPalette />
             {/* Network status banner for offline detection */}
             <NetworkStatusBanner />
-            {/* Dev mode banner */}
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              backgroundColor: '#f59e0b',
-              color: '#000',
-              padding: '4px 12px',
-              fontSize: '12px',
-              fontWeight: 500,
-              textAlign: 'center',
-              zIndex: 9999,
-            }}>
-              DEV MODE - No Authentication (Add VITE_CLERK_PUBLISHABLE_KEY for full auth)
-            </div>
-            <div style={{ paddingTop: '28px' }}>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<MinimalLayout><LandingPage /></MinimalLayout>} />
@@ -141,7 +124,6 @@ function DevApp() {
             {/* 404 - catch all unmatched routes */}
             <Route path="*" element={<NotFound />} />
             </Routes>
-            </div>
           </ToastProvider>
           </PersonalizationProvider>
           </WorkflowProvider>

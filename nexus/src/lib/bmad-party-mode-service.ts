@@ -13,9 +13,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { detectIndustryFromTopic, applyIndustryOverlay, type IndustryPersona } from './industry-personas'
 
-// Claude Code Proxy URL (uses Max subscription for free)
-// Production-ready: Use env var or fallback to localhost for development
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:4567'
+// Claude Code Proxy URL - skip proxy entirely in production when not configured
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
 
 // =============================================================================
 // AGENT PERSONA DEFINITIONS
@@ -385,6 +384,12 @@ class NexusPartyModeService {
    * Check if Claude Code proxy is available (uses Max subscription)
    */
   private async checkProxyHealth(): Promise<boolean> {
+    // No proxy configured (production without VITE_PROXY_URL) — skip entirely
+    if (!PROXY_URL) {
+      this.proxyAvailable = false
+      return false
+    }
+
     const now = Date.now()
 
     // Use cached result if recent
@@ -528,7 +533,7 @@ class NexusPartyModeService {
       try {
         console.log(`[Nexus Party Mode] ${agent.displayName} responding via API...`)
         const response = await this.client.messages.create({
-          model: context.mode === 'brainstorm' ? 'claude-sonnet-4-20250514' : 'claude-3-5-haiku-20241022',
+          model: context.mode === 'brainstorm' ? 'claude-opus-4-6-20250115' : 'claude-3-5-haiku-20241022',
           max_tokens: 500,
           temperature: 0.8, // Higher for more personality
           system: systemPrompt,
@@ -722,10 +727,11 @@ class NexusPartyModeService {
    */
   private calculateCost(model: string, inputTokens: number, outputTokens: number): number {
     const pricing: Record<string, { input: number; output: number }> = {
+      'claude-opus-4-6-20250115': { input: 15.0, output: 75.0 },
       'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
       'claude-3-5-haiku-20241022': { input: 1.0, output: 5.0 },
     }
-    const modelPricing = pricing[model] || pricing['claude-3-5-haiku-20241022']
+    const modelPricing = pricing[model] || pricing['claude-opus-4-6-20250115']
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output
     return Number((inputCost + outputCost).toFixed(6))

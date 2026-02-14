@@ -38,3 +38,4 @@ nul
 
 # SonarCloud secrets (local only, never commit)
 .sonar.secrets.local
+.env*.local

@@ -7,7 +7,7 @@ import { apiClient } from '@/lib/api-client'
 import { globalAutonomy, AutonomyLevel } from '@/lib/ultimate-autonomy'
 
 // API URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001')
 
 // SSE Event Types
 interface SSENodeUpdate {

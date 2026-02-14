@@ -39,7 +39,7 @@ interface ImageContent {
 interface ChatRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
   systemPrompt?: string
-  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20251101'
+  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20250520' | 'claude-opus-4-5-20251101' | 'claude-opus-4-6-20250115'
   maxTokens?: number
   agentId?: string  // Specific Nexus agent to use
   autoRoute?: boolean  // Let backend auto-route to best agent

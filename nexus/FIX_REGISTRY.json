@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.36",
-  "_lastUpdated": "2026-02-04",
-  "_totalFixes": 110,
+  "_version": "1.0.46",
+  "_lastUpdated": "2026-02-14",
+  "_totalFixes": 120,
 
   "fixes": [
     {
@@ -1326,6 +1326,126 @@
       ],
       "codeMarker": "@NEXUS-FIX-110",
       "testCommand": "Sign up new user with Clerk - should receive welcome email with Nexus branding.",
+      "critical": true
+    },
+    {
+      "id": "FIX-111",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Auto-retry with exponential backoff for recoverable errors",
+      "problem": "Transient errors (rate limits, network timeouts, service unavailable) killed entire workflow instantly",
+      "solution": "Classify errors via ErrorClassifier. For recoverable categories (rate_limited, network_error, timeout, service_unavailable), auto-retry with exponential backoff (2s, 4s, 8s) up to 2-3 attempts before failing.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-111",
+      "testCommand": "Trigger a workflow with intermittent network issues - should auto-retry instead of failing immediately.",
+      "critical": true
+    },
+    {
+      "id": "FIX-112",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Continue workflow past non-critical node failures",
+      "problem": "Any single node failure killed the entire workflow, even non-critical notification/output steps",
+      "solution": "Classify nodes as critical vs non-critical. Notification, alert, log, and output nodes are non-critical. When a non-critical node fails, show warning but continue workflow execution.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-112",
+      "testCommand": "Create workflow with notification step at end. If notification fails, workflow should still show as complete.",
+      "critical": true
+    },
+    {
+      "id": "FIX-113",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Smart parameter defaults from context and flow data",
+      "problem": "Many tools needed parameters that weren't collected but could be inferred from workflow context or previous node results",
+      "solution": "Enhanced getDefaultParams to: (1) Pass previous node results for data flow, (2) Default Slack channel to 'general', (3) Auto-generate calendar event times, (4) Use flow data from trigger nodes for action params. Added smart defaults for 15+ additional tools.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-113",
+      "testCommand": "Create email-to-Slack workflow. Slack should auto-use 'general' channel and flow email content as message text.",
+      "critical": true
+    },
+    {
+      "id": "FIX-114",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Expanded TOOL_SLUGS and verb mappings for all domains",
+      "problem": "Many integrations and action verbs weren't mapped, causing 'No tool mapping' errors for common workflows",
+      "solution": "Added 15+ new integrations to TOOL_SLUGS (shopify, woocommerce, square, typeform, calendly, twilio, telegram, docusign, box, freshbooks, helpscout, supabase, firebase, googleanalytics, sendinblue). Added 25+ new action verb patterns to ACTION_KEYWORDS (track, sync, backup, assign, approve, forward, transfer, submit, etc.).",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-114",
+      "testCommand": "Create workflows using Shopify, Calendly, Twilio - should resolve tool slugs without errors.",
+      "critical": true
+    },
+    {
+      "id": "FIX-115",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Pre-execution connection validation",
+      "problem": "Expired OAuth tokens caused execution failures mid-workflow without any early warning",
+      "solution": "Before executing each action node, check connection status via rubeClient.checkConnection(). If not connected, log warning but still attempt execution (backend may handle it). Non-blocking check to avoid slowing down workflow.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-115",
+      "testCommand": "Execute workflow with expired OAuth - should show warning before attempting execution.",
+      "critical": true
+    },
+    {
+      "id": "FIX-116",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Tightened AI/Internal node classification to prevent false skips",
+      "problem": "Keywords like 'extract', 'analyze', 'generate', 'process' in node names caused REAL action nodes to be skipped as 'AI processing'. Nodes like 'Extract Email Attachments' (gmail), 'Generate Invoice' (stripe), 'Process Payment' (stripe) were silently skipped.",
+      "solution": "Only classify nodes as AI/internal when integration is EXPLICITLY 'ai' or 'nexus'. Nodes with real integrations (gmail, slack, etc.) always go through execution path regardless of name keywords. Tightened internal node patterns to require full phrases like 'show output' instead of single words like 'show'.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-110",
+      "testCommand": "Create workflow with 'Extract Data from Gmail' node - should execute via API, not skip as AI processing.",
+      "critical": true
+    },
+    {
+      "id": "FIX-117",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "REVERTED - Simulation fallback removed per user direction",
+      "problem": "Simulation-based beta test completion was implemented but rejected — beta test must use REAL API calls to validate readiness.",
+      "solution": "Simulation code (generateSimulatedResult) completely removed. Beta test shows real execution results only. Errors are shown to user so they can address the root cause.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "REVERTED",
+      "testCommand": "N/A - reverted fix",
+      "critical": false
+    },
+    {
+      "id": "FIX-118",
+      "date": "2026-02-14",
+      "category": "UX",
+      "title": "Comprehensive error-to-guidance mapping (no more Oops!)",
+      "problem": "Many Composio errors fell through to the generic 'Oops! Something Unexpected' default message. Entity errors, SDK errors, connection errors, validation failures, quota limits all showed the same unhelpful message.",
+      "solution": "Added 5 new error pattern matchers: Composio entity/connection errors, invalid/missing params from Composio, quota/billing errors, SDK configuration errors. Changed default fallback from 'Oops! Something Unexpected' to 'Almost There!' with actionable buttons including Skip Step option.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-117",
+      "testCommand": "If any error does reach the UI, it should never show 'Oops! Something Unexpected' - always a specific, actionable guidance.",
+      "critical": true
+    },
+    {
+      "id": "FIX-119",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "REVERTED - Simulation result generator removed per user direction",
+      "problem": "Simulation-based results were implemented but rejected — users must see real API results only.",
+      "solution": "generateSimulatedResult() function completely removed. All execution goes through real Composio APIs.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "REVERTED",
+      "testCommand": "N/A - reverted fix",
+      "critical": false
+    },
+    {
+      "id": "FIX-120",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Comprehensive pre-execution validation: URL extraction + pre-flight coverage + dry-run gate",
+      "problem": "Beta test 'Run Beta Test' failed because: (1) Users pasted full URLs but APIs need IDs (Google Sheets URL vs spreadsheet_id), (2) PreFlightService TOOL_REQUIREMENTS was missing 15+ integrations (zoom, calendar, teams, sendgrid, stripe, etc.), (3) Pre-flight checks integration-level params but execution checks tool-slug-level params — gap caused missed validations.",
+      "solution": "Three-layer fix: (1) extractIdFromUrl() auto-extracts IDs from URLs for Google Sheets, Docs, Notion, GitHub, Trello, Airtable, ClickUp, Jira — applied in both handlePreFlightAnswer() and mapCollectedParamsToToolParams(). (2) Added 15 missing integrations to PreFlightService TOOL_REQUIREMENTS: zoom, googlecalendar, teams, sendgrid, salesforce, pipedrive, stripe, mailchimp, linkedin, zendesk, freshdesk, intercom, googledrive. (3) Execution dry-run validation gate: after all pre-flight questions answered, simulates execution's param resolution (tool slug + defaults + merge) and validates required params. Any remaining missing params become new pre-flight questions. Belt-and-suspenders approach ensures ALL params are collected BEFORE execution starts.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/src/services/PreFlightService.ts"],
+      "codeMarker": "@NEXUS-FIX-118",
+      "testCommand": "Create 'Gmail to Google Sheets Logger' workflow. Paste a Google Sheets URL when asked for spreadsheet. Run Beta Test — should succeed with no 'Oops!' errors. Also test with GitHub, Notion URLs.",
       "critical": true
     }
   ],

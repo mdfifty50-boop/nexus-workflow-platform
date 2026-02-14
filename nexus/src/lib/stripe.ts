@@ -11,7 +11,9 @@
  * - Business: $149/month (unlimited + premium features)
  */
 
-import { loadStripe, type Stripe } from '@stripe/stripe-js'
+// Dynamic import — @stripe/stripe-js injects a <script> tag as a side effect on static import.
+// Only load it when a key is actually configured, preventing console errors in production.
+type Stripe = import('@stripe/stripe-js').Stripe
 
 // =============================================================================
 // STRIPE INITIALIZATION
@@ -21,17 +23,17 @@ let stripePromise: Promise<Stripe | null> | null = null
 
 /**
  * Get the Stripe instance (lazy loaded singleton)
+ * Only loads @stripe/stripe-js when VITE_STRIPE_PUBLISHABLE_KEY is set
  */
 export function getStripe(): Promise<Stripe | null> {
   if (!stripePromise) {
     const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
     if (!publishableKey) {
-      console.warn('[Stripe] No publishable key found. Set VITE_STRIPE_PUBLISHABLE_KEY in your environment.')
       return Promise.resolve(null)
     }
 
-    stripePromise = loadStripe(publishableKey)
+    stripePromise = import('@stripe/stripe-js').then(({ loadStripe }) => loadStripe(publishableKey))
   }
 
   return stripePromise

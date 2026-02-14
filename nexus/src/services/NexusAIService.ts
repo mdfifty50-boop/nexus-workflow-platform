@@ -111,7 +111,9 @@ class NexusAIService {
         body: JSON.stringify({
           messages: this.conversationHistory,
           agentId: 'nexus', // Use the Nexus agent personality
-          model: 'claude-sonnet-4-20250514',
+          // Opus 4.5 for workflow intent grasping + tool selection (premium quality)
+          // Opus 4.6 for "Think with me" mode (superior instruction following + tool use)
+          model: context?.chatMode === 'think_with_me' ? 'claude-opus-4-6-20250115' : 'claude-opus-4-6-20250115',
           maxTokens: 4096,
           chatMode: context?.chatMode || 'standard' // Pass chat mode for "Think with me" feature
         })
