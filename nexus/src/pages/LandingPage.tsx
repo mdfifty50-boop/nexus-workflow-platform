@@ -414,7 +414,7 @@ export function LandingPage() {
 
   // Parallax transforms
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.85, 1], [1, 1, 0])
   const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.2])
   const orbY1 = useTransform(scrollYProgress, [0, 1], ['0%', '50%'])
   const orbY2 = useTransform(scrollYProgress, [0, 1], ['0%', '-30%'])
