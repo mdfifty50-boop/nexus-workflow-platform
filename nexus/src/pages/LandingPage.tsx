@@ -407,17 +407,18 @@ export function LandingPage() {
   const isRTL = i18n.language === 'ar'
   const heroRef = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { scrollYProgress } = useScroll({
+  // Page-level scroll for cube (persists across entire page)
+  const { scrollYProgress: pageScrollProgress } = useScroll()
+  // Hero-section scroll for hero content fade
+  const { scrollYProgress: heroScrollProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
   })
 
-  // Parallax transforms
-  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.85, 1], [1, 1, 0])
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.2])
-  const orbY1 = useTransform(scrollYProgress, [0, 1], ['0%', '50%'])
-  const orbY2 = useTransform(scrollYProgress, [0, 1], ['0%', '-30%'])
+  // Cube stays visible for 60% of total page scroll, then fades in last 10%
+  const cubeOpacity = useTransform(pageScrollProgress, [0, 0.6, 0.7], [1, 1, 0])
+  // Hero content fades as you leave the hero section
+  const heroOpacity = useTransform(heroScrollProgress, [0, 0.8, 1], [1, 1, 0])
 
   const navLinks = [
     { href: '#features', label: t('landing.features.title', 'Features') },
@@ -431,7 +432,7 @@ export function LandingPage() {
     {/* 3D Background Cube — MUST be outside the overflow container so position:fixed works.
         overflow-x-hidden on a parent breaks fixed positioning in all browsers. */}
     <motion.div
-      style={{ opacity: heroOpacity }}
+      style={{ opacity: cubeOpacity }}
       className="fixed top-0 left-0 right-0 h-screen pointer-events-none z-[1]"
       aria-hidden="true"
     >
@@ -441,21 +442,15 @@ export function LandingPage() {
     </motion.div>
 
     <div className="min-h-screen bg-surface-950 relative overflow-x-hidden">
-      {/* Fixed Background with parallax */}
-      <motion.div style={{ scale: bgScale }} className="fixed inset-0 pointer-events-none">
+      {/* Fixed Background — static (no parallax to keep scroll smooth) */}
+      <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-nexus-500/5 via-transparent to-accent-500/5" />
         <div className="absolute inset-0 bg-grid opacity-20" />
-      </motion.div>
+      </div>
 
-      {/* Animated gradient orbs with parallax */}
-      <motion.div
-        style={{ y: orbY1 }}
-        className="fixed top-1/4 left-1/4 w-[800px] h-[800px] bg-nexus-500/8 rounded-full blur-[120px] pointer-events-none"
-      />
-      <motion.div
-        style={{ y: orbY2 }}
-        className="fixed bottom-1/4 right-1/4 w-[600px] h-[600px] bg-accent-500/8 rounded-full blur-[100px] pointer-events-none"
-      />
+      {/* Gradient orbs — static for smooth scrolling */}
+      <div className="fixed top-1/4 left-1/4 w-[800px] h-[800px] bg-nexus-500/8 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-1/4 right-1/4 w-[600px] h-[600px] bg-accent-500/8 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Floating app icons */}
       {floatingApps.map((app, index) => (
@@ -556,7 +551,7 @@ export function LandingPage() {
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative z-10 min-h-screen flex items-center pt-20 pb-32">
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="w-full relative z-10">
+        <motion.div style={{ opacity: heroOpacity }} className="w-full relative z-10">
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               {/* Left: Text content */}
