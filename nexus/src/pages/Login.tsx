@@ -38,8 +38,6 @@ export function Login() {
                 card: 'rounded-xl border-2 border-border shadow-2xl bg-white',
                 headerTitle: 'hidden',
                 headerSubtitle: 'hidden',
-                socialButtonsBlockButton: 'border border-gray-300 hover:bg-gray-50 text-gray-700',
-                socialButtonsProviderIcon: 'w-5 h-5',
                 formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
                 footerActionLink: 'text-primary hover:text-primary/80',
               },

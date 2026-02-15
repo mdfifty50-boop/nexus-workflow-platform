@@ -50,7 +50,7 @@ import { SmartAIChatbot } from '@/components/SmartAIChatbot'
 // =============================================================================
 const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login })))
 const SignUp = lazy(() => import('@/pages/SignUp').then(m => ({ default: m.SignUp })))
-const SSOCallback = lazy(() => import('@/pages/SSOCallback').then(m => ({ default: m.SSOCallback })))
+// SSOCallback no longer needed — Clerk's <SignIn routing="path"> handles /login/sso-callback internally
 
 // =============================================================================
 // LANDING PAGE - Lazy loaded (large marketing page with animations)
@@ -276,10 +276,11 @@ function App() {
           <Route path="/" element={<LandingPage />} />
 
           {/* Auth routes - lazy loaded */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/login/sso-callback" element={<SSOCallback />} />
-          <Route path="/sign-up" element={<SignUp />} />
-          <Route path="/sign-up/sso-callback" element={<SSOCallback />} />
+          {/* CRITICAL: Use wildcard /* so Clerk's <SignIn routing="path"> handles
+              its own sub-routes including /login/sso-callback internally.
+              A separate SSOCallback route CONFLICTS with path-based routing. */}
+          <Route path="/login/*" element={<Login />} />
+          <Route path="/sign-up/*" element={<SignUp />} />
 
           {/* Onboarding - new user flow (<5 min to first workflow) */}
           <Route
