@@ -130,7 +130,7 @@ const MeetingRoomDemo = lazy(() => import('@/pages/MeetingRoomDemo'))
 const VoiceDemo = lazy(() => import('@/pages/VoiceDemo'))
 const AvatarDemo = lazy(() => import('@/pages/AvatarDemo'))
 const ChatDemo = lazy(() => import('@/pages/ChatDemo'))
-const MobileChat = lazy(() => import('@/pages/Chat'))
+// MobileChat removed — /chat now uses full-featured ChatDemo with sidebar + "Think with me"
 
 // =============================================================================
 // WHATSAPP BUSINESS PAGES - AiSensy Integration
@@ -267,10 +267,10 @@ function App() {
           <Suspense fallback={<RouteLoadingFallback />}>
           <PageTransition type="fade" duration={300}>
           <Routes>
-          {/* Chat route - main Nexus chat interface (mobile-first design) */}
-          <Route path="/chat" element={<MobileChat />} />
-          {/* Legacy chat demo with sidebar */}
-          <Route path="/chat-legacy" element={<ChatDemo />} />
+          {/* Chat route - main Nexus chat with sidebar, "Think with me", dashboard panel */}
+          <Route path="/chat" element={<ChatDemo />} />
+          {/* Keep old route as redirect */}
+          <Route path="/chat-legacy" element={<Navigate to="/chat" replace />} />
 
           {/* Landing page - lazy loaded for smaller initial bundle */}
           <Route path="/" element={<LandingPage />} />
