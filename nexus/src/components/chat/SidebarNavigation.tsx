@@ -202,13 +202,13 @@ function ConsultancyIcon({ className }: { className?: string }) {
 
 // NAV_ITEMS structure without labels - labels added via i18n in component
 const NAV_ITEMS_CONFIG: Array<Omit<NavItem, 'label'> & { labelKey: string }> = [
-  { id: 'chat', labelKey: 'chat.chat', path: '/chat-demo', icon: MessageIcon, primary: true, hasDropdown: true },
+  { id: 'chat', labelKey: 'chat.chat', path: '/chat', icon: MessageIcon, primary: true, hasDropdown: true },
   { id: 'dashboard', labelKey: 'navigation.dashboard', path: '/dashboard', icon: DashboardIcon },
-  { id: 'workflows', labelKey: 'navigation.workflows', path: '/workflow-demo', icon: WorkflowIcon },
+  { id: 'workflows', labelKey: 'navigation.workflows', path: '/workflows', icon: WorkflowIcon },
   { id: 'templates', labelKey: 'navigation.templates', path: '/templates', icon: TemplatesIcon },
   { id: 'integrations', labelKey: 'navigation.integrations', path: '/integrations', icon: IntegrationsIcon },
   { id: 'whatsapp', labelKey: 'chat.whatsApp', path: '/whatsapp', icon: WhatsAppIcon, badge: 'NEW' },
-  { id: 'consultancy', labelKey: 'navigation.aiConsultancy', path: '/meeting-room-demo', icon: ConsultancyIcon, badge: 'AI' },
+  { id: 'consultancy', labelKey: 'navigation.aiConsultancy', path: '/chat', icon: ConsultancyIcon, badge: 'AI' },
   { id: 'settings', labelKey: 'navigation.settings', path: '/settings', icon: SettingsIcon },
 ]
 
@@ -286,9 +286,9 @@ export function SidebarNavigation({
     setChatDropdownOpen(false)
     // Navigate to chat
     if (onNavigate) {
-      onNavigate('/chat-demo')
+      onNavigate('/chat')
     } else {
-      navigate('/chat-demo')
+      navigate('/chat')
     }
   }
 
@@ -304,15 +304,15 @@ export function SidebarNavigation({
       newValue: Date.now().toString()
     }))
     if (onNavigate) {
-      onNavigate('/chat-demo')
+      onNavigate('/chat')
     } else {
-      navigate('/chat-demo')
+      navigate('/chat')
     }
   }
 
   const isActive = (path: string) => {
     // Handle root path for chat
-    if (path === '/chat-demo' && (location.pathname === '/' || location.pathname === '/chat-demo')) return true
+    if (path === '/chat' && (location.pathname === '/' || location.pathname === '/chat')) return true
     return location.pathname === path || location.pathname.startsWith(path + '/')
   }
 

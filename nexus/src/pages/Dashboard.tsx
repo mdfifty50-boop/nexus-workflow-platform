@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Lightbulb,
   RefreshCw,
-  MessageSquare,
   ArrowRight,
   Plus,
 } from 'lucide-react'
@@ -32,7 +31,7 @@ import { workflowPersistenceService, type SavedWorkflow } from '@/services/Workf
 import { useAuth } from '@/contexts/AuthContext'
 // @NEXUS-FIX-090: Role-based avatar integration (SmartAvatar kept as fallback)
 import { Spline3DAvatar } from '@/components/Spline3DAvatar'
-import { NEXUS_AGENTS } from '@/lib/nexus-party-mode-service'
+// NEXUS_AGENTS import removed — agent grid no longer shown on dashboard
 import { useBusinessProfile } from '@/hooks/useBusinessProfile'
 
 // ============================================
@@ -303,8 +302,7 @@ export function Dashboard() {
 
   const { industryName, hasProfile } = useBusinessProfile()
 
-  // AI Consultancy agents for the agency card
-  const consultants = useMemo(() => Object.values(NEXUS_AGENTS).slice(0, 8), [])
+  // Agent grid removed from dashboard — consultancy accessed via /chat sidebar
 
   // Get regional greeting context
   const greetingContext = useMemo(() => {
@@ -441,107 +439,52 @@ export function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* AI Agency Card - Your Team of Expert Consultants */}
+      {/* Quick Actions - Build a Workflow (main) + AI Consultancy (secondary) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-500 to-cyan-500 p-[2px] group">
-          <div className="relative bg-surface-900/[0.97] rounded-[calc(1rem-2px)] p-6 md:p-8 backdrop-blur-sm">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-                  <Sparkles className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                    AI Consultancy
-                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/20">8 Experts</span>
-                  </h2>
-                  <p className="text-surface-300 text-sm md:text-base max-w-xl">
-                    {hasProfile && industryName
-                      ? `Your dedicated AI consultancy team, specialized for ${industryName}. Strategy, automation, analytics, compliance, and more.`
-                      : 'Your dedicated team of 8 AI expert consultants. Get real strategic advice on automation, analytics, compliance, and business transformation.'
-                    }
-                  </p>
-                </div>
+        {/* Build a Workflow — Main CTA (takes 2/3 width) */}
+        <Link to="/chat" className="md:col-span-2 group">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-nexus-600 via-cyan-500 to-nexus-500 p-[2px] h-full">
+            <div className="relative bg-surface-900/[0.95] rounded-[calc(1rem-2px)] p-6 h-full flex items-center gap-5 hover:bg-surface-900/[0.90] transition-colors">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-nexus-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-nexus-500/20">
+                <Zap className="w-7 h-7 text-white" />
               </div>
-
-              <div className="flex gap-3 flex-shrink-0">
-                <Link to="/meeting-room-demo">
-                  <div className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-semibold shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-all cursor-pointer">
-                    <MessageSquare className="w-5 h-5" />
-                    <span>Start Session</span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </Link>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-white mb-1">Build a Workflow</h2>
+                <p className="text-surface-300 text-sm">Describe what you want in plain English and Nexus builds it for you</p>
               </div>
-            </div>
-
-            {/* Consultant Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-              {consultants.map((agent) => (
-                <div
-                  key={agent.id}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl bg-surface-800/40 border border-surface-700/30 hover:border-purple-500/30 hover:bg-surface-800/60 transition-all cursor-default"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl border-2"
-                    style={{ backgroundColor: `${agent.color}20`, borderColor: agent.color }}
-                  >
-                    {agent.icon}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-medium text-white">{agent.displayName}</p>
-                    <p className="text-[10px] text-surface-500 leading-tight">{agent.title.split(' — ')[0].split(' + ')[0]}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Services Row */}
-            <div className="pt-5 border-t border-surface-700/30">
-              <p className="text-xs text-surface-500 mb-3">Consultancy services:</p>
-              <div className="flex flex-wrap gap-2">
-                {['AI Strategy', 'Process Automation', 'Data Analytics', 'Compliance & Risk', 'Customer Experience', 'Change Management'].map((service, i) => (
-                  <span key={i} className="px-3 py-1.5 text-sm bg-surface-800/60 text-surface-300 rounded-lg border border-surface-700/30">
-                    {service}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Start Row */}
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
-              <Link to="/chat" className="flex-1">
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-nexus-500/10 border border-nexus-500/20 hover:bg-nexus-500/15 transition-all cursor-pointer">
-                  <div className="w-10 h-10 rounded-lg bg-nexus-500/20 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 text-nexus-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Build a Workflow</p>
-                    <p className="text-xs text-surface-400">Describe it in plain English</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-surface-500 ml-auto" />
-                </div>
-              </Link>
-              <Link to="/meeting-room-demo" className="flex-1">
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/15 transition-all cursor-pointer">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Consult the Team</p>
-                    <p className="text-xs text-surface-400">Get expert advice from 8 AI consultants</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-surface-500 ml-auto" />
-                </div>
-              </Link>
+              <ArrowRight className="w-6 h-6 text-surface-400 group-hover:text-white group-hover:translate-x-1 transition-all flex-shrink-0" />
             </div>
           </div>
-        </div>
+        </Link>
+
+        {/* AI Consultancy — Compact secondary option (1/3 width) */}
+        <Link to="/chat" className="group">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-500 p-[2px] h-full">
+            <div className="relative bg-surface-900/[0.95] rounded-[calc(1rem-2px)] p-6 h-full flex flex-col justify-center hover:bg-surface-900/[0.90] transition-colors">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white">AI Consultancy</h3>
+                  <span className="text-xs text-purple-300/70">8 expert consultants</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-surface-500 group-hover:text-purple-300 group-hover:translate-x-1 transition-all ml-auto" />
+              </div>
+              <p className="text-surface-400 text-xs leading-relaxed">
+                {hasProfile && industryName
+                  ? `Strategy, automation & analytics for ${industryName}`
+                  : 'Get strategic advice on automation, analytics & business transformation'
+                }
+              </p>
+            </div>
+          </div>
+        </Link>
       </motion.div>
 
       {/* Stats grid - Premium cards with gradient borders */}

@@ -25,7 +25,7 @@ import {
 } from '@/components/error-boundaries'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { PageTransition } from '@/components/PageTransition'
-import { SmartAIChatbot } from '@/components/SmartAIChatbot'
+// SmartAIChatbot removed — /chat provides the full chat experience
 // AITeamChatButton removed — chat feature replaces it
 
 // =============================================================================
@@ -260,8 +260,7 @@ function App() {
           <NetworkStatusBanner />
           <SubscriptionWarningBanner />
           {/* AI Team Chat Button removed — chat feature in Nexus replaces this */}
-          {/* Global chatbot available on ALL pages */}
-          <SmartAIChatbot position="bottom-right" />
+          {/* Global floating chatbot removed — Chat UI at /chat replaces it */}
           {/* 3D Avatar moved to top of App for debugging */}
           <BaseErrorBoundary variant="full-page" severity="critical">
           <Suspense fallback={<RouteLoadingFallback />}>
