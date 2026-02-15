@@ -26,7 +26,7 @@ import {
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { PageTransition } from '@/components/PageTransition'
 import { SmartAIChatbot } from '@/components/SmartAIChatbot'
-import { AITeamChatButton } from '@/components/AITeamChatButton'
+// AITeamChatButton removed — chat feature replaces it
 
 // =============================================================================
 // LAZY-LOADED ROUTES
@@ -259,8 +259,7 @@ function App() {
           <GlobalConfetti />
           <NetworkStatusBanner />
           <SubscriptionWarningBanner />
-          {/* AI Team Chat Button - Desktop only, positioned above chatbot */}
-          <AITeamChatButton />
+          {/* AI Team Chat Button removed — chat feature in Nexus replaces this */}
           {/* Global chatbot available on ALL pages */}
           <SmartAIChatbot position="bottom-right" />
           {/* 3D Avatar moved to top of App for debugging */}

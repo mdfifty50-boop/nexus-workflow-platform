@@ -35,7 +35,9 @@ export function Login() {
                 card: 'glass rounded-xl border-2 border-border shadow-2xl',
                 headerTitle: 'hidden',
                 headerSubtitle: 'hidden',
-                socialButtonsBlockButton: 'bg-background hover:bg-muted border-2 border-border',
+                socialButtonsBlockButton: 'bg-background hover:bg-muted border-2 border-border flex items-center justify-center gap-2',
+                socialButtonsBlockButtonText: 'text-foreground font-medium',
+                socialButtonsProviderIcon: 'w-5 h-5',
                 formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
                 footerActionLink: 'text-primary hover:text-primary/80',
               },
@@ -44,6 +46,7 @@ export function Login() {
             path="/login"
             signUpUrl="/sign-up"
             fallbackRedirectUrl="/dashboard"
+            forceRedirectUrl="/dashboard"
           />
         )}
       </div>

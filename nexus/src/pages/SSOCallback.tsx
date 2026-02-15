@@ -25,7 +25,10 @@ export function SSOCallback() {
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
 
         {/* This component handles the OAuth callback and completes authentication */}
-        <AuthenticateWithRedirectCallback />
+        <AuthenticateWithRedirectCallback
+          signInForceRedirectUrl="/dashboard"
+          signUpForceRedirectUrl="/dashboard"
+        />
       </div>
     </div>
   )

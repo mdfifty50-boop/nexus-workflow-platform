@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useRef, useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { PricingSection } from '@/components/PricingSection'
 // @NEXUS-FIX-090: Role-based avatar integration — 3D robot avatar for chat section
 import { Spline3DAvatar } from '@/components/Spline3DAvatar'
@@ -17,7 +17,6 @@ import {
   Bot,
   Shield,
   Globe,
-  Play,
   Check,
   Star,
   Mail,
@@ -208,17 +207,22 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
 }
 
-// Scroll-reveal section component
+// Scroll-reveal section component — fades in when entering viewport,
+// stays focused (bright) when in center, dims slightly when scrolled past
 function RevealSection({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+  // Fade in as section enters bottom, full opacity in center, fade slightly when leaving top
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.5, 0.8, 1], [0, 1, 1, 0.7, 0.3])
+  const y = useTransform(scrollYProgress, [0, 0.2, 1], [40, 0, 0])
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 60 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      style={{ opacity, y }}
       className={className}
     >
       {children}
@@ -580,12 +584,12 @@ export function LandingPage() {
 
                 <motion.div variants={fadeInUp} className={`flex flex-col sm:flex-row gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   <motion.button
-                    onClick={() => navigate('/chat')}
+                    onClick={() => navigate('/sign-up')}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={`btn-gradient text-base px-8 py-4 w-full sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}
                   >
-                    {t('landing.cta.button', 'Start Building Free')}
+                    {t('landing.cta.button', 'Start Free')}
                     <ArrowRight className={`w-5 h-5 inline ${isRTL ? 'mr-2 rotate-180' : 'ml-2'}`} />
                   </motion.button>
                   <motion.button
@@ -594,8 +598,8 @@ export function LandingPage() {
                     onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                     className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all cursor-pointer"
                   >
-                    <Play className="w-5 h-5" />
-                    {t('landing.hero.watchDemo', 'Watch Demo')}
+                    <ArrowRight className="w-5 h-5" />
+                    {t('landing.hero.howItWorks', 'How It Works')}
                   </motion.button>
                 </motion.div>
 
@@ -1066,7 +1070,7 @@ export function LandingPage() {
                     {t('landing.cta.subtitle', 'Start building intelligent workflows in minutes, not months. Free forever for individuals.')}
                   </p>
                   <motion.button
-                    onClick={() => navigate('/chat')}
+                    onClick={() => navigate('/sign-up')}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="btn-gradient text-lg px-10 py-4"
