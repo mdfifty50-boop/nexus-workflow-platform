@@ -52,8 +52,12 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = process.env.PORT || 4567
 
-// Middleware
-app.use(cors())
+// Middleware - CORS configuration
+const FRONTEND_URL = process.env.FRONTEND_URL || ''
+app.use(cors(FRONTEND_URL ? {
+  origin: [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'],
+  credentials: true,
+} : undefined))
 
 // Stripe webhooks require raw body for signature verification
 // This must be before express.json() middleware
