@@ -24,7 +24,12 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     : urlPath.replace(/^\/api\/services\/?/, '')
 
   // === Status endpoints (all identical - check Supabase config) ===
-  if (route === 'chat-persistence/status' ||
+  // Flat paths required: Vercel catch-all doesn't handle multi-segment paths in subdirectories
+  if (route === 'chat-persistence-status' ||
+      route === 'workflow-persistence-status' ||
+      route === 'user-preferences-status' ||
+      // Legacy nested paths (for dev server compatibility)
+      route === 'chat-persistence/status' ||
       route === 'workflow-persistence/status' ||
       route === 'user-preferences/status') {
 

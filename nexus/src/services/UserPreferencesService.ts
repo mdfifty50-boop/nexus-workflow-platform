@@ -203,7 +203,8 @@ class UserPreferencesService {
    */
   private async checkCloudStatus(): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE}/status`)
+      // Flat path required: Vercel catch-all doesn't handle multi-segment paths
+      const response = await fetch('/api/services/user-preferences-status')
       if (response.ok) {
         const data = await response.json()
         this.cloudEnabled = data.cloudEnabled
