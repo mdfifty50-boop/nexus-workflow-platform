@@ -25,6 +25,8 @@ import { withRetry } from '../lib/retry-helper'
 import { containsArabic } from '../lib/arabic-normalizer'
 // Finding #15: i18n support for error messages - Arabic/English
 import i18n from '../i18n'
+// Finding #26: Prayer time, Islamic calendar, and regional scheduling awareness
+import { regionalSchedulingService } from './RegionalSchedulingService'
 
 // Message format for Claude API
 export interface ChatMessage {
@@ -91,7 +93,38 @@ export interface WorkflowStep {
 }
 
 class NexusAIService {
+  private static HISTORY_STORAGE_KEY = 'nexus_ai_conversation_history'
   private conversationHistory: ChatMessage[] = []
+
+  constructor() {
+    // Finding #13: Restore conversation history to prevent post-refresh amnesia
+    try {
+      const saved = localStorage.getItem(NexusAIService.HISTORY_STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          this.conversationHistory = parsed.slice(-10) // Keep last 10
+        }
+      }
+    } catch {
+      // localStorage might not be available (Safari Private Browsing)
+    }
+  }
+
+  /**
+   * Finding #13: Persist conversation history to localStorage
+   * Called after every push to conversationHistory to prevent post-refresh amnesia.
+   */
+  private persistHistory(): void {
+    try {
+      localStorage.setItem(
+        NexusAIService.HISTORY_STORAGE_KEY,
+        JSON.stringify(this.conversationHistory.slice(-10))
+      )
+    } catch {
+      // Silent fail for Safari Private Browsing
+    }
+  }
 
   /**
    * Build user context string from stored business profile and preferences.
@@ -108,7 +141,28 @@ class NexusAIService {
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
     // Kuwait work week: Sunday-Thursday
     const isKuwaitWorkday = now.getDay() >= 0 && now.getDay() <= 4
-    const temporalContext = `Current date: ${dateStr} (${dayOfWeek})\nCurrent time: ${timeStr} (${timeOfDay})\nKuwait work day: ${isKuwaitWorkday ? 'Yes' : 'No (weekend)'}`
+    let temporalContext = `Current date: ${dateStr} (${dayOfWeek})\nCurrent time: ${timeStr} (${timeOfDay})\nKuwait work day: ${isKuwaitWorkday ? 'Yes' : 'No (weekend)'}`
+
+    // Finding #26: Inject Islamic calendar and prayer time awareness
+    try {
+      const ctx = regionalSchedulingService.getSchedulingContext()
+      const hijri = ctx.hijriDate
+      temporalContext += `\nIslamic date: ${hijri.day} ${hijri.monthName} ${hijri.year} AH`
+      if (ctx.isRamadan) {
+        temporalContext += `\nRAMADAN ACTIVE: Working hours ${ctx.workingHours.startHour}:00-${ctx.workingHours.endHour}:00. Be mindful of fasting hours.`
+      }
+      const nextPrayer = ctx.prayerTimes.nextPrayer
+      if (nextPrayer) {
+        const prayerTimeStr = regionalSchedulingService.formatPrayerTime(nextPrayer.time)
+        temporalContext += `\nNext prayer: ${nextPrayer.name} at ${prayerTimeStr}`
+      }
+      if (ctx.upcomingHolidays.length > 0) {
+        const holiday = ctx.upcomingHolidays[0]
+        temporalContext += `\nUpcoming holiday: ${holiday.name} (${holiday.nameAr})`
+      }
+    } catch {
+      // RegionalSchedulingService not available - non-critical
+    }
 
     try {
       const memory = userMemoryService.getMemoryForAI()
@@ -209,6 +263,9 @@ class NexusAIService {
     if (this.conversationHistory.length > 10) {
       this.conversationHistory = this.conversationHistory.slice(-10)
     }
+
+    // Finding #13: Persist after adding user message
+    this.persistHistory()
 
     try {
       console.log('[NexusAIService] Calling Claude AI via /api/chat...', { chatMode: context?.chatMode })
@@ -316,6 +373,9 @@ class NexusAIService {
         content: aiResponse.text
       })
 
+      // Finding #13: Persist after adding assistant response
+      this.persistHistory()
+
       return aiResponse
 
     } catch (error) {
@@ -363,6 +423,9 @@ class NexusAIService {
     if (this.conversationHistory.length > 10) {
       this.conversationHistory = this.conversationHistory.slice(-10)
     }
+
+    // Finding #13: Persist after adding user message (stream path)
+    this.persistHistory()
 
     try {
       console.log('[NexusAIService] Starting SSE stream via /api/chat/stream...', { chatMode: context?.chatMode })
@@ -509,12 +572,16 @@ class NexusAIService {
         content: finalResponse.text
       })
 
+      // Finding #13: Persist after adding assistant response (stream path)
+      this.persistHistory()
+
       return finalResponse
 
     } catch (error) {
       console.warn('[NexusAIService] Streaming failed, falling back to non-streaming chat():', error)
       // Remove the user message we already added (chat() will re-add it)
       this.conversationHistory.pop()
+      this.persistHistory() // Finding #13: Keep localStorage in sync after pop
       // Fallback to non-streaming
       return this.chat(userMessage, context)
     }
@@ -620,9 +687,15 @@ class NexusAIService {
 
   /**
    * Clear conversation history (for new chat)
+   * Finding #13: Also clears persisted localStorage to prevent stale amnesia
    */
   clearHistory() {
     this.conversationHistory = []
+    try {
+      localStorage.removeItem(NexusAIService.HISTORY_STORAGE_KEY)
+    } catch {
+      // Silent fail for Safari Private Browsing
+    }
   }
 
   /**
@@ -640,6 +713,8 @@ class NexusAIService {
     this.conversationHistory = messages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+    // Finding #13: Persist restored history so it survives future refreshes
+    this.persistHistory()
   }
 }
 

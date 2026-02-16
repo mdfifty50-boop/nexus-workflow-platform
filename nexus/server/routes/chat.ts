@@ -194,17 +194,33 @@ router.post('/', chatRateLimiter, async (req, res) => {
       })
     }
 
+    // === Finding #10: Prompt Injection Defense - Layer 6: Per-user message rate limiting ===
+    const userId = (req.headers['x-user-id'] as string) ||
+                   (req.headers['x-clerk-user-id'] as string) ||
+                   (req as any).auth?.userId ||
+                   req.ip || 'anonymous'
+    const rateLimitCheck = promptGuardService.checkRateLimit(userId)
+    if (!rateLimitCheck.allowed) {
+      console.warn(`[Chat][PromptGuard] Rate limit exceeded for user: ${userId}`)
+      return res.status(429).json({
+        success: false,
+        error: 'You are sending messages too quickly. Please wait a moment.',
+        remaining: rateLimitCheck.remaining,
+        retryAfter: 60
+      })
+    }
+
     // Get the latest user message (used for routing and app detection)
     const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')
 
     // === Finding #10: Prompt Injection Defense - Layer 1: Input Sanitization ===
     if (lastUserMessage?.content && typeof lastUserMessage.content === 'string') {
-      const guardResult = promptGuardService.sanitizeInput(lastUserMessage.content)
-      if (guardResult.flagged) {
-        console.warn(`[Chat][PromptGuard] Suspicious input detected: ${guardResult.threats.join(', ')}`)
-        // Sanitize but do NOT block - replace content with cleaned version
-        lastUserMessage.content = guardResult.clean
+      const sanitizeResult = promptGuardService.sanitizeUserInput(lastUserMessage.content)
+      if (sanitizeResult.flags.length > 0) {
+        console.warn('[Security] Prompt injection flags:', sanitizeResult.flags)
       }
+      // Apply cleaned version (invisible chars stripped)
+      lastUserMessage.content = sanitizeResult.sanitized
     }
 
     // =========================================================================
@@ -539,16 +555,34 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
       return
     }
 
+    // === Finding #10: Prompt Injection Defense - Layer 6: Per-user message rate limiting ===
+    const streamUserId = (req.headers['x-user-id'] as string) ||
+                         (req.headers['x-clerk-user-id'] as string) ||
+                         (req as any).auth?.userId ||
+                         req.ip || 'anonymous'
+    const streamRateCheck = promptGuardService.checkRateLimit(streamUserId)
+    if (!streamRateCheck.allowed) {
+      console.warn(`[Chat/Stream][PromptGuard] Rate limit exceeded for user: ${streamUserId}`)
+      sendEvent('error', {
+        error: 'You are sending messages too quickly. Please wait a moment.',
+        remaining: streamRateCheck.remaining,
+        retryAfter: 60
+      })
+      sendEvent('done', {})
+      res.end()
+      return
+    }
+
     // Get the latest user message
     const lastUserMessage = [...messages].reverse().find((m: any) => m.role === 'user')
 
     // === Finding #10: Prompt Injection Defense - Layer 1: Input Sanitization ===
     if (lastUserMessage?.content && typeof lastUserMessage.content === 'string') {
-      const guardResult = promptGuardService.sanitizeInput(lastUserMessage.content)
-      if (guardResult.flagged) {
-        console.warn(`[Chat/Stream][PromptGuard] Suspicious input detected: ${guardResult.threats.join(', ')}`)
-        lastUserMessage.content = guardResult.clean
+      const sanitizeResult = promptGuardService.sanitizeUserInput(lastUserMessage.content)
+      if (sanitizeResult.flags.length > 0) {
+        console.warn('[Security/Stream] Prompt injection flags:', sanitizeResult.flags)
       }
+      lastUserMessage.content = sanitizeResult.sanitized
     }
 
     // Template match (first message only) - returns non-streamed for speed
