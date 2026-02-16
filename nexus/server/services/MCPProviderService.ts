@@ -348,7 +348,7 @@ class MCPProviderServiceClass {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as Record<string, any>
 
       if (data.error) {
         return { success: false, error: data.error_description || data.error }
@@ -389,7 +389,7 @@ class MCPProviderServiceClass {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as Record<string, any> as Record<string, any>
 
       if (data.error) {
         return { success: false, error: data.error_description || data.error }
@@ -489,7 +489,7 @@ class MCPProviderServiceClass {
         body: apiEndpoint.body ? JSON.stringify(apiEndpoint.body) : undefined,
       })
 
-      const data = await response.json()
+      const data = await response.json() as Record<string, any>
 
       if (!response.ok) {
         return {
@@ -593,7 +593,7 @@ class MCPProviderServiceClass {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as Record<string, any>
 
       if (!response.ok) {
         return {

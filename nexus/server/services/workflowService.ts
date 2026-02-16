@@ -198,6 +198,7 @@ export const workflowService = {
 
     if (!profile) {
       // In dev mode, allow access without profile
+      const isDev = process.env.NODE_ENV !== 'production'
       if (isDev && inMemoryWorkflows.has(workflowId)) {
         return inMemoryWorkflows.get(workflowId)
       }

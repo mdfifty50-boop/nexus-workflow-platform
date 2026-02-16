@@ -125,9 +125,9 @@ class WhatsAppBaileysService extends EventEmitter {
       // Dynamic import Baileys
       const baileys = await import('@whiskeysockets/baileys')
 
-      this.makeWASocket = baileys.default || baileys.makeWASocket
+      this.makeWASocket = (baileys.default || baileys.makeWASocket) as any
       this.useMultiFileAuthState = baileys.useMultiFileAuthState
-      this.DisconnectReason = baileys.DisconnectReason
+      this.DisconnectReason = baileys.DisconnectReason as any
       this.Browsers = baileys.Browsers
 
       if (!this.makeWASocket || !this.useMultiFileAuthState) {

@@ -657,11 +657,4 @@ class ElevenLabsVoiceServiceClass {
 // Export singleton instance
 export const ElevenLabsVoiceService = new ElevenLabsVoiceServiceClass()
 
-// Export types
-export type {
-  VoiceProfile,
-  DomainConfig,
-  UserVoicePreferences,
-  WorkflowVoiceConfig,
-  VoiceCallConfig,
-}
+// Types are already exported at their definitions above

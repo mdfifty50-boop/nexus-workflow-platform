@@ -378,7 +378,7 @@ class KNETServiceClass {
   // Helper: Send payment confirmation via WhatsApp
   private async sendPaymentConfirmation(transaction: KNETTransaction): Promise<void> {
     try {
-      await composioService.executeAction(
+      await composioService.executeTool(
         'WHATSAPP_SEND_MESSAGE',
         {
           to: transaction.customerPhone,
@@ -401,7 +401,7 @@ Thank you for your payment!
   // Helper: Send refund notification
   private async sendRefundNotification(refund: KNETTransaction): Promise<void> {
     try {
-      await composioService.executeAction(
+      await composioService.executeTool(
         'WHATSAPP_SEND_MESSAGE',
         {
           to: refund.customerPhone,
