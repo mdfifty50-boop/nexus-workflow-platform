@@ -7,17 +7,21 @@ import { withSecurityHeaders } from '../_lib/security-headers.js'
  * Handles status checks and AI proxy routing to stay within Vercel's
  * 12 serverless function limit on the Hobby plan.
  *
- * Mapped via vercel.json rewrites:
- *   /api/chat-persistence/status    → /api/services/chat-persistence/status
- *   /api/workflow-persistence/status → /api/services/workflow-persistence/status
- *   /api/user-preferences/status    → /api/services/user-preferences/status
- *   /api/ai-proxy/status            → /api/services/ai-proxy/status
+ * Routes:
+ *   /api/services/chat-persistence/status    → Supabase status check
+ *   /api/services/workflow-persistence/status → Supabase status check
+ *   /api/services/user-preferences/status    → Supabase status check
+ *   /api/services/ai-proxy-status            → AI provider status check
  */
 export default function handler(req: VercelRequest, res: VercelResponse) {
   if (withSecurityHeaders(req, res)) return
 
-  const { path } = req.query
-  const route = Array.isArray(path) ? path.join('/') : path || ''
+  // Vercel catch-all: param key is literally "[...path]" not "path"
+  const catchAllParam = req.query['[...path]'] || req.query.path
+  const urlPath = (req.url || '').split('?')[0]
+  const route = Array.isArray(catchAllParam) ? catchAllParam.join('/')
+    : typeof catchAllParam === 'string' ? catchAllParam
+    : urlPath.replace(/^\/api\/services\/?/, '')
 
   // === Status endpoints (all identical - check Supabase config) ===
   if (route === 'chat-persistence/status' ||
@@ -33,8 +37,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // === AI Proxy status ===
-  if (route === 'ai-proxy/status') {
+  // === AI Proxy status (flat path: ai-proxy-status) ===
+  if (route === 'ai-proxy-status' || route === 'ai-proxy/status') {
     return res.status(200).json({
       services: {
         elevenlabs: {

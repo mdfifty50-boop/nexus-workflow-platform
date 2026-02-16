@@ -100,8 +100,9 @@ async function handleBusinessPut(userId: string, req: VercelRequest, res: Vercel
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (withSecurityHeaders(req, res)) return
 
-  const { path } = req.query
-  const route = Array.isArray(path) ? path.join('/') : path || ''
+  // Extract route from URL path (more reliable than req.query.path)
+  const urlPath = req.url || ''
+  const route = urlPath.replace(/^\/api\/user-profile\/?/, '').split('?')[0]
   const userId = req.headers['x-clerk-user-id'] as string
 
   switch (route) {

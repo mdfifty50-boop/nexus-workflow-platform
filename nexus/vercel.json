@@ -57,22 +57,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/chat-persistence/:path*",
-      "destination": "/api/services/chat-persistence/:path*"
-    },
-    {
-      "source": "/api/workflow-persistence/:path*",
-      "destination": "/api/services/workflow-persistence/:path*"
-    },
-    {
-      "source": "/api/user-preferences/:path*",
-      "destination": "/api/services/user-preferences/:path*"
-    },
-    {
-      "source": "/api/ai-proxy/:path*",
-      "destination": "/api/services/ai-proxy/:path*"
-    },
-    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
