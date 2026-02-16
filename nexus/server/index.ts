@@ -45,6 +45,8 @@ import paymentLinksRoutes from './routes/payment-links.js'
 
 // WhatsApp Business trigger service (auto-initializes and registers message handler)
 import './services/WhatsAppBusinessTriggerService.js'
+// @NEXUS-FIX-141: Import Baileys service for session restore on startup - DO NOT REMOVE
+import { whatsAppBaileysService } from './services/WhatsAppBaileysService.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -217,6 +219,16 @@ if (!process.env.VITEST) {
     console.log(`   Browser: ✓ Playwright available`)
     console.log(`   WhatsApp Business: ${process.env.AISENSY_PARTNER_ID ? '✓ AiSensy configured' : '⚠ Configure AISENSY_PARTNER_ID for Embedded Signup'}`)
     console.log(`   WhatsApp Web: ✓ QR Code integration available`)
+
+    // @NEXUS-FIX-141: Restore WhatsApp sessions from persistent storage - DO NOT REMOVE
+    // This runs async after server startup so it doesn't block the listen callback
+    whatsAppBaileysService.restoreSessions().then(({ restored, failed }) => {
+      if (restored > 0 || failed > 0) {
+        console.log(`   WhatsApp Sessions: ${restored} restored, ${failed} failed`)
+      }
+    }).catch(err => {
+      console.error('   WhatsApp Sessions: restore error -', err.message)
+    })
   })
 }
 
