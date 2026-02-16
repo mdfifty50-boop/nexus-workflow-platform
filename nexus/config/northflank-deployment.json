@@ -1,0 +1,74 @@
+{
+  "platform": "northflank",
+  "plan": "developer-sandbox",
+  "services": {
+    "nexus-backend": {
+      "type": "deployment",
+      "runtime": "docker",
+      "dockerfile": "nexus/Dockerfile",
+      "port": 4567,
+      "healthCheck": "/api/health",
+      "resources": {
+        "cpu": "0.2",
+        "memory": "512Mi"
+      },
+      "environmentVariables": {
+        "required": [
+          "PORT",
+          "NODE_ENV",
+          "ANTHROPIC_API_KEY",
+          "COMPOSIO_API_KEY"
+        ],
+        "optional": [
+          "VITE_SUPABASE_URL",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "ELEVENLABS_API_KEY",
+          "OPENAI_API_KEY",
+          "STRIPE_SECRET_KEY",
+          "HEYGEN_API_KEY",
+          "GOOGLE_CLIENT_ID",
+          "GOOGLE_CLIENT_SECRET",
+          "SLACK_CLIENT_ID",
+          "SLACK_CLIENT_SECRET",
+          "GITHUB_CLIENT_ID",
+          "GITHUB_CLIENT_SECRET",
+          "AISENSY_PARTNER_ID",
+          "FRONTEND_URL"
+        ]
+      },
+      "volumes": {
+        "whatsapp-sessions": {
+          "mountPath": "/app/.whatsapp-sessions-baileys",
+          "size": "1Gi",
+          "purpose": "WhatsApp Baileys session persistence across restarts"
+        }
+      },
+      "scaling": {
+        "minInstances": 1,
+        "maxInstances": 1,
+        "note": "WhatsApp Baileys requires single instance (session file lock)"
+      }
+    }
+  },
+  "frontendConfig": {
+    "platform": "vercel",
+    "url": "https://nexus-theta-peach.vercel.app",
+    "apiProxyConfig": {
+      "note": "Frontend VITE_API_URL must point to Northflank backend URL",
+      "envVar": "VITE_API_URL",
+      "example": "https://nexus-backend-xxxxx.northflank.app"
+    }
+  },
+  "deploymentSteps": [
+    "1. Create Northflank account at northflank.com",
+    "2. Create new project 'nexus'",
+    "3. Connect GitHub repository",
+    "4. Create new 'deployment' service",
+    "5. Select Dockerfile build, point to nexus/Dockerfile",
+    "6. Set environment variables (copy from local .env)",
+    "7. Add persistent volume for WhatsApp sessions",
+    "8. Deploy and get public URL",
+    "9. Update Vercel env VITE_API_URL to point to Northflank URL",
+    "10. Redeploy Vercel frontend"
+  ]
+}

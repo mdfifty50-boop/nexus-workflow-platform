@@ -331,15 +331,19 @@ const TOOL_REQUIREMENTS: Record<string, {
   },
 
   // Asana
+  // @NEXUS-FIX-118: Aligned with validateRequiredParams — workspace + name required, not project_id
   asana: {
-    requiredParams: ['project_id'],
-    optionalParams: ['name', 'notes'],
+    requiredParams: ['workspace', 'name'],
+    optionalParams: ['notes', 'project_id'],
     paramConfig: {
-      project_id: {
-        displayName: 'Project',
-        prompt: 'Which Asana project?',
+      workspace: {
+        displayName: 'Workspace',
+        prompt: 'Which Asana workspace should I use?',
         inputType: 'text',
-        placeholder: 'Project name or URL'
+        placeholder: 'Workspace name or ID',
+        quickActions: [
+          { label: 'Default Workspace', value: '{{default_workspace}}' }
+        ]
       },
       name: {
         displayName: 'Task Name',
@@ -524,6 +528,227 @@ const TOOL_REQUIREMENTS: Record<string, {
       }
     }
   },
+
+  // @NEXUS-FIX-118: Missing integrations that caused execution failures - DO NOT REMOVE
+  // These were in validateRequiredParams() (execution-level) but missing from pre-flight,
+  // causing params to be missed during Quick Setup and then failing at execution time.
+
+  // Zoom
+  zoom: {
+    requiredParams: ['topic'],
+    optionalParams: ['duration', 'start_time'],
+    paramConfig: {
+      topic: {
+        displayName: 'Meeting Topic',
+        prompt: 'What should the meeting be called?',
+        inputType: 'text',
+        placeholder: 'Enter meeting topic...',
+        quickActions: [
+          { label: 'Quick Sync', value: 'Quick Sync' },
+          { label: 'Team Meeting', value: 'Team Meeting' }
+        ]
+      }
+    }
+  },
+
+  // Google Calendar
+  googlecalendar: {
+    requiredParams: ['summary'],
+    optionalParams: ['start_datetime', 'end_datetime', 'description', 'attendees'],
+    paramConfig: {
+      summary: {
+        displayName: 'Event Name',
+        prompt: 'What should the calendar event be called?',
+        inputType: 'text',
+        placeholder: 'Enter event name...',
+        quickActions: [
+          { label: 'Meeting', value: 'Meeting' },
+          { label: 'Follow-up', value: 'Follow-up' }
+        ]
+      }
+    }
+  },
+
+  // Microsoft Teams
+  teams: {
+    requiredParams: ['channel_id', 'message'],
+    paramConfig: {
+      channel_id: {
+        displayName: 'Channel',
+        prompt: 'Which Teams channel?',
+        inputType: 'text',
+        placeholder: 'Channel name or ID'
+      },
+      message: {
+        displayName: 'Message',
+        prompt: 'What message should I send?',
+        inputType: 'textarea',
+        placeholder: 'Type your message...'
+      }
+    }
+  },
+
+  // SendGrid
+  sendgrid: {
+    requiredParams: ['to', 'subject'],
+    optionalParams: ['body'],
+    paramConfig: {
+      to: {
+        displayName: 'Recipient',
+        prompt: 'Who should receive this email?',
+        inputType: 'email',
+        placeholder: 'email@example.com',
+        quickActions: [
+          { label: 'Send to Myself', value: '{{user_email}}' }
+        ]
+      },
+      subject: {
+        displayName: 'Subject',
+        prompt: 'What should the subject line say?',
+        inputType: 'text',
+        placeholder: 'Enter subject...'
+      }
+    }
+  },
+
+  // Salesforce
+  salesforce: {
+    requiredParams: ['object_type'],
+    paramConfig: {
+      object_type: {
+        displayName: 'Record Type',
+        prompt: 'What type of Salesforce record?',
+        inputType: 'text',
+        placeholder: 'Lead, Contact, Account...',
+        quickActions: [
+          { label: 'Lead', value: 'Lead' },
+          { label: 'Contact', value: 'Contact' },
+          { label: 'Account', value: 'Account' }
+        ]
+      }
+    }
+  },
+
+  // Pipedrive
+  pipedrive: {
+    requiredParams: ['title'],
+    paramConfig: {
+      title: {
+        displayName: 'Deal Title',
+        prompt: 'What should the deal be called?',
+        inputType: 'text',
+        placeholder: 'Enter deal title...'
+      }
+    }
+  },
+
+  // Stripe
+  stripe: {
+    requiredParams: ['email'],
+    optionalParams: ['name', 'description'],
+    paramConfig: {
+      email: {
+        displayName: 'Customer Email',
+        prompt: 'What is the customer\'s email?',
+        inputType: 'email',
+        placeholder: 'customer@example.com'
+      }
+    }
+  },
+
+  // Mailchimp
+  mailchimp: {
+    requiredParams: ['list_id', 'email'],
+    paramConfig: {
+      list_id: {
+        displayName: 'Audience',
+        prompt: 'Which Mailchimp audience/list?',
+        inputType: 'text',
+        placeholder: 'Audience name or ID'
+      },
+      email: {
+        displayName: 'Subscriber Email',
+        prompt: 'What email should be subscribed?',
+        inputType: 'email',
+        placeholder: 'subscriber@example.com'
+      }
+    }
+  },
+
+  // LinkedIn
+  linkedin: {
+    requiredParams: ['text'],
+    paramConfig: {
+      text: {
+        displayName: 'Post Content',
+        prompt: 'What should the LinkedIn post say?',
+        inputType: 'textarea',
+        placeholder: 'Type your post content...'
+      }
+    }
+  },
+
+  // Zendesk
+  zendesk: {
+    requiredParams: ['subject'],
+    optionalParams: ['description'],
+    paramConfig: {
+      subject: {
+        displayName: 'Ticket Subject',
+        prompt: 'What should the support ticket be about?',
+        inputType: 'text',
+        placeholder: 'Enter ticket subject...'
+      }
+    }
+  },
+
+  // Freshdesk
+  freshdesk: {
+    requiredParams: ['subject', 'email'],
+    paramConfig: {
+      subject: {
+        displayName: 'Ticket Subject',
+        prompt: 'What should the support ticket be about?',
+        inputType: 'text',
+        placeholder: 'Enter ticket subject...'
+      },
+      email: {
+        displayName: 'Requester Email',
+        prompt: 'What is the requester\'s email?',
+        inputType: 'email',
+        placeholder: 'requester@example.com'
+      }
+    }
+  },
+
+  // Intercom
+  intercom: {
+    requiredParams: ['body'],
+    optionalParams: ['user_id'],
+    paramConfig: {
+      body: {
+        displayName: 'Message',
+        prompt: 'What message should I send?',
+        inputType: 'textarea',
+        placeholder: 'Type your message...'
+      }
+    }
+  },
+
+  // Google Drive
+  googledrive: {
+    requiredParams: [],
+    optionalParams: ['file_id', 'folder_id'],
+    paramConfig: {
+      file_id: {
+        displayName: 'File',
+        prompt: 'Which Google Drive file?',
+        inputType: 'text',
+        placeholder: 'File name or ID'
+      }
+    }
+  },
+  // @NEXUS-FIX-118-END
 
   // Default fallback for unknown integrations
   _default: {

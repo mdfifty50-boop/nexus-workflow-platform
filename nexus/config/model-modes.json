@@ -1,0 +1,165 @@
+{
+  "$schema": "model-modes.schema.json",
+  "version": "1.0.0",
+  "description": "Central model configuration for Nexus agent infrastructure",
+  "activeMode": "default",
+  "modes": {
+    "marathon": {
+      "description": "Maximum capability - CEO-Director model with full Opus orchestration",
+      "director": "opus",
+      "coder": "sonnet",
+      "explorer": "haiku",
+      "ralph-qa": "haiku",
+      "winston-architect": "opus",
+      "marcus-gm": "opus",
+      "ux-expert": "opus",
+      "api-architect": "opus",
+      "integration-tester": "sonnet",
+      "workflow-executor": "sonnet",
+      "estimatedCostPerLoop": "$3-5"
+    },
+    "default": {
+      "description": "Balanced mode - Opus for orchestration, Sonnet for implementation",
+      "director": "opus",
+      "coder": "sonnet",
+      "explorer": "haiku",
+      "ralph-qa": "haiku",
+      "winston-architect": "sonnet",
+      "marcus-gm": "sonnet",
+      "ux-expert": "sonnet",
+      "api-architect": "sonnet",
+      "integration-tester": "haiku",
+      "workflow-executor": "sonnet",
+      "estimatedCostPerLoop": "$1-3"
+    },
+    "sprint": {
+      "description": "Cost-optimized - Sonnet orchestration, Haiku for lightweight tasks",
+      "director": "sonnet",
+      "coder": "sonnet",
+      "explorer": "haiku",
+      "ralph-qa": "haiku",
+      "winston-architect": "sonnet",
+      "marcus-gm": "haiku",
+      "ux-expert": "haiku",
+      "api-architect": "sonnet",
+      "integration-tester": "haiku",
+      "workflow-executor": "haiku",
+      "estimatedCostPerLoop": "$0.50-1"
+    },
+    "budget": {
+      "description": "Minimum cost - Haiku everywhere except critical orchestration",
+      "director": "sonnet",
+      "coder": "haiku",
+      "explorer": "haiku",
+      "ralph-qa": "haiku",
+      "winston-architect": "haiku",
+      "marcus-gm": "haiku",
+      "ux-expert": "haiku",
+      "api-architect": "haiku",
+      "integration-tester": "haiku",
+      "workflow-executor": "haiku",
+      "estimatedCostPerLoop": "$0.20-0.50"
+    }
+  },
+  "modelMetadata": {
+    "opus": {
+      "id": "claude-opus-4-6",
+      "tier": "flagship",
+      "costPerMToken_input": 15.0,
+      "costPerMToken_output": 75.0,
+      "capabilities": ["complex-reasoning", "orchestration", "architecture", "long-context", "agentic-coding"],
+      "contextWindow": 200000,
+      "notes": "Opus 4.6 - Latest flagship. Superior instruction following, reliable tool use, best for orchestration and complex multi-step tasks."
+    },
+    "sonnet": {
+      "id": "claude-sonnet-4-20250514",
+      "tier": "balanced",
+      "costPerMToken_input": 3.0,
+      "costPerMToken_output": 15.0,
+      "capabilities": ["code-generation", "analysis", "implementation", "debugging"],
+      "contextWindow": 200000,
+      "notes": "Best value for implementation tasks. Strong code generation, good reasoning."
+    },
+    "haiku": {
+      "id": "claude-haiku-3-5-20241022",
+      "tier": "fast",
+      "costPerMToken_input": 0.80,
+      "costPerMToken_output": 4.0,
+      "capabilities": ["classification", "simple-tasks", "file-search", "validation"],
+      "contextWindow": 200000,
+      "notes": "Fastest and cheapest. Good for search, validation, simple edits."
+    }
+  },
+  "opusVersionDifferences": {
+    "opus_4_5": {
+      "strengths": ["Deep reasoning", "Long-form analysis", "Creative problem solving"],
+      "limitations": ["Slightly slower tool use", "Occasional over-elaboration"],
+      "bestFor": "Complex architectural decisions, creative feature design"
+    },
+    "opus_4_6": {
+      "strengths": ["Superior instruction following", "Reliable tool use", "Better agentic behavior", "More concise output", "Improved code generation"],
+      "improvements_over_4_5": [
+        "More reliable at following complex multi-step instructions",
+        "Better at parallel tool use without errors",
+        "More concise - less over-explanation",
+        "Improved code quality in generated output",
+        "Better at maintaining context across long sessions",
+        "More reliable agentic coding capabilities"
+      ],
+      "bestFor": "Orchestration, multi-agent coordination, complex implementation, agentic workflows"
+    }
+  },
+  "agentLevelDescriptions": {
+    "director": "L1 Orchestrator - Routes and coordinates all agents, enforces scope, reports to CEO",
+    "specialist": "L2 Specialist - Domain expertise (architecture, UX, strategy, API design)",
+    "worker": "L3 Worker - Atomic task execution (coding, searching, validating)"
+  },
+  "adaptiveEffort": {
+    "description": "Per-task complexity classification. Director classifies BEFORE dispatch, overriding default agent model when appropriate.",
+    "classifications": {
+      "TRIVIAL": {
+        "model": "haiku",
+        "max_turns": 5,
+        "promptPrefix": "Quick task. Be direct. Complete in minimum steps.",
+        "signals": [
+          "Single file change",
+          "Rename, typo, import, config edit",
+          "Read-only research or search",
+          "No protected files involved",
+          "No fix markers involved"
+        ]
+      },
+      "STANDARD": {
+        "model": "sonnet",
+        "max_turns": 12,
+        "promptPrefix": "",
+        "signals": [
+          "2-4 files modified",
+          "New function, component, or single bug fix",
+          "No protected files",
+          "No cross-layer dependencies",
+          "Single domain knowledge needed"
+        ]
+      },
+      "COMPLEX": {
+        "model": "opus",
+        "max_turns": 25,
+        "promptPrefix": "Complex task with cross-file dependencies. Check fix markers, dependency chains, and potential regressions before acting.",
+        "signals": [
+          "5+ files or protected files involved",
+          "Multi-file refactoring",
+          "Crosses layers (service → route → frontend)",
+          "Fix markers must be preserved",
+          "Multi-domain (OAuth + WhatsApp + Composio)",
+          "Architectural decisions"
+        ]
+      }
+    },
+    "overrides": {
+      "protectedFile": "COMPLEX",
+      "readOnlyResearch": "TRIVIAL",
+      "qaValidation": "TRIVIAL",
+      "architectureDecision": "COMPLEX"
+    }
+  }
+}

@@ -5,18 +5,17 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getErrorMessage, getCurrentLocale } from '@/lib/error-messages'
 
 export function NotFound() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState('')
   const [recentPages, setRecentPages] = useState<string[]>([])
-
-  const errorMessage = getErrorMessage('NOT_FOUND_PAGE', getCurrentLocale())
 
   // Load recent pages from session storage
   useEffect(() => {
@@ -51,8 +50,8 @@ export function NotFound() {
   // Popular/suggested links
   const popularLinks = [
     {
-      title: 'Dashboard',
-      description: 'View your overview and quick actions',
+      title: t('notFound.links.dashboard'),
+      description: t('notFound.links.dashboardDesc'),
       href: '/dashboard',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,8 +65,8 @@ export function NotFound() {
       ),
     },
     {
-      title: 'Workflows',
-      description: 'Manage your automated workflows',
+      title: t('notFound.links.workflows'),
+      description: t('notFound.links.workflowsDesc'),
       href: '/workflows',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,8 +80,8 @@ export function NotFound() {
       ),
     },
     {
-      title: 'Templates',
-      description: 'Browse pre-built workflow templates',
+      title: t('notFound.links.templates'),
+      description: t('notFound.links.templatesDesc'),
       href: '/templates',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,8 +95,8 @@ export function NotFound() {
       ),
     },
     {
-      title: 'Integrations',
-      description: 'Connect your favorite apps',
+      title: t('notFound.links.integrations'),
+      description: t('notFound.links.integrationsDesc'),
       href: '/integrations',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,8 +110,8 @@ export function NotFound() {
       ),
     },
     {
-      title: 'Help Center',
-      description: 'Get help and find answers',
+      title: t('notFound.links.helpCenter'),
+      description: t('notFound.links.helpCenterDesc'),
       href: '/help',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -126,8 +125,8 @@ export function NotFound() {
       ),
     },
     {
-      title: 'Settings',
-      description: 'Configure your account',
+      title: t('notFound.links.settings'),
+      description: t('notFound.links.settingsDesc'),
       href: '/settings',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,7 +167,7 @@ export function NotFound() {
                 d="M10 19l-7-7m0 0l7-7m-7 7h18"
               />
             </svg>
-            Go Back
+            {t('notFound.goBack')}
           </Button>
         </div>
       </header>
@@ -203,12 +202,12 @@ export function NotFound() {
               </div>
             </div>
 
-            <h1 className="text-3xl font-bold text-foreground mb-2">{errorMessage.title}</h1>
-            <p className="text-muted-foreground mb-2">{errorMessage.message}</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{t('notFound.title')}</h1>
+            <p className="text-muted-foreground mb-2">{t('notFound.message')}</p>
 
             {/* Show the attempted path */}
             <p className="text-sm text-muted-foreground/70 mb-6">
-              Looking for:{' '}
+              {t('notFound.lookingFor')}{' '}
               <code className="px-2 py-1 bg-muted rounded text-foreground">
                 {location.pathname}
               </code>
@@ -234,14 +233,14 @@ export function NotFound() {
                 </svg>
                 <Input
                   type="text"
-                  placeholder="Search for workflows, templates, or help..."
+                  placeholder={t('notFound.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
                 />
               </div>
               <Button type="submit" disabled={!searchQuery.trim()}>
-                Search
+                {t('common.search')}
               </Button>
             </form>
           </div>
@@ -250,7 +249,7 @@ export function NotFound() {
           {recentPages.length > 0 && (
             <div className="mb-8">
               <h2 className="text-sm font-medium text-muted-foreground mb-3">
-                Your recent pages:
+                {t('notFound.recentPages')}
               </h2>
               <div className="flex flex-wrap gap-2">
                 {recentPages.map((page) => (
@@ -269,7 +268,7 @@ export function NotFound() {
           {/* Popular Links */}
           <div>
             <h2 className="text-sm font-medium text-muted-foreground mb-4">
-              Or try these popular pages:
+              {t('notFound.popularPages')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {popularLinks.map((link) => (
@@ -303,7 +302,7 @@ export function NotFound() {
                   d="M10 19l-7-7m0 0l7-7m-7 7h18"
                 />
               </svg>
-              Go Back
+              {t('notFound.goBack')}
             </Button>
             <Button onClick={() => navigate('/dashboard')} size="lg">
               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,15 +313,15 @@ export function NotFound() {
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                 />
               </svg>
-              Go to Dashboard
+              {t('notFound.goToDashboard')}
             </Button>
           </div>
 
           {/* Help Text */}
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Still can't find what you're looking for?{' '}
+            {t('notFound.stillLooking')}{' '}
             <Link to="/help" className="text-primary hover:underline">
-              Contact Support
+              {t('notFound.contactSupport')}
             </Link>
           </p>
         </div>
@@ -345,7 +344,7 @@ export function NotFound() {
             }}
             className="text-primary hover:underline"
           >
-            Report Broken Link
+            {t('notFound.reportBrokenLink')}
           </button>
         </div>
       </footer>

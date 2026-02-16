@@ -162,7 +162,7 @@ export function ChatInterface({ userId: _userId, onNavigate }: { userId?: string
       const response = await apiClient.chat({
         messages: conversationMessages,
         systemPrompt: SYSTEM_PROMPT,
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6-20250115',
         maxTokens: 2048,
         autoRoute: true
       })

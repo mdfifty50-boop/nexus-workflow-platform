@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "agentOnlyMode": {
+    "enabled": false,
+    "description": "When enabled, main context delegates ALL work to agents",
+    "restrictedOperations": ["direct-file-edit", "direct-file-write", "direct-code-generation"],
+    "allowedOperations": ["orchestration", "status-checking", "scope-management", "user-communication"],
+    "exemptCommands": [
+      "git status",
+      "git log",
+      "git diff",
+      "npm test",
+      "npm run build",
+      "npx tsc --noEmit"
+    ]
+  },
+  "autonomousMode": {
+    "enabled": true,
+    "description": "System never asks for permissions or stops at milestones",
+    "neverAsk": [
+      "Should I proceed?",
+      "Do you want me to...",
+      "Is this okay?",
+      "Can I...",
+      "May I..."
+    ],
+    "neverStopAt": [
+      "milestone-reached",
+      "phase-complete",
+      "loop-boundary",
+      "agent-task-complete"
+    ],
+    "onlyStopFor": [
+      "unrecoverable-error",
+      "user-says-STOP",
+      "user-says-HALT",
+      "user-says-PAUSE",
+      "security-critical-operation"
+    ],
+    "autoRecovery": {
+      "onBuildFailure": "diagnose-fix-rebuild",
+      "onTestFailure": "ralph-loop-auto-fix",
+      "onAgentError": "retry-with-clearer-scope",
+      "onConflict": "resolve-using-best-judgment"
+    }
+  }
+}

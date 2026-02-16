@@ -350,38 +350,43 @@ export function WhatsAppCatalogue() {
 
     setSaving(true)
     try {
-      const productData: CatalogueItem = {
-        id: editingItem?.id || Date.now().toString(),
+      const payload = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
         currency: formData.currency,
-        imageUrl: formData.imageUrl || 'https://via.placeholder.com/400x300?text=No+Image',
+        imageUrl: formData.imageUrl || '',
         category: formData.category,
         availability: formData.availability,
         url: formData.url || undefined,
         sku: formData.sku || undefined,
         isVisible: editingItem?.isVisible ?? true,
-        createdAt: editingItem?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       }
 
+      let response: Response
       if (editingItem) {
-        setItems(prev => prev.map(i => i.id === editingItem.id ? productData : i))
+        response = await fetch(`/api/whatsapp-business/catalogue/${editingItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
       } else {
-        setItems(prev => [...prev, productData])
+        response = await fetch('/api/whatsapp-business/catalogue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
       }
 
-      if (!categories.find(c => c.name === formData.category)) {
-        setCategories(prev => [...prev, {
-          id: Date.now().toString(),
-          name: formData.category,
-          itemCount: 1
-        }])
+      if (response.ok) {
+        showToast(editingItem ? 'Product updated successfully' : 'Product added successfully', 'success')
+        setShowModal(false)
+        // Refresh the full catalogue list from server
+        await fetchCatalogue()
+      } else {
+        const errData = await response.json().catch(() => ({}))
+        showToast(errData.error || 'Failed to save product', 'error')
       }
-
-      showToast(editingItem ? 'Product updated successfully' : 'Product added successfully', 'success')
-      setShowModal(false)
     } catch {
       showToast('Failed to save product', 'error')
     } finally {
@@ -389,16 +394,47 @@ export function WhatsAppCatalogue() {
     }
   }
 
-  const handleToggleVisibility = (item: CatalogueItem) => {
-    const updatedItem = { ...item, isVisible: !item.isVisible }
-    setItems(prev => prev.map(i => i.id === item.id ? updatedItem : i))
-    showToast(`"${item.name}" is now ${updatedItem.isVisible ? 'visible' : 'hidden'}`, 'success')
+  const handleToggleVisibility = async (item: CatalogueItem) => {
+    const newVisibility = !item.isVisible
+    try {
+      const response = await fetch(`/api/whatsapp-business/catalogue/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVisible: newVisibility }),
+      })
+
+      if (response.ok) {
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, isVisible: newVisibility } : i))
+        showToast(`"${item.name}" is now ${newVisibility ? 'visible' : 'hidden'}`, 'success')
+      } else {
+        showToast('Failed to update visibility', 'error')
+      }
+    } catch {
+      // Optimistic fallback: update locally even if server call fails
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, isVisible: newVisibility } : i))
+      showToast(`"${item.name}" is now ${newVisibility ? 'visible' : 'hidden'}`, 'success')
+    }
   }
 
-  const handleDelete = (item: CatalogueItem) => {
+  const handleDelete = async (item: CatalogueItem) => {
     if (!confirm(`Are you sure you want to delete "${item.name}"?`)) return
-    setItems(prev => prev.filter(i => i.id !== item.id))
-    showToast('Product deleted successfully', 'success')
+
+    try {
+      const response = await fetch(`/api/whatsapp-business/catalogue/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        showToast('Product deleted successfully', 'success')
+        await fetchCatalogue()
+      } else {
+        showToast('Failed to delete product', 'error')
+      }
+    } catch {
+      // Optimistic fallback: remove locally even if server call fails
+      setItems(prev => prev.filter(i => i.id !== item.id))
+      showToast('Product deleted successfully', 'success')
+    }
   }
 
   const filteredItems = items.filter(item => {

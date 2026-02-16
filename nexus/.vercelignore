@@ -1,0 +1,26 @@
+# Vercel upload ignore rules
+# This overrides .gitignore for Vercel deployments
+
+# Build artifacts
+node_modules
+dist-server
+
+# Dev files
+.whatsapp-sessions/
+.whatsapp-sessions-baileys/
+_bmad-output/
+
+# Test files
+*.cjs
+tests/
+
+# Screenshots and temp images
+*.png
+admin-audit.png
+dashboard*.png
+test-*.png
+
+# Session data
+.env
+.env.*
+!.env.production.example

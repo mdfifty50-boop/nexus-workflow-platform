@@ -81,8 +81,8 @@ function convertToUITemplate(template: WorkflowTemplate): UITemplate {
     description: template.description,
     category: template.category,
     apps: template.requiredIntegrations.slice(0, 3).map(tool => TOOL_EMOJIS[tool.toLowerCase()] || '⚙️'),
-    uses: Math.floor(template.popularity * 100), // Convert popularity score to "uses" count
-    rating: 4.5 + (template.popularity / 200), // Derive rating from popularity (4.5-5.0)
+    uses: 0, // Real usage tracking not yet implemented
+    rating: 0, // Real rating system not yet implemented
     timeSaved: template.estimatedTimeSaved,
     popular: template.popularity >= 85,
     featured: template.popularity >= 90,
@@ -196,14 +196,20 @@ export function WorkflowTemplates() {
               </p>
 
               <div className="flex flex-wrap items-center gap-3 sm:gap-6 mb-4 sm:mb-6">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-surface-400" />
-                  <span className="text-xs sm:text-sm text-surface-300">{featuredTemplate.uses.toLocaleString()} uses</span>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 fill-current" />
-                  <span className="text-xs sm:text-sm text-surface-300">{featuredTemplate.rating}</span>
-                </div>
+                {featuredTemplate.uses > 0 && (
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-surface-400" />
+                    <span className="text-xs sm:text-sm text-surface-300">{featuredTemplate.uses.toLocaleString()} uses</span>
+                  </div>
+                )}
+                {featuredTemplate.rating > 0 ? (
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 fill-current" />
+                    <span className="text-xs sm:text-sm text-surface-300">{featuredTemplate.rating}</span>
+                  </div>
+                ) : (
+                  <span className="badge text-xs bg-nexus-500/20 text-nexus-300">New Template</span>
+                )}
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-surface-400" />
                   <span className="text-xs sm:text-sm text-surface-300">Saves {featuredTemplate.timeSaved}</span>
@@ -353,14 +359,20 @@ export function WorkflowTemplates() {
 
             {/* Stats */}
             <div className="flex items-center gap-4 text-sm mb-4">
-              <div className="flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-surface-500" />
-                <span className="text-surface-400">{(template.uses / 1000).toFixed(1)}k</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Star className="w-4 h-4 text-amber-400" />
-                <span className="text-surface-400">{template.rating}</span>
-              </div>
+              {template.uses > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-surface-500" />
+                  <span className="text-surface-400">{(template.uses / 1000).toFixed(1)}k</span>
+                </div>
+              )}
+              {template.rating > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span className="text-surface-400">{template.rating}</span>
+                </div>
+              ) : (
+                <span className="badge text-xs bg-nexus-500/20 text-nexus-300">New</span>
+              )}
               <div className="flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-surface-500" />
                 <span className="text-surface-400">{template.timeSaved}</span>

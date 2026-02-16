@@ -95,7 +95,7 @@ export function WorkflowDetail() {
         : workflow?.description || 'Execute workflow task'
       const modelName = (typeof workflow?.config?.model === 'string'
         ? workflow.config.model
-        : 'claude-sonnet-4-20250514') as 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20251101'
+        : 'claude-opus-4-6-20250115') as 'claude-3-5-haiku-20241022' | 'claude-opus-4-6-20250115' | 'claude-opus-4-6-20250115'
 
       // Build Nexus-style system prompt
       const workflowType = workflow?.workflow_type || 'Simple'

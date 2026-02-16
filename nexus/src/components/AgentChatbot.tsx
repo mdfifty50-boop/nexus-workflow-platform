@@ -681,7 +681,7 @@ Just describe what you need and I'll route it to the right expert, or pick a spe
       const response = await apiClient.chat({
         messages: conversationMessages,
         systemPrompt: selectedAgent ? undefined : SYSTEM_PROMPT, // Use agent personality if selected
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6-20250115',
         maxTokens: 2048,
         agentId: selectedAgent || undefined,
         autoRoute: !selectedAgent, // Auto-route if no specific agent selected

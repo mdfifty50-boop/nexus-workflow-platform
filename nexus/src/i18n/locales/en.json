@@ -18,7 +18,8 @@
     "settings": "Settings",
     "help": "Help",
     "analytics": "Analytics",
-    "admin": "Admin Panel"
+    "admin": "Admin Panel",
+    "aiConsultancy": "AI Consultancy"
   },
 
   "common": {
@@ -130,7 +131,19 @@
     "deleteFailed": "Failed to delete item.",
     "connectionFailed": "Failed to connect to the service.",
     "permissionDenied": "You do not have permission to access this content.",
-    "sessionExpired": "Your session has expired. Please sign in again."
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "aiNetworkError": "I'm having trouble connecting right now. Let me try a simpler approach - what would you like to automate today?",
+    "aiTimeout": "That took longer than expected. Could you try rephrasing your request? Shorter, more specific requests get faster responses.",
+    "aiUnavailable": "Sorry, I couldn't process your request right now. Please try again.",
+    "workflowGenerationFailed": "I encountered an issue creating the workflow. Let me try a different approach.\n\nCould you describe what you'd like to automate in more detail?",
+    "workflowNotFound": "The workflow couldn't be found. Try generating a new one.",
+    "noActiveWorkflow": "I don't see an active workflow to edit. Please generate a workflow first.",
+    "aiEngineFailed": "I'm having trouble connecting to the AI engine. Let me help you another way!\n\nYou can:\n1. **Browse templates** - Pre-built workflows ready to use\n2. **Connect apps** - Set up your integrations first\n3. **Try again** - Describe your automation need\n\nWhat would you like to do?",
+    "noEmailFound": "I couldn't find your email address. Please enter your email address manually.",
+    "rateLimited": "Too many requests. Please wait a moment and try again.",
+    "authExpired": "Your connection has expired. Please reconnect.",
+    "missingParams": "I need a bit more information to complete this action.",
+    "workflowGenerationFallback": "I understand you want to: *{{understanding}}*\n\nI can help you set this up! What specific tools or apps would you like to use?"
   },
 
   "success": {
@@ -295,7 +308,9 @@
       "title": "Multi-Agent Workflows",
       "subtitle": "Multiple AI agents working together!",
       "launch": "Launch Advanced Workflows"
-    }
+    },
+    "workflowsThisMonth": "Workflows this month",
+    "upgradeUnlimited": "Upgrade for unlimited"
   },
 
   "time": {
@@ -333,7 +348,8 @@
     "currentPage": "Current page",
     "newWindow": "Opens in new window",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "aiTeamChat": "AI Team Chat"
   },
 
   "hints": {
@@ -342,6 +358,15 @@
     "quickSearch": "Quick search",
     "pressKey": "Press",
     "toOpen": "to open"
+  },
+
+  "dailyAdvice": {
+    "title": "Daily Tip",
+    "dismissTip": "Dismiss daily tip",
+    "buildAutomation": "Build This Automation",
+    "automateThis": "Automate this",
+    "impact": "{{priority}} impact",
+    "savesTime": "Saves 3+ hours/week"
   },
 
   "settings": {
@@ -633,7 +658,29 @@
     "title": "Page Not Found",
     "message": "Sorry, the page you're looking for doesn't exist.",
     "goHome": "Go Home",
-    "goBack": "Go Back"
+    "goBack": "Go Back",
+    "goToDashboard": "Go to Dashboard",
+    "lookingFor": "Looking for:",
+    "searchPlaceholder": "Search for workflows, templates, or help...",
+    "recentPages": "Your recent pages:",
+    "popularPages": "Or try these popular pages:",
+    "stillLooking": "Still can't find what you're looking for?",
+    "contactSupport": "Contact Support",
+    "reportBrokenLink": "Report Broken Link",
+    "links": {
+      "dashboard": "Dashboard",
+      "dashboardDesc": "View your overview and quick actions",
+      "workflows": "Workflows",
+      "workflowsDesc": "Manage your automated workflows",
+      "templates": "Templates",
+      "templatesDesc": "Browse pre-built workflow templates",
+      "integrations": "Integrations",
+      "integrationsDesc": "Connect your favorite apps",
+      "helpCenter": "Help Center",
+      "helpCenterDesc": "Get help and find answers",
+      "settings": "Settings",
+      "settingsDesc": "Configure your account"
+    }
   },
 
   "landing": {
@@ -881,6 +928,68 @@
       "confirm": "Are you sure you want to do this?",
       "askAgain": "Can you repeat the question?"
     }
+  },
+
+  "chat": {
+    "nexusAI": "Nexus AI",
+    "you": "You",
+    "online": "Online",
+    "thinking": "Nexus AI is thinking",
+    "copied": "Copied",
+    "copyMessage": "Copy message",
+    "copy": "Copy",
+    "newChat": "New Chat",
+    "thinkWithMe": "Think with me",
+    "recentChats": "Recent Chats",
+    "noChatHistory": "No chat history yet",
+    "describeWorkflow": "Describe your workflow...",
+    "stopRecording": "Stop",
+    "listening": "Listening...",
+    "voiceLanguage": "Voice Language",
+    "startVoice": "Start voice input",
+    "changeLanguage": "Change language",
+    "sendMessage": "Send message",
+    "waitingForResponse": "Waiting for response",
+    "hintVoice": "for voice",
+    "hintSend": "Enter to send",
+    "hintNewline": "Shift+Enter for new line",
+    "focusedMode": "Focused problem-solving mode",
+    "chatSidebar": "Chat sidebar",
+    "closeSidebar": "Close sidebar",
+    "openSidebar": "Open sidebar",
+    "toggleSidebar": "Toggle sidebar",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "chatHistory": "Chat History",
+    "clearHistory": "Clear History",
+    "settingsMenu": "Settings menu",
+    "howCanIHelp": "How can I help you today?",
+    "createPowerful": "Create powerful automations with natural language. Just describe what you want to automate.",
+    "aiWorkflowStudio": "AI Workflow Studio",
+    "suggestions": {
+      "createWorkflow": "Create a workflow",
+      "createWorkflowDesc": "Automate repetitive tasks",
+      "createWorkflowPrompt": "Help me create a workflow to automate email responses",
+      "connectApps": "Connect apps",
+      "connectAppsDesc": "Integrate your favorite tools",
+      "connectAppsPrompt": "How do I connect Slack with my Gmail?",
+      "exploreTemplates": "Explore templates",
+      "exploreTemplatesDesc": "Start with pre-built automations",
+      "exploreTemplatesPrompt": "Show me popular workflow templates"
+    },
+    "retrying": "Retrying the workflow...",
+    "noEmailFound": "I couldn't find your email address. Please enter your email address manually.",
+    "workflowReady": "Your workflow is ready!",
+    "clickExecute": "Click Execute Workflow to run it now!",
+    "buildingWorkflow": "Let me build your workflow...",
+    "quickQuestion": "Just {{count}} quick question to set this up:",
+    "quickQuestions": "Just {{count}} quick questions to set this up:",
+    "send": "Send",
+    "backToOptions": "Back to options",
+    "custom": "Custom...",
+    "other": "Other...",
+    "chat": "Chat",
+    "whatsApp": "WhatsApp"
   },
 
   "onboarding": {

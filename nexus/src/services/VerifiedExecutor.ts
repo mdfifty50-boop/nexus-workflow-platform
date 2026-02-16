@@ -851,6 +851,46 @@ export class VerifiedExecutorService {
       case 'notion':
         return verifyNotionResponse(data, params)
 
+      // @NEXUS-FIX-114: Additional toolkit verifiers using generic response - DO NOT REMOVE
+      // These toolkits return standard REST responses that the generic verifier handles well
+      case 'discord':
+      case 'teams':
+      case 'whatsapp':
+      case 'telegram':
+      case 'twilio':
+      case 'twitter':
+      case 'linkedin':
+      case 'instagram':
+      case 'facebook':
+      case 'hubspot':
+      case 'salesforce':
+      case 'pipedrive':
+      case 'stripe':
+      case 'shopify':
+      case 'woocommerce':
+      case 'square':
+      case 'clickup':
+      case 'linear':
+      case 'jira':
+      case 'monday':
+      case 'asana':
+      case 'trello':
+      case 'airtable':
+      case 'typeform':
+      case 'calendly':
+      case 'docusign':
+      case 'zendesk':
+      case 'freshdesk':
+      case 'intercom':
+      case 'helpscout':
+      case 'mailchimp':
+      case 'sendgrid':
+      case 'zoom':
+      case 'supabase':
+      case 'firebase':
+        return verifyGenericResponse(data, toolkit)
+      // @NEXUS-FIX-114-END
+
       default:
         return verifyGenericResponse(data, toolkit)
     }

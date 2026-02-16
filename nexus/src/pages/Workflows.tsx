@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import {
   Search,
   Plus,
@@ -13,95 +14,150 @@ import {
   ChevronRight,
   Zap,
   Edit,
+  MessageSquare,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
+import { workflowPersistenceService, type SavedWorkflow } from '@/services/WorkflowPersistenceService'
 
-const workflows = [
-  {
-    id: 1,
-    name: 'Email to Slack Notifier',
-    description: 'Forwards important emails to Slack channel with AI summary',
-    status: 'active',
-    lastRun: '2 min ago',
-    runs: 1245,
-    successRate: 99.8,
-    apps: ['📧', '💬'],
-    trigger: 'New Email',
-    color: 'from-blue-500 to-cyan-500',
-  },
-  {
-    id: 2,
-    name: 'Lead Scoring Pipeline',
-    description: 'Automatically scores and routes incoming leads',
-    status: 'active',
-    lastRun: '15 min ago',
-    runs: 892,
-    successRate: 98.5,
-    apps: ['🎯', '📊', '💬'],
-    trigger: 'New Form Submission',
-    color: 'from-purple-500 to-pink-500',
-  },
-  {
-    id: 3,
-    name: 'Invoice Generator',
-    description: 'Creates and sends invoices from completed projects',
-    status: 'paused',
-    lastRun: '1 day ago',
-    runs: 156,
-    successRate: 100,
-    apps: ['📄', '💳', '📧'],
-    trigger: 'Project Completed',
-    color: 'from-emerald-500 to-teal-500',
-  },
-  {
-    id: 4,
-    name: 'Social Media Scheduler',
-    description: 'Posts content across multiple social platforms',
-    status: 'active',
-    lastRun: '3 hours ago',
-    runs: 2341,
-    successRate: 97.2,
-    apps: ['📱', '🐦', '📸'],
-    trigger: 'Scheduled',
-    color: 'from-orange-500 to-red-500',
-  },
-  {
-    id: 5,
-    name: 'Customer Onboarding',
-    description: 'Sends welcome emails and creates user accounts',
-    status: 'active',
-    lastRun: '30 min ago',
-    runs: 567,
-    successRate: 99.5,
-    apps: ['📧', '🗃️', '💬'],
-    trigger: 'New Customer',
-    color: 'from-indigo-500 to-purple-500',
-  },
-  {
-    id: 6,
-    name: 'Weekly Report Builder',
-    description: 'Compiles data and generates weekly performance reports',
-    status: 'error',
-    lastRun: '2 hours ago',
-    runs: 45,
-    successRate: 88.9,
-    apps: ['📊', '📄', '📧'],
-    trigger: 'Every Monday 9am',
-    color: 'from-amber-500 to-orange-500',
-  },
+// ============================================================================
+// Display types & helpers for converting persisted workflows to page format
+// ============================================================================
+
+interface DisplayWorkflow {
+  id: string
+  name: string
+  description: string
+  status: 'active' | 'paused' | 'draft' | 'completed' | 'failed' | 'error'
+  lastRun: string
+  runs: number
+  successRate: number
+  apps: string[]
+  trigger: string
+  color: string
+}
+
+const GRADIENT_COLORS = [
+  'from-blue-500 to-cyan-500',
+  'from-purple-500 to-pink-500',
+  'from-emerald-500 to-teal-500',
+  'from-orange-500 to-red-500',
+  'from-indigo-500 to-purple-500',
+  'from-amber-500 to-orange-500',
 ]
 
-const stats = [
-  { label: 'Total Workflows', value: '24', icon: Zap },
-  { label: 'Active', value: '18', icon: Play },
-  { label: 'Paused', value: '4', icon: Pause },
-  { label: 'Error', value: '2', icon: AlertCircle },
-]
+const INTEGRATION_ICONS: Record<string, string> = {
+  gmail: '📧', email: '📧',
+  slack: '💬',
+  googlesheets: '📊', sheets: '📊',
+  dropbox: '📁', drive: '📁', googledrive: '📁',
+  notion: '📝',
+  calendar: '📅', googlecalendar: '📅',
+  twitter: '🐦', x: '🐦',
+  github: '🐙',
+  discord: '🎮',
+  trello: '📋',
+  asana: '✅',
+  stripe: '💳',
+  hubspot: '🎯',
+  zoom: '📹',
+  linear: '📐',
+  whatsapp: '📱',
+}
+
+function getIntegrationIcon(integration: string): string {
+  return INTEGRATION_ICONS[integration.toLowerCase()] || '⚡'
+}
+
+function formatRelativeTime(date: Date | undefined): string {
+  if (!date) return 'Never run'
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} min ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
+}
+
+function convertSavedToDisplay(wf: SavedWorkflow, index: number): DisplayWorkflow {
+  const statusMap: Record<string, DisplayWorkflow['status']> = {
+    active: 'active',
+    paused: 'paused',
+    draft: 'draft',
+    completed: 'completed',
+    failed: 'failed',
+    archived: 'paused',
+  }
+
+  const apps = wf.requiredIntegrations.map(getIntegrationIcon)
+  const triggerName = wf.triggerConfig?.name || wf.triggerConfig?.type || 'Manual'
+
+  return {
+    id: wf.id,
+    name: wf.name,
+    description: wf.description || 'No description',
+    status: statusMap[wf.status] || 'draft',
+    lastRun: formatRelativeTime(wf.lastExecutedAt),
+    runs: wf.executionCount || 0,
+    successRate: wf.executionCount > 0 ? 100 : 0,
+    apps,
+    trigger: triggerName,
+    color: GRADIENT_COLORS[index % GRADIENT_COLORS.length],
+  }
+}
+
+function computeStats(workflows: DisplayWorkflow[], t: (key: string) => string) {
+  const total = workflows.length
+  const active = workflows.filter(w => w.status === 'active').length
+  const paused = workflows.filter(w => w.status === 'paused' || w.status === 'draft').length
+  const errored = workflows.filter(w => w.status === 'error' || w.status === 'failed').length
+
+  return [
+    { label: t('workflow.totalRuns'), value: String(total), icon: Zap },
+    { label: t('workflow.status.active'), value: String(active), icon: Play },
+    { label: t('workflow.paused'), value: String(paused), icon: Pause },
+    { label: t('workflow.status.error'), value: String(errored), icon: AlertCircle },
+  ]
+}
 
 export function Workflows() {
+  const { t } = useTranslation()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
-  const [, setSelectedWorkflow] = useState<number | null>(null)
+  const [, setSelectedWorkflow] = useState<string | null>(null)
+  const [workflows, setWorkflows] = useState<DisplayWorkflow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load real workflows from persistence service
+  useEffect(() => {
+    async function loadWorkflows() {
+      try {
+        setIsLoading(true)
+        const { workflows: saved } = await workflowPersistenceService.loadWorkflows()
+        if (saved && saved.length > 0) {
+          const display = saved
+            .filter(w => w.status !== 'archived')
+            .map((w, i) => convertSavedToDisplay(w, i))
+          setWorkflows(display)
+        } else {
+          setWorkflows([])
+        }
+      } catch (err) {
+        console.warn('[Workflows] Failed to load workflows:', err)
+        setWorkflows([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadWorkflows()
+  }, [])
+
+  const stats = useMemo(() => computeStats(workflows, t), [workflows, t])
 
   const filteredWorkflows = workflows.filter(w =>
     w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -113,17 +169,19 @@ export function Workflows() {
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Workflows</h1>
-          <p className="text-sm sm:text-base text-surface-400 mt-1">Manage and monitor your automations</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('workflow.title')}</h1>
+          <p className="text-sm sm:text-base text-surface-400 mt-1">{t('workflow.description')}</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          New Workflow
-        </motion.button>
+        <Link to="/chat">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            {t('workflow.create')}
+          </motion.button>
+        </Link>
       </div>
 
       {/* Stats row */}
@@ -157,14 +215,14 @@ export function Workflows() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search workflows..."
+            placeholder={t('common.search') + '...'}
             className="input pl-12"
           />
         </div>
         <div className="flex items-center gap-3">
           <button className="btn-secondary flex items-center gap-2 py-3">
             <Filter className="w-4 h-4" />
-            Filters
+            {t('common.filter')}
           </button>
           <div className="flex items-center rounded-xl bg-surface-800 border border-surface-700 p-1">
             <button
@@ -193,8 +251,45 @@ export function Workflows() {
         </div>
       </div>
 
-      {/* Workflow grid/list */}
-      {viewMode === 'grid' ? (
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-2 border-nexus-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-surface-400 text-sm">{t('common.loading')}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isLoading && workflows.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center py-20 px-6"
+        >
+          <div className="w-20 h-20 rounded-2xl bg-surface-800 border border-surface-700 flex items-center justify-center mb-6">
+            <MessageSquare className="w-10 h-10 text-surface-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">{t('workflow.noWorkflows')}</h3>
+          <p className="text-surface-400 text-center max-w-md mb-8">
+            {t('workflow.noWorkflowsDescription', 'Create your first automation to get started. Tell Nexus what you want to automate and it will build the workflow for you.')}
+          </p>
+          <Link to="/chat">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="btn-primary flex items-center gap-2 px-6 py-3"
+            >
+              <Plus className="w-5 h-5" />
+              {t('workflow.create')}
+            </motion.button>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Workflow grid view */}
+      {!isLoading && filteredWorkflows.length > 0 && viewMode === 'grid' && (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredWorkflows.map((workflow, index) => (
             <motion.div
@@ -221,7 +316,7 @@ export function Workflows() {
                     {workflow.status === 'active' && <Play className="w-3 h-3 mr-1" />}
                     {workflow.status === 'paused' && <Pause className="w-3 h-3 mr-1" />}
                     {workflow.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
-                    {workflow.status}
+                    {t(`workflow.status.${workflow.status}`, workflow.status)}
                   </span>
                   <button className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-surface-700 transition-all">
                     <MoreHorizontal className="w-4 h-4 text-surface-400" />
@@ -254,32 +349,35 @@ export function Workflows() {
               <div className="pt-4 border-t border-surface-700/50 grid grid-cols-3 gap-2 sm:gap-4">
                 <div>
                   <p className="text-base sm:text-lg font-semibold text-white">{workflow.runs.toLocaleString()}</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Total runs</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.totalRuns')}</p>
                 </div>
                 <div>
                   <p className="text-base sm:text-lg font-semibold text-emerald-400">{workflow.successRate}%</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Success</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.successRate')}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-surface-300">{workflow.lastRun}</p>
-                  <p className="text-[10px] sm:text-xs text-surface-500">Last run</p>
+                  <p className="text-[10px] sm:text-xs text-surface-500">{t('workflow.lastRun')}</p>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
-      ) : (
+      )}
+
+      {/* Workflow list view */}
+      {!isLoading && filteredWorkflows.length > 0 && viewMode === 'list' && (
         <div className="card p-0 overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-surface-700">
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Workflow</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Status</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Trigger</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Runs</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Success Rate</th>
-                <th className="text-left text-sm font-medium text-surface-400 p-4">Last Run</th>
-                <th className="text-right text-sm font-medium text-surface-400 p-4">Actions</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.name')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('common.status', 'Status')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.trigger')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.totalRuns')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.successRate')}</th>
+                <th className="text-left text-sm font-medium text-surface-400 p-4">{t('workflow.lastRun')}</th>
+                <th className="text-right text-sm font-medium text-surface-400 p-4">{t('workflow.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -315,7 +413,7 @@ export function Workflows() {
                       workflow.status === 'paused' && 'badge-warning',
                       workflow.status === 'error' && 'bg-red-500/20 text-red-400 border-red-500/30'
                     )}>
-                      {workflow.status}
+                      {t(`workflow.status.${workflow.status}`, workflow.status)}
                     </span>
                   </td>
                   <td className="p-4 text-surface-300 text-sm">{workflow.trigger}</td>
@@ -349,6 +447,14 @@ export function Workflows() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* No search results state */}
+      {!isLoading && workflows.length > 0 && filteredWorkflows.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Search className="w-10 h-10 text-surface-500 mb-4" />
+          <p className="text-surface-400">{t('workflow.noWorkflowsMatching', 'No workflows matching "{{query}}"', { query: searchQuery })}</p>
         </div>
       )}
     </div>

@@ -15,6 +15,8 @@
 
 import { ToolRegistryService } from './ToolRegistry';
 import type { SupportResolution, ToolDefinition } from './ToolRegistry';
+// Finding #56: Arabic NLP preprocessing for intent resolution
+import { containsArabic, transliterateArabicKeywords } from '../lib/arabic-normalizer';
 
 // ================================
 // TYPE DEFINITIONS
@@ -154,8 +156,36 @@ export class IntentResolverService {
 
   /**
    * Parse a user request and resolve intent
+   * Finding #56: When Arabic text is detected, also resolve against a
+   * transliterated version and pick whichever yields higher confidence.
    */
   static resolve(input: string): ResolvedIntent {
+    const cleanInput = input.trim();
+
+    // Primary resolution on the original input
+    const primary = this.resolveInternal(cleanInput);
+
+    // Finding #56: If the input contains Arabic, run a second pass on
+    // the transliterated text and keep the result with higher confidence.
+    if (containsArabic(cleanInput)) {
+      const transliterated = transliterateArabicKeywords(cleanInput);
+      if (transliterated !== cleanInput) {
+        const secondary = this.resolveInternal(transliterated);
+        if (secondary.confidence > primary.confidence) {
+          // Use the transliterated result but keep the original rawInput
+          return { ...secondary, rawInput: cleanInput };
+        }
+      }
+    }
+
+    return primary;
+  }
+
+  /**
+   * Internal resolution logic (extracted so it can be called on both
+   * the original and transliterated inputs).
+   */
+  private static resolveInternal(input: string): ResolvedIntent {
     const cleanInput = input.trim();
 
     // Extract integrations
@@ -483,8 +513,27 @@ export class IntentResolverService {
 
   /**
    * Check if input is a workflow request vs a simple question
+   * Finding #56: Also checks Arabic-transliterated text
    */
   static isWorkflowRequest(input: string): boolean {
+    // Check original input first
+    if (this.isWorkflowRequestInternal(input)) return true;
+
+    // Finding #56: If Arabic text, also check transliterated version
+    if (containsArabic(input)) {
+      const transliterated = transliterateArabicKeywords(input);
+      if (transliterated !== input) {
+        return this.isWorkflowRequestInternal(transliterated);
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Internal workflow request check
+   */
+  private static isWorkflowRequestInternal(input: string): boolean {
     const lower = input.toLowerCase();
 
     // Check for action indicators
@@ -505,9 +554,12 @@ export class IntentResolverService {
 
   /**
    * Extract the primary intent (trigger vs action)
+   * Finding #56: Also considers Arabic-transliterated text
    */
   static getPrimaryIntentType(input: string): 'trigger' | 'action' | 'mixed' {
-    const lower = input.toLowerCase();
+    // Finding #56: Use transliterated version for Arabic input
+    const effective = containsArabic(input) ? transliterateArabicKeywords(input) : input;
+    const lower = effective.toLowerCase();
 
     const hasTrigger = TRIGGER_INDICATORS.some(t => lower.includes(t));
     const hasAction = ACTION_INDICATORS.some(a => lower.includes(a));

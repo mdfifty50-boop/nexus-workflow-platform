@@ -67,7 +67,7 @@ export type PreferenceValue<K extends PreferenceKey> = UserPreferences[K]
 
 const STORAGE_KEY = 'nexus-user-preferences'
 const SYNC_STATUS_KEY = 'nexus-preferences-sync-status'
-const API_BASE = '/api/user-preferences'
+const API_BASE = '/api/services/user-preferences'
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'dark',
@@ -203,7 +203,8 @@ class UserPreferencesService {
    */
   private async checkCloudStatus(): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE}/status`)
+      // Flat path required: Vercel catch-all doesn't handle multi-segment paths
+      const response = await fetch('/api/services/user-preferences-status')
       if (response.ok) {
         const data = await response.json()
         this.cloudEnabled = data.cloudEnabled

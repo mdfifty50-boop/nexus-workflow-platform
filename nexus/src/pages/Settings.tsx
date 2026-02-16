@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -14,7 +15,6 @@ import {
   Sun,
   Check,
   ChevronRight,
-  ExternalLink,
   Mic,
   Cloud,
 } from 'lucide-react'
@@ -24,16 +24,17 @@ import { VoiceSettingsSection } from '../components/voice'
 import { userPreferencesService } from '@/services'
 
 const settingsSections = [
-  { id: 'account', name: 'Account', icon: User },
-  { id: 'notifications', name: 'Notifications', icon: Bell },
-  { id: 'security', name: 'Security', icon: Shield },
-  { id: 'billing', name: 'Billing', icon: CreditCard },
-  { id: 'appearance', name: 'Appearance', icon: Palette },
-  { id: 'voice', name: 'Voice & AI', icon: Mic },
-  { id: 'integrations', name: 'API & Integrations', icon: Key },
+  { id: 'account', nameKey: 'settings.tabs.profile', icon: User },
+  { id: 'notifications', nameKey: 'settings.tabs.notifications', icon: Bell },
+  { id: 'security', nameKey: 'settings.tabs.security', icon: Shield },
+  { id: 'billing', nameKey: 'settings.tabs.billing', icon: CreditCard },
+  { id: 'appearance', nameKey: 'settings.tabs.appearance', icon: Palette },
+  { id: 'voice', nameKey: 'settings.tabs.voice', icon: Mic },
+  { id: 'integrations', nameKey: 'settings.tabs.integrations', icon: Key },
 ]
 
 export function Settings() {
+  const { t } = useTranslation()
   const [activeSection, setActiveSection] = useState('account')
   // Initialize state directly from service (lazy initialization for correct first render)
   const [darkMode, setDarkMode] = useState(() => userPreferencesService.get('theme') === 'dark')
@@ -89,16 +90,16 @@ export function Settings() {
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Settings</h1>
-            <p className="text-sm sm:text-base text-surface-400 mt-1">Manage your account preferences</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('settings.title')}</h1>
+            <p className="text-sm sm:text-base text-surface-400 mt-1">{t('settings.subtitle')}</p>
           </div>
           {syncStatus.enabled && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
               <Cloud className="w-3.5 h-3.5 text-emerald-400" />
               <span className="text-xs text-emerald-300">
                 {syncStatus.lastSync
-                  ? `Synced ${new Date(syncStatus.lastSync).toLocaleTimeString()}`
-                  : 'Cloud sync enabled'}
+                  ? `${t('integration.lastSync')} ${new Date(syncStatus.lastSync).toLocaleTimeString()}`
+                  : t('integration.connected')}
               </span>
             </div>
           )}
@@ -121,7 +122,7 @@ export function Settings() {
                 )}
               >
                 <section.icon className="w-5 h-5" />
-                <span className="font-medium">{section.name}</span>
+                <span className="font-medium">{t(section.nameKey)}</span>
               </button>
             ))}
           </div>
@@ -137,20 +138,20 @@ export function Settings() {
               className="space-y-6"
             >
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Profile Information</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.profile.title')}</h2>
 
                 <div className="flex items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
                   <div className="relative">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-gradient-to-br from-nexus-500 to-accent-500 flex items-center justify-center text-xl sm:text-2xl font-bold text-white">
-                      JD
+                      <User className="w-8 h-8 sm:w-10 sm:h-10" />
                     </div>
                     <button className="absolute -bottom-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface-700 border border-surface-600 flex items-center justify-center text-surface-300 hover:bg-surface-600 transition-colors">
                       <Palette className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-white">John Doe</h3>
-                    <p className="text-sm sm:text-base text-surface-400">john@example.com</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-white">{t('settings.profile.avatar')}</h3>
+                    <p className="text-sm sm:text-base text-surface-400">{t('settings.profile.changeAvatar')}</p>
                   </div>
                 </div>
 
@@ -160,7 +161,7 @@ export function Settings() {
                       <label className="block text-sm font-medium text-surface-300 mb-2">First Name</label>
                       <input
                         type="text"
-                        defaultValue="John"
+                        placeholder="Enter your first name"
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -172,7 +173,7 @@ export function Settings() {
                       <label className="block text-sm font-medium text-surface-300 mb-2">Last Name</label>
                       <input
                         type="text"
-                        defaultValue="Doe"
+                        placeholder="Enter your last name"
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -182,10 +183,10 @@ export function Settings() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">{t('settings.profile.email')}</label>
                     <input
                       type="email"
-                      defaultValue="john@example.com"
+                      placeholder="Enter your email address"
                       className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                       style={{
                         backgroundColor: '#1e293b',
@@ -194,7 +195,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">Timezone</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">{t('settings.profile.timezone')}</label>
                     <select
                       className="w-full px-4 py-3 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all appearance-none cursor-pointer"
                       style={{
@@ -215,7 +216,7 @@ export function Settings() {
                     whileTap={{ scale: 0.98 }}
                     className="btn-primary"
                   >
-                    Save Changes
+                    {t('settings.saveChanges')}
                   </motion.button>
                 </div>
               </div>
@@ -229,7 +230,7 @@ export function Settings() {
               animate={{ opacity: 1, y: 0 }}
               className="card"
             >
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Notification Preferences</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.notifications.title')}</h2>
 
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
@@ -238,8 +239,8 @@ export function Settings() {
                       <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-sm sm:text-base font-medium text-white">Email Notifications</p>
-                      <p className="text-xs sm:text-sm text-surface-400">Receive workflow updates via email</p>
+                      <p className="text-sm sm:text-base font-medium text-white">{t('settings.notifications.email')}</p>
+                      <p className="text-xs sm:text-sm text-surface-400">{t('settings.notifications.workflowCompletedDesc')}</p>
                     </div>
                   </div>
                   <button
@@ -264,8 +265,8 @@ export function Settings() {
                       <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-sm sm:text-base font-medium text-white">Push Notifications</p>
-                      <p className="text-xs sm:text-sm text-surface-400">Get real-time alerts on your device</p>
+                      <p className="text-sm sm:text-base font-medium text-white">{t('settings.notifications.push')}</p>
+                      <p className="text-xs sm:text-sm text-surface-400">{t('settings.notifications.workflowFailedDesc')}</p>
                     </div>
                   </div>
                   <button
@@ -290,8 +291,8 @@ export function Settings() {
                       <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-sm sm:text-base font-medium text-white">Weekly Digest</p>
-                      <p className="text-xs sm:text-sm text-surface-400">Receive a summary of your workflows</p>
+                      <p className="text-sm sm:text-base font-medium text-white">{t('settings.notifications.weeklySummary')}</p>
+                      <p className="text-xs sm:text-sm text-surface-400">{t('settings.notifications.weeklySummaryDesc')}</p>
                     </div>
                   </div>
                   <button
@@ -320,11 +321,11 @@ export function Settings() {
               animate={{ opacity: 1, y: 0 }}
               className="card"
             >
-              <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Appearance</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.appearance.title')}</h2>
 
               <div className="space-y-4 sm:space-y-6">
                 <div>
-                  <p className="text-sm font-medium text-surface-300 mb-3 sm:mb-4">Theme</p>
+                  <p className="text-sm font-medium text-surface-300 mb-3 sm:mb-4">{t('settings.appearance.theme')}</p>
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <button
                       onClick={() => handleDarkModeChange(false)}
@@ -338,7 +339,7 @@ export function Settings() {
                       <div className="w-full h-16 sm:h-24 rounded-lg bg-white mb-2 sm:mb-3" />
                       <div className="flex items-center gap-2">
                         <Sun className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm sm:text-base text-white font-medium">Light</span>
+                        <span className="text-sm sm:text-base text-white font-medium">{t('settings.appearance.light')}</span>
                         {!darkMode && <Check className="w-4 h-4 text-nexus-400 ml-auto" />}
                       </div>
                     </button>
@@ -354,7 +355,7 @@ export function Settings() {
                       <div className="w-full h-16 sm:h-24 rounded-lg bg-surface-800 mb-2 sm:mb-3" />
                       <div className="flex items-center gap-2">
                         <Moon className="w-4 h-4 text-blue-400" />
-                        <span className="text-sm sm:text-base text-white font-medium">Dark</span>
+                        <span className="text-sm sm:text-base text-white font-medium">{t('settings.appearance.dark')}</span>
                         {darkMode && <Check className="w-4 h-4 text-nexus-400 ml-auto" />}
                       </div>
                     </button>
@@ -362,7 +363,7 @@ export function Settings() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium text-surface-300 mb-3 sm:mb-4">Accent Color</p>
+                  <p className="text-sm font-medium text-surface-300 mb-3 sm:mb-4">{t('settings.appearance.accentColor')}</p>
                   <div className="flex items-center gap-2 sm:gap-3">
                     {['bg-nexus-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500', 'bg-amber-500'].map((color, i) => (
                       <button
@@ -390,59 +391,35 @@ export function Settings() {
               <div className="card bg-gradient-to-r from-nexus-500/20 to-accent-500/20 border-nexus-500/30">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <span className="badge-primary mb-2">Current Plan</span>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white">Pro Plan</h3>
-                    <p className="text-sm sm:text-base text-surface-400">$79/month · Renews Jan 15, 2025</p>
+                    <span className="badge-primary mb-2">{t('landing.pricing.currentPlan')}</span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">{t('landing.pricing.plans.free.name')}</h3>
+                    <p className="text-sm sm:text-base text-surface-400">{t('landing.pricing.getStarted')}</p>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn-secondary w-full sm:w-auto"
+                    className="btn-primary w-full sm:w-auto"
                   >
-                    Upgrade Plan
+                    {t('settings.billing.upgrade')}
                   </motion.button>
                 </div>
               </div>
 
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Payment Method</h2>
-                <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-10 h-7 sm:w-12 sm:h-8 rounded bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center text-white text-[10px] sm:text-xs font-bold">
-                      VISA
-                    </div>
-                    <div>
-                      <p className="text-sm sm:text-base font-medium text-white">•••• •••• •••• 4242</p>
-                      <p className="text-xs sm:text-sm text-surface-400">Expires 12/25</p>
-                    </div>
-                  </div>
-                  <button className="text-xs sm:text-sm text-nexus-400 hover:text-nexus-300 transition-colors">
-                    Update
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4">{t('settings.billing.paymentMethod')}</h2>
+                <div className="p-6 text-center">
+                  <CreditCard className="w-10 h-10 text-surface-500 mx-auto mb-3" />
+                  <p className="text-sm text-surface-400 mb-4">No payment method on file</p>
+                  <button className="btn-secondary text-sm">
+                    {t('settings.billing.update')}
                   </button>
                 </div>
               </div>
 
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Billing History</h2>
-                <div className="space-y-3">
-                  {[
-                    { date: 'Dec 15, 2024', amount: '$79.00', status: 'Paid' },
-                    { date: 'Nov 15, 2024', amount: '$79.00', status: 'Paid' },
-                    { date: 'Oct 15, 2024', amount: '$79.00', status: 'Paid' },
-                  ].map((invoice, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
-                      <div>
-                        <p className="text-sm sm:text-base font-medium text-white">{invoice.date}</p>
-                        <p className="text-xs sm:text-sm text-surface-400">{invoice.amount}</p>
-                      </div>
-                      <div className="flex items-center gap-2 sm:gap-4">
-                        <span className="badge-success text-xs sm:text-sm">{invoice.status}</span>
-                        <button className="text-surface-400 hover:text-white transition-colors">
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4">{t('settings.billing.billingHistory')}</h2>
+                <div className="p-6 text-center">
+                  <p className="text-sm text-surface-400">No billing history yet</p>
                 </div>
               </div>
             </motion.div>
@@ -456,10 +433,10 @@ export function Settings() {
               className="space-y-6"
             >
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Password</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.security.changePassword')}</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">Current Password</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">{t('modals.changePassword.currentPassword')}</label>
                     <input
                       type="password"
                       placeholder="••••••••"
@@ -471,7 +448,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">New Password</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">{t('modals.changePassword.newPassword')}</label>
                     <input
                       type="password"
                       placeholder="••••••••"
@@ -483,7 +460,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-surface-300 mb-2">Confirm Password</label>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">{t('modals.changePassword.confirmPassword')}</label>
                     <input
                       type="password"
                       placeholder="••••••••"
@@ -497,21 +474,21 @@ export function Settings() {
                 </div>
                 <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-surface-700 flex justify-end">
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn-primary">
-                    Update Password
+                    {t('modals.changePassword.update')}
                   </motion.button>
                 </div>
               </div>
 
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Two-Factor Authentication</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.security.twoFactor')}</h2>
                 <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-surface-800/50">
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-500/20 flex items-center justify-center">
                       <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-sm sm:text-base font-medium text-white">Authenticator App</p>
-                      <p className="text-xs sm:text-sm text-emerald-400">Enabled</p>
+                      <p className="text-sm sm:text-base font-medium text-white">{t('settings.security.enable2FA')}</p>
+                      <p className="text-xs sm:text-sm text-surface-400">{t('settings.security.twoFactorDesc')}</p>
                     </div>
                   </div>
                   <button className="text-xs sm:text-sm text-surface-400 hover:text-white transition-colors flex items-center gap-1">
@@ -539,20 +516,20 @@ export function Settings() {
 
               {/* API Keys */}
               <div className="card">
-                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">API Keys</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">{t('settings.api.title')}</h2>
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl bg-surface-800/50">
                     <div className="min-w-0">
-                      <p className="text-sm sm:text-base font-medium text-white">Production API Key</p>
+                      <p className="text-sm sm:text-base font-medium text-white">{t('settings.api.name')}</p>
                       <p className="text-xs sm:text-sm text-surface-400 font-mono truncate">nx_prod_**********************</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button className="btn-ghost py-2 text-xs sm:text-sm">Copy</button>
-                      <button className="btn-ghost py-2 text-xs sm:text-sm text-red-400 hover:text-red-300">Revoke</button>
+                      <button className="btn-ghost py-2 text-xs sm:text-sm">{t('common.copy')}</button>
+                      <button className="btn-ghost py-2 text-xs sm:text-sm text-red-400 hover:text-red-300">{t('settings.api.revoke')}</button>
                     </div>
                   </div>
                   <button className="w-full py-3 rounded-xl border border-dashed border-surface-600 text-surface-400 hover:border-nexus-500/50 hover:text-nexus-400 transition-all text-xs sm:text-sm">
-                    + Generate New API Key
+                    + {t('settings.api.generateNew')}
                   </button>
                 </div>
               </div>

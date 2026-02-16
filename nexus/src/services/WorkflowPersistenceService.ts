@@ -78,7 +78,7 @@ interface SyncResult {
 const STORAGE_KEY = 'nexus-user-workflows'
 const EXECUTIONS_KEY = 'nexus-workflow-executions'
 const SYNC_STATUS_KEY = 'nexus-workflow-sync-status'
-const API_BASE = '/api/workflow-persistence'
+const API_BASE = '/api/services/workflow-persistence'
 
 // ============================================================================
 // localStorage Helpers
@@ -187,7 +187,8 @@ class WorkflowPersistenceService {
    */
   private async checkCloudStatus(): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE}/status`)
+      // Flat path required: Vercel catch-all doesn't handle multi-segment paths
+      const response = await fetch('/api/services/workflow-persistence-status')
       if (response.ok) {
         const data = await response.json()
         this.cloudEnabled = data.cloudEnabled

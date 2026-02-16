@@ -11,6 +11,11 @@
  * - POST /api/whatsapp-composio/connect - Initiate OAuth connection
  * - POST /api/whatsapp-composio/send - Send message (direct API)
  * - POST /api/whatsapp-composio/template - Send template message
+ * - GET /api/whatsapp-composio/orders - List orders
+ * - GET /api/whatsapp-composio/orders/stats - Order statistics
+ * - GET /api/whatsapp-composio/orders/:id - Get order details
+ * - PUT /api/whatsapp-composio/orders/:id/status - Update order status
+ * - POST /api/whatsapp-composio/orders/sheet-config - Configure Google Sheet
  */
 
 import { Router, Request, Response } from 'express'
@@ -23,6 +28,10 @@ import {
 import { getAgent, routeToAgent } from '../agents/index.js'
 import { callClaudeWithCaching } from '../services/claudeProxy.js'
 import VoiceNoteHandler from '../services/VoiceNoteHandler.js'
+import { catalogueService } from '../services/CatalogueService.js'
+import { orderService, OrderStatus } from '../services/OrderService.js'
+import { orderSheetSyncService } from '../services/OrderSheetSyncService.js'
+import { paymentLinkService } from '../services/PaymentLinkService.js'
 
 // @NEXUS-FIX-083: Initialize voice note handler for WhatsApp audio processing
 VoiceNoteHandler.initialize().then(ready => {
@@ -281,9 +290,26 @@ The WhatsApp handler will format the workflow preview appropriately.
 **Response must be CONCISE and ACTIONABLE.**
 `
 
+    // Inject catalogue context when customer asks about products/pricing/catalogue
+    let catalogueContext = ''
+    const productKeywords = [
+      'product', 'products', 'catalogue', 'catalog', 'price', 'pricing', 'cost', 'how much',
+      'buy', 'purchase', 'order', 'available', 'stock', 'service', 'services', 'offer',
+      'منتج', 'منتجات', 'كتالوج', 'سعر', 'أسعار', 'كم', 'شراء', 'طلب', 'متوفر', 'خدمة', 'خدمات', 'عرض'
+    ]
+    const lowerMsg = messageText.toLowerCase()
+    const isProductQuery = productKeywords.some(kw => lowerMsg.includes(kw))
+
+    if (isProductQuery) {
+      const catCtx = catalogueService.getCatalogueContext()
+      if (catCtx) {
+        catalogueContext = `\n\n## Product Catalogue Data\nWhen the customer asks about products, use this catalogue data to answer accurately:\n\n${catCtx}\n\nProvide specific prices, availability, and descriptions from the catalogue. If a product is out of stock, let them know.\n`
+      }
+    }
+
     // Call Claude with the Nexus personality
     // Use systemBlocks format (array of text blocks) as expected by callClaudeWithCaching
-    const systemBlocks = [{ type: 'text' as const, text: nexusAgent.personality + whatsappContext }]
+    const systemBlocks = [{ type: 'text' as const, text: nexusAgent.personality + whatsappContext + catalogueContext }]
 
     const response = await callClaudeWithCaching({
       systemBlocks,
@@ -495,7 +521,109 @@ async function handleIncomingMessage(messageValue: MessageValue): Promise<void> 
         }
       }
     } else {
-      // No pending workflow - process normally
+      // No pending workflow - check for order intent first, then process normally
+
+      // === ORDER DETECTION: Check if message looks like an order ===
+      if (orderService.isOrderMessage(messageText)) {
+        console.log(`[WhatsApp Webhook] Order intent detected from ${from}: "${messageText.substring(0, 80)}"`)
+
+        try {
+          // Get catalogue items for better extraction
+          const catalogueItems = (catalogueService?.getAllProducts?.() || []).map(p => ({
+            name: p.name,
+            price: p.price,
+            currency: p.currency || 'KWD',
+          }))
+
+          const extraction = await orderService.extractOrderFromMessage(
+            messageText,
+            from,
+            contactName,
+            catalogueItems
+          )
+
+          if (extraction.isOrder && extraction.confidence >= 0.5 && extraction.order) {
+            // Create the order
+            const order = orderService.createOrder(extraction.order)
+            console.log(`[WhatsApp Webhook] Order created: ${order.orderId} (confidence: ${extraction.confidence})`)
+
+            // Sync to Google Sheets (non-blocking)
+            orderSheetSyncService.syncOrderToSheet(order).then(syncResult => {
+              if (syncResult.success) {
+                console.log(`[WhatsApp Webhook] Order ${order.orderId} synced to sheet row ${syncResult.rowId}`)
+                if (syncResult.rowId != null) {
+                  orderService.updateSheetRowId(order.orderId, syncResult.rowId)
+                }
+              } else {
+                console.warn(`[WhatsApp Webhook] Sheet sync failed for ${order.orderId}:`, syncResult.error)
+              }
+            }).catch(err => {
+              console.warn(`[WhatsApp Webhook] Sheet sync error for ${order.orderId}:`, err)
+            })
+
+            // Send order confirmation
+            responseText = orderService.formatOrderConfirmation(order, lang)
+
+            // Skip normal AI processing - we handled this as an order
+            // Send response and continue to next message
+            const orderResult = await whatsAppComposioService.sendMessage({
+              to: from,
+              text: responseText,
+            })
+
+            if (!orderResult.success) {
+              console.error(`[WhatsApp Webhook] Failed to send order confirmation: ${orderResult.error}`)
+            } else {
+              console.log(`[WhatsApp Webhook] Order confirmation sent: ${orderResult.messageId}`)
+            }
+
+            // @NEXUS-FIX-048: Auto-generate and send payment link for orders with total amount
+            if (order.totalAmount && order.totalAmount > 0) {
+              try {
+                const payResult = await paymentLinkService.generatePaymentLink({
+                  amount: order.totalAmount,
+                  currency: (order.currency as any) || 'KWD',
+                  description: `Order ${order.orderId}`,
+                  customerPhone: order.customerPhone,
+                  orderId: order.orderId,
+                  language: lang,
+                })
+
+                if (payResult.success && payResult.payment) {
+                  const paymentMsg = paymentLinkService.formatPaymentMessage(
+                    (await paymentLinkService.getPaymentStatus(payResult.payment.paymentId)).payment!,
+                    lang
+                  )
+
+                  // Send payment link as a separate message
+                  const payMsgResult = await whatsAppComposioService.sendMessage({
+                    to: from,
+                    text: paymentMsg,
+                  })
+
+                  if (payMsgResult.success) {
+                    console.log(`[WhatsApp Webhook] Payment link sent for ${order.orderId}: ${payResult.payment.paymentId}`)
+                  } else {
+                    console.warn(`[WhatsApp Webhook] Failed to send payment link: ${payMsgResult.error}`)
+                  }
+                }
+              } catch (payError) {
+                console.warn(`[WhatsApp Webhook] Payment link generation failed for ${order.orderId}:`, payError)
+                // Non-critical - order was still created
+              }
+            }
+
+            continue // Skip the normal response flow below
+          }
+          // If extraction confidence is low, fall through to normal AI processing
+          console.log(`[WhatsApp Webhook] Order extraction low confidence (${extraction.confidence}), proceeding with normal processing`)
+        } catch (orderError) {
+          console.error(`[WhatsApp Webhook] Order detection error:`, orderError)
+          // Fall through to normal AI processing
+        }
+      }
+
+      // Normal processing (non-order messages or low-confidence order detection)
       const response = await processMessageWithNexus(from, messageText, contactName)
 
       if (response.workflowSpec) {
@@ -1064,6 +1192,193 @@ router.delete('/voice-prefs/:phone', (req: Request, res: Response) => {
     })
   }
 })
+
+// =============================================================================
+// ORDER MANAGEMENT ROUTES
+// =============================================================================
+
+/**
+ * GET /api/whatsapp-composio/orders
+ * List all orders with optional filters
+ *
+ * Query params: status, phone, fromDate, toDate, limit, offset
+ */
+router.get('/orders', (req: Request, res: Response) => {
+  try {
+    const { status, phone, fromDate, toDate, limit, offset } = req.query
+
+    const filters: Record<string, unknown> = {}
+    if (status && typeof status === 'string') filters.status = status as OrderStatus
+    if (phone && typeof phone === 'string') filters.customerPhone = phone
+    if (fromDate && typeof fromDate === 'string') filters.fromDate = new Date(fromDate)
+    if (toDate && typeof toDate === 'string') filters.toDate = new Date(toDate)
+    if (limit) filters.limit = parseInt(String(limit), 10)
+    if (offset) filters.offset = parseInt(String(offset), 10)
+
+    const orders = orderService.listOrders(filters as import('../services/OrderService.js').OrderFilters)
+
+    res.json({
+      success: true,
+      orders: orders.map(o => ({
+        ...o,
+        createdAt: o.createdAt.toISOString(),
+        updatedAt: o.updatedAt.toISOString(),
+      })),
+      count: orders.length,
+    })
+  } catch (error: unknown) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+/**
+ * GET /api/whatsapp-composio/orders/stats
+ * Get order statistics
+ */
+router.get('/orders/stats', (_req: Request, res: Response) => {
+  try {
+    const stats = orderService.getStats()
+
+    res.json({
+      success: true,
+      ...stats,
+    })
+  } catch (error: unknown) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+/**
+ * GET /api/whatsapp-composio/orders/:id
+ * Get a specific order by ID
+ */
+router.get('/orders/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const order = orderService.getOrder(id)
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: `Order ${id} not found`,
+      })
+    }
+
+    res.json({
+      success: true,
+      order: {
+        ...order,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+      },
+    })
+  } catch (error: unknown) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+/**
+ * PUT /api/whatsapp-composio/orders/:id/status
+ * Update order status
+ *
+ * Body: { status: OrderStatus }
+ */
+router.put('/orders/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { status } = req.body
+
+    const validStatuses: OrderStatus[] = ['new', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled']
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      })
+    }
+
+    const order = orderService.updateOrderStatus(id, status as OrderStatus)
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: `Order ${id} not found or invalid status transition`,
+      })
+    }
+
+    // Sync status update to Google Sheet (non-blocking)
+    orderSheetSyncService.updateOrderStatusInSheet(id, status as OrderStatus).then(syncResult => {
+      if (syncResult.success) {
+        console.log(`[Orders] Status update synced to sheet for ${id}`)
+      } else {
+        console.warn(`[Orders] Sheet sync failed for status update of ${id}:`, syncResult.error)
+      }
+    }).catch(err => {
+      console.warn(`[Orders] Sheet sync error for status update of ${id}:`, err)
+    })
+
+    res.json({
+      success: true,
+      order: {
+        ...order,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+      },
+    })
+  } catch (error: unknown) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+/**
+ * POST /api/whatsapp-composio/orders/sheet-config
+ * Configure the Google Sheet for order syncing
+ *
+ * Body: { spreadsheetId: string, sheetName?: string, businessId?: string }
+ */
+router.post('/orders/sheet-config', (req: Request, res: Response) => {
+  try {
+    const { spreadsheetId, sheetName, businessId } = req.body
+
+    if (!spreadsheetId) {
+      return res.status(400).json({
+        success: false,
+        error: 'spreadsheetId is required',
+      })
+    }
+
+    orderSheetSyncService.setSheetConfig(businessId || 'default', {
+      spreadsheetId,
+      sheetName,
+    })
+
+    res.json({
+      success: true,
+      message: 'Sheet configuration saved',
+      config: { spreadsheetId, sheetName: sheetName || 'Orders' },
+    })
+  } catch (error: unknown) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+  }
+})
+
+// =============================================================================
+// CLEANUP
+// =============================================================================
 
 /**
  * Cleanup expired pending workflows (older than 1 hour)

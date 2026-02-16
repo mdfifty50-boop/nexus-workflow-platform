@@ -824,7 +824,7 @@ export class WorkflowOrchestrator {
 
     const response = await apiClient.chat({
       messages: [{ role: 'user', content: enrichedPrompt }],
-      model: (step.config.model as 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20251101') || 'claude-sonnet-4-20250514',
+      model: (step.config.model as 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-6-20250115' | 'claude-opus-4-6-20250115') || 'claude-opus-4-6-20250115',
       maxTokens: 2000,
     })
 

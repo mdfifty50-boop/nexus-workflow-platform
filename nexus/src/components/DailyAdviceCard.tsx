@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
@@ -43,6 +44,7 @@ const TYPE_COLORS = {
 }
 
 export function DailyAdviceCard({ userContext, personaType, className = '' }: DailyAdviceCardProps) {
+  const { t } = useTranslation()
   const [advice, setAdvice] = useState<DailyAdvice | null>(null)
   const [isDismissed, setIsDismissed] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -95,10 +97,10 @@ export function DailyAdviceCard({ userContext, personaType, className = '' }: Da
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold text-white">Daily Tip</span>
+                  <span className="text-lg font-semibold text-white">{t('dailyAdvice.title')}</span>
                   {advice.isNew && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded-full">
-                      New
+                      {t('common.new')}
                     </span>
                   )}
                 </div>
@@ -110,7 +112,7 @@ export function DailyAdviceCard({ userContext, personaType, className = '' }: Da
             <button
               onClick={handleDismiss}
               className="p-2 rounded-lg text-surface-500 hover:text-white hover:bg-surface-700/50 transition-colors"
-              aria-label="Dismiss daily tip"
+              aria-label={t('dailyAdvice.dismissTip')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -137,28 +139,26 @@ export function DailyAdviceCard({ userContext, personaType, className = '' }: Da
                   ? 'bg-amber-500/20 text-amber-400'
                   : 'bg-blue-500/20 text-blue-400'
               }`}>
-                {advice.priority} impact
+                {t('dailyAdvice.impact', { priority: advice.priority })}
               </span>
             </div>
             {advice.relevanceScore >= 80 && (
               <div className="flex items-center gap-1 text-emerald-400 text-sm">
                 <Clock className="w-4 h-4" />
-                <span>Saves 3+ hours/week</span>
+                <span>{t('dailyAdvice.savesTime')}</span>
               </div>
             )}
           </div>
 
           {/* CTA Button */}
           <Link to="/chat">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`w-full py-3 rounded-xl bg-gradient-to-r ${gradientColor} text-white font-medium flex items-center justify-center gap-2 hover:shadow-lg transition-shadow`}
+            <button
+              className={`w-full py-3 rounded-xl bg-gradient-to-r ${gradientColor} text-white font-medium flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all hover:shadow-lg`}
             >
               <Sparkles className="w-5 h-5" />
-              Build This Automation
+              {t('dailyAdvice.buildAutomation')}
               <ArrowRight className="w-5 h-5" />
-            </motion.button>
+            </button>
           </Link>
 
           {/* Reason/context */}
@@ -175,6 +175,7 @@ export function DailyAdviceCard({ userContext, personaType, className = '' }: Da
  * Compact version for sidebar or smaller spaces
  */
 export function DailyAdviceCompact({ userContext, personaType, className = '' }: DailyAdviceCardProps) {
+  const { t } = useTranslation()
   const [advice, setAdvice] = useState<DailyAdvice | null>(null)
   const [isDismissed, setIsDismissed] = useState(false)
 
@@ -207,7 +208,7 @@ export function DailyAdviceCompact({ userContext, personaType, className = '' }:
             to="/chat"
             className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 mt-2 transition-colors"
           >
-            Automate this
+            {t('dailyAdvice.automateThis')}
             <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

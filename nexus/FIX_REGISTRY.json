@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.36",
-  "_lastUpdated": "2026-02-04",
-  "_totalFixes": 110,
+  "_version": "1.0.54",
+  "_lastUpdated": "2026-02-16",
+  "_totalFixes": 134,
 
   "fixes": [
     {
@@ -1327,10 +1327,312 @@
       "codeMarker": "@NEXUS-FIX-110",
       "testCommand": "Sign up new user with Clerk - should receive welcome email with Nexus branding.",
       "critical": true
+    },
+    {
+      "id": "FIX-111",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Auto-retry with exponential backoff for recoverable errors",
+      "problem": "Transient errors (rate limits, network timeouts, service unavailable) killed entire workflow instantly",
+      "solution": "Classify errors via ErrorClassifier. For recoverable categories (rate_limited, network_error, timeout, service_unavailable), auto-retry with exponential backoff (2s, 4s, 8s) up to 2-3 attempts before failing.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-111",
+      "testCommand": "Trigger a workflow with intermittent network issues - should auto-retry instead of failing immediately.",
+      "critical": true
+    },
+    {
+      "id": "FIX-112",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Continue workflow past non-critical node failures",
+      "problem": "Any single node failure killed the entire workflow, even non-critical notification/output steps",
+      "solution": "Classify nodes as critical vs non-critical. Notification, alert, log, and output nodes are non-critical. When a non-critical node fails, show warning but continue workflow execution.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-112",
+      "testCommand": "Create workflow with notification step at end. If notification fails, workflow should still show as complete.",
+      "critical": true
+    },
+    {
+      "id": "FIX-113",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Smart parameter defaults from context and flow data",
+      "problem": "Many tools needed parameters that weren't collected but could be inferred from workflow context or previous node results",
+      "solution": "Enhanced getDefaultParams to: (1) Pass previous node results for data flow, (2) Default Slack channel to 'general', (3) Auto-generate calendar event times, (4) Use flow data from trigger nodes for action params. Added smart defaults for 15+ additional tools.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-113",
+      "testCommand": "Create email-to-Slack workflow. Slack should auto-use 'general' channel and flow email content as message text.",
+      "critical": true
+    },
+    {
+      "id": "FIX-114",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Expanded TOOL_SLUGS and verb mappings for all domains",
+      "problem": "Many integrations and action verbs weren't mapped, causing 'No tool mapping' errors for common workflows",
+      "solution": "Added 15+ new integrations to TOOL_SLUGS (shopify, woocommerce, square, typeform, calendly, twilio, telegram, docusign, box, freshbooks, helpscout, supabase, firebase, googleanalytics, sendinblue). Added 25+ new action verb patterns to ACTION_KEYWORDS (track, sync, backup, assign, approve, forward, transfer, submit, etc.).",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-114",
+      "testCommand": "Create workflows using Shopify, Calendly, Twilio - should resolve tool slugs without errors.",
+      "critical": true
+    },
+    {
+      "id": "FIX-115",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Pre-execution connection validation",
+      "problem": "Expired OAuth tokens caused execution failures mid-workflow without any early warning",
+      "solution": "Before executing each action node, check connection status via rubeClient.checkConnection(). If not connected, log warning but still attempt execution (backend may handle it). Non-blocking check to avoid slowing down workflow.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-115",
+      "testCommand": "Execute workflow with expired OAuth - should show warning before attempting execution.",
+      "critical": true
+    },
+    {
+      "id": "FIX-116",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Tightened AI/Internal node classification to prevent false skips",
+      "problem": "Keywords like 'extract', 'analyze', 'generate', 'process' in node names caused REAL action nodes to be skipped as 'AI processing'. Nodes like 'Extract Email Attachments' (gmail), 'Generate Invoice' (stripe), 'Process Payment' (stripe) were silently skipped.",
+      "solution": "Only classify nodes as AI/internal when integration is EXPLICITLY 'ai' or 'nexus'. Nodes with real integrations (gmail, slack, etc.) always go through execution path regardless of name keywords. Tightened internal node patterns to require full phrases like 'show output' instead of single words like 'show'.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-110",
+      "testCommand": "Create workflow with 'Extract Data from Gmail' node - should execute via API, not skip as AI processing.",
+      "critical": true
+    },
+    {
+      "id": "FIX-117",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "REVERTED - Simulation fallback removed per user direction",
+      "problem": "Simulation-based beta test completion was implemented but rejected — beta test must use REAL API calls to validate readiness.",
+      "solution": "Simulation code (generateSimulatedResult) completely removed. Beta test shows real execution results only. Errors are shown to user so they can address the root cause.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "REVERTED",
+      "testCommand": "N/A - reverted fix",
+      "critical": false
+    },
+    {
+      "id": "FIX-118",
+      "date": "2026-02-14",
+      "category": "UX",
+      "title": "Comprehensive error-to-guidance mapping (no more Oops!)",
+      "problem": "Many Composio errors fell through to the generic 'Oops! Something Unexpected' default message. Entity errors, SDK errors, connection errors, validation failures, quota limits all showed the same unhelpful message.",
+      "solution": "Added 5 new error pattern matchers: Composio entity/connection errors, invalid/missing params from Composio, quota/billing errors, SDK configuration errors. Changed default fallback from 'Oops! Something Unexpected' to 'Almost There!' with actionable buttons including Skip Step option.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-117",
+      "testCommand": "If any error does reach the UI, it should never show 'Oops! Something Unexpected' - always a specific, actionable guidance.",
+      "critical": true
+    },
+    {
+      "id": "FIX-119",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "REVERTED - Simulation result generator removed per user direction",
+      "problem": "Simulation-based results were implemented but rejected — users must see real API results only.",
+      "solution": "generateSimulatedResult() function completely removed. All execution goes through real Composio APIs.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "REVERTED",
+      "testCommand": "N/A - reverted fix",
+      "critical": false
+    },
+    {
+      "id": "FIX-120",
+      "date": "2026-02-14",
+      "category": "Execution",
+      "title": "Comprehensive pre-execution validation: URL extraction + pre-flight coverage + dry-run gate",
+      "problem": "Beta test 'Run Beta Test' failed because: (1) Users pasted full URLs but APIs need IDs (Google Sheets URL vs spreadsheet_id), (2) PreFlightService TOOL_REQUIREMENTS was missing 15+ integrations (zoom, calendar, teams, sendgrid, stripe, etc.), (3) Pre-flight checks integration-level params but execution checks tool-slug-level params — gap caused missed validations.",
+      "solution": "Three-layer fix: (1) extractIdFromUrl() auto-extracts IDs from URLs for Google Sheets, Docs, Notion, GitHub, Trello, Airtable, ClickUp, Jira — applied in both handlePreFlightAnswer() and mapCollectedParamsToToolParams(). (2) Added 15 missing integrations to PreFlightService TOOL_REQUIREMENTS: zoom, googlecalendar, teams, sendgrid, salesforce, pipedrive, stripe, mailchimp, linkedin, zendesk, freshdesk, intercom, googledrive. (3) Execution dry-run validation gate: after all pre-flight questions answered, simulates execution's param resolution (tool slug + defaults + merge) and validates required params. Any remaining missing params become new pre-flight questions. Belt-and-suspenders approach ensures ALL params are collected BEFORE execution starts.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/src/services/PreFlightService.ts"],
+      "codeMarker": "@NEXUS-FIX-118",
+      "testCommand": "Create 'Gmail to Google Sheets Logger' workflow. Paste a Google Sheets URL when asked for spreadsheet. Run Beta Test — should succeed with no 'Oops!' errors. Also test with GitHub, Notion URLs.",
+      "critical": true
+    },
+    {
+      "id": "FIX-121",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Zero Assumed Tools - absolute rule preventing AI from adding unmentioned tools",
+      "problem": "Nexus AI generated workflows with tools the user never mentioned (e.g., user said BambooHR but got Slack and ClickUp). System prompt had no enforcement that workflow tools must match user-stated tools.",
+      "solution": "Added 'ABSOLUTE RULE - ZERO ASSUMED TOOLS' section to Nexus personality in BOTH server/agents/index.ts AND api/_lib/agents.ts. Includes Tool Fidelity Check: 4-point validation (explicitly named, selected from options, direct obvious requirement, or ASSUMPTION → reject).",
+      "files": ["nexus/server/agents/index.ts", "nexus/api/_lib/agents.ts"],
+      "codeMarker": "@NEXUS-FIX-121",
+      "testCommand": "Ask 'monitor nurse break schedules', select BambooHR. Workflow MUST only contain BambooHR, not Slack/ClickUp.",
+      "critical": true
+    },
+    {
+      "id": "FIX-122",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Input AND output tool discovery in clarifying questions",
+      "problem": "Phase 1 clarifying questions only asked about source/input tools, never about destination/notification tools. This led to AI assuming output tools (defaulting to Slack).",
+      "solution": "Added explicit requirement that Phase 1 questions MUST cover BOTH source tools AND destination/notification tools. Added vagueness triggers list. Updated all example responses to show dual-tool questioning.",
+      "files": ["nexus/server/agents/index.ts", "nexus/api/_lib/agents.ts"],
+      "codeMarker": "@NEXUS-FIX-122",
+      "testCommand": "Ask 'help me onboard clients'. Questions MUST include both 'What CRM?' AND 'How should team be notified?'",
+      "critical": true
+    },
+    {
+      "id": "FIX-123",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Smart defaults only for parameters, never for tools",
+      "problem": "System prompt said 'USE SMART DEFAULTS - DON'T ASK QUESTIONS' which caused AI to add default tools (Slack, Sheets) without asking.",
+      "solution": "Changed to 'ACCURACY OVER SPEED' with explicit rule: Smart defaults are OK for PARAMETERS (channel name, time) but NEVER for TOOLS. Defaults only apply when user has already chosen the tool.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-123",
+      "testCommand": "Generate any workflow - no tool should appear that wasn't explicitly mentioned by user.",
+      "critical": true
+    },
+    {
+      "id": "FIX-124",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Fixed contradictory response patterns section",
+      "problem": "Response patterns section had 'ACCURACY OVER SPEED' header but old content saying 'USE SMART DEFAULTS - DON'T ASK QUESTIONS' and examples showing hardcoded Slack/Sheets without user confirmation.",
+      "solution": "Rewrote entire response patterns section. Changed from 'infer tools' to 'infer parameters only'. All examples now show only user-confirmed tools. Industry adaptation table changed from 'Default Tools' to 'Suggest These as OPTIONS'.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-124",
+      "testCommand": "Ask about HR automation. AI should ask which tools to use, not default to BambooHR+Slack.",
+      "critical": true
+    },
+    {
+      "id": "FIX-125",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Infer parameters not tools - fixed inference rule",
+      "problem": "Rule said 'NEVER ASK WHEN YOU CAN INFER' which AI interpreted as license to add inferred tools like Slack for notifications.",
+      "solution": "Changed to 'INFER PARAMETERS, NEVER INFER TOOLS'. Clear separation: OK to infer parameters (channel name, filter criteria), NEVER OK to infer which tool/app to use.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-125",
+      "testCommand": "User says 'email me updates'. AI should use gmail (obvious from 'email') but not add Sheets or Slack.",
+      "critical": true
+    },
+    {
+      "id": "FIX-126",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Template-first matching restricted to first message only",
+      "problem": "Template matching in chat.ts ran on EVERY message including mid-conversation answers to clarifying questions. With threshold 0.4, generic user answers like 'BambooHR' could match wrong templates, bypassing Claude entirely.",
+      "solution": "Restricted template matching to first message only (userMessageCount <= 1). Raised threshold from 0.4 to 0.8. Mid-conversation messages always go to Claude for proper context-aware processing.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-126",
+      "testCommand": "Start conversation, answer clarifying questions. Answers should be processed by Claude, not matched to templates.",
+      "critical": true
+    },
+    {
+      "id": "FIX-048",
+      "date": "2026-02-16",
+      "category": "Payments",
+      "title": "Kuwait payment gateway - payment link generation workflow step",
+      "problem": "No native Kuwait payment collection capability. Users needed to manually generate KNET/MyFatoorah links and send them to customers.",
+      "solution": "Added PaymentLinkService supporting MyFatoorah (primary) and KNET (direct) providers with mock mode. Payment links auto-generated on WhatsApp orders with totalAmount. Webhook endpoints receive confirmations and auto-update order status + send receipt.",
+      "files": [
+        "nexus/server/services/PaymentLinkService.ts",
+        "nexus/server/routes/payment-links.ts",
+        "nexus/server/routes/whatsapp-composio.ts",
+        "nexus/server/index.ts",
+        "nexus/src/components/chat/wpc-constants.ts",
+        "nexus/server/agents/index.ts",
+        "nexus/api/_lib/agents.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-048",
+      "testCommand": "POST /api/payment-links/generate with {amount: 5, currency: 'KWD'} - should return mock payment link",
+      "critical": false
+    },
+    {
+      "id": "FIX-140",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Long-term retry after fast reconnection fails",
+      "problem": "After 5 fast reconnect attempts, the session would permanently error out. Transient network issues lasting >5 minutes would require manual re-scan.",
+      "solution": "After fast exponential backoff fails, switches to 5-minute interval retry for up to 24 hours. Only gives up if user explicitly logged out.",
+      "files": ["nexus/server/services/WhatsAppBaileysService.ts"],
+      "codeMarker": "@NEXUS-FIX-140",
+      "testCommand": "Disconnect network briefly, verify session auto-recovers within 5 minutes",
+      "critical": true
+    },
+    {
+      "id": "FIX-141",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Auto-restore sessions on server restart",
+      "problem": "After server restart or deployment, all WhatsApp sessions were lost. Users had to re-scan QR code even though auth files persisted on disk.",
+      "solution": "restoreSessions() scans persistent volume for saved auth directories and re-initializes sockets. Called on server startup. No QR re-scan needed.",
+      "files": ["nexus/server/services/WhatsAppBaileysService.ts", "nexus/server/index.ts"],
+      "codeMarker": "@NEXUS-FIX-141",
+      "testCommand": "Deploy new build, verify existing WhatsApp sessions reconnect automatically",
+      "critical": true
+    },
+    {
+      "id": "FIX-142",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Frontend polling fallback when SSE fails",
+      "problem": "Some proxies/CDNs (including Vercel rewrites) can drop long-lived SSE connections. Frontend would lose real-time updates with no recovery.",
+      "solution": "After 3 consecutive SSE errors, automatically switches to HTTP polling the session endpoint every 3 seconds. Transparent to user.",
+      "files": ["nexus/src/hooks/useWhatsAppWeb.ts"],
+      "codeMarker": "@NEXUS-FIX-142",
+      "testCommand": "Verify QR code updates work even when SSE is blocked/dropped",
+      "critical": true
+    },
+    {
+      "id": "FIX-144",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Expanded AI node detection for universal execution",
+      "problem": "AI node detection only matched toolkit==='ai'. Steps with toolkit='generate','summarize','translate' etc. fell to Composio and failed with 'Tool not found'.",
+      "solution": "Expanded isAINode with AI_INTERNAL_TOOLKITS Set (ai, generate, summarize, translate, transform, analyze, filter, condition, format) plus keyword regex catch-all. Also added executorHint='ai' support in agent prompt.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-144",
+      "testCommand": "Workflow with 'Generate Quote' step should be classified as AI node, not sent to Composio",
+      "critical": true
+    },
+    {
+      "id": "FIX-145",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "AI output data flow to downstream steps",
+      "problem": "AI step results had type='ai_processing' with no .data field. Downstream steps (WhatsApp, email) received empty data and couldn't find the generated content.",
+      "solution": "Changed AI result type to 'ai_output' with generated/text/data fields. Added extraction in wpc-helpers.ts that maps AI output to standard flow data keys (message, text, body, notification_text).",
+      "files": ["nexus/src/components/chat/wpc-helpers.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-145",
+      "testCommand": "AI-generated content should flow to next WhatsApp/email step as message parameter",
+      "critical": true
+    },
+    {
+      "id": "FIX-146",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Native WhatsApp routing via Baileys in workflows",
+      "problem": "WhatsApp steps always routed to Composio (WHATSAPP_SEND_MESSAGE tool) which requires WhatsApp Business API. Personal WhatsApp via Baileys was never used during workflow execution.",
+      "solution": "Added WhatsApp interception before Composio path. Checks toolkit='whatsapp' or executorHint='native-whatsapp', resolves message from pipeline data, finds active Baileys session, sends via /api/whatsapp-web/send.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-146",
+      "testCommand": "Workflow with WhatsApp step should send via Baileys when session is connected",
+      "critical": true
+    },
+    {
+      "id": "FIX-147",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Backend AI step endpoint with model tiering",
+      "problem": "AI workflow nodes had no backend execution - only a fake 500ms delay. No real content generation happened.",
+      "solution": "Added /api/workflow/ai-step endpoint that calls callClaudeWithTiering(). Frontend gauges complexity (simple/moderate/complex) to select Haiku/Sonnet/Opus. Real Claude content generation with cost tracking.",
+      "files": ["nexus/server/routes/workflow.ts"],
+      "codeMarker": "@NEXUS-FIX-147",
+      "testCommand": "POST /api/workflow/ai-step with {prompt: 'Generate a quote', complexity: 'simple'} should return real AI content",
+      "critical": true
     }
   ],
 
   "protectedFiles": [
+    {
+      "path": "nexus/api/_lib/agents.ts",
+      "reason": "PRODUCTION Vercel serverless agent definitions - contains Nexus AI personality with tool fidelity rules (FIX-121, FIX-122)",
+      "warningThreshold": 20,
+      "note": "This is the PRODUCTION file deployed to Vercel. Must stay in sync with server/agents/index.ts"
+    },
     {
       "path": "nexus/src/components/chat/WorkflowPreviewCard.tsx",
       "reason": "Contains 15+ critical fixes for workflow execution",
@@ -1344,7 +1646,7 @@
     },
     {
       "path": "nexus/server/agents/index.ts",
-      "reason": "Contains Nexus AI personality and response format fixes - FIX-012, FIX-015, FIX-016, FIX-079, FIX-102",
+      "reason": "Contains Nexus AI personality and response format fixes - FIX-012, FIX-015, FIX-016, FIX-079, FIX-102, FIX-121 to FIX-125",
       "warningThreshold": 30
     },
     {

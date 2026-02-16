@@ -72,11 +72,15 @@ export function useWhatsAppWeb(): UseWhatsAppWebReturn {
 
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // @NEXUS-FIX-142: Polling fallback refs when SSE fails - DO NOT REMOVE
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const sseFailCountRef = useRef(0)
+  const usePollingRef = useRef(false)
 
   const isConnected = state === 'ready'
 
   /**
-   * Clean up SSE connection
+   * Clean up SSE connection and polling fallback
    */
   const cleanupSSE = useCallback(() => {
     if (eventSourceRef.current) {
@@ -87,6 +91,46 @@ export function useWhatsAppWeb(): UseWhatsAppWebReturn {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
+    // @NEXUS-FIX-142: Clean up polling fallback - DO NOT REMOVE
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
+
+  /**
+   * @NEXUS-FIX-142: HTTP polling fallback when SSE is unavailable - DO NOT REMOVE
+   * Some proxies/CDNs drop long-lived SSE connections. This polls the session
+   * endpoint every 3 seconds as a reliable fallback.
+   */
+  const startPollingFallback = useCallback((sessionId: string) => {
+    if (pollingIntervalRef.current) return // Already polling
+
+    console.log('[useWhatsAppWeb] Starting polling fallback (SSE unreliable)')
+    usePollingRef.current = true
+
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE}/session/${sessionId}`)
+        const data = await response.json()
+
+        if (!data.success || !data.session) return
+
+        const s = data.session
+        setState(s.state)
+        setSession(prev => prev ? { ...prev, ...s } : s)
+
+        if (s.state === 'ready') {
+          setQrCode(null)
+          setPairingCode(null)
+          setError(null)
+        } else if (s.state === 'error') {
+          setError(s.error || 'Unknown error')
+        }
+      } catch {
+        // Network error during poll - keep trying
+      }
+    }, 3000)
   }, [])
 
   /**
@@ -94,6 +138,8 @@ export function useWhatsAppWeb(): UseWhatsAppWebReturn {
    */
   const connectSSE = useCallback((sessionId: string) => {
     cleanupSSE()
+    sseFailCountRef.current = 0
+    usePollingRef.current = false
 
     const eventSource = new EventSource(`${API_BASE}/qr/${sessionId}`)
     eventSourceRef.current = eventSource
@@ -104,6 +150,7 @@ export function useWhatsAppWeb(): UseWhatsAppWebReturn {
         setQrCode(data.qrCode)
         setState('qr_pending')
         setError(null)
+        sseFailCountRef.current = 0 // SSE is working
       } catch (e) {
         console.error('[useWhatsAppWeb] Error parsing QR event:', e)
       }
@@ -182,11 +229,20 @@ export function useWhatsAppWeb(): UseWhatsAppWebReturn {
       }
     })
 
+    // @NEXUS-FIX-142: SSE error with fallback to polling - DO NOT REMOVE
     eventSource.onerror = () => {
-      // SSE will auto-reconnect, but log for debugging
-      console.warn('[useWhatsAppWeb] SSE error, browser will auto-reconnect')
+      sseFailCountRef.current++
+      console.warn(`[useWhatsAppWeb] SSE error #${sseFailCountRef.current}`)
+
+      // After 3 consecutive SSE failures, switch to polling
+      if (sseFailCountRef.current >= 3 && !usePollingRef.current) {
+        console.warn('[useWhatsAppWeb] SSE unreliable, switching to polling fallback')
+        eventSource.close()
+        eventSourceRef.current = null
+        startPollingFallback(sessionId)
+      }
     }
-  }, [cleanupSSE])
+  }, [cleanupSSE, startPollingFallback])
 
   /**
    * Check for existing session on mount

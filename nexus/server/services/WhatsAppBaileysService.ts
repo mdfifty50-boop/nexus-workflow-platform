@@ -79,6 +79,9 @@ const CONFIG = {
   MAX_RECONNECT_ATTEMPTS: 5,
   RECONNECT_BASE_DELAY: 1000, // 1 second
   RECONNECT_MAX_DELAY: 60000, // 1 minute
+  // @NEXUS-FIX-140: Long-term retry after fast attempts exhausted - DO NOT REMOVE
+  LONG_TERM_RETRY_INTERVAL: 5 * 60 * 1000, // 5 minutes
+  LONG_TERM_MAX_RETRIES: 288, // 24 hours worth at 5-min intervals
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 hours
   QR_REFRESH_INTERVAL: 20000, // 20 seconds
 }
@@ -97,6 +100,8 @@ class WhatsAppBaileysService extends EventEmitter {
   private sessions: Map<string, WhatsAppSession> = new Map()
   private sockets: Map<string, BaileysSocket> = new Map()
   private reconnectTimers: Map<string, NodeJS.Timeout> = new Map()
+  // @NEXUS-FIX-140: Long-term retry timers for persistent reconnection - DO NOT REMOVE
+  private longTermRetryTimers: Map<string, NodeJS.Timeout> = new Map()
   private initialized: boolean = false
 
   // Baileys modules (loaded dynamically)
@@ -125,9 +130,9 @@ class WhatsAppBaileysService extends EventEmitter {
       // Dynamic import Baileys
       const baileys = await import('@whiskeysockets/baileys')
 
-      this.makeWASocket = baileys.default || baileys.makeWASocket
+      this.makeWASocket = (baileys.default || baileys.makeWASocket) as any
       this.useMultiFileAuthState = baileys.useMultiFileAuthState
-      this.DisconnectReason = baileys.DisconnectReason
+      this.DisconnectReason = baileys.DisconnectReason as any
       this.Browsers = baileys.Browsers
 
       if (!this.makeWASocket || !this.useMultiFileAuthState) {
@@ -142,6 +147,92 @@ class WhatsAppBaileysService extends EventEmitter {
         '@whiskeysockets/baileys not installed. Run: npm install @whiskeysockets/baileys'
       )
     }
+  }
+
+  /**
+   * @NEXUS-FIX-141: Restore sessions from persistent storage on server restart - DO NOT REMOVE
+   * Scans the session directory for auth folders with saved credentials (creds.json)
+   * and automatically re-initializes those sessions so users don't need to re-scan QR.
+   */
+  async restoreSessions(): Promise<{ restored: number; failed: number }> {
+    await this.initialize()
+
+    let restored = 0
+    let failed = 0
+
+    try {
+      if (!fs.existsSync(CONFIG.SESSION_DIR)) {
+        console.log('[WhatsAppBaileys] No session directory found, nothing to restore')
+        return { restored: 0, failed: 0 }
+      }
+
+      const dirs = fs.readdirSync(CONFIG.SESSION_DIR, { withFileTypes: true })
+        .filter(d => d.isDirectory() && d.name.startsWith('wa_'))
+
+      if (dirs.length === 0) {
+        console.log('[WhatsAppBaileys] No saved sessions to restore')
+        return { restored: 0, failed: 0 }
+      }
+
+      console.log(`[WhatsAppBaileys] Found ${dirs.length} session(s) to restore`)
+
+      for (const dir of dirs) {
+        const sessionId = dir.name
+        const authDir = path.join(CONFIG.SESSION_DIR, sessionId)
+        const credsFile = path.join(authDir, 'creds.json')
+
+        // Only restore sessions that have saved credentials (were previously authenticated)
+        if (!fs.existsSync(credsFile)) {
+          console.log(`[WhatsAppBaileys] Skipping ${sessionId} - no saved credentials`)
+          continue
+        }
+
+        try {
+          // Extract userId from session ID format: wa_{userId}_{timestamp}
+          const parts = sessionId.split('_')
+          const userId = parts.length >= 3 ? parts.slice(1, -1).join('_') : 'restored-user'
+
+          // Check if session already exists in memory (shouldn't on restart, but safety check)
+          if (this.sessions.has(sessionId)) {
+            console.log(`[WhatsAppBaileys] Session ${sessionId} already in memory, skipping`)
+            continue
+          }
+
+          console.log(`[WhatsAppBaileys] Restoring session ${sessionId} for user ${userId}`)
+
+          const session: WhatsAppSession = {
+            id: sessionId,
+            userId,
+            state: 'initializing',
+            qrCode: null,
+            pairingCode: null,
+            phoneNumber: null,
+            pushName: null,
+            lastActivity: new Date(),
+            createdAt: new Date(fs.statSync(authDir).birthtime),
+            error: null,
+            reconnectAttempts: 0,
+          }
+
+          this.sessions.set(sessionId, session)
+          this.emit('stateChanged', sessionId, 'initializing')
+
+          // Initialize socket (will use saved creds, so no QR needed)
+          await this.initializeSocket(sessionId, session)
+          restored++
+          console.log(`[WhatsAppBaileys] Session ${sessionId} restore initiated`)
+        } catch (err) {
+          failed++
+          console.error(`[WhatsAppBaileys] Failed to restore session ${sessionId}:`, (err as Error).message)
+        }
+      }
+
+      console.log(`[WhatsAppBaileys] Session restore complete: ${restored} restored, ${failed} failed`)
+    } catch (err) {
+      console.error('[WhatsAppBaileys] Error during session restore:', err)
+    }
+
+    return { restored, failed }
   }
 
   /**
@@ -305,14 +396,22 @@ class WhatsAppBaileysService extends EventEmitter {
               this.initializeSocket(sessionId, session)
             }, delay)
             this.reconnectTimers.set(sessionId, timer)
-          } else {
-            // Logged out or max retries - clean up
+          } else if (statusCode === this.DisconnectReason?.loggedOut) {
+            // User explicitly logged out - clean up, no retry
             session.state = 'error'
-            session.error = statusCode === this.DisconnectReason?.loggedOut
-              ? 'Logged out from WhatsApp'
-              : `Connection failed after ${session.reconnectAttempts} attempts`
+            session.error = 'Logged out from WhatsApp'
             this.emit('stateChanged', sessionId, 'error')
             this.emit('error', sessionId, new Error(session.error))
+          } else {
+            // @NEXUS-FIX-140: Long-term retry - switch to slow reconnection - DO NOT REMOVE
+            // Fast attempts exhausted, but we don't give up. Switch to 5-minute intervals.
+            session.state = 'disconnected'
+            session.error = `Fast reconnection failed (${session.reconnectAttempts} attempts). Retrying every 5 minutes...`
+            this.emit('stateChanged', sessionId, 'disconnected')
+            this.emit('disconnected', sessionId, session.error)
+
+            console.log(`[WhatsAppBaileys] Session ${sessionId} entering long-term retry mode`)
+            this.startLongTermRetry(sessionId, session)
           }
         } else if (connection === 'open') {
           // Successfully connected
@@ -377,6 +476,72 @@ class WhatsAppBaileysService extends EventEmitter {
         console.error(`[WhatsAppBaileys] Session ${sessionId} error: ${session.error}`)
       }
     }
+  }
+
+  /**
+   * @NEXUS-FIX-140: Long-term retry for persistent reconnection - DO NOT REMOVE
+   * After fast exponential backoff fails (5 attempts), switches to slow periodic retry
+   * every 5 minutes for up to 24 hours. This handles transient network outages,
+   * server restarts on the WhatsApp side, and similar recoverable situations.
+   */
+  private startLongTermRetry(sessionId: string, session: WhatsAppSession): void {
+    // Clear any existing long-term timer
+    const existing = this.longTermRetryTimers.get(sessionId)
+    if (existing) clearTimeout(existing)
+
+    let longTermAttempts = 0
+
+    const attemptReconnect = async () => {
+      longTermAttempts++
+
+      if (longTermAttempts > CONFIG.LONG_TERM_MAX_RETRIES) {
+        console.log(`[WhatsAppBaileys] Session ${sessionId} long-term retry exhausted after ${longTermAttempts} attempts`)
+        session.state = 'error'
+        session.error = 'Connection lost. Please reconnect manually.'
+        this.emit('stateChanged', sessionId, 'error')
+        this.emit('error', sessionId, new Error(session.error))
+        this.longTermRetryTimers.delete(sessionId)
+        return
+      }
+
+      console.log(`[WhatsAppBaileys] Session ${sessionId} long-term retry attempt ${longTermAttempts}/${CONFIG.LONG_TERM_MAX_RETRIES}`)
+
+      // Reset fast reconnect counter so initializeSocket gets fresh attempts
+      session.reconnectAttempts = 0
+      session.state = 'initializing'
+      session.error = null
+
+      // Clean up old socket if any
+      this.sockets.delete(sessionId)
+
+      try {
+        await this.initializeSocket(sessionId, session)
+
+        // If we get here without error, the socket is being set up.
+        // The connection.update handler will determine if it succeeds.
+        // We schedule the next check; if it connected successfully,
+        // session.state will be 'ready' and we can stop.
+        const checkTimer = setTimeout(() => {
+          if (session.state === 'ready') {
+            console.log(`[WhatsAppBaileys] Session ${sessionId} reconnected via long-term retry!`)
+            this.longTermRetryTimers.delete(sessionId)
+          } else if (session.state !== 'error' && session.state !== 'destroyed') {
+            // Still not connected, schedule next attempt
+            const timer = setTimeout(attemptReconnect, CONFIG.LONG_TERM_RETRY_INTERVAL)
+            this.longTermRetryTimers.set(sessionId, timer)
+          }
+        }, 30000) // Wait 30s to see if connection succeeds
+        this.longTermRetryTimers.set(sessionId, checkTimer)
+      } catch {
+        // Socket init threw - schedule next attempt
+        const timer = setTimeout(attemptReconnect, CONFIG.LONG_TERM_RETRY_INTERVAL)
+        this.longTermRetryTimers.set(sessionId, timer)
+      }
+    }
+
+    // Start first long-term retry after the interval
+    const timer = setTimeout(attemptReconnect, CONFIG.LONG_TERM_RETRY_INTERVAL)
+    this.longTermRetryTimers.set(sessionId, timer)
   }
 
   /**
@@ -452,6 +617,78 @@ class WhatsAppBaileysService extends EventEmitter {
   }
 
   /**
+   * Request a pairing code for phone-number-based linking
+   */
+  async requestPairingCode(sessionId: string, phoneNumber: string): Promise<{ success: boolean; code?: string; error?: string }> {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return { success: false, error: `Session ${sessionId} not found` }
+    }
+
+    const sock = this.sockets.get(sessionId)
+    if (!sock) {
+      return { success: false, error: `Socket not found for session ${sessionId}` }
+    }
+
+    try {
+      // @NEXUS-FIX-130: Layer 3 - Defensive phone validation at Baileys service level - DO NOT REMOVE
+      const cleanNumber = phoneNumber.replace(/[^\d]/g, '')
+
+      // Validate: Baileys requires 10-15 digit E.164 phone number (country code + local)
+      if (cleanNumber.length < 10 || cleanNumber.length > 15) {
+        console.warn(`[WhatsAppBaileys] Invalid phone length: ${cleanNumber.length} digits (need 10-15)`)
+        return {
+          success: false,
+          error: `Phone number must be 10-15 digits with country code (got ${cleanNumber.length} digits). Example: 96591234567`,
+        }
+      }
+
+      // Validate: must not be all zeros or obviously fake
+      if (/^0+$/.test(cleanNumber) || /^(.)\1+$/.test(cleanNumber)) {
+        return { success: false, error: 'Invalid phone number. Please enter a real phone number.' }
+      }
+
+      console.log(`[WhatsAppBaileys] Requesting pairing code for: ${cleanNumber.slice(0, 4)}****${cleanNumber.slice(-2)} (${cleanNumber.length} digits)`)
+
+      // Baileys requestPairingCode
+      const code = await (sock as unknown as { requestPairingCode: (jid: string) => Promise<string> }).requestPairingCode(cleanNumber)
+
+      session.pairingCode = code
+      session.state = 'code_pending'
+      session.lastActivity = new Date()
+      this.emit('stateChanged', sessionId, 'code_pending')
+      this.emit('pairingCode', sessionId, code)
+
+      console.log(`[WhatsAppBaileys] Pairing code generated for session ${sessionId}`)
+      return { success: true, code }
+    } catch (error) {
+      const errMsg = (error as Error).message || String(error)
+      console.error(`[WhatsAppBaileys] Failed to generate pairing code:`, errMsg)
+
+      // @NEXUS-FIX-130: Translate technical Baileys errors to user-friendly messages
+      let userFriendlyError = errMsg
+      if (errMsg.includes('did not match the expected pattern') || errMsg.includes('pattern')) {
+        userFriendlyError = 'Invalid phone number format. Please enter your full number with country code (e.g., +965 9XXX XXXX for Kuwait).'
+      } else if (errMsg.includes('not registered') || errMsg.includes('not on WhatsApp')) {
+        userFriendlyError = 'This number is not registered on WhatsApp. Please check the number and try again.'
+      } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
+        userFriendlyError = 'Connection timed out. Please try again.'
+      } else if (errMsg.includes('rate') || errMsg.includes('limit')) {
+        userFriendlyError = 'Too many attempts. Please wait a few minutes and try again.'
+      }
+
+      return { success: false, error: userFriendlyError }
+    }
+  }
+
+  /**
+   * Logout alias (routes use logout, service uses logoutSession)
+   */
+  async logout(sessionId: string): Promise<void> {
+    return this.logoutSession(sessionId)
+  }
+
+  /**
    * Destroy a session
    */
   async destroySession(sessionId: string): Promise<void> {
@@ -465,6 +702,13 @@ class WhatsAppBaileysService extends EventEmitter {
     if (timer) {
       clearTimeout(timer)
       this.reconnectTimers.delete(sessionId)
+    }
+
+    // @NEXUS-FIX-140: Clear long-term retry timer - DO NOT REMOVE
+    const longTimer = this.longTermRetryTimers.get(sessionId)
+    if (longTimer) {
+      clearTimeout(longTimer)
+      this.longTermRetryTimers.delete(sessionId)
     }
 
     // Close socket

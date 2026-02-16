@@ -26,8 +26,8 @@ import {
   type NexusAgentType
 } from '@/lib/embedded-nexus'
 
-// API base URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+// API base URL - empty string in production uses relative URLs (Vercel functions)
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001')
 
 // Workflow Node State
 export interface WorkflowNode {

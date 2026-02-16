@@ -237,7 +237,8 @@ const TRANSFORMS: Record<string, (value: unknown) => unknown> = {
     if (typeof value !== 'string') return value;
     try {
       return JSON.parse(value);
-    } catch {
+    } catch (e) {
+      console.warn('[ParamResolution] Failed to parse JSON value:', e)
       return value;
     }
   },
@@ -273,7 +274,8 @@ const TRANSFORMS: Record<string, (value: unknown) => unknown> = {
     try {
       const date = new Date(value);
       return date.toISOString();
-    } catch {
+    } catch (e) {
+      console.warn('[ParamResolution] Failed to parse date value:', e)
       return value;
     }
   },
@@ -413,8 +415,8 @@ export class ParamResolutionPipeline {
           transformType = 'custom_transform';
           resolvedValue = transformed;
         }
-      } catch {
-        // Transform failed, keep original value
+      } catch (e) {
+        console.warn('[ParamResolution] Transform failed, keeping original value:', e)
       }
     }
 

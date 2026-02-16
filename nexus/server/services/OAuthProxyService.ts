@@ -399,7 +399,7 @@ class OAuthProxyServiceClass {
         return { success: false, error: `Token exchange failed: ${tokenResponse.status}` }
       }
 
-      const tokens = await tokenResponse.json()
+      const tokens = await tokenResponse.json() as { access_token: string; refresh_token?: string; expires_in?: number; scope?: string; token_type?: string }
 
       // Store the connection (in production, save to database)
       const connectionKey = `${userId}:${toolkit}`

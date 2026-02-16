@@ -8,10 +8,8 @@ import type { VercelResponse } from '@vercel/node'
  * SECURITY: No wildcard (*) - explicit origin whitelist only
  */
 const ALLOWED_ORIGINS = [
-  // Production
-  'https://nexus-app.vercel.app',
-  'https://nexus.vercel.app',
-  'https://www.nexus-app.vercel.app',
+  // Production - @NEXUS-FIX-105: Use actual Vercel-assigned URL
+  'https://nexus-theta-peach.vercel.app',
   // Custom domains (add your production domain here)
   process.env.ALLOWED_ORIGIN,
   // Development - only in non-production
@@ -30,7 +28,7 @@ const CSP_DIRECTIVES = {
   'style-src': ["'self'", "'unsafe-inline'"], // Required for inline styles
   'img-src': ["'self'", 'data:', 'https:'],
   'font-src': ["'self'", 'https://fonts.gstatic.com'],
-  'connect-src': ["'self'", 'https://api.anthropic.com', 'https://*.supabase.co', 'wss://*.supabase.co', 'https://api.composio.dev', 'https://app.composio.dev', 'https://*.composio.dev'],
+  'connect-src': ["'self'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com', 'https://api.anthropic.com', 'https://*.supabase.co', 'wss://*.supabase.co', 'https://api.composio.dev', 'https://app.composio.dev', 'https://*.composio.dev', 'https://prod.spline.design', 'https://*.spline.design'],
   'frame-ancestors': ["'none'"], // Prevents clickjacking
   'base-uri': ["'self'"],
   'form-action': ["'self'"],

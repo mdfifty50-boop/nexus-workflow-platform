@@ -1,4 +1,4 @@
-/**
+﻿/**
  * WorkflowPreviewCard Component
  *
  * Mini n8n-style workflow visualization with REAL execution via Composio/Rube.
@@ -7,6 +7,15 @@
  * - Real API execution with live status updates
  * - Friendly, engaging UX that guides users through setup
  * - Mobile-responsive layouts (vertical on mobile, horizontal on desktop)
+ *
+ * REFACTORED: Types, constants, utilities, and sub-components extracted to:
+ * - wpc-types.ts - TypeScript interfaces and types
+ * - wpc-constants.ts - TOOL_SLUGS, ACTION_KEYWORDS, statusColors, etc.
+ * - wpc-tool-utils.ts - validateToolSlug, getFallbackTools, mapNodeToToolSlug, etc.
+ * - wpc-helpers.ts - mapCollectedParamsToToolParams, validation, orchestration helpers
+ * - wpc-MiniNode.tsx - MiniNodeHorizontal, MiniNodeVertical components
+ * - wpc-NodeTooltip.tsx - NodeTooltip component
+ * - wpc-AuthPrompt.tsx - AuthPrompt, ParallelAuthPrompt components
  */
 
 import * as React from 'react'
@@ -24,6 +33,8 @@ import {
   Sparkles,
   RefreshCw,
   Pencil,
+  FlaskConical,
+  Rocket,
 } from 'lucide-react'
 import { NodeEditPanel } from './NodeEditPanel'
 import {
@@ -38,9 +49,13 @@ import { WorkflowIntelligenceService } from '@/services/WorkflowIntelligenceServ
 // @NEXUS-FIX-041: VerifiedExecutor for execution with verification - DO NOT REMOVE
 import { VerifiedExecutorService, type VerifiedResult } from '@/services/VerifiedExecutor'
 // @NEXUS-FIX-042: UnifiedToolRegistry - Single source of truth for tools - DO NOT REMOVE
-import { UnifiedToolRegistryService, type ToolContract } from '@/services/UnifiedToolRegistry'
+// NOTE: Now used in wpc-helpers.ts; kept here for marker preservation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { UnifiedToolRegistryService as _UnifiedToolRegistryService, type ToolContract as _ToolContract } from '@/services/UnifiedToolRegistry'
 // @NEXUS-FIX-043: ParamResolutionPipeline - Complete param resolution - DO NOT REMOVE
-import { ParamResolutionPipeline, type ResolvedParams } from '@/services/ParamResolutionPipeline'
+// NOTE: Now used in wpc-helpers.ts; kept here for marker preservation
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { ParamResolutionPipeline as _ParamResolutionPipeline, type ResolvedParams as _ResolvedParams } from '@/services/ParamResolutionPipeline'
 // @NEXUS-FIX-044: OAuthController - OAuth flow management - DO NOT REMOVE
 // NOTE: ConnectionStatus imported for future integration when OAuthController is wired up
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -55,2181 +70,72 @@ import { WhatsAppConnectionPrompt } from './WhatsAppConnectionPrompt'
 
 // @NEXUS-GENERIC-ORCHESTRATION: 5-Layer Generic Orchestration System
 // Enables Nexus to work with ANY of Rube's 500+ tools without hardcoding
-// NOTE: Some imports are for Phase 3 integration when orchestration is fully wired up
 import {
-  getOrchestrationService,
   getSchemaResolver,
   createCollector,  // @NEXUS-FIX-064: Import for schema-driven question regeneration
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getUXTranslator as _getUXTranslator,
-  humanize,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type DiscoveredTool as _DiscoveredTool,
-  type CollectionQuestion,
 } from '@/services/orchestration'
+// Persistent user memory tracking
+import { userMemoryService } from '@/services/UserMemoryService'
+// Cross-conversation entity learning (Finding #2)
+import { userContextService } from '@/services/UserContextService'
 
 // ============================================================================
-// Feature Flags
+// Extracted modules - types, constants, utilities, and sub-components
 // ============================================================================
 
-/**
- * @NEXUS-GENERIC-ORCHESTRATION Feature Flag
- *
- * When TRUE: Uses new 5-layer generic orchestration
- *   - Dynamic tool discovery via RUBE_SEARCH_TOOLS
- *   - Schema caching (24hr in localStorage)
- *   - Pattern-based UX translation
- *   - State machine for param collection
- *
- * When FALSE: Uses legacy hardcoded TOOL_SLUGS
- *
- * Rollout Plan:
- *   1. Start FALSE (current behavior)
- *   2. Enable for NEW tools not in TOOL_SLUGS
- *   3. Enable for ALL tools after testing
- *   4. Remove legacy code after 2 weeks stable
- */
-const USE_GENERIC_ORCHESTRATION = true // Phase 3: ENABLED for testing
-
-/**
- * @NEXUS-FIX-059: Orchestration-First Approach Feature Flag
- *
- * When TRUE: ALL toolkits (known AND unknown) go through orchestration first
- *   - Static TOOL_REQUIREMENTS becomes a FALLBACK (used only if API fails)
- *   - Ensures tool schemas are always up-to-date with Composio's latest
- *   - Prevents static mappings from becoming stale
- *
- * When FALSE: Uses existing dual-track logic
- *   - Known toolkits use static TOOL_REQUIREMENTS
- *   - Unknown toolkits use orchestration
- *
- * Rollback: Set to false if orchestration causes issues
- */
-const USE_ORCHESTRATION_FIRST = true // @NEXUS-FIX-059: Orchestration-first approach
-
-/**
- * @NEXUS-GENERIC-ORCHESTRATION: Async tool resolution via orchestration layer
- *
- * This function provides dynamic tool discovery for ANY tool, not just hardcoded ones.
- * It integrates with the 5-layer orchestration architecture.
- *
- * Use Cases:
- *   1. When USE_GENERIC_ORCHESTRATION=true - all tools use this path
- *   2. When tool not found in TOOL_SLUGS - fallback to dynamic discovery
- *
- * Returns: Tool discovery result with slug, schema info, and UX hints
- */
-interface OrchestrationResult {
-  slug: string
-  toolkit: string
-  action: string
-  displayName: string
-  questions: CollectionQuestion[]
-  sessionId: string
-  source: 'orchestration' | 'legacy'
-}
-
-async function resolveToolViaOrchestration(
-  intent: string,
-  toolkit: string
-): Promise<OrchestrationResult | null> {
-  // Skip if feature flag is disabled
-  if (!USE_GENERIC_ORCHESTRATION) {
-    return null
-  }
-
-  try {
-    const orchestration = getOrchestrationService()
-    const result = await orchestration.orchestrate(intent, toolkit)
-
-    if (!result.tools || result.tools.length === 0) {
-      console.log(`[ORCHESTRATION] No tools found for "${intent}" in ${toolkit}`)
-      return null
-    }
-
-    // Use the first (most relevant) tool
-    const tool = result.tools[0]
-    const schema = await result.getSchema(tool.slug)
-    const collector = result.createCollector(schema)
-
-    return {
-      slug: tool.slug,
-      toolkit: tool.toolkit,
-      action: tool.name,
-      displayName: humanize(tool.slug),
-      questions: collector.getAllQuestions(),
-      sessionId: result.sessionId,
-      source: 'orchestration'
-    }
-  } catch (error) {
-    console.error(`[ORCHESTRATION] Failed to discover tool for "${intent}":`, error)
-    return null
-  }
-}
-
-/**
- * Check if a toolkit has tools defined in the static TOOL_SLUGS mapping
- * Used to decide whether to use orchestration for unknown toolkits
- *
- * NOTE: Prepared for Phase 3 integration when executeWorkflow uses orchestration
- * @NEXUS-FIX-064-ALIAS: Resolves aliases before checking TOOL_SLUGS - DO NOT REMOVE
- */
-function isToolkitKnown(toolkit: string): boolean {
-  const toolkitLower = toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
-
-  // @NEXUS-FIX-064-ALIAS: Resolve toolkit aliases (e.g., 'calendar' → 'googlecalendar')
-  // TOOLKIT_ALIASES is defined later in the file but available at runtime
-  const KNOWN_ALIASES: Record<string, string> = {
-    'calendar': 'googlecalendar',
-    'gcal': 'googlecalendar',
-    'google_calendar': 'googlecalendar',
-    'sheets': 'googlesheets',
-    'google_sheets': 'googlesheets',
-    'drive': 'googledrive',
-    'google_drive': 'googledrive',
-    'email': 'gmail',
-    'google_email': 'gmail',
-    'onedrive': 'onedrive',
-    'microsoft_onedrive': 'onedrive',
-  }
-  const resolvedToolkit = KNOWN_ALIASES[toolkitLower] || toolkitLower
-
-  // Check TOOL_SLUGS after it's defined (this is called at runtime)
-  // We access TOOL_SLUGS from within the same file
-  return typeof TOOL_SLUGS !== 'undefined' && resolvedToolkit in TOOL_SLUGS
-}
-
-// ============================================================================
 // Types
-// ============================================================================
-
-type NodeStatus = 'idle' | 'pending' | 'connecting' | 'success' | 'error'
-type CardPhase = 'ready' | 'checking' | 'needs_auth' | 'executing' | 'complete' | 'error'
-
-interface WorkflowNode {
-  id: string
-  name: string
-  type: 'trigger' | 'action' | 'output'
-  integration?: string
-  status: NodeStatus
-  result?: unknown
-  error?: string
-  config?: Record<string, unknown>
-  description?: string
-}
-
-interface MissingInfoItem {
-  question: string
-  options: string[]
-  field: string
-}
-
-// @NEXUS-FIX-103: Semantic parameter aliases for deduplication - DO NOT REMOVE
-// Maps different param names that mean the same thing
-const PARAM_ALIASES: Record<string, string[]> = {
-  // Text/message content - all these mean "the content to send"
-  text: ['message', 'content', 'body', 'notification_details', 'notification_content', 'message_text', 'email_body'],
-  message: ['text', 'content', 'body', 'notification_details', 'notification_content', 'message_text'],
-  body: ['text', 'message', 'content', 'email_body', 'notification_details'],
-  content: ['text', 'message', 'body', 'notification_content'],
-
-  // Recipients - all these mean "who to send to"
-  to: ['recipient', 'recipient_email', 'email_to', 'send_to', 'email_address', 'to_email'],
-  recipient: ['to', 'recipient_email', 'email_to', 'send_to', 'email_address'],
-  channel: ['slack_channel', 'channel_name', 'channel_id', 'slack_channel_id'],
-
-  // Identifiers - all these mean "which resource"
-  spreadsheet_id: ['sheet_id', 'google_sheet', 'spreadsheet_url', 'sheet_url', 'googlesheets_spreadsheet_id'],
-  list_id: ['clickup_list', 'list', 'trello_list'],
-  task_id: ['clickup_task', 'task', 'task_identifier'],
-  board_id: ['trello_board', 'monday_board', 'board'],
-  project_id: ['asana_project', 'project', 'project_key'],
-
-  // Phone numbers
-  phone: ['phone_number', 'to', 'recipient_phone', 'whatsapp_number', 'mobile'],
-  phone_number: ['phone', 'to', 'recipient_phone', 'mobile'],
-
-  // Names/Titles
-  name: ['title', 'subject', 'summary', 'task_name', 'item_name'],
-  title: ['name', 'subject', 'summary', 'event_title'],
-  subject: ['title', 'name', 'email_subject'],
-
-  // @NEXUS-FIX-109: File/folder paths - all these mean "where to store/access" - DO NOT REMOVE
-  // FIX-109b: Added dropbox_folder to path AND dropbox_path to folder for full bidirectional mapping
-  path: ['folder', 'folder_path', 'directory', 'dropbox_path', 'dropbox_folder', 'file_path', 'location', 'destination'],
-  folder: ['path', 'folder_path', 'directory', 'dropbox_folder', 'dropbox_path', 'destination'],
-}
-
-// @NEXUS-FIX-103: Check if a param is semantically already collected via aliases
-// @NEXUS-FIX-107: Normalize spaces to underscores for proper alias matching - DO NOT REMOVE
-function isParamSemanticallycollected(paramName: string, collectedParams: Record<string, string>): boolean {
-  // FIX-107: Normalize spaces to underscores (e.g., "slack channel" → "slack_channel")
-  const lowerParam = paramName.toLowerCase().replace(/\s+/g, '_')
-
-  // Direct match first (check both original and normalized)
-  if (collectedParams[paramName] !== undefined && collectedParams[paramName] !== '') {
-    return true
-  }
-  // Also check with spaces converted to spaces (for collected params like "slack channel")
-  const normalizedParam = paramName.replace(/\s+/g, '_')
-  if (collectedParams[normalizedParam] !== undefined && collectedParams[normalizedParam] !== '') {
-    return true
-  }
-
-  // Check aliases
-  const aliases = PARAM_ALIASES[lowerParam] || []
-  for (const alias of aliases) {
-    // Check direct alias
-    if (collectedParams[alias] !== undefined && collectedParams[alias] !== '') {
-      return true
-    }
-    // Check with common prefixes (e.g., gmail_to, slack_channel)
-    for (const key of Object.keys(collectedParams)) {
-      const keyLower = key.toLowerCase()
-      if (keyLower.endsWith(`_${alias}`) || keyLower.endsWith(`_${lowerParam}`)) {
-        if (collectedParams[key] !== undefined && collectedParams[key] !== '') {
-          return true
-        }
-      }
-    }
-  }
-
-  // Also check if this param is an alias of something already collected
-  for (const [canonical, aliasList] of Object.entries(PARAM_ALIASES)) {
-    if (aliasList.includes(lowerParam)) {
-      if (collectedParams[canonical] !== undefined && collectedParams[canonical] !== '') {
-        return true
-      }
-    }
-  }
-
-  return false
-}
-
-// @NEXUS-FIX-103: Get the canonical name for a param (for deduplication grouping)
-// @NEXUS-FIX-107: Normalize spaces to underscores for proper alias matching - DO NOT REMOVE
-function getCanonicalParamName(paramName: string): string {
-  // FIX-107: Normalize spaces to underscores (e.g., "slack channel" → "slack_channel")
-  const lowerParam = paramName.toLowerCase().replace(/\s+/g, '_')
-
-  // Check if this param is a known alias
-  for (const [canonical, aliases] of Object.entries(PARAM_ALIASES)) {
-    if (canonical === lowerParam || aliases.includes(lowerParam)) {
-      return canonical
-    }
-  }
-
-  return lowerParam
-}
-
-interface ChatWorkflow {
-  id: string
-  name: string
-  description: string
-  nodes: Array<{
-    id: string
-    name: string
-    type: string
-    integration?: string
-  }>
-  // Confidence-based execution fields
-  confidence?: number  // 0.0-1.0, >= 0.85 means ready to execute
-  assumptions?: string[]  // List of defaults that were assumed
-  missingInfo?: MissingInfoItem[]  // Questions to increase confidence
-  // @NEXUS-FIX-026: Collected parameters from missingInfo answers (for auto-retry) - DO NOT REMOVE
-  collectedParams?: Record<string, string>
-}
-
-interface WorkflowPreviewCardProps {
-  workflow: ChatWorkflow
-  className?: string
-  autoExecute?: boolean
-  onExecutionComplete?: (success: boolean, results?: unknown[]) => void
-  onMissingInfoSelect?: (field: string, value: string) => void  // Callback when user answers a missing info question
-  // @NEXUS-FIX-004: Custom integration API key handling - DO NOT REMOVE
-  customIntegrations?: Array<{ appName: string; displayName: string; apiDocsUrl: string; apiKeyUrl?: string; steps: string[]; keyHint: string; category?: string }>
-  onCustomIntegrationKeySubmit?: (appName: string, apiKey: string) => Promise<boolean>
-  // Node editing callbacks (state managed by parent - ChatContainer)
-  onNodeRemove?: (nodeId: string) => void
-  onNodeAdd?: (integration: string, actionType: string) => void
-}
-
-interface AuthState {
-  currentIntegration: IntegrationInfo | null
-  connectedIntegrations: Set<string>
-  pendingIntegrations: IntegrationInfo[]
-  redirectUrl: string | null
-  isChecking: boolean
-  isPolling: boolean  // True when polling for OAuth completion
-  pollAttempts: number  // Current poll attempt count
-}
-
-// Parallel OAuth state tracking
-interface ParallelAuthState {
-  [integrationId: string]: {
-    status: 'pending' | 'connecting' | 'polling' | 'connected' | 'error'
-    authUrl?: string
-    pollAttempts: number
-    error?: string
-  }
-}
-
-// ============================================================================
-// Status Colors & Icons
-// ============================================================================
-
-const statusColors: Record<NodeStatus, { bg: string; border: string; dot: string; line: string }> = {
-  idle: { bg: 'bg-slate-800', border: 'border-slate-600', dot: 'bg-slate-500', line: 'bg-slate-600' },
-  pending: { bg: 'bg-slate-700', border: 'border-slate-500', dot: 'bg-slate-400', line: 'bg-slate-500' },
-  connecting: { bg: 'bg-amber-900/30', border: 'border-amber-500', dot: 'bg-amber-500', line: 'bg-amber-500' },
-  success: { bg: 'bg-emerald-900/30', border: 'border-emerald-500', dot: 'bg-emerald-500', line: 'bg-emerald-500' },
-  error: { bg: 'bg-red-900/30', border: 'border-red-500', dot: 'bg-red-500', line: 'bg-red-500' },
-}
-
-const integrationIcons: Record<string, string> = {
-  gmail: '📧',
-  slack: '💬',
-  sheets: '📊',
-  google_sheets: '📊',
-  drive: '📁',
-  google_drive: '📁',
-  calendar: '📅',
-  google_calendar: '📅',
-  notion: '📝',
-  hubspot: '🔶',
-  salesforce: '☁️',
-  zapier: '⚡',
-  webhook: '🔗',
-  api: '🔌',
-  github: '🐙',
-  trello: '📋',
-  asana: '✅',
-  default: '⚙️',
-}
-
-function getIcon(integration?: string): string {
-  if (!integration) return integrationIcons.default
-  const key = integration.toLowerCase().replace(/\s+/g, '_')
-  return integrationIcons[key] || integrationIcons.default
-}
-
-// ============================================================================
-// Tool Mapping Helpers
-// ============================================================================
-
-// Composio tool slugs for real API execution
-// @NEXUS-FIX-007: TOOL_SLUGS static mapping - DO NOT REMOVE OR MODIFY WITHOUT /validate
-const TOOL_SLUGS: Record<string, Record<string, string>> = {
-  // Email
-  gmail: {
-    // Outbound
-    send: 'GMAIL_SEND_EMAIL',
-    draft: 'GMAIL_CREATE_EMAIL_DRAFT',
-    // Inbound/Reading
-    fetch: 'GMAIL_FETCH_EMAILS',
-    read: 'GMAIL_FETCH_EMAILS',
-    get: 'GMAIL_FETCH_EMAILS',
-    list: 'GMAIL_FETCH_EMAILS',
-    // Triggers (polling-based or webhook)
-    trigger: 'GMAIL_NEW_EMAIL_TRIGGER',
-    receive: 'GMAIL_NEW_EMAIL_TRIGGER',
-    capture: 'GMAIL_NEW_EMAIL_TRIGGER',
-    listen: 'GMAIL_NEW_EMAIL_TRIGGER',
-    incoming: 'GMAIL_NEW_EMAIL_TRIGGER',
-    watch: 'GMAIL_WATCH',
-  },
-  // Messaging & Communication
-  slack: {
-    // Outbound
-    send: 'SLACK_SEND_MESSAGE',
-    notify: 'SLACK_SEND_MESSAGE',
-    message: 'SLACK_SEND_MESSAGE',
-    post: 'SLACK_SEND_MESSAGE',
-    // Listing/Reading
-    list: 'SLACK_LIST_CHANNELS',
-    fetch: 'SLACK_FETCH_CONVERSATION_HISTORY',
-    read: 'SLACK_FETCH_CONVERSATION_HISTORY',
-    history: 'SLACK_FETCH_CONVERSATION_HISTORY',
-    // Triggers
-    trigger: 'SLACK_NEW_MESSAGE_TRIGGER',
-    receive: 'SLACK_NEW_MESSAGE_TRIGGER',
-    capture: 'SLACK_NEW_MESSAGE_TRIGGER',
-    listen: 'SLACK_NEW_MESSAGE_TRIGGER',
-    incoming: 'SLACK_NEW_MESSAGE_TRIGGER',
-    watch: 'SLACK_NEW_MESSAGE_TRIGGER',
-  },
-  whatsapp: {
-    // Outbound
-    send: 'WHATSAPP_SEND_MESSAGE',
-    message: 'WHATSAPP_SEND_MESSAGE',
-    notify: 'WHATSAPP_SEND_MESSAGE',
-    template: 'WHATSAPP_SEND_TEMPLATE_MESSAGE',
-    // Triggers/Inbound (via WhatsApp Business API webhooks)
-    trigger: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
-    receive: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
-    capture: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
-    listen: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
-    incoming: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
-    webhook: 'WHATSAPP_WEBHOOK_TRIGGER',
-  },
-  discord: {
-    send: 'DISCORD_SEND_MESSAGE',
-    message: 'DISCORD_SEND_MESSAGE',
-    post: 'DISCORD_SEND_MESSAGE',
-    webhook: 'DISCORD_SEND_WEBHOOK',
-  },
-  teams: {
-    send: 'TEAMS_SEND_MESSAGE',
-    message: 'TEAMS_SEND_MESSAGE',
-    post: 'TEAMS_SEND_MESSAGE',
-    notify: 'TEAMS_SEND_MESSAGE',
-  },
-  zoom: {
-    create: 'ZOOM_CREATE_MEETING',
-    schedule: 'ZOOM_CREATE_MEETING',
-    meeting: 'ZOOM_CREATE_MEETING',
-    list: 'ZOOM_LIST_MEETINGS',
-  },
-  // Google Workspace
-  googlesheets: {
-    // @NEXUS-FIX-022: Added create/add mappings for "Add to Sheet" workflows - DO NOT REMOVE
-    create: 'GOOGLESHEETS_BATCH_UPDATE',
-    add: 'GOOGLESHEETS_BATCH_UPDATE',
-    read: 'GOOGLESHEETS_BATCH_GET',
-    get: 'GOOGLESHEETS_BATCH_GET',
-    write: 'GOOGLESHEETS_BATCH_UPDATE',
-    append: 'GOOGLESHEETS_BATCH_UPDATE',
-    update: 'GOOGLESHEETS_BATCH_UPDATE',
-    save: 'GOOGLESHEETS_BATCH_UPDATE',
-  },
-  // @NEXUS-FIX-025: Added get/fetch/find/today actions for calendar events
-  googlecalendar: {
-    create: 'GOOGLECALENDAR_CREATE_EVENT',
-    list: 'GOOGLECALENDAR_EVENTS_LIST',
-    get: 'GOOGLECALENDAR_EVENTS_LIST',
-    fetch: 'GOOGLECALENDAR_EVENTS_LIST',
-    find: 'GOOGLECALENDAR_EVENTS_LIST',
-    today: 'GOOGLECALENDAR_EVENTS_LIST',
-    check: 'GOOGLECALENDAR_EVENTS_LIST',
-    schedule: 'GOOGLECALENDAR_CREATE_EVENT',
-  },
-  googledrive: {
-    upload: 'GOOGLEDRIVE_UPLOAD_FILE',
-    list: 'GOOGLEDRIVE_LIST_FILES',
-    download: 'GOOGLEDRIVE_DOWNLOAD_FILE',
-    create: 'GOOGLEDRIVE_CREATE_FOLDER',
-  },
-  // CRM & Sales
-  hubspot: {
-    search: 'HUBSPOT_SEARCH_CONTACTS_BY_CRITERIA',
-    list: 'HUBSPOT_LIST_CONTACTS',
-    create: 'HUBSPOT_CREATE_CONTACT',
-    read: 'HUBSPOT_READ_CONTACT',
-  },
-  salesforce: {
-    search: 'SALESFORCE_SEARCH_RECORDS',
-    list: 'SALESFORCE_GET_RECORDS',
-    create: 'SALESFORCE_CREATE_RECORD',
-    update: 'SALESFORCE_UPDATE_RECORD',
-    query: 'SALESFORCE_SOQL_QUERY',
-  },
-  pipedrive: {
-    create: 'PIPEDRIVE_CREATE_DEAL',
-    list: 'PIPEDRIVE_LIST_DEALS',
-    update: 'PIPEDRIVE_UPDATE_DEAL',
-    search: 'PIPEDRIVE_SEARCH',
-  },
-  // Project Management
-  github: {
-    issue: 'GITHUB_CREATE_ISSUE',
-    issues: 'GITHUB_LIST_REPOSITORY_ISSUES',
-    pr: 'GITHUB_CREATE_PULL_REQUEST',
-    list: 'GITHUB_LIST_REPOSITORY_ISSUES',
-    fetch: 'GITHUB_LIST_REPOSITORY_ISSUES',  // "Fetch GitHub Issues" should list issues
-    get: 'GITHUB_LIST_REPOSITORY_ISSUES',    // "Get issues" should list issues
-    search: 'GITHUB_ISSUES_AND_PULL_REQUESTS', // Search issues/PRs
-  },
-  clickup: {
-    // Creating
-    create: 'CLICKUP_CREATE_TASK',
-    task: 'CLICKUP_CREATE_TASK',
-    add: 'CLICKUP_CREATE_TASK',
-    // Reading
-    list: 'CLICKUP_GET_TASKS',
-    get: 'CLICKUP_GET_TASK',
-    fetch: 'CLICKUP_GET_TASKS',
-    folder: 'CLICKUP_GET_FOLDERS',
-    // Updating
-    update: 'CLICKUP_UPDATE_TASK',
-    edit: 'CLICKUP_UPDATE_TASK',
-    // Triggers
-    trigger: 'CLICKUP_NEW_TASK_TRIGGER',
-    capture: 'CLICKUP_NEW_TASK_TRIGGER',
-    receive: 'CLICKUP_NEW_TASK_TRIGGER',
-    watch: 'CLICKUP_TASK_UPDATED_TRIGGER',
-    listen: 'CLICKUP_NEW_TASK_TRIGGER',
-  },
-  linear: {
-    create: 'LINEAR_CREATE_ISSUE',
-    issue: 'LINEAR_CREATE_ISSUE',
-    list: 'LINEAR_LIST_ISSUES',
-    update: 'LINEAR_UPDATE_ISSUE',
-  },
-  monday: {
-    create: 'MONDAY_CREATE_ITEM',
-    item: 'MONDAY_CREATE_ITEM',
-    list: 'MONDAY_GET_ITEMS',
-    update: 'MONDAY_UPDATE_ITEM',
-  },
-  jira: {
-    create: 'JIRA_CREATE_ISSUE',
-    issue: 'JIRA_CREATE_ISSUE',
-    list: 'JIRA_LIST_ISSUES',
-    update: 'JIRA_UPDATE_ISSUE',
-    search: 'JIRA_JQL_SEARCH',
-  },
-  // @NEXUS-FIX-024: Notion tool slug mappings - corrected to actual Composio API slugs - DO NOT REMOVE
-  notion: {
-    create: 'NOTION_CREATE_PAGE',
-    update: 'NOTION_UPDATE_PAGE',
-    search: 'NOTION_SEARCH_NOTION_PAGE',  // FIXED: Was NOTION_SEARCH which doesn't exist
-    database: 'NOTION_QUERY_DATABASE',
-    save: 'NOTION_INSERT_ROW_DATABASE',   // For "save to notion" workflows
-    add: 'NOTION_INSERT_ROW_DATABASE',    // For "add to notion" workflows
-    insert: 'NOTION_INSERT_ROW_DATABASE', // For "insert into notion" workflows
-    log: 'NOTION_INSERT_ROW_DATABASE',    // For "log to notion" workflows
-    query: 'NOTION_QUERY_DATABASE',
-    fetch: 'NOTION_FETCH_DATABASE',
-  },
-  // @NEXUS-FIX-024-END
-  trello: {
-    card: 'TRELLO_CREATE_CARD',
-    create: 'TRELLO_CREATE_CARD',
-    list: 'TRELLO_GET_BOARD_CARDS',
-  },
-  asana: {
-    task: 'ASANA_CREATE_TASK',
-    create: 'ASANA_CREATE_TASK',
-    list: 'ASANA_GET_TASKS',
-  },
-  // Payments & Finance
-  stripe: {
-    create: 'STRIPE_CREATE_CUSTOMER',
-    customer: 'STRIPE_CREATE_CUSTOMER',
-    charge: 'STRIPE_CREATE_CHARGE',
-    invoice: 'STRIPE_CREATE_INVOICE',
-    list: 'STRIPE_LIST_CUSTOMERS',
-    subscription: 'STRIPE_CREATE_SUBSCRIPTION',
-  },
-  quickbooks: {
-    create: 'QUICKBOOKS_CREATE_INVOICE',
-    invoice: 'QUICKBOOKS_CREATE_INVOICE',
-    list: 'QUICKBOOKS_LIST_INVOICES',
-    customer: 'QUICKBOOKS_CREATE_CUSTOMER',
-  },
-  xero: {
-    create: 'XERO_CREATE_INVOICE',
-    invoice: 'XERO_CREATE_INVOICE',
-    list: 'XERO_LIST_INVOICES',
-    contact: 'XERO_CREATE_CONTACT',
-  },
-  // Marketing & Email
-  mailchimp: {
-    send: 'MAILCHIMP_SEND_CAMPAIGN',
-    campaign: 'MAILCHIMP_CREATE_CAMPAIGN',
-    add: 'MAILCHIMP_ADD_SUBSCRIBER',
-    list: 'MAILCHIMP_LIST_CAMPAIGNS',
-  },
-  sendgrid: {
-    send: 'SENDGRID_SEND_EMAIL',
-    email: 'SENDGRID_SEND_EMAIL',
-  },
-  // Social Media
-  twitter: {
-    post: 'TWITTER_CREATE_TWEET',
-    tweet: 'TWITTER_CREATE_TWEET',
-    send: 'TWITTER_CREATE_TWEET',
-    list: 'TWITTER_GET_TWEETS',
-  },
-  linkedin: {
-    post: 'LINKEDIN_CREATE_POST',
-    share: 'LINKEDIN_CREATE_POST',
-    send: 'LINKEDIN_SEND_MESSAGE',
-  },
-  instagram: {
-    post: 'INSTAGRAM_CREATE_POST',
-    upload: 'INSTAGRAM_CREATE_POST',
-    story: 'INSTAGRAM_CREATE_STORY',
-  },
-  facebook: {
-    post: 'FACEBOOK_CREATE_POST',
-    share: 'FACEBOOK_CREATE_POST',
-    page: 'FACEBOOK_GET_PAGE',
-  },
-  // Storage & Documents
-  // @NEXUS-FIX-017: Storage action mappings (save/store/write → upload) - DO NOT REMOVE
-  dropbox: {
-    upload: 'DROPBOX_UPLOAD_FILE',
-    save: 'DROPBOX_UPLOAD_FILE',      // Save to Dropbox → upload
-    store: 'DROPBOX_UPLOAD_FILE',     // Store in Dropbox → upload
-    write: 'DROPBOX_UPLOAD_FILE',     // Write to Dropbox → upload
-    create: 'DROPBOX_UPLOAD_FILE',    // Create file → upload
-    list: 'DROPBOX_LIST_FOLDER',      // FIXED: LIST_FILES doesn't exist
-    download: 'DROPBOX_DOWNLOAD_FILE',
-  },
-  onedrive: {
-    upload: 'ONEDRIVE_UPLOAD_FILE',
-    save: 'ONEDRIVE_UPLOAD_FILE',
-    store: 'ONEDRIVE_UPLOAD_FILE',
-    write: 'ONEDRIVE_UPLOAD_FILE',
-    create: 'ONEDRIVE_UPLOAD_FILE',
-    list: 'ONEDRIVE_LIST_FILES',
-    download: 'ONEDRIVE_DOWNLOAD_FILE',
-  },
-  // @NEXUS-FIX-017-END
-  airtable: {
-    create: 'AIRTABLE_CREATE_RECORD',
-    list: 'AIRTABLE_LIST_RECORDS',
-    update: 'AIRTABLE_UPDATE_RECORD',
-    search: 'AIRTABLE_SEARCH_RECORDS',
-  },
-  // AI & Automation
-  openai: {
-    generate: 'OPENAI_CHAT_COMPLETION',
-    chat: 'OPENAI_CHAT_COMPLETION',
-    complete: 'OPENAI_CHAT_COMPLETION',
-    image: 'OPENAI_CREATE_IMAGE',
-  },
-  anthropic: {
-    generate: 'ANTHROPIC_CHAT_COMPLETION',
-    chat: 'ANTHROPIC_CHAT_COMPLETION',
-    complete: 'ANTHROPIC_CHAT_COMPLETION',
-  },
-  // Voice & Transcription
-  deepgram: {
-    transcribe: 'DEEPGRAM_TRANSCRIBE',
-    audio: 'DEEPGRAM_TRANSCRIBE',
-  },
-  elevenlabs: {
-    generate: 'ELEVENLABS_TEXT_TO_SPEECH',
-    speak: 'ELEVENLABS_TEXT_TO_SPEECH',
-    voice: 'ELEVENLABS_TEXT_TO_SPEECH',
-  },
-  // Support
-  intercom: {
-    send: 'INTERCOM_SEND_MESSAGE',
-    message: 'INTERCOM_SEND_MESSAGE',
-    create: 'INTERCOM_CREATE_CONVERSATION',
-    list: 'INTERCOM_LIST_CONVERSATIONS',
-  },
-  zendesk: {
-    create: 'ZENDESK_CREATE_TICKET',
-    ticket: 'ZENDESK_CREATE_TICKET',
-    update: 'ZENDESK_UPDATE_TICKET',
-    list: 'ZENDESK_LIST_TICKETS',
-  },
-  freshdesk: {
-    create: 'FRESHDESK_CREATE_TICKET',
-    ticket: 'FRESHDESK_CREATE_TICKET',
-    update: 'FRESHDESK_UPDATE_TICKET',
-    list: 'FRESHDESK_LIST_TICKETS',
-  },
-  // Webhooks (generic - handles via HTTP)
-  webhook: {
-    send: 'WEBHOOK_TRIGGER',
-    trigger: 'WEBHOOK_TRIGGER',
-    post: 'WEBHOOK_TRIGGER',
-  },
-}
-
-// Common action keywords that hint at the operation type
-// COMPREHENSIVE: Includes triggers, listeners, captures, and all common operations
-const ACTION_KEYWORDS: Record<string, string> = {
-  // READING/FETCHING - Must come BEFORE nouns like 'email' to avoid false matches
-  // "Fetch Recent Emails" should match 'fetch' not 'email'
-  read: 'read',
-  get: 'get',
-  fetch: 'fetch',
-  retrieve: 'fetch',
-  pull: 'fetch',
-
-  // LISTING/SEARCHING
-  list: 'list',
-  search: 'search',
-  find: 'search',
-  query: 'search',
-  lookup: 'search',
-
-  // SENDING/OUTBOUND - After fetch/read to prevent "Fetch Emails" matching "email->send"
-  send: 'send',
-  // NOTE: Removed 'email: send' - too broad, causes "Fetch Emails" to map to SEND
-  notify: 'notify',
-  alert: 'notify',
-  message: 'message',
-  post: 'post',
-  share: 'post',
-  publish: 'post',
-  broadcast: 'send',
-
-  // CREATING
-  create: 'create',
-  add: 'create',
-  new: 'create',
-  make: 'create',
-  generate: 'create',
-
-  // READING/FETCHING and LISTING/SEARCHING moved to top of object for priority matching
-
-  // UPDATING
-  update: 'update',
-  edit: 'update',
-  modify: 'update',
-  change: 'update',
-
-  // WRITING/SAVING
-  write: 'write',
-  save: 'save',
-  append: 'append',
-  log: 'append',
-  record: 'append',
-
-  // FILES
-  upload: 'upload',
-  download: 'download',
-  export: 'download',
-  import: 'upload',
-
-  // SCHEDULING
-  schedule: 'schedule',
-  book: 'schedule',
-  reserve: 'schedule',
-
-  // CHECKING
-  check: 'check',
-  verify: 'check',
-  validate: 'check',
-
-  // TRIGGERS/LISTENERS/CAPTURES (NEW - Critical for incoming data)
-  capture: 'trigger',
-  receive: 'trigger',
-  listen: 'trigger',
-  watch: 'trigger',
-  monitor: 'trigger',
-  trigger: 'trigger',
-  incoming: 'trigger',
-  inbound: 'trigger',
-  detect: 'trigger',
-  await: 'trigger',
-  wait: 'trigger',
-  on: 'trigger',  // "on new message", "on email received"
-  when: 'trigger', // "when order placed"
-
-  // WEBHOOKS
-  webhook: 'webhook',
-  hook: 'webhook',
-  callback: 'webhook',
-
-  // DELETING
-  delete: 'delete',
-  remove: 'delete',
-  clear: 'delete',
-  archive: 'archive',
-}
-
-// @NEXUS-FIX-019 & @NEXUS-FIX-020: Tool validation and fallback system - DO NOT REMOVE
-/**
- * Get fallback tool suggestions when a tool is not found
- * FIX-020: Provides alternatives for common tool resolution failures
- */
-function getFallbackTools(toolkit: string, originalSlug: string, nodeName: string): string[] {
-  const toolkitLower = toolkit.toLowerCase()
-  const toolkitMapping = TOOL_SLUGS[toolkitLower as keyof typeof TOOL_SLUGS]
-  
-  if (!toolkitMapping || typeof toolkitMapping !== 'object') {
-    return []
-  }
-  
-  const availableTools = Object.values(toolkitMapping) as string[]
-  const nameLower = nodeName.toLowerCase()
-  
-  // Prioritize based on action context
-  const prioritized: string[] = []
-  const rest: string[] = []
-  
-  for (const tool of availableTools) {
-    // Skip the original failed slug
-    if (tool === originalSlug) continue
-    
-    // Prioritize upload/write tools for 'save/store' context
-    if (nameLower.includes('save') || nameLower.includes('store') || nameLower.includes('write')) {
-      if (tool.includes('UPLOAD') || tool.includes('CREATE')) {
-        prioritized.push(tool)
-        continue
-      }
-    }
-    
-    rest.push(tool)
-  }
-  
-  return [...prioritized, ...rest].slice(0, 3)
-}
-
-/**
- * Validate tool slug before execution
- * FIX-019: Pre-execution validation with auto-correction for known bad patterns
- */
-function validateToolSlug(toolSlug: string, toolkit: string): { valid: boolean; suggestion?: string; reason?: string } {
-  // @NEXUS-FIX-019: Pre-execution tool validation - DO NOT REMOVE
-  // Check for known problematic patterns based on toolkit
-  const toolkitUpper = toolkit.toUpperCase()
-
-  if (toolSlug.endsWith('_LIST_FILES')) {
-    // Many services use LIST_FOLDER or LIST_ITEMS instead of LIST_FILES
-    const suggestion = toolSlug.replace('_LIST_FILES', '_LIST_FOLDER')
-    return { valid: false, reason: `${toolSlug} likely does not exist - try LIST_FOLDER`, suggestion }
-  }
-
-  // Check if the slug matches standard Composio patterns
-  const parts = toolSlug.split('_')
-  if (parts.length < 2) {
-    return { valid: false, reason: 'Tool slug should be in format TOOLKIT_ACTION', suggestion: undefined }
-  }
-
-  // Verify the slug starts with the expected toolkit prefix
-  if (!toolSlug.startsWith(toolkitUpper + '_') && !toolSlug.startsWith(toolkit + '_')) {
-    return { valid: false, reason: `Tool slug ${toolSlug} does not match toolkit ${toolkit}`, suggestion: undefined }
-  }
-
-  return { valid: true }
-}
-
-/**
- * Check if an error is a tool-not-found error
- */
-function isToolNotFoundError(error: string | Error): boolean {
-  const message = typeof error === 'string' ? error : error.message
-  return message.toLowerCase().includes('tool') &&
-    (message.toLowerCase().includes('not found') ||
-     message.toLowerCase().includes('unable to retrieve') ||
-     message.toLowerCase().includes('does not exist'))
-}
-// @NEXUS-FIX-019 & @NEXUS-FIX-020-END
-
-/**
- * Map a node name and toolkit to a Composio tool slug
- *
- * STRATEGY: 3-layer approach to handle "thousands of scenarios"
- * 1. Exact mapping from TOOL_SLUGS (fastest, most reliable)
- * 2. Dynamic construction using Composio naming patterns
- * 3. Intelligent default based on node type/context
- */
-function mapNodeToToolSlug(nodeName: string, toolkit: string): string | null {
-  const nameLower = nodeName.toLowerCase()
-  let toolkitLower = toolkit.toLowerCase()
-    .replace(/\s+/g, '')  // "Google Sheets" -> "googlesheets"
-    .replace(/-/g, '')     // "click-up" -> "clickup"
-
-  // @NEXUS-FIX-025: Toolkit name aliases for common variations
-  const TOOLKIT_ALIASES: Record<string, string> = {
-    'calendar': 'googlecalendar',
-    'gcal': 'googlecalendar',
-    'google_calendar': 'googlecalendar',
-    'sheets': 'googlesheets',
-    'google_sheets': 'googlesheets',
-    'drive': 'googledrive',
-    'google_drive': 'googledrive',
-    'email': 'gmail',
-    'mail': 'gmail',
-  }
-  toolkitLower = TOOLKIT_ALIASES[toolkitLower] || toolkitLower
-
-  // =========================================================================
-  // LAYER 1: Check static mappings (fast path for known tools)
-  // =========================================================================
-  const toolkitTools = TOOL_SLUGS[toolkitLower]
-  if (toolkitTools) {
-    // Try to find an action keyword in the node name
-    for (const [keyword, action] of Object.entries(ACTION_KEYWORDS)) {
-      if (nameLower.includes(keyword)) {
-        if (toolkitTools[action]) {
-          return toolkitTools[action]
-        }
-      }
-    }
-  }
-
-  // =========================================================================
-  // LAYER 2: Dynamic slug construction based on Composio patterns
-  // Pattern: TOOLKITNAME_ACTION_NOUN (e.g., WHATSAPP_SEND_MESSAGE)
-  // This handles unlimited scenarios without hardcoding every combination
-  // =========================================================================
-  const dynamicSlug = constructDynamicToolSlug(nameLower, toolkitLower)
-  if (dynamicSlug) {
-    return dynamicSlug
-  }
-
-  // =========================================================================
-  // LAYER 3: Intelligent defaults based on toolkit
-  // =========================================================================
-  if (toolkitTools) {
-    const defaultActions: Record<string, string> = {
-      // Email - default to sending
-      gmail: 'send',
-      outlook: 'send',
-      // Messaging - default to sending
-      slack: 'send',
-      whatsapp: 'send',
-      discord: 'send',
-      teams: 'send',
-      telegram: 'send',
-      // Meetings - default to creating
-      zoom: 'create',
-      googlemeet: 'create',
-      calendly: 'create',
-      // Google Workspace - default varies
-      googlesheets: 'read',
-      googlecalendar: 'list',
-      googledrive: 'upload',  // @NEXUS-FIX-018: Storage defaults to upload, not list
-      // CRM & Sales - default to listing
-      hubspot: 'list',
-      salesforce: 'list',
-      pipedrive: 'list',
-      zohocrm: 'list',
-      // Project Management - default to listing
-      github: 'list',
-      clickup: 'list',
-      linear: 'list',
-      monday: 'list',
-      jira: 'list',
-      notion: 'add',  // @NEXUS-FIX-024: Changed from 'search' to 'add' - most workflows want to save/add to Notion
-      trello: 'list',
-      asana: 'list',
-      basecamp: 'list',
-      // Payments - default to listing
-      stripe: 'list',
-      quickbooks: 'list',
-      xero: 'list',
-      paypal: 'list',
-      // Marketing - varies
-      mailchimp: 'list',
-      sendgrid: 'send',
-      activecampaign: 'list',
-      convertkit: 'list',
-      // Social - default to posting
-      twitter: 'post',
-      linkedin: 'post',
-      instagram: 'post',
-      facebook: 'post',
-      tiktok: 'post',
-      youtube: 'list',
-      // Storage - default to upload (@NEXUS-FIX-018)
-      dropbox: 'upload',
-      onedrive: 'upload',
-      box: 'upload',
-      airtable: 'list',
-      // AI - default to generating
-      openai: 'generate',
-      anthropic: 'generate',
-      // Voice - varies
-      deepgram: 'transcribe',
-      elevenlabs: 'generate',
-      assemblyai: 'transcribe',
-      // Support - varies
-      intercom: 'send',
-      zendesk: 'list',
-      freshdesk: 'list',
-      helpscout: 'list',
-      // Webhooks
-      webhook: 'trigger',
-    }
-
-    const defaultAction = defaultActions[toolkitLower]
-    if (defaultAction && toolkitTools[defaultAction]) {
-      return toolkitTools[defaultAction]
-    }
-
-    // Fallback to first available tool
-    const firstTool = Object.values(toolkitTools)[0]
-    if (firstTool) return firstTool
-  }
-
-  // =========================================================================
-  // LAYER 4: Construct generic slug for unknown toolkits
-  // This ensures we ALWAYS have a tool slug to try, even for new integrations
-  // =========================================================================
-  return constructGenericToolSlug(nameLower, toolkitLower)
-}
-
-/**
- * Construct a dynamic tool slug based on Composio naming conventions
- * Pattern analysis from 500+ Composio tools shows consistent naming:
- * - TOOLKIT_ACTION (e.g., GMAIL_SEND_EMAIL, SLACK_SEND_MESSAGE)
- * - TOOLKIT_ACTION_NOUN (e.g., HUBSPOT_CREATE_CONTACT)
- * - TOOLKIT_NOUN_ACTION (e.g., GOOGLE_CALENDAR_CREATE_EVENT)
- */
-function constructDynamicToolSlug(nodeName: string, toolkit: string): string | null {
-  const toolkitUpper = toolkit.toUpperCase()
-    .replace(/google\s*/i, 'GOOGLE')
-    .replace(/\s+/g, '_')
-
-  // Extract action and noun from node name
-  const actionPatterns = [
-    { pattern: /send|email|message|notify/, action: 'SEND', noun: 'MESSAGE' },
-    { pattern: /create|add|new|make/, action: 'CREATE', noun: null },
-    { pattern: /update|edit|modify|change/, action: 'UPDATE', noun: null },
-    { pattern: /delete|remove|clear/, action: 'DELETE', noun: null },
-    { pattern: /list|get|fetch|read|retrieve/, action: 'LIST', noun: null },
-    { pattern: /search|find|query|lookup/, action: 'SEARCH', noun: null },
-    { pattern: /trigger|capture|receive|listen|watch|incoming/, action: 'NEW', noun: '_TRIGGER' },
-    { pattern: /upload/, action: 'UPLOAD', noun: 'FILE' },
-    { pattern: /download/, action: 'DOWNLOAD', noun: 'FILE' },
-  ]
-
-  // Extract nouns from node name
-  const nounPatterns = [
-    { pattern: /email/, noun: 'EMAIL' },
-    { pattern: /message/, noun: 'MESSAGE' },
-    { pattern: /contact/, noun: 'CONTACT' },
-    { pattern: /task/, noun: 'TASK' },
-    { pattern: /issue/, noun: 'ISSUE' },
-    { pattern: /ticket/, noun: 'TICKET' },
-    { pattern: /event/, noun: 'EVENT' },
-    { pattern: /meeting/, noun: 'MEETING' },
-    { pattern: /file/, noun: 'FILE' },
-    { pattern: /document|doc/, noun: 'DOCUMENT' },
-    { pattern: /sheet|spreadsheet/, noun: 'SHEET' },
-    { pattern: /record/, noun: 'RECORD' },
-    { pattern: /deal/, noun: 'DEAL' },
-    { pattern: /lead/, noun: 'LEAD' },
-    { pattern: /order/, noun: 'ORDER' },
-    { pattern: /invoice/, noun: 'INVOICE' },
-    { pattern: /payment/, noun: 'PAYMENT' },
-    { pattern: /customer/, noun: 'CUSTOMER' },
-    { pattern: /user/, noun: 'USER' },
-    { pattern: /post/, noun: 'POST' },
-    { pattern: /tweet/, noun: 'TWEET' },
-    { pattern: /card/, noun: 'CARD' },
-    { pattern: /item/, noun: 'ITEM' },
-    { pattern: /page/, noun: 'PAGE' },
-    { pattern: /subscription/, noun: 'SUBSCRIPTION' },
-  ]
-
-  let action: string | null = null
-  let noun: string | null = null
-  let suffix: string = ''
-
-  // Find matching action
-  for (const { pattern, action: act, noun: actNoun } of actionPatterns) {
-    if (pattern.test(nodeName)) {
-      action = act
-      if (actNoun) {
-        suffix = actNoun
-      }
-      break
-    }
-  }
-
-  // Find matching noun
-  for (const { pattern, noun: n } of nounPatterns) {
-    if (pattern.test(nodeName)) {
-      noun = n
-      break
-    }
-  }
-
-  // Construct slug if we have at least an action
-  if (action) {
-    // Pattern: TOOLKIT_ACTION_NOUN or TOOLKIT_ACTION
-    if (suffix.includes('TRIGGER')) {
-      // Trigger pattern: TOOLKIT_NEW_NOUN_TRIGGER
-      return `${toolkitUpper}_${action}${noun ? '_' + noun : ''}_TRIGGER`
-    } else if (noun) {
-      return `${toolkitUpper}_${action}_${noun}`
-    } else {
-      return `${toolkitUpper}_${action}${suffix ? '_' + suffix : ''}`
-    }
-  }
-
-  return null
-}
-
-/**
- * Construct a generic tool slug for unknown toolkits
- * This is the ultimate fallback to ensure we always have something to try
- */
-function constructGenericToolSlug(nodeName: string, toolkit: string): string {
-  const toolkitUpper = toolkit.toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_')
-
-  // Determine action from context
-  if (/send|email|message|notify|alert/.test(nodeName)) {
-    return `${toolkitUpper}_SEND_MESSAGE`
-  }
-  if (/create|add|new|make/.test(nodeName)) {
-    return `${toolkitUpper}_CREATE`
-  }
-  if (/trigger|capture|receive|listen|watch|incoming|on\s/.test(nodeName)) {
-    return `${toolkitUpper}_NEW_TRIGGER`
-  }
-  if (/list|get|fetch|read/.test(nodeName)) {
-    return `${toolkitUpper}_LIST`
-  }
-  if (/search|find|query/.test(nodeName)) {
-    return `${toolkitUpper}_SEARCH`
-  }
-  if (/update|edit|modify/.test(nodeName)) {
-    return `${toolkitUpper}_UPDATE`
-  }
-  if (/delete|remove/.test(nodeName)) {
-    return `${toolkitUpper}_DELETE`
-  }
-
-  // Ultimate fallback - generic action
-  return `${toolkitUpper}_EXECUTE`
-}
-
-/**
- * Get parameters for a tool - prioritizes extracted params from user intent
- *
- * Priority order:
- * 1. node.config.extractedParams (from Claude's analysis of user message)
- * 2. node.config (explicit configuration)
- * 3. Smart defaults based on tool type
- * 4. Inference from workflow context (name, description)
- */
-function getDefaultParams(
-  toolSlug: string,
-  node: WorkflowNode,
-  previousResults?: Array<{ node: WorkflowNode; result: unknown }>,
-  workflowContext?: { name?: string; description?: string }
-): Record<string, unknown> {
-  // FIRST: Check for params extracted from user intent (set by Claude)
-  const extractedParams = (node.config?.extractedParams as Record<string, unknown>) || {}
-  const nodeConfig = node.config || {}
-
-  // Build context string for inference from multiple sources
-  const contextForInference = [
-    node.description || '',
-    node.name || '',
-    workflowContext?.description || '',
-    workflowContext?.name || '',
-  ].join(' ').toLowerCase()
-
-  // NEW: Extract data flowing from previous nodes (especially trigger sample data)
-  const flowData: Record<string, unknown> = {}
-  if (previousResults && previousResults.length > 0) {
-    for (const prev of previousResults) {
-      const result = prev.result as { type?: string; data?: Record<string, unknown> } | undefined
-      if (result?.type === 'trigger_sample_data' && result.data) {
-        // Map email trigger data to common fields
-        if (result.data.from) flowData.sender_email = result.data.from
-        if (result.data.subject) flowData.email_subject = result.data.subject
-        if (result.data.body || result.data.message) {
-          flowData.email_body = result.data.body || result.data.message
-        }
-        if (result.data.sender_name) flowData.sender_name = result.data.sender_name
-
-        // Generate formatted message for notifications (Slack, Teams, Discord, etc.)
-        const subject = result.data.subject || 'New notification'
-        const body = result.data.body || result.data.message || ''
-        const from = result.data.from || result.data.sender_name || 'Unknown sender'
-        flowData.generated_message = `📧 *New Email from ${from}*\n\n*Subject:* ${subject}\n\n${body}`
-        flowData.notification_text = `Email from ${from}: ${subject}`
-      }
-      // Also capture AI processing results
-      if (result?.type === 'ai_processing' && result.data) {
-        Object.assign(flowData, result.data)
-      }
-    }
-  }
-
-  // Smart defaults - only used if no extracted/config value exists
-  const smartDefaults: Record<string, Record<string, unknown>> = {
-    // Gmail - NO hardcoded email addresses
-    GMAIL_SEND_EMAIL: {
-      // to: MUST come from extractedParams or user will be prompted
-      subject: extractedParams.subject || `Update from ${node.name}`,
-      body: extractedParams.body || extractedParams.message || null,
-    },
-    GMAIL_FETCH_EMAILS: {
-      user_id: 'me',
-      max_results: extractedParams.max_results || 10,
-      q: extractedParams.query || extractedParams.filter || undefined,
-    },
-    GMAIL_CREATE_EMAIL_DRAFT: {
-      subject: extractedParams.subject || `Draft: ${node.name}`,
-      body: extractedParams.body || null,
-    },
-
-    // Slack - NO hardcoded channels
-    SLACK_SEND_MESSAGE: {
-      channel: extractedParams.channel || null, // Must be specified
-      text: extractedParams.text || extractedParams.message || null,
-    },
-
-    // Google Sheets
-    GOOGLESHEETS_BATCH_GET: {
-      spreadsheet_id: extractedParams.spreadsheet_id || extractedParams.sheetId || null,
-      ranges: extractedParams.ranges || ['Sheet1!A1:Z100'],
-    },
-    GOOGLESHEETS_BATCH_UPDATE: {
-      spreadsheet_id: extractedParams.spreadsheet_id || extractedParams.sheetId || null,
-      sheet_name: extractedParams.sheet_name || 'Sheet1',
-      values: extractedParams.values || [['Data from workflow', new Date().toISOString()]],
-    },
-
-    // Google Calendar
-    GOOGLECALENDAR_CREATE_EVENT: {
-      summary: extractedParams.title || extractedParams.summary || `Event: ${node.name}`,
-      start_datetime: extractedParams.start || extractedParams.startTime || null,
-      end_datetime: extractedParams.end || extractedParams.endTime || null,
-      description: extractedParams.description || undefined,
-      attendees: extractedParams.attendees || undefined,
-    },
-    GOOGLECALENDAR_EVENTS_LIST: {
-      maxResults: extractedParams.maxResults || 10,
-    },
-
-    // Google Drive
-    GOOGLEDRIVE_LIST_FILES: {
-      pageSize: extractedParams.limit || 20,
-      q: extractedParams.query || undefined,
-    },
-
-    // HubSpot
-    HUBSPOT_LIST_CONTACTS: {
-      limit: extractedParams.limit || 10,
-    },
-    HUBSPOT_CREATE_CONTACT: {
-      email: extractedParams.email || null,
-      firstname: extractedParams.firstName || extractedParams.firstname || undefined,
-      lastname: extractedParams.lastName || extractedParams.lastname || undefined,
-    },
-
-    // GitHub - Try to infer owner/repo from context
-    // Priority: extractedParams > node config > inferred from workflow context
-    GITHUB_LIST_REPOSITORY_ISSUES: (() => {
-      let inferredOwner = extractedParams.owner || nodeConfig.owner || null
-      let inferredRepo = extractedParams.repo || nodeConfig.repo || null
-
-      // Common repository patterns - check all context sources
-      // contextForInference includes: node.description, node.name, workflow.description, workflow.name
-      if (!inferredOwner || !inferredRepo) {
-        if (contextForInference.includes('composio')) {
-          inferredOwner = inferredOwner || 'ComposioHQ'
-          inferredRepo = inferredRepo || 'composio'
-        } else if (contextForInference.includes('react') && !contextForInference.includes('react native')) {
-          inferredOwner = inferredOwner || 'facebook'
-          inferredRepo = inferredRepo || 'react'
-        } else if (contextForInference.includes('vscode') || contextForInference.includes('vs code')) {
-          inferredOwner = inferredOwner || 'microsoft'
-          inferredRepo = inferredRepo || 'vscode'
-        } else if (contextForInference.includes('typescript')) {
-          inferredOwner = inferredOwner || 'microsoft'
-          inferredRepo = inferredRepo || 'TypeScript'
-        } else if (contextForInference.includes('nextjs') || contextForInference.includes('next.js')) {
-          inferredOwner = inferredOwner || 'vercel'
-          inferredRepo = inferredRepo || 'next.js'
-        }
-      }
-
-      return {
-        owner: inferredOwner,
-        repo: inferredRepo,
-        state: extractedParams.state || 'open',
-        per_page: extractedParams.limit || 10,
-      }
-    })(),
-    GITHUB_CREATE_ISSUE: {
-      owner: extractedParams.owner || nodeConfig.owner || null,
-      repo: extractedParams.repo || nodeConfig.repo || null,
-      title: extractedParams.title || `Issue: ${node.name}`,
-      body: extractedParams.body || extractedParams.description || null,
-      labels: extractedParams.labels || undefined,
-    },
-
-    // Notion
-    NOTION_SEARCH: {
-      query: extractedParams.query || '',
-    },
-    NOTION_CREATE_PAGE: {
-      title: extractedParams.title || null,
-      content: extractedParams.content || extractedParams.body || undefined,
-    },
-
-    // Trello
-    TRELLO_CREATE_CARD: {
-      name: extractedParams.name || extractedParams.title || `Card: ${node.name}`,
-      desc: extractedParams.description || undefined,
-    },
-
-    // Asana
-    ASANA_CREATE_TASK: {
-      name: extractedParams.name || extractedParams.title || `Task: ${node.name}`,
-      notes: extractedParams.notes || extractedParams.description || undefined,
-    },
-  }
-
-  const defaults = smartDefaults[toolSlug] || {}
-
-  // Merge: extractedParams > nodeConfig > defaults
-  // Remove null values (they indicate required fields that need user input)
-  const merged = { ...defaults, ...nodeConfig, ...extractedParams }
-
-  // Filter out null values and extractedParams key
-  const result: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(merged)) {
-    if (value !== null && key !== 'extractedParams') {
-      result[key] = value
-    }
-  }
-
-  return result
-}
-
-/**
- * Validate that required parameters are present for a tool
- * Returns array of missing parameter names (empty if all present)
- */
-function validateRequiredParams(toolSlug: string, params: Record<string, unknown>): string[] {
-  // Define required parameters for each tool
-  const requiredParams: Record<string, string[]> = {
-    // Email - must have recipient
-    GMAIL_SEND_EMAIL: ['to'],
-    SENDGRID_SEND_EMAIL: ['to', 'subject'],
-
-    // Messaging - must have destination and content
-    SLACK_SEND_MESSAGE: ['channel', 'text'],
-    WHATSAPP_SEND_MESSAGE: ['to', 'message'],
-    DISCORD_SEND_MESSAGE: ['channel_id', 'content'],
-    TEAMS_SEND_MESSAGE: ['channel_id', 'message'],
-
-    // Meetings
-    ZOOM_CREATE_MEETING: ['topic'],
-
-    // Google - must have identifiers
-    GOOGLESHEETS_BATCH_GET: ['spreadsheet_id'],
-    GOOGLESHEETS_BATCH_UPDATE: ['spreadsheet_id'],
-    GOOGLECALENDAR_CREATE_EVENT: ['summary', 'start_datetime', 'end_datetime'],
-
-    // Project Management
-    CLICKUP_CREATE_TASK: ['list_id', 'name'],
-    LINEAR_CREATE_ISSUE: ['team_id', 'title'],
-    JIRA_CREATE_ISSUE: ['project_key', 'summary'],
-    ASANA_CREATE_TASK: ['workspace', 'name'],
-    TRELLO_CREATE_CARD: ['list_id', 'name'],
-    GITHUB_CREATE_ISSUE: ['owner', 'repo', 'title'],
-    GITHUB_LIST_REPOSITORY_ISSUES: ['owner', 'repo'],  // Required for listing issues
-    GITHUB_ISSUES_AND_PULL_REQUESTS: ['q'],  // Search query required
-
-    // CRM
-    HUBSPOT_CREATE_CONTACT: ['email'],
-    SALESFORCE_CREATE_RECORD: ['object_type'],
-    PIPEDRIVE_CREATE_DEAL: ['title'],
-
-    // Payments
-    STRIPE_CREATE_CUSTOMER: ['email'],
-    STRIPE_CREATE_CHARGE: ['amount', 'currency'],
-
-    // Marketing
-    MAILCHIMP_ADD_SUBSCRIBER: ['list_id', 'email'],
-
-    // Social
-    TWITTER_CREATE_TWEET: ['text'],
-    LINKEDIN_CREATE_POST: ['text'],
-
-    // AI
-    OPENAI_CHAT_COMPLETION: ['messages'],
-    ANTHROPIC_CHAT_COMPLETION: ['messages'],
-
-    // Voice
-    DEEPGRAM_TRANSCRIBE: ['audio_url'],
-    ELEVENLABS_TEXT_TO_SPEECH: ['text', 'voice_id'],
-
-    // Support
-    ZENDESK_CREATE_TICKET: ['subject'],
-    FRESHDESK_CREATE_TICKET: ['subject', 'email'],
-    INTERCOM_SEND_MESSAGE: ['user_id', 'body'],
-
-    // Webhooks
-    WEBHOOK_TRIGGER: ['url'],
-  }
-
-  const required = requiredParams[toolSlug] || []
-  const missing: string[] = []
-
-  for (const param of required) {
-    if (params[param] === undefined || params[param] === null || params[param] === '') {
-      missing.push(param)
-    }
-  }
-
-  return missing
-}
-
-// ============================================================================
-// Node Tooltip Component (hover on desktop, click on mobile)
-// ============================================================================
-
-function NodeTooltip({
-  node,
-  isOpen,
-  onClose,
-  position = 'top',
-  useHoverClass = false
-}: {
-  node: WorkflowNode
-  isOpen: boolean
-  onClose: () => void
-  position?: 'top' | 'bottom' | 'left' | 'right'
-  useHoverClass?: boolean  // If true, visibility is controlled by parent's group-hover
-}) {
-  const typeLabels = {
-    trigger: '⚡ Trigger',
-    action: '⚙️ Action',
-    output: '📤 Output'
-  }
-
-  const statusLabels = {
-    idle: 'Waiting',
-    pending: 'Pending',
-    connecting: 'Running...',
-    success: 'Complete',
-    error: 'Failed'
-  }
-
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2'
-  }
-
-  const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-slate-800',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-slate-800',
-    left: 'left-full top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-l-8 border-t-transparent border-b-transparent border-l-slate-800',
-    right: 'right-full top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-slate-800'
-  }
-
-  // If using CSS hover, always render but control visibility via classes
-  // If not using hover, use the isOpen prop to conditionally show
-  const shouldShow = useHoverClass || isOpen
-
-  if (!shouldShow && !useHoverClass) return null
-
-  return (
-    <>
-      {/* Backdrop for mobile - click to close (only when actually open) */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 sm:hidden"
-          onClick={onClose}
-        />
-      )}
-      {/* @NEXUS-FIX-099: Tooltip popup - larger for readability and touch-friendly - DO NOT REMOVE */}
-      <div
-        className={cn(
-          'absolute z-50 min-w-[240px] max-w-[320px] p-4 rounded-xl pointer-events-none',
-          'bg-slate-800/95 backdrop-blur-sm border border-slate-600 shadow-2xl shadow-black/60',
-          positionClasses[position],
-          // CSS-based visibility when using hover class
-          useHoverClass && !isOpen && 'opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-200',
-          // State-based visibility
-          !useHoverClass && isOpen && 'opacity-100 visible pointer-events-auto animate-in fade-in zoom-in-95 duration-200',
-          // When clicked (isOpen), always show with pointer events
-          isOpen && 'opacity-100 visible pointer-events-auto'
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Arrow */}
-        <div className={cn('absolute w-0 h-0', arrowClasses[position])} />
-
-        {/* Content */}
-        <div className="space-y-2">
-          {/* @NEXUS-FIX-099: Node name + description - full text with touch-friendly size - DO NOT REMOVE */}
-          <div className="flex items-start gap-2">
-            <span className="text-xl flex-shrink-0">{getIcon(node.integration)}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white break-words leading-snug">{node.name}</p>
-              {node.integration && (
-                <p className="text-xs text-cyan-400 mt-0.5 capitalize">{node.integration}</p>
-              )}
-              {/* @NEXUS-FIX-099: Show node description if available */}
-              {node.description && (
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed break-words">
-                  {node.description}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="flex items-center gap-3 pt-1 border-t border-slate-700">
-            <span className="text-xs text-slate-300">{typeLabels[node.type]}</span>
-            <span className={cn(
-              'text-xs px-2 py-0.5 rounded-full',
-              node.status === 'success' && 'bg-emerald-500/20 text-emerald-400',
-              node.status === 'connecting' && 'bg-amber-500/20 text-amber-400',
-              node.status === 'error' && 'bg-red-500/20 text-red-400',
-              node.status === 'idle' && 'bg-slate-600/50 text-slate-400',
-              node.status === 'pending' && 'bg-blue-500/20 text-blue-400'
-            )}>
-              {statusLabels[node.status]}
-            </span>
-          </div>
-
-          {/* Error message if any */}
-          {node.error && (
-            <p className="text-xs text-red-400 bg-red-500/10 p-2 rounded-lg mt-1">
-              {node.error}
-            </p>
-          )}
-        </div>
-
-        {/* Close hint for mobile */}
-        <p className="text-[10px] text-slate-500 text-center mt-2 sm:hidden">
-          Tap outside to close
-        </p>
-      </div>
-    </>
-  )
-}
-
-// ============================================================================
-// Mini Node Components (Desktop & Mobile)
-// ============================================================================
-
-function MiniNodeHorizontal({
-  node,
-  isLast,
-  onRemove,
-  canEdit = false
-}: {
-  node: WorkflowNode;
-  isLast: boolean;
-  onRemove?: (nodeId: string) => void;
-  canEdit?: boolean;
-}) {
-  const colors = statusColors[node.status]
-  // State for click-based tooltip (mobile/accessibility)
-  const [showTooltip, setShowTooltip] = React.useState(false)
-
-  // @NEXUS-FIX-099: Handle touch events for mobile - long press shows tooltip
-  const handleTouchStart = React.useCallback(() => {
-    // On touch, always show tooltip
-    setShowTooltip(true)
-  }, [])
-
-  const handleTouchEnd = React.useCallback(() => {
-    // Keep tooltip visible for a moment after touch ends
-    setTimeout(() => setShowTooltip(false), 2000)
-  }, [])
-
-  return (
-    <div className="flex items-center flex-shrink-0 snap-start">
-      {/* @NEXUS-FIX-099: Touch-friendly wrapper with min-height 44px for accessibility - DO NOT REMOVE */}
-      {/* @NEXUS-FIX-103: Responsive sizing for identical mobile/desktop experience - DO NOT REMOVE */}
-      <div className="relative group">
-        <div
-          className={cn(
-            'relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg border-2 transition-all duration-500 cursor-pointer',
-            'min-h-[40px] sm:min-h-[44px] min-w-[40px] sm:min-w-[44px]', // Touch-friendly, slightly smaller on mobile
-            colors.bg,
-            colors.border,
-            node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
-            node.status === 'success' && 'shadow-lg shadow-emerald-500/20',
-            'hover:scale-105 hover:shadow-lg active:scale-95' // Active state for touch feedback
-          )}
-          onClick={() => setShowTooltip(!showTooltip)}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          role="button"
-          tabIndex={0}
-          aria-label={`${node.name} - ${node.type} - ${node.status}${node.description ? `: ${node.description}` : ''}`}
-        >
-          <span className="text-base sm:text-lg">{getIcon(node.integration)}</span>
-          <span className="text-[10px] sm:text-xs font-medium text-white truncate max-w-[80px] sm:max-w-[120px]">
-            {node.name}
-          </span>
-          <div
-            className={cn(
-              'w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full transition-all duration-300 flex-shrink-0',
-              colors.dot,
-              node.status === 'connecting' && 'animate-ping'
-            )}
-          />
-        </div>
-
-        {/* Tooltip - uses CSS group-hover for desktop, click/touch state for mobile */}
-        <NodeTooltip
-          node={node}
-          isOpen={showTooltip}
-          onClose={() => setShowTooltip(false)}
-          position="top"
-          useHoverClass={true}
-        />
-
-        {/* Remove button - appears on hover when editing enabled */}
-        {canEdit && onRemove && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const confirmMsg = node.type === 'trigger'
-                ? 'Removing the trigger will disable this workflow. Continue?'
-                : `Remove "${node.name}" from workflow?`
-              if (window.confirm(confirmMsg)) {
-                onRemove(node.id)
-              }
-            }}
-            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
-            title="Remove this step"
-          >
-            ×
-          </button>
-        )}
-      </div>
-
-      {/* @NEXUS-FIX-103: Responsive connector arrows - DO NOT REMOVE */}
-      {!isLast && (
-        <div className="relative w-5 sm:w-8 h-0.5 mx-0.5 sm:mx-1 flex-shrink-0">
-          <div className="absolute inset-0 bg-slate-700 rounded-full" />
-          <div
-            className={cn(
-              'absolute inset-y-0 left-0 rounded-full transition-all duration-500',
-              colors.line,
-              node.status === 'connecting' && 'animate-pulse'
-            )}
-            style={{
-              width: node.status === 'success' ? '100%' : node.status === 'connecting' ? '50%' : '0%',
-            }}
-          />
-          <div
-            className={cn(
-              'absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[3px] sm:border-t-[4px] border-t-transparent border-b-[3px] sm:border-b-[4px] border-b-transparent border-l-[4px] sm:border-l-[6px] transition-colors duration-300',
-              node.status === 'success'
-                ? 'border-l-emerald-500'
-                : node.status === 'connecting'
-                ? 'border-l-amber-500'
-                : 'border-l-slate-600'
-            )}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-// @ts-expect-error - MiniNodeVertical kept for future use but not currently rendered (FIX-100 unified to horizontal)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function MiniNodeVertical({
-  node,
-  isLast,
-  index,
-  onRemove,
-  canEdit = false
-}: {
-  node: WorkflowNode;
-  isLast: boolean;
-  index: number;
-  onRemove?: (nodeId: string) => void;
-  canEdit?: boolean;
-}) {
-  const colors = statusColors[node.status]
-  const [showTooltip, setShowTooltip] = React.useState(false)
-
-  // @NEXUS-FIX-099: Handle touch events for mobile - touch shows tooltip
-  const handleTouchStart = React.useCallback(() => {
-    setShowTooltip(true)
-  }, [])
-
-  const handleTouchEnd = React.useCallback(() => {
-    // Keep tooltip visible for a moment after touch ends
-    setTimeout(() => setShowTooltip(false), 2000)
-  }, [])
-
-  return (
-    <div className="flex items-start relative group">
-      {/* @NEXUS-FIX-099: Touch-friendly icon with min 44px touch target - DO NOT REMOVE */}
-      <div className="flex flex-col items-center mr-3">
-        <div
-          className={cn(
-            'w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500 cursor-pointer',
-            'min-w-[44px] min-h-[44px]', // Touch-friendly minimum size
-            colors.bg,
-            colors.border,
-            node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
-            node.status === 'success' && 'shadow-md shadow-emerald-500/30',
-            'active:scale-95 hover:scale-105'
-          )}
-          onClick={() => setShowTooltip(!showTooltip)}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          role="button"
-          tabIndex={0}
-          aria-label={`${node.name} - ${node.type} - ${node.status}${node.description ? `: ${node.description}` : ''}`}
-        >
-          <span className="text-base">{getIcon(node.integration)}</span>
-        </div>
-
-        {!isLast && (
-          <div className="relative w-0.5 h-8 my-1">
-            <div className="absolute inset-0 bg-slate-700 rounded-full" />
-            <div
-              className={cn('absolute inset-x-0 top-0 rounded-full transition-all duration-500', colors.line)}
-              style={{
-                height: node.status === 'success' ? '100%' : node.status === 'connecting' ? '50%' : '0%',
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* @NEXUS-FIX-099: Larger touch target for text area - DO NOT REMOVE */}
-      <div
-        className="flex-1 min-w-0 pt-1 cursor-pointer min-h-[44px] flex flex-col justify-center"
-        onClick={() => setShowTooltip(!showTooltip)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white truncate">
-            {index + 1}. {node.name}
-          </span>
-          <div
-            className={cn(
-              'w-2.5 h-2.5 rounded-full flex-shrink-0 transition-all duration-300',
-              colors.dot,
-              node.status === 'connecting' && 'animate-ping'
-            )}
-          />
-        </div>
-        {node.integration && (
-          <span className="text-xs text-cyan-400/70 mt-0.5 block capitalize">{node.integration}</span>
-        )}
-        {/* @NEXUS-FIX-099: Show description snippet in vertical view */}
-        {node.description && (
-          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1">{node.description}</span>
-        )}
-      </div>
-
-      {/* Tooltip - positioned to the right on mobile, uses CSS hover + click */}
-      <NodeTooltip
-        node={node}
-        isOpen={showTooltip}
-        onClose={() => setShowTooltip(false)}
-        position="right"
-        useHoverClass={true}
-      />
-
-      {/* Remove button - appears on hover when editing enabled */}
-      {canEdit && onRemove && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            const confirmMsg = node.type === 'trigger'
-              ? 'Removing the trigger will disable this workflow. Continue?'
-              : `Remove "${node.name}" from workflow?`
-            if (window.confirm(confirmMsg)) {
-              onRemove(node.id)
-            }
-          }}
-          className="absolute top-0 right-0 w-6 h-6 rounded-full bg-red-500 hover:bg-red-400 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
-          title="Remove this step"
-        >
-          ×
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ============================================================================
-// Auth Prompt Component
-// ============================================================================
-
-interface AuthPromptProps {
-  integration: IntegrationInfo
-  redirectUrl: string | null
-  onConnect: () => void
-  onSkip: () => void
-  connectedCount: number
-  totalCount: number
-  isLoading: boolean
-  isPolling: boolean
-  pollAttempts: number
-}
-
-function AuthPrompt({
-  integration,
-  redirectUrl,
-  onConnect,
-  connectedCount,
-  totalCount,
-  isLoading,
-  isPolling,
-  pollAttempts,
-}: AuthPromptProps) {
-  // Show polling UI when waiting for OAuth to complete
-  if (isPolling && redirectUrl) {
-    const timeRemaining = Math.max(0, 120 - pollAttempts * 3)
-    const minutes = Math.floor(timeRemaining / 60)
-    const seconds = timeRemaining % 60
-
-    return (
-      <div className="px-4 py-4 space-y-4">
-        {/* Progress indicator */}
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-purple-400 animate-pulse" />
-            Waiting for authorization
-          </span>
-          <span className="font-mono text-amber-400">
-            {minutes}:{seconds.toString().padStart(2, '0')}
-          </span>
-        </div>
-
-        {/* Animated progress bar */}
-        <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 animate-pulse"
-            style={{ width: `${Math.min(100, (pollAttempts / 40) * 100)}%` }}
-          />
-        </div>
-
-        {/* Waiting card */}
-        <div className="p-4 rounded-xl bg-gradient-to-br from-amber-900/20 to-amber-800/10 border border-amber-500/30">
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl animate-bounce"
-              style={{ backgroundColor: `${integration.color}20` }}
-            >
-              {integration.icon}
-            </div>
-            <div>
-              <h4 className="font-semibold text-white">Complete Authorization</h4>
-              <p className="text-xs text-amber-400">Waiting for {integration.name} to connect...</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-sm text-slate-300">
-            <p className="flex items-center gap-2">
-              <span className="text-lg">1.</span>
-              <span>A new window/tab has opened for {integration.name}</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="text-lg">2.</span>
-              <span>Sign in and authorize Nexus to access your account</span>
-            </p>
-            <p className="flex items-center gap-2">
-              <span className="text-lg">3.</span>
-              <span>Once done, this will update automatically</span>
-            </p>
-          </div>
-
-          <div className="mt-4 flex items-center justify-center gap-2 text-amber-400">
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Checking connection status...</span>
-          </div>
-
-          {/* Re-open auth link */}
-          <a
-            href={redirectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 w-full py-2 rounded-lg text-sm font-medium text-center block border border-slate-600 text-slate-300 hover:bg-slate-800 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4 inline mr-2" />
-            Re-open authorization window
-          </a>
-        </div>
-
-        {/* Reassurance text */}
-        <p className="text-[10px] text-slate-500 text-center">
-          Connection will be detected automatically. Don&apos;t close this page.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="px-4 py-4 space-y-4">
-      {/* Progress indicator */}
-      <div className="flex items-center justify-between text-xs text-slate-400">
-        <span className="flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-purple-400" />
-          Setting up your workflow
-        </span>
-        <span>
-          {connectedCount} of {totalCount} connected
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-500"
-          style={{ width: `${(connectedCount / totalCount) * 100}%` }}
-        />
-      </div>
-
-      {/* Integration card */}
-      <div className="p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700">
-        <div className="flex items-center gap-3 mb-3">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-            style={{ backgroundColor: `${integration.color}20` }}
-          >
-            {integration.icon}
-          </div>
-          <div>
-            <h4 className="font-semibold text-white">{integration.name}</h4>
-            <p className="text-xs text-slate-400">{integration.description}</p>
-          </div>
-        </div>
-
-        <p className="text-sm text-slate-300 mb-4">{integration.connectMessage}</p>
-
-        {redirectUrl ? (
-          <a
-            href={redirectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={onConnect}
-            className={cn(
-              'w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2',
-              'bg-gradient-to-r from-purple-500 to-cyan-500 text-white',
-              'hover:shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]'
-            )}
-          >
-            <Link2 className="w-4 h-4" />
-            Connect {integration.name}
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        ) : (
-          <button
-            onClick={onConnect}
-            disabled={isLoading}
-            className={cn(
-              'w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2',
-              isLoading
-                ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-purple-500/25'
-            )}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Getting connection link...
-              </>
-            ) : (
-              <>
-                <Link2 className="w-4 h-4" />
-                Connect {integration.name}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Reassurance text */}
-      <p className="text-[10px] text-slate-500 text-center">
-        🔒 Secure OAuth connection. We never see your password.
-      </p>
-    </div>
-  )
-}
-
-// ============================================================================
-// Parallel Auth Prompt Component (MINIMAL CLICKS - Connect All at Once)
-// ============================================================================
-
-interface ParallelAuthPromptProps {
-  integrations: IntegrationInfo[]
-  parallelState: ParallelAuthState
-  onConnectAll: () => void
-  onConnectSingle: (integration: IntegrationInfo) => void
-  isLoading: boolean
-  connectedCount: number
-}
-
-function ParallelAuthPrompt({
-  integrations,
-  parallelState,
-  onConnectAll,
-  onConnectSingle,
-  isLoading,
-  connectedCount,
-}: ParallelAuthPromptProps) {
-  // Total required = pending integrations + already connected integrations
-  const totalRequired = integrations.length + connectedCount
-  const pendingCount = integrations.length
-  const allPolling = integrations.every(i => parallelState[i.id]?.status === 'polling')
-  const anyPolling = integrations.some(i => parallelState[i.id]?.status === 'polling')
-
-  // Calculate max time remaining across all polling integrations
-  const maxPollAttempts = Math.max(
-    ...integrations.map(i => parallelState[i.id]?.pollAttempts || 0)
-  )
-  const timeRemaining = Math.max(0, 120 - maxPollAttempts * 3)
-  const minutes = Math.floor(timeRemaining / 60)
-  const seconds = timeRemaining % 60
-
-  // @NEXUS-UX-003: OAuth prompt with VIP hospitality - DO NOT REMOVE
-  return (
-    <div className="px-4 py-4 space-y-4">
-      {/* @NEXUS-UX-003: Exciting header - connection unlocks superpowers */}
-      <div className="flex items-center justify-between text-xs text-slate-400">
-        <span className="flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-purple-400" />
-          {anyPolling ? '✨ Almost there...' : '🔓 Unlock Your Workflow'}
-        </span>
-        <span className="flex items-center gap-2">
-          {anyPolling && (
-            <span className="font-mono text-amber-400">
-              {minutes}:{seconds.toString().padStart(2, '0')}
-            </span>
-          )}
-          <span className="text-emerald-400">{connectedCount}/{totalRequired} ready</span>
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-        <div
-          className={cn(
-            'h-full transition-all duration-500',
-            anyPolling
-              ? 'bg-gradient-to-r from-amber-500 to-amber-400 animate-pulse'
-              : 'bg-gradient-to-r from-purple-500 to-cyan-500'
-          )}
-          style={{ width: `${(connectedCount / totalRequired) * 100}%` }}
-        />
-      </div>
-
-      {/* Integration grid - show all at once */}
-      <div className="space-y-2">
-        {integrations.map((integration) => {
-          const state = parallelState[integration.id] || { status: 'pending', pollAttempts: 0 }
-          const isConnected = state.status === 'connected'
-          const isPolling = state.status === 'polling'
-          const hasError = state.status === 'error'
-
-          return (
-            <div
-              key={integration.id}
-              className={cn(
-                'p-3 rounded-xl border transition-all duration-300',
-                isConnected
-                  ? 'bg-emerald-900/20 border-emerald-500/30'
-                  : isPolling
-                  ? 'bg-amber-900/20 border-amber-500/30'
-                  : hasError
-                  ? 'bg-red-900/20 border-red-500/30'
-                  : 'bg-slate-800/50 border-slate-700'
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-                    style={{ backgroundColor: `${integration.color}20` }}
-                  >
-                    {integration.icon}
-                  </div>
-                  {/* @NEXUS-UX-003: Friendly status messages - DO NOT REMOVE */}
-                  <div>
-                    <h4 className="font-medium text-white text-sm">{integration.name}</h4>
-                    <p className="text-xs text-slate-400">
-                      {isConnected
-                        ? '✅ Ready to go!'
-                        : isPolling
-                        ? '🔄 Complete sign-in in the popup...'
-                        : hasError
-                        ? `⚠️ ${state.error || 'Let\'s try again'}`
-                        : '🔗 One click to connect'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Status indicator or action button */}
-                <div className="flex items-center gap-2">
-                  {isConnected ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  ) : isPolling ? (
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-amber-500 animate-spin" />
-                      {state.authUrl && (
-                        <a
-                          href={state.authUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-amber-400 hover:underline"
-                        >
-                          Re-open
-                        </a>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => onConnectSingle(integration)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition-colors"
-                    >
-                      Connect
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* @NEXUS-UX-003: Connect All Button with exciting copy - DO NOT REMOVE */}
-      {pendingCount > 0 && !allPolling && (
-        <button
-          onClick={onConnectAll}
-          disabled={isLoading || anyPolling}
-          className={cn(
-            'w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2',
-            isLoading || anyPolling
-              ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]'
-          )}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Preparing secure connections...
-            </>
-          ) : (
-            <>
-              <Zap className="w-4 h-4" />
-              {pendingCount === 1 ? 'Connect & Unlock →' : `Connect All ${pendingCount} Apps →`}
-            </>
-          )}
-        </button>
-      )}
-
-      {/* @NEXUS-UX-003: Polling instructions with friendly guidance - DO NOT REMOVE */}
-      {anyPolling && (
-        <div className="p-3 rounded-lg bg-amber-900/20 border border-amber-500/20">
-          <div className="text-sm text-amber-200">
-            <p className="font-medium mb-1">👆 Complete the sign-in in the popup windows</p>
-            <p className="text-xs text-amber-300/70">
-              Just click "Allow" or "Authorize" in each window. This page updates automatically when done!
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* @NEXUS-UX-003: Reassurance with friendlier tone - DO NOT REMOVE */}
-      <p className="text-[10px] text-slate-500 text-center">
-        🔒 Your passwords stay with {pendingCount > 1 ? 'the apps' : 'the app'} — we only get permission to automate tasks for you
-      </p>
-    </div>
-  )
-}
+import type {
+  NodeStatus,
+  CardPhase,
+  WorkflowNode,
+  MissingInfoItem,
+  WorkflowPreviewCardProps,
+  AuthState,
+  ParallelAuthState,
+  OrchestrationResult,
+  WorkflowValidation,
+} from './wpc-types'
+
+// Constants
+import { getIcon } from './wpc-constants'
+
+// Tool utilities
+import {
+  isParamSemanticallycollected,
+  getCanonicalParamName,
+  getFallbackTools,
+  validateToolSlug,
+  isToolNotFoundError,
+  mapNodeToToolSlug,
+  getDefaultParams,
+  validateRequiredParams,
+  extractIdFromUrl,
+} from './wpc-tool-utils'
+
+// Helpers (orchestration, validation, param mapping)
+import {
+  USE_GENERIC_ORCHESTRATION,
+  USE_ORCHESTRATION_FIRST,
+  resolveToolViaOrchestration,
+  isToolkitKnown,
+  mapCollectedParamsToToolParams,
+  _resolveToolSlugWithRegistry,
+  inferActionFromNodeName,
+  _resolveParamsWithPipeline,
+  _getEnhancedMissingParams,
+  validateWorkflowBeforeExecution,
+  getParamFixSuggestion,
+  getTriggerSampleFields,
+} from './wpc-helpers'
+
+// Sub-components
+import { MiniNodeHorizontal } from './wpc-MiniNode'
+import { AuthPrompt } from './wpc-AuthPrompt'
+import { ParallelAuthPrompt } from './wpc-AuthPrompt'
 
 // ============================================================================
 // Missing Info Section with Custom Input Support
@@ -2297,6 +203,8 @@ function MissingInfoSection({
     if (isCustomOption(option)) {
       setShowCustomInput(true)
     } else {
+      // Learn from user's selection for future suggestions (Finding #2)
+      userContextService.learnFromChoice(field, option)
       // Submit and move to next question
       onSelect?.(field, option)
       setLocalAnsweredFields(prev => new Set(prev).add(field))
@@ -2308,6 +216,8 @@ function MissingInfoSection({
   const handleCustomSubmit = (field: string) => {
     const value = customValue.trim()
     if (value) {
+      // Learn from user's custom value for future suggestions (Finding #2)
+      userContextService.learnFromChoice(field, value)
       onSelect?.(field, value)
       setLocalAnsweredFields(prev => new Set(prev).add(field))
       setShowCustomInput(false)
@@ -2325,9 +235,8 @@ function MissingInfoSection({
     return null
   }
 
-  // FIX-108: Count both local answers and collected params for progress
-  const totalAnswered = localAnsweredFields.size + Object.keys(collectedParams).filter(k => collectedParams[k] && collectedParams[k] !== '').length
-  const progressPercent = Math.round((totalAnswered / missingInfo.length) * 100)
+  // FIX-108: Progress based on answered vs total questions (clamped to 0-100%)
+  const progressPercent = missingInfo.length > 0 ? Math.min(100, Math.round(((missingInfo.length - unansweredQuestions.length) / missingInfo.length) * 100)) : 0
   const remaining = unansweredQuestions.length
 
   // @NEXUS-UX-002: Parameter collection with VIP hospitality - DO NOT REMOVE
@@ -2437,47 +346,6 @@ function MissingInfoSection({
 // Trigger Sample Data Collection
 // ============================================================================
 
-/**
- * Get expected sample data fields for a trigger node based on its type
- * This data will flow through the workflow during beta testing
- */
-function getTriggerSampleFields(nodeName: string, toolkit: string): Array<{field: string, label: string, placeholder: string}> {
-  const nameLower = nodeName.toLowerCase()
-  const toolkitLower = toolkit.toLowerCase()
-
-  // WhatsApp triggers
-  if (toolkitLower.includes('whatsapp') || nameLower.includes('whatsapp')) {
-    return [
-      { field: 'from', label: 'From (phone number)', placeholder: '+965-1234-5678' },
-      { field: 'message', label: 'Message content', placeholder: 'Hi, I am interested in your services...' },
-      { field: 'sender_name', label: 'Sender name', placeholder: 'Ahmed Al-Sabah' },
-    ]
-  }
-
-  // Email triggers
-  if (toolkitLower.includes('gmail') || toolkitLower.includes('email') || nameLower.includes('email')) {
-    return [
-      { field: 'from', label: 'From (email)', placeholder: 'client@example.com' },
-      { field: 'subject', label: 'Subject', placeholder: 'Inquiry about services' },
-      { field: 'body', label: 'Email body', placeholder: 'Hello, I would like to learn more...' },
-    ]
-  }
-
-  // Slack triggers
-  if (toolkitLower.includes('slack') || nameLower.includes('slack')) {
-    return [
-      { field: 'channel', label: 'Channel', placeholder: '#general' },
-      { field: 'user', label: 'User', placeholder: 'john.doe' },
-      { field: 'message', label: 'Message', placeholder: 'Hey team, we have a new request...' },
-    ]
-  }
-
-  // @NEXUS-UX-002: Webhook/generic triggers - friendly labels - DO NOT REMOVE
-  // Don't show scary JSON to users - use simple text format
-  return [
-    { field: 'data', label: 'What event triggered this workflow?', placeholder: 'e.g., "New order received" or "Form submitted"' },
-  ]
-}
 
 /**
  * Component for collecting trigger sample data
@@ -2611,573 +479,6 @@ function TriggerSampleDataPrompt({
 }
 
 // ============================================================================
-// @NEXUS-FIX-029: Map collected params from integration names to actual tool param names - DO NOT REMOVE
-// Problem: User answers stored under integration name (e.g., {gmail: 'user@email.com'})
-//          but tools expect specific param names (e.g., {to: 'user@email.com'})
-// Solution: Map integration names to primary required parameters
-// ============================================================================
-
-/**
- * Map collected params from integration-keyed format to tool parameter format
- * e.g., { gmail: 'user@email.com' } → { to: 'user@email.com' }
- */
-function mapCollectedParamsToToolParams(
-  collectedParams: Record<string, string> | undefined,
-  toolkit: string,
-  _toolSlug: string  // Reserved for future tool-specific mapping
-): Record<string, unknown> {
-  if (!collectedParams) return {}
-
-  // Define mapping from integration name to primary param name
-  // @NEXUS-FIX-029: Integration → Primary param mapping
-  const integrationToPrimaryParam: Record<string, string> = {
-    gmail: 'to',
-    sendgrid: 'to',
-    slack: 'channel',
-    whatsapp: 'to',
-    discord: 'channel_id',
-    teams: 'channel_id',
-    googlesheets: 'spreadsheet_id',
-    googlecalendar: 'summary',
-    zoom: 'topic',
-    clickup: 'list_id',
-    linear: 'team_id',
-    jira: 'project_key',
-    asana: 'workspace',
-    trello: 'list_id',
-    github: 'owner',
-    hubspot: 'email',
-    salesforce: 'object_type',
-    pipedrive: 'title',
-    stripe: 'email',
-    mailchimp: 'email',
-    twitter: 'text',
-    linkedin: 'text',
-    deepgram: 'audio_url',
-    elevenlabs: 'text',
-    zendesk: 'subject',
-    freshdesk: 'subject',
-    intercom: 'body',
-  }
-
-  const result: Record<string, unknown> = {}
-
-  for (const [key, value] of Object.entries(collectedParams)) {
-    // Skip internal tracking fields
-    if (key.startsWith('_')) continue
-
-    // Move 6.16b: Handle nodeId.paramName format (task-specific params)
-    // Format: "node_123.to" → extract "to" as the param name
-    const nodeParamMatch = key.match(/^[a-zA-Z0-9_]+\.(\w+)$/)
-    if (nodeParamMatch) {
-      const paramName = nodeParamMatch[1]
-      console.log(`[Move 6.16b] Extracted task-specific param: ${key} → ${paramName} = ${value}`)
-      result[paramName] = value
-      continue
-    }
-
-    // Check if this key is an integration name that needs mapping
-    const keyLower = key.toLowerCase()
-    const mappedParam = integrationToPrimaryParam[keyLower]
-
-    if (mappedParam) {
-      // @NEXUS-FIX-097: Don't overwrite valid values with placeholders - DO NOT REMOVE
-      // When "whatsapp" maps to "to", check if we already have a valid phone number
-      // and the new value is just a placeholder like "I'll provide a phone number"
-      const isPlaceholder = typeof value === 'string' && (
-        value.toLowerCase().includes("i'll provide") ||
-        value.toLowerCase().includes("i will provide") ||
-        value.toLowerCase().includes("provide a") ||
-        value.toLowerCase().includes("enter a") ||
-        value.toLowerCase().includes("select") ||
-        value === ''
-      )
-      const existingValue = result[mappedParam]
-      const existingIsValidData = existingValue && typeof existingValue === 'string' &&
-        !existingValue.toLowerCase().includes("provide") &&
-        existingValue.length > 0 &&
-        (existingValue.startsWith('+') || existingValue.includes('@') || /^\d/.test(existingValue))
-
-      if (isPlaceholder && existingIsValidData) {
-        console.log(`[FIX-097] Skipping placeholder "${value}" - keeping existing value "${existingValue}" for ${mappedParam}`)
-      } else {
-        // Map integration name to param name
-        console.log(`[FIX-029] Mapping collected param: ${key} → ${mappedParam} = ${value}`)
-        result[mappedParam] = value
-      }
-    } else if (keyLower === 'value') {
-      // Generic 'value' key - try to map based on current toolkit
-      const toolkitParam = integrationToPrimaryParam[toolkit.toLowerCase()]
-      if (toolkitParam) {
-        console.log(`[FIX-029] Mapping generic value to toolkit param: ${toolkitParam} = ${value}`)
-        result[toolkitParam] = value
-      } else {
-        // Last resort - keep as-is, might be a direct param name
-        result[key] = value
-      }
-    } else {
-      // Keep as-is - might already be a param name
-      result[key] = value
-
-      // @NEXUS-FIX-050: Reverse alias mapping for semantic param names - DO NOT REMOVE
-      // Maps user-friendly names (what AI collected) to actual API param names
-      // e.g., notification_details → text, message → text
-      const REVERSE_ALIASES: Record<string, string> = {
-        notification_details: 'text',
-        notification_content: 'text',  // @NEXUS-FIX-050 extension: AI Quick Questions compatibility
-        notification_message: 'text',
-        slack_message: 'text',
-        message_text: 'text',
-        message: 'text',
-        content: 'body',
-        post_content: 'body',
-        email_body: 'body',
-        slack_channel: 'channel',
-        channel_name: 'channel',
-        destination_channel: 'channel',
-        recipient: 'to',
-        recipient_email: 'to',
-        send_to: 'to',
-        email_to: 'to',
-        email_address: 'to',
-        email_subject: 'subject',
-        subject_line: 'subject',
-        file_path: 'path',
-        folder_path: 'path',
-        dropbox_path: 'path',
-        onedrive_path: 'path',
-        sheet_id: 'spreadsheet_id',
-        google_sheet: 'spreadsheet_id',
-        spreadsheet_url: 'spreadsheet_id',
-        notion_page: 'page_id',
-        page_url: 'page_id',
-        repository: 'repo',
-        github_repo: 'repo',
-        repo_name: 'repo',
-      }
-
-      const apiParamName = REVERSE_ALIASES[keyLower]
-      if (apiParamName) {
-        console.log(`[FIX-050] Reverse alias mapping: ${key} → ${apiParamName} = ${value}`)
-        result[apiParamName] = value
-      }
-    }
-  }
-
-  return result
-}
-
-// ============================================================================
-// @NEXUS-FIX-042/043: New Service Integration Helpers
-// These wrap the new architecture services while maintaining backwards compatibility
-// ============================================================================
-
-/**
- * @NEXUS-GENERIC-ORCHESTRATION: Async resolution with orchestration fallback
- *
- * Resolution priority:
- *   1. If toolkit is known (in TOOL_SLUGS) → Use legacy sync resolution
- *   2. If toolkit is unknown AND USE_GENERIC_ORCHESTRATION → Try orchestration
- *   3. Fallback to dynamic slug construction
- *
- * NOTE: Prepared for Phase 3 integration when executeWorkflow uses async resolution
- */
-// Exported for Phase 3 integration and testing
-export async function resolveToolWithOrchestration(
-  nodeName: string,
-  toolkit: string
-): Promise<{ slug: string | null; source: 'orchestration' | 'registry' | 'legacy'; questions?: CollectionQuestion[] }> {
-  const toolkitLower = toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
-
-  // Check if toolkit is known in static mappings
-  if (isToolkitKnown(toolkitLower)) {
-    // Use legacy resolution for known toolkits (fast path)
-    const legacySlug = mapNodeToToolSlug(nodeName, toolkit)
-    return { slug: legacySlug, source: 'legacy' }
-  }
-
-  // For unknown toolkits, try orchestration if enabled
-  if (USE_GENERIC_ORCHESTRATION) {
-    const orchResult = await resolveToolViaOrchestration(nodeName, toolkit)
-    if (orchResult) {
-      console.log(`[ORCHESTRATION] Resolved unknown toolkit "${toolkit}" via orchestration: ${orchResult.slug}`)
-      return {
-        slug: orchResult.slug,
-        source: 'orchestration',
-        questions: orchResult.questions
-      }
-    }
-  }
-
-  // Fallback to legacy dynamic construction
-  const legacySlug = mapNodeToToolSlug(nodeName, toolkit)
-  return { slug: legacySlug, source: 'legacy' }
-}
-
-/**
- * Resolve tool slug using UnifiedToolRegistry with fallback to legacy mapNodeToToolSlug
- * @NEXUS-FIX-042: UnifiedToolRegistry integration - DO NOT REMOVE
- *
- * NOTE: Function prepared for Phase 5 integration when executeWorkflow is refactored.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _resolveToolSlugWithRegistry(
-  nodeName: string,
-  toolkit: string,
-  action?: string
-): { slug: string | null; contract: ToolContract | null; source: 'registry' | 'legacy' } {
-  const toolkitLower = toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
-
-  // Try UnifiedToolRegistry first (new architecture)
-  try {
-    // Infer action from node name if not provided
-    const inferredAction = action || inferActionFromNodeName(nodeName)
-
-    const resolution = UnifiedToolRegistryService.resolveToolContract(toolkitLower, inferredAction)
-    if (resolution && resolution.success && resolution.contract) {
-      console.log(`[FIX-042] Resolved via UnifiedToolRegistry: ${resolution.slug}`)
-      return { slug: resolution.slug, contract: resolution.contract, source: 'registry' }
-    }
-  } catch (e) {
-    console.debug(`[FIX-042] UnifiedToolRegistry lookup failed, falling back to legacy:`, e)
-  }
-
-  // Fallback to legacy mapNodeToToolSlug
-  const legacySlug = mapNodeToToolSlug(nodeName, toolkit)
-  return { slug: legacySlug, contract: null, source: 'legacy' }
-}
-
-/**
- * Infer action from node name for registry lookup
- */
-function inferActionFromNodeName(nodeName: string): string {
-  const nameLower = nodeName.toLowerCase()
-
-  // Map node name patterns to standard actions
-  if (/send|email|message|notify|post/.test(nameLower)) return 'send'
-  if (/create|add|new|make/.test(nameLower)) return 'create'
-  if (/update|edit|modify|change/.test(nameLower)) return 'update'
-  if (/delete|remove|clear/.test(nameLower)) return 'delete'
-  if (/list|get|fetch|read|retrieve/.test(nameLower)) return 'list'
-  if (/search|find|query|lookup/.test(nameLower)) return 'search'
-  if (/trigger|capture|receive|listen|watch|incoming|monitor/.test(nameLower)) return 'trigger'
-  if (/upload|save|store/.test(nameLower)) return 'upload'
-  if (/download/.test(nameLower)) return 'download'
-  if (/transcribe/.test(nameLower)) return 'transcribe'
-  if (/generate|synthesize/.test(nameLower)) return 'generate'
-
-  return 'default'
-}
-
-/**
- * Resolve ALL parameters using ParamResolutionPipeline with fallback to legacy logic
- * @NEXUS-FIX-043: ParamResolutionPipeline integration - DO NOT REMOVE
- *
- * This fixes GAP 10 (all params, not just primary) and GAP 11 (defined priority)
- *
- * NOTE: Function prepared for Phase 5 integration when executeWorkflow is refactored.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function _resolveParamsWithPipeline(
-  toolSlug: string,
-  toolkit: string,
-  node: WorkflowNode,
-  collectedParams: Record<string, string> | undefined,
-  workflowContext?: { name: string; description: string }
-): Promise<{ params: Record<string, unknown>; source: 'pipeline' | 'legacy'; resolved: ResolvedParams | null }> {
-  // Try ParamResolutionPipeline first (new architecture - fixes GAP 10 & 11)
-  try {
-    // Get tool contract from registry
-    const action = inferActionFromNodeName(node.name)
-    const resolution = UnifiedToolRegistryService.resolveToolContract(toolkit.toLowerCase(), action)
-
-    if (resolution && resolution.success && resolution.contract) {
-      // Build sources object with all available param sources
-      const sources = {
-        userProvided: collectedParams || {},
-        nodeConfig: (node.config || {}) as Record<string, string>,
-        workflowContext: workflowContext ? {
-          workflow_name: workflowContext.name,
-          workflow_description: workflowContext.description,
-        } : {},
-      }
-
-      // Use pipeline to resolve ALL params with defined priority
-      const resolved = await ParamResolutionPipeline.resolve(resolution.contract, sources)
-
-      // Check if pipeline found required params (missingRequired is string[] of param names)
-      if (resolved.missingRequired.length === 0 || Object.keys(resolved.params).length > 0) {
-        console.log(`[FIX-043] Resolved ${Object.keys(resolved.params).length} params via ParamResolutionPipeline`)
-        return { params: resolved.params, source: 'pipeline', resolved }
-      }
-    }
-  } catch (e) {
-    console.debug(`[FIX-043] ParamResolutionPipeline failed, falling back to legacy:`, e)
-  }
-
-  // Fallback to legacy param resolution
-  const defaultParams = getDefaultParams(toolSlug, node, undefined, workflowContext)
-  const collectedToolParams = mapCollectedParamsToToolParams(collectedParams, toolkit, toolSlug)
-  const legacyParams = { ...defaultParams, ...collectedToolParams }
-
-  return { params: legacyParams, source: 'legacy', resolved: null }
-}
-
-/**
- * Get ALL missing params with user-friendly prompts using new architecture
- * @NEXUS-FIX-043: Uses ParamResolutionPipeline for complete param detection
- *
- * NOTE: Function prepared for Phase 5 integration when executeWorkflow is refactored.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _getEnhancedMissingParams(
-  resolved: ResolvedParams | null,
-  toolkit: string,
-  fallbackMissing: string[]
-): Array<{ name: string; displayName: string; prompt: string; required: boolean }> {
-  // If we have pipeline result, use its missingRequired (string array of param names)
-  if (resolved && resolved.missingRequired.length > 0) {
-    // Convert string[] to enhanced format using resolutionSteps for context
-    return resolved.missingRequired.map(missingParam => {
-      // Try to find display info from resolution steps (uses paramName property)
-      const step = resolved.resolutionSteps.find(s => s.paramName === missingParam)
-      return {
-        name: missingParam,
-        displayName: step?.displayName || missingParam.replace(/_/g, ' ').replace(/\bid\b/gi, 'ID'),
-        prompt: getParamFixSuggestion(missingParam, toolkit),
-        required: true,
-      }
-    })
-  }
-
-  // Fallback: Convert legacy missing params to enhanced format
-  return fallbackMissing.map(param => ({
-    name: param,
-    displayName: param.replace(/_/g, ' ').replace(/\bid\b/gi, 'ID'),
-    prompt: getParamFixSuggestion(param, toolkit),
-    required: true,
-  }))
-}
-
-// ============================================================================
-// Pre-Execution Validation Types
-// ============================================================================
-
-interface NodeValidation {
-  nodeId: string
-  nodeName: string
-  isValid: boolean
-  hasToolMapping: boolean
-  toolSlug: string | null  // The resolved tool slug
-  isDynamicSlug: boolean   // True if constructed dynamically (not from static mapping)
-  missingParams: string[]
-  suggestedFixes: string[]
-  toolkit: string
-}
-
-interface WorkflowValidation {
-  isValid: boolean
-  allNodesHaveTools: boolean
-  allParamsProvided: boolean
-  hasDynamicSlugs: boolean  // True if any node uses a dynamically constructed slug
-  nodes: NodeValidation[]
-  blockers: string[]  // Human-readable blockers
-  warnings: string[]  // Non-blocking warnings
-  canExecute: boolean
-}
-
-/**
- * Check if a tool slug is from static mapping or dynamically constructed
- */
-function isStaticMapping(toolSlug: string, toolkit: string): boolean {
-  const toolkitLower = toolkit.toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/-/g, '')
-  const toolkitTools = TOOL_SLUGS[toolkitLower]
-  if (!toolkitTools) return false
-  return Object.values(toolkitTools).includes(toolSlug)
-}
-
-/**
- * Validate the entire workflow BEFORE showing Execute button
- *
- * NEW BEHAVIOR (v2):
- * - With dynamic slug construction, we ALWAYS have a tool slug
- * - Validation focuses on toolkit recognition and param availability
- * - Dynamic slugs work but may fail at runtime if Composio doesn't have that exact tool
- */
-function validateWorkflowBeforeExecution(
-  workflowNodes: Array<{ id: string; name: string; type: string; integration?: string }>,
-): WorkflowValidation {
-  const nodeValidations: NodeValidation[] = []
-  const warnings: string[] = []
-  let allNodesHaveTools = true
-  let allParamsProvided = true
-  let hasDynamicSlugs = false
-
-  for (const node of workflowNodes) {
-    const integrationInfo = getIntegrationInfo(node.integration || node.name)
-    const toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
-
-    // Check if this is a dynamic slug (not from static mapping)
-    const isDynamicSlug = toolSlug ? !isStaticMapping(toolSlug, integrationInfo.toolkit) : false
-    if (isDynamicSlug) {
-      hasDynamicSlugs = true
-      // Add warning but don't block execution
-      warnings.push(
-        `"${node.name}" uses an auto-detected tool (${toolSlug}). ` +
-        `This will be verified at runtime.`
-      )
-    }
-
-    // Get expected params for this tool
-    const mockParams: Record<string, unknown> = {}
-    const missingParams = toolSlug ? validateRequiredParams(toolSlug, mockParams) : []
-
-    // INTENT-DRIVEN APPROACH: Don't block based on unknown integrations
-    // The AI/backend will determine optimal tools at runtime
-    // User describes WHAT they want, Nexus figures out HOW
-    const hasToolMapping = !!toolSlug
-    const isUnknownIntegration = integrationInfo.toolkit === 'unknown' ||
-      integrationInfo.toolkit === 'default' ||
-      !integrationInfo.name
-
-    // Always valid if we have any tool mapping - let runtime handle specifics
-    const isValid = hasToolMapping
-
-    // Unknown integrations are just warnings, NOT blockers
-    // The AI will intelligently determine the right tool at execution time
-    if (isUnknownIntegration && !toolSlug) {
-      warnings.push(
-        `"${node.name}" - I'll determine the best approach when executing`
-      )
-    }
-
-    // Generate suggested fixes for missing params
-    const suggestedFixes: string[] = []
-    for (const param of missingParams) {
-      const fix = getParamFixSuggestion(param, integrationInfo.toolkit)
-      if (fix) suggestedFixes.push(fix)
-    }
-
-    nodeValidations.push({
-      nodeId: node.id,
-      nodeName: node.name,
-      isValid,
-      hasToolMapping,
-      toolSlug,
-      isDynamicSlug,
-      missingParams,
-      suggestedFixes,
-      toolkit: integrationInfo.toolkit,
-    })
-  }
-
-  // INTENT-DRIVEN: Always allow execution if workflow has nodes
-  // The AI will figure out optimal tools at runtime
-  // User describes the WHAT, Nexus determines the HOW
-  const canExecute = nodeValidations.length > 0
-
-  return {
-    isValid: canExecute,
-    allNodesHaveTools,
-    allParamsProvided,
-    hasDynamicSlugs,
-    nodes: nodeValidations,
-    blockers: [],  // No blockers - intent-driven system handles everything
-    warnings,
-    canExecute,  // Always executable if we have steps
-  }
-}
-
-/**
- * Get human-readable fix suggestion for a missing parameter
- */
-function getParamFixSuggestion(param: string, toolkit: string): string {
-  const suggestions: Record<string, Record<string, string>> = {
-    gmail: {
-      to: 'Tell me the email address to send to',
-      subject: 'What should the email subject be?',
-      body: 'What message should I include in the email?',
-    },
-    slack: {
-      channel: 'Which Slack channel should I post to? (e.g., #general)',
-      text: 'What message should I send?',
-    },
-    whatsapp: {
-      to: 'What phone number should I send the WhatsApp message to?',
-      message: 'What message should I send?',
-    },
-    clickup: {
-      list_id: 'Which ClickUp list should I create the task in?',
-      name: 'What should the task be called?',
-    },
-    googlesheets: {
-      // @NEXUS-FIX-021: User-friendly spreadsheet prompt - DO NOT REMOVE
-      spreadsheet_id: 'Which Google Sheet should I use? (Paste the URL from your browser)',
-      range: 'Which cells should I use? (e.g., "Sheet1" for whole sheet, or "A1:D10" for specific range)',
-    },
-    googlecalendar: {
-      summary: 'What should the event be called?',
-      start_datetime: 'When should the event start?',
-      end_datetime: 'When should the event end?',
-    },
-    github: {
-      owner: 'What GitHub username or organization owns the repository?',
-      repo: 'What is the repository name?',
-      title: 'What should the issue title be?',
-      body: 'What details should be in the issue description?',
-    },
-    notion: {
-      page_id: 'Which Notion page should I use? (Paste the page URL)',
-      database_id: 'Which Notion database should I use? (Paste the database URL)',
-      title: 'What should the page/item be called?',
-    },
-    dropbox: {
-      path: 'Where in Dropbox should I save this? (e.g., /Documents/MyFolder)',
-      folder_path: 'Which Dropbox folder? (e.g., /Documents)',
-    },
-    discord: {
-      channel_id: 'Which Discord channel should I post to? (Right-click channel → Copy Link)',
-      content: 'What message should I send?',
-    },
-    trello: {
-      board_id: 'Which Trello board? (Paste the board URL)',
-      list_id: 'Which list on the board?',
-      name: 'What should the card be called?',
-    },
-    asana: {
-      project_id: 'Which Asana project? (Paste the project URL)',
-      name: 'What should the task be called?',
-    },
-    linear: {
-      team_id: 'Which Linear team?',
-      title: 'What should the issue title be?',
-    },
-    jira: {
-      project_key: 'What is the Jira project key? (e.g., "PROJ")',
-      summary: 'What should the issue title be?',
-    },
-    hubspot: {
-      email: 'What is the contact email?',
-      firstname: 'What is the contact\'s first name?',
-      lastname: 'What is the contact\'s last name?',
-    },
-    stripe: {
-      customer_id: 'Which Stripe customer? (Email or customer ID)',
-      amount: 'What amount? (in cents, e.g., 1000 for $10)',
-    },
-    todoist: {
-      content: 'What should the task say?',
-      project_id: 'Which Todoist project?',
-    },
-  }
-
-  // @NEXUS-FIX-021: Fallback converts technical_param to "technical param" - DO NOT REMOVE
-  return suggestions[toolkit]?.[param] || `What is the ${param.replace(/_/g, ' ')}?`
-}
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -3270,6 +571,13 @@ export function WorkflowPreviewCard({
       status: 'idle' as NodeStatus,
     }))
   )
+
+  // @NEXUS-FIX-121: Track which node is selected for detail panel (outside scroll overflow) - DO NOT REMOVE
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null)
+  const handleNodeSelect = React.useCallback((nodeId: string) => {
+    setSelectedNodeId(prev => prev === nodeId ? null : nodeId)
+  }, [])
+  const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) ?? null : null
 
   // Run validation on mount and when workflow changes
   React.useEffect(() => {
@@ -3368,6 +676,13 @@ export function WorkflowPreviewCard({
           'x-user-id': localStorage.getItem('nexus_user_id') || 'anonymous'
         }
       })
+      // Guard against HTML 404 responses when backend is not deployed
+      if (!response.ok) {
+        console.warn('[WorkflowPreviewCard] WhatsApp backend not available (status', response.status, ')')
+        addLog('WhatsApp service requires backend deployment - showing connection prompt')
+        setWhatsAppState({ needed: true, connected: false, showPrompt: true })
+        return false
+      }
       const data = await response.json()
 
       // Check for an active/ready session
@@ -3880,16 +1195,26 @@ export function WorkflowPreviewCard({
       }
     }
 
-    console.log('[WorkflowPreviewCard] Pre-flight answer:', { questionId, paramName, value })
+    // @NEXUS-FIX-118: Extract IDs from URLs before storing - DO NOT REMOVE
+    // Users often paste full URLs (Google Sheets, Notion, GitHub) but APIs need just the ID
+    const extractedValue = extractIdFromUrl(paramName, value)
+    if (extractedValue !== value) {
+      console.log(`[FIX-118] URL extraction: ${paramName} URL → ID: ${extractedValue}`)
+    }
 
-    // Store the answer
-    setPreFlightAnswers(prev => ({ ...prev, [paramName]: value }))
+    console.log('[WorkflowPreviewCard] Pre-flight answer:', { questionId, paramName, value: extractedValue })
+
+    // Store the answer (with extracted ID, not raw URL)
+    setPreFlightAnswers(prev => ({ ...prev, [paramName]: extractedValue }))
 
     // @NEXUS-FIX-040: Removed setAnsweredQuestionIds - collectedParams handles tracking
     // The pre-flight check re-runs on collectedParams change, filtering answered questions
 
     // Also store in collectedParams for execution
-    setCollectedParams(prev => ({ ...prev, [paramName]: value }))
+    setCollectedParams(prev => ({ ...prev, [paramName]: extractedValue }))
+
+    // Learn from user's parameter choice for future suggestions (Finding #2)
+    userContextService.learnFromChoice(paramName, extractedValue)
 
     // Also notify parent (for ChatContainer to track)
     onMissingInfoSelect?.(paramName, value)
@@ -3928,6 +1253,172 @@ export function WorkflowPreviewCard({
     // questions array only contains unanswered questions - if empty, all answered
     return preFlightResult.questions.length === 0
   }, [preFlightResult])
+
+  // @NEXUS-FIX-118: Execution Dry-Run Validation Gate - DO NOT REMOVE
+  // Problem: Pre-flight checks integration-level params (e.g., "googlesheets" needs "spreadsheet_id")
+  // but execution checks tool-slug-level params (e.g., "GOOGLESHEETS_BATCH_UPDATE" needs "spreadsheet_id").
+  // These can drift out of sync, causing execution failures even after pre-flight passes.
+  // Solution: When all pre-flight questions are answered, do a "dry-run" that mirrors
+  // execution's param resolution — same tool slug, same defaults, same merge — and validate.
+  // If any params are still missing, add them as new questions BEFORE execution starts.
+  const dryRunCompletedRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    // Only run when pre-flight questions are all answered
+    if (!preFlightResult || preFlightResult.questions.length > 0) return
+    if (phase !== 'ready') return
+
+    // Create a fingerprint of current collected params to avoid re-running
+    const paramsFingerprint = JSON.stringify(collectedParams)
+    if (dryRunCompletedRef.current === paramsFingerprint) return
+    dryRunCompletedRef.current = paramsFingerprint
+
+    console.log('[FIX-118] Running execution dry-run validation...')
+
+    const missingQuestions: PreFlightQuestion[] = []
+
+    for (const rawNode of workflow.nodes) {
+      // Construct a proper WorkflowNode with status field for getDefaultParams compatibility
+      const node: WorkflowNode = {
+        id: rawNode.id,
+        name: rawNode.name,
+        type: (rawNode.type as 'trigger' | 'action' | 'output') || 'action',
+        integration: rawNode.integration,
+        status: 'idle',
+        config: (rawNode as Record<string, unknown>).config as Record<string, unknown> | undefined,
+        description: (rawNode as Record<string, unknown>).description as string | undefined,
+      }
+      const integrationInfo = getIntegrationInfo(node.integration || node.name)
+
+      // Skip trigger, AI, internal nodes — same logic as executeWorkflow
+      const isTriggerNode = node.type === 'trigger' ||
+        node.name.toLowerCase().includes('monitor') ||
+        node.name.toLowerCase().includes('watch') ||
+        node.name.toLowerCase().includes('listen') ||
+        node.name.toLowerCase().includes('receive')
+
+      if (isTriggerNode) continue
+
+      const hasRealIntegration = integrationInfo.toolkit !== 'ai' &&
+        integrationInfo.toolkit !== 'nexus' &&
+        integrationInfo.toolkit !== 'unknown' &&
+        integrationInfo.toolkit !== 'default' &&
+        node.integration?.toLowerCase() !== 'ai' &&
+        node.integration?.toLowerCase() !== 'nexus'
+
+      if (!hasRealIntegration) continue // AI/internal node
+
+      // Resolve tool slug — same as execution
+      const toolkitLower = integrationInfo.toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
+      let toolSlug: string | null = null
+
+      const storedOrchResult = orchestrationResults.get(node.id)
+      if (storedOrchResult?.slug) {
+        toolSlug = storedOrchResult.slug
+        if (isToolkitKnown(toolkitLower)) {
+          const legacySlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
+          if (legacySlug) toolSlug = legacySlug
+        }
+      } else if (isToolkitKnown(toolkitLower)) {
+        toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
+      }
+
+      if (!toolSlug) continue // Can't validate without a tool slug
+
+      // Get params — same merge as execution
+      // @NEXUS-FIX-118: Provide synthetic flow data for dry-run - DO NOT REMOVE
+      // Problem: Params like SLACK_SEND_MESSAGE.text depend on trigger data flowing from previous nodes.
+      // In dry-run there's no actual execution, so flowData is empty and these params show as "missing".
+      // Solution: Provide synthetic previous results so getDefaultParams can generate flow-dependent defaults.
+      // This prevents false "missing param" questions for params that WILL be available at execution time.
+      const nodeIdx = workflow.nodes.findIndex(n => n.id === rawNode.id)
+      const syntheticPreviousResults = workflow.nodes.slice(0, nodeIdx).map(prevRawNode => ({
+        node: {
+          id: prevRawNode.id,
+          name: prevRawNode.name,
+          type: (prevRawNode.type as 'trigger' | 'action' | 'output') || 'action',
+          integration: prevRawNode.integration,
+          status: 'success' as NodeStatus,
+        },
+        result: prevRawNode.type === 'trigger' ? {
+          type: 'trigger_sample_data',
+          data: {
+            from: 'trigger@example.com',
+            subject: 'Workflow Trigger Event',
+            body: 'Data from workflow trigger step',
+            sender_name: 'Nexus Workflow',
+            message: 'Trigger data flowing to next step',
+          }
+        } : {
+          type: 'action_result',
+          id: `prev_${prevRawNode.id}`,
+          text: 'Result from previous step',
+          message: 'Data from previous action',
+        }
+      }))
+
+      const defaultParams = getDefaultParams(toolSlug, node, syntheticPreviousResults, {
+        name: workflow.name,
+        description: workflow.description,
+      })
+      const collectedToolParams = mapCollectedParamsToToolParams(
+        collectedParams as Record<string, string>,
+        integrationInfo.toolkit,
+        toolSlug
+      )
+      const mergedParams = { ...defaultParams, ...collectedToolParams }
+
+      // Validate — same as execution
+      const missing = validateRequiredParams(toolSlug, mergedParams)
+
+      if (missing.length > 0) {
+        console.log(`[FIX-118] Dry-run found missing params for ${node.name} (${toolSlug}):`, missing)
+        for (const paramName of missing) {
+          // Don't re-ask params that are already in collected
+          const isAlreadyCollected = Object.keys(collectedParams).some(k =>
+            k === paramName || k.endsWith(`.${paramName}`)
+          )
+          if (isAlreadyCollected) continue
+
+          const friendlyPrompt = getParamFixSuggestion(paramName, integrationInfo.toolkit)
+          missingQuestions.push({
+            id: `dryrun_${node.id}_${paramName}`,
+            nodeId: node.id,
+            nodeName: node.name,
+            integration: integrationInfo.toolkit.toLowerCase(),
+            paramName,
+            displayName: paramName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+            prompt: friendlyPrompt || `What ${paramName.replace(/_/g, ' ')} should I use for ${node.name}?`,
+            quickActions: [],
+            inputType: 'text',
+            placeholder: `Enter ${paramName.replace(/_/g, ' ')}...`,
+            required: true
+          })
+        }
+      }
+    }
+
+    if (missingQuestions.length > 0) {
+      console.log(`[FIX-118] Dry-run validation found ${missingQuestions.length} additional params needed:`,
+        missingQuestions.map(q => `${q.nodeName}:${q.paramName}`))
+
+      // Reset dry-run fingerprint so it can re-check after user answers these
+      dryRunCompletedRef.current = null
+
+      // Add missing questions to pre-flight result
+      setPreFlightResult(prev => prev ? {
+        ...prev,
+        ready: false,
+        questions: missingQuestions,
+        summary: { ...prev.summary, totalQuestions: missingQuestions.length }
+      } : null)
+      setShowPreFlight(true)
+      setCurrentQuestionIndex(0)
+    } else {
+      console.log('[FIX-118] Dry-run validation passed — all nodes have required params!')
+    }
+  }, [preFlightResult, collectedParams, phase, workflow, orchestrationResults])
+  // @NEXUS-FIX-118-END
 
   // Listen for OAuth callback messages from popup windows
   React.useEffect(() => {
@@ -4715,8 +2206,13 @@ export function WorkflowPreviewCard({
     }
   }, [authState, addLog])
 
+  // @NEXUS-FIX-111: Track retry counts per node to prevent infinite retries - DO NOT REMOVE
+  const nodeRetryCounts = React.useRef<Map<string, number>>(new Map())
+
   // Execute workflow with REAL API calls via Composio
   const executeWorkflow = React.useCallback(async () => {
+    // Reset retry counts for fresh execution
+    nodeRetryCounts.current.clear()
     // First check if we need authentication
     if (phase === 'ready' && requiredIntegrations.length > 0) {
       const allConnected = await checkConnections()
@@ -4767,34 +2263,58 @@ export function WorkflowPreviewCard({
           node.name.toLowerCase().includes('capture') ||
           node.name.toLowerCase().includes('incoming')
 
-        const isAINode = integrationInfo.toolkit === 'ai' ||
-          node.integration?.toLowerCase() === 'ai' ||
-          node.name.toLowerCase().includes('extract') ||
-          node.name.toLowerCase().includes('analyze') ||
-          node.name.toLowerCase().includes('validate') ||
-          node.name.toLowerCase().includes('generate') ||
-          node.name.toLowerCase().includes('process')
+        // @NEXUS-FIX-110: Tightened AI/Internal node classification - DO NOT REMOVE
+        // Problem: Keywords like 'extract', 'analyze', 'generate', 'process' caused REAL
+        // action nodes (e.g., "Extract Email Attachments", "Generate Invoice", "Process Payment")
+        // to be skipped as "AI processing" when they are actually real API calls.
+        // Solution: ONLY classify as AI/internal when the integration is EXPLICITLY 'ai' or 'nexus'.
+        // Nodes with real integrations (gmail, slack, etc.) should ALWAYS go through execution.
+        const hasRealIntegration = integrationInfo.toolkit !== 'ai' &&
+          integrationInfo.toolkit !== 'nexus' &&
+          integrationInfo.toolkit !== 'unknown' &&
+          integrationInfo.toolkit !== 'default' &&
+          node.integration?.toLowerCase() !== 'ai' &&
+          node.integration?.toLowerCase() !== 'nexus'
+
+        const nodeNameLower = node.name.toLowerCase()
+
+        // @NEXUS-FIX-144: Expanded AI node detection for universal execution - DO NOT REMOVE
+        // Problem: Only toolkit==='ai' was detected. Steps like "Generate Quote" (toolkit=generate) fell to Composio and failed.
+        // Solution: Recognize all AI-internal toolkit names + keyword patterns when no real integration exists.
+        const AI_INTERNAL_TOOLKITS = new Set([
+          'ai', 'nexus-ai', 'claude', 'anthropic', 'openai',
+          'generate', 'summarize', 'translate', 'transform', 'analyze',
+          'filter', 'condition', 'format'
+        ])
+        const isAINode = !hasRealIntegration && (
+          AI_INTERNAL_TOOLKITS.has(integrationInfo.toolkit.toLowerCase()) ||
+          AI_INTERNAL_TOOLKITS.has((node.integration || '').toLowerCase()) ||
+          (node.config as Record<string, unknown>)?.executorHint === 'ai' ||
+          // Catch-all: name implies AI generation + no real integration + unknown toolkit
+          ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') &&
+            /\b(generat|compose|write|summariz|analyz|translat|classify|extract text|draft|creat(?:e|ing)\s+(?:a|an|the))\b/i.test(nodeNameLower))
+        )
 
         // Detect internal/output nodes that don't need external API calls
         // These are Nexus-internal steps like "Display Results", "Show Summary", etc.
-        // Be conservative - only catch nodes that are clearly internal output steps
-        const nodeNameLower = node.name.toLowerCase()
+        // CRITICAL: Only treat as internal if the node does NOT have a real integration
         const hasOutputPattern = nodeNameLower.includes('display') ||
-          nodeNameLower.includes('show') ||
-          nodeNameLower.includes('output') ||
-          nodeNameLower.includes('result') ||
-          nodeNameLower.includes('summary') ||
-          nodeNameLower.includes('present') ||
-          nodeNameLower.includes('format') ||
-          nodeNameLower.includes('deliver') ||
+          nodeNameLower.includes('show output') ||
+          nodeNameLower.includes('show result') ||
+          nodeNameLower.includes('show summary') ||
+          nodeNameLower.includes('present result') ||
+          nodeNameLower.includes('format output') ||
           nodeNameLower.includes('notify user') ||
-          nodeNameLower.includes('complete')
+          nodeNameLower.includes('workflow complete')
 
-        const isInternalNode = (integrationInfo.toolkit === 'nexus' ||
+        const isInternalNode = !hasRealIntegration && (
+          integrationInfo.toolkit === 'nexus' ||
           node.integration?.toLowerCase() === 'nexus' ||
-          node.type === 'output') ||
-          // For unknown toolkit, only treat as internal if it has output patterns
+          node.type === 'output' ||
+          // For unknown/default toolkit, only treat as internal if it has output patterns
           ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') && hasOutputPattern)
+        )
+        // @NEXUS-FIX-110-END
 
         // Handle trigger nodes - they need sample data for beta testing
         if (isTriggerNode) {
@@ -4864,24 +2384,63 @@ export function WorkflowPreviewCard({
           continue // Move to next node
         }
 
-        // Handle AI processing nodes - internal processing, no external API
+        // @NEXUS-FIX-144: Real AI execution via backend Claude call - DO NOT REMOVE
+        // Problem: AI nodes did nothing (fake 500ms delay). No content was generated.
+        // Solution: Call POST /api/workflow/ai-step which uses callClaudeWithTiering() with model tiering.
         if (isAINode) {
-          addLog(`🤖 ${node.name} - AI processing step`)
+          addLog(`🤖 ${node.name} - AI processing...`)
 
-          // Simulate AI processing (in production, this would use Claude/OpenAI)
-          await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay for UX
+          try {
+            // Gather context from previous steps for data flow
+            const prevResults = nodes.slice(0, i).map(n => n.result).filter(Boolean)
+            const prevData: Record<string, unknown> = {}
+            for (const r of prevResults) {
+              const res = r as Record<string, unknown>
+              if (res?.type === 'trigger_sample_data' && res.data) Object.assign(prevData, res.data as Record<string, unknown>)
+              if (res?.type === 'ai_output' && res.generated) prevData.previous_ai_output = res.generated
+              if (res?.text) prevData.previous_text = res.text
+            }
 
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx <= i ? 'success' : 'pending',
-              result: idx === i ? {
-                type: 'ai_processing',
-                message: 'AI analysis complete',
-                note: 'Internal processing step - no external API required'
-              } : n.result,
-            }))
-          )
+            // Auto-gauge complexity for model tiering (Haiku/Sonnet/Opus)
+            const gaugeComplexity = (name: string, desc: string): string => {
+              const t = `${name} ${desc}`.toLowerCase()
+              if (/\b(analyz|strateg|decision|evaluat|comprehensive|detailed report|business plan|compar)\b/.test(t)) return 'complex'
+              if (/\b(quote|greet|hello|format|label|tag|short|simple|one.?line|joke|tip)\b/.test(t)) return 'simple'
+              return 'moderate'
+            }
+
+            const complexity = gaugeComplexity(node.name, node.description || '')
+            const aiPrompt = node.description || node.name
+
+            const response = await fetch('/api/workflow/ai-step', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: aiPrompt, previousData: prevData, complexity }),
+            })
+
+            if (!response.ok) throw new Error(`AI step failed: ${response.status}`)
+            const aiResult = await response.json()
+            if (!aiResult.success) throw new Error(aiResult.error || 'AI processing failed')
+
+            addLog(`✓ ${node.name}: Done (${aiResult.tier || 'ai'}, ${aiResult.tokensUsed || 0} tokens)`)
+
+            setNodes((prev) =>
+              prev.map((n, idx) => ({
+                ...n,
+                status: idx <= i ? 'success' : 'pending',
+                result: idx === i ? {
+                  type: 'ai_output',
+                  generated: aiResult.output,
+                  text: aiResult.output,
+                  message: `AI generated: ${(aiResult.output || '').substring(0, 80)}...`,
+                  data: { generated_content: aiResult.output, ai_output: aiResult.output, text: aiResult.output },
+                } : n.result,
+              }))
+            )
+          } catch (aiErr) {
+            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
+            throw aiErr
+          }
           continue // Move to next node
         }
 
@@ -4909,6 +2468,81 @@ export function WorkflowPreviewCard({
             }))
           )
           continue // Move to next node
+        }
+
+        // @NEXUS-FIX-146: Native WhatsApp execution via Baileys - DO NOT REMOVE
+        // Problem: WhatsApp personal (toolkit='whatsapp') was routed to Composio which doesn't have it.
+        // Solution: Intercept before Composio path and send via Baileys API directly.
+        if (integrationInfo.toolkit.toLowerCase() === 'whatsapp' ||
+            (node.config as Record<string, unknown>)?.executorHint === 'native-whatsapp') {
+          addLog(`📱 ${node.name} - Sending via WhatsApp...`)
+          try {
+            // Resolve message content from previous steps via existing data flow pipeline
+            const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
+            const pipeResult = await _resolveParamsWithPipeline(
+              'WHATSAPP_SEND_MESSAGE',
+              'whatsapp',
+              node,
+              workflow.collectedParams as Record<string, string> | undefined,
+              { name: workflow.name, description: workflow.description },
+              previousNodeResults
+            )
+            const p = pipeResult.params
+            // Look for message in resolved params, flow data, or collected params
+            const waMessage = (p.message || p.text || p.body || p.notification_text || p.generated_message || p.ai_generated_content || '') as string
+            const waTo = (p.to || p.phone || p.phone_number ||
+              (workflow.collectedParams as Record<string, string>)?.whatsapp || '') as string
+
+            if (!waTo) {
+              throw new Error('Missing Information: Send WhatsApp Message [param:to]\n\n💡 I need the recipient phone number to send this WhatsApp message.\nPlease tell me:\n• Who should I send the WhatsApp message to? (phone number with country code)')
+            }
+            if (!waMessage) {
+              throw new Error('Missing Information: Send WhatsApp Message [param:message]\n\n💡 I need the message content.\nPlease tell me:\n• What message should I send?')
+            }
+
+            // Find active Baileys session
+            const sessResp = await fetch('/api/whatsapp-web/sessions')
+            const sessData = await sessResp.json()
+            const activeSession = sessData.sessions?.find((s: { state: string }) => s.state === 'ready')
+
+            if (!activeSession) {
+              throw new Error('WhatsApp is not connected. Please connect WhatsApp first using the QR code in Settings → WhatsApp.')
+            }
+
+            // Send via Baileys API
+            const sendResp = await fetch('/api/whatsapp-web/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: activeSession.id,
+                to: waTo.replace(/[^0-9]/g, ''),
+                message: waMessage,
+              }),
+            })
+
+            const sendResult = await sendResp.json()
+            if (!sendResult.success) throw new Error(sendResult.error || 'Failed to send WhatsApp message')
+
+            addLog(`✓ ${node.name}: Message sent to ${waTo}`)
+            setNodes((prev) =>
+              prev.map((n, idx) => ({
+                ...n,
+                status: idx <= i ? 'success' : 'pending',
+                result: idx === i ? {
+                  type: 'whatsapp_sent',
+                  messageId: sendResult.messageId,
+                  to: waTo,
+                  message: waMessage.substring(0, 100),
+                  _verified: true,
+                  _proof: { type: 'message_sent', details: { id: sendResult.messageId, destination: waTo, summary: `WhatsApp message sent to ${waTo}` } },
+                } : n.result,
+              }))
+            )
+            continue // Skip Composio path
+          } catch (waErr) {
+            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
+            throw waErr
+          }
         }
 
         // For ACTION nodes - these require actual API execution
@@ -4989,28 +2623,25 @@ export function WorkflowPreviewCard({
           )
         }
 
-        // Get params and validate required ones before execution
-        // Pass workflow context for better parameter inference
-        const defaultParams = getDefaultParams(toolSlug, node, undefined, {
-          name: workflow.name,
-          description: workflow.description,
-        })
-
-        // @NEXUS-FIX-029: Merge collected params from user answers - DO NOT REMOVE
-        // User answers are stored under integration name, map them to actual param names
-        const collectedToolParams = mapCollectedParamsToToolParams(
-          workflow.collectedParams,
+        // @NEXUS-FIX-043: Resolve params via ParamResolutionPipeline with legacy fallback - DO NOT REMOVE
+        // @NEXUS-FIX-113: Pass previous node results for data flow between steps - DO NOT REMOVE
+        // @NEXUS-FIX-029: Merge collected params from user answers (handled inside pipeline) - DO NOT REMOVE
+        const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
+        const pipelineResult = await _resolveParamsWithPipeline(
+          toolSlug,
           integrationInfo.toolkit,
-          toolSlug
+          node,
+          workflow.collectedParams as Record<string, string> | undefined,
+          { name: workflow.name, description: workflow.description },
+          previousNodeResults
         )
-
-        // Merge: collected params override defaults (user answers take priority)
-        const params = { ...defaultParams, ...collectedToolParams }
-        console.log('[WorkflowPreviewCard] Final params after merge:', params)
+        const params = pipelineResult.params
+        console.log(`[WorkflowPreviewCard] Final params via ${pipelineResult.source}:`, params)
 
         // @NEXUS-FIX-062: Dynamic schema-based parameter validation - DO NOT REMOVE
         // Problem: Hardcoded validateRequiredParams() only knows ~30 tools out of 500+
         // Solution: Fetch actual required params from Composio schema dynamically
+        // When pipeline resolved params, also cross-check against Composio schema
         let missingParams: string[] = []
         const storedOrch = orchestrationResults.get(node.id)
         if (storedOrch?.sessionId) {
@@ -5030,21 +2661,28 @@ export function WorkflowPreviewCard({
             console.warn(`[WorkflowPreviewCard] FIX-062: Schema fetch failed, using fallback validation`, schemaError)
             missingParams = validateRequiredParams(toolSlug, params)
           }
+        } else if (pipelineResult.source === 'pipeline' && pipelineResult.resolved) {
+          // Pipeline resolved - use its own missing params detection
+          missingParams = pipelineResult.resolved.missingRequired
         } else {
-          // No sessionId - fall back to hardcoded validation
+          // No sessionId and no pipeline - fall back to hardcoded validation
           missingParams = validateRequiredParams(toolSlug, params)
         }
 
         // @NEXUS-FIX-021: User-friendly missing parameter messages - DO NOT REMOVE
         // @NEXUS-FIX-031: Include raw param name for correct collection key - DO NOT REMOVE
+        // @NEXUS-FIX-043: Use enhanced missing params from pipeline when available - DO NOT REMOVE
         // Problem: UI was using integration name (e.g., 'whatsapp') as collection key for ALL params
         //          This caused second param to overwrite first (both mapped to 'to')
         // Solution: Include [param:XXX] in error so UI can use actual param name as key
         if (missingParams.length > 0) {
-          // Convert technical param names to user-friendly questions
-          const friendlyPrompts = missingParams.map(param =>
-            getParamFixSuggestion(param, integrationInfo.toolkit)
+          // Use enhanced prompts from pipeline if available, otherwise fall back to legacy
+          const enhancedMissing = _getEnhancedMissingParams(
+            pipelineResult.resolved,
+            integrationInfo.toolkit,
+            missingParams
           )
+          const friendlyPrompts = enhancedMissing.map(p => p.prompt)
           // @NEXUS-FIX-031: Include first missing param name for UI to use as collection key
           throw new Error(
             `Missing Information: ${node.name} [param:${missingParams[0]}]\n\n` +
@@ -5052,6 +2690,21 @@ export function WorkflowPreviewCard({
             friendlyPrompts.map(p => `• ${p}`).join('\n')
           )
         }
+
+        // @NEXUS-FIX-115: Pre-execution connection validation - DO NOT REMOVE
+        // Problem: Expired OAuth tokens caused execution failures mid-workflow
+        // Solution: Check connection status before executing and warn early
+        try {
+          const connStatus = await rubeClient.checkConnection(integrationInfo.toolkit)
+          if (!connStatus.connected) {
+            addLog(`⚠️ ${integrationInfo.name} connection may be expired — attempting execution anyway...`)
+            console.warn(`[FIX-115] ${integrationInfo.toolkit} not connected before execution. Will attempt anyway.`)
+          }
+        } catch (connCheckErr) {
+          // Non-blocking — don't fail the workflow just because connection check failed
+          console.warn(`[FIX-115] Connection pre-check failed for ${integrationInfo.toolkit}:`, connCheckErr)
+        }
+        // @NEXUS-FIX-115-END
 
         // @NEXUS-FIX-041: Execute with VERIFICATION via VerifiedExecutor - DO NOT REMOVE
         // This replaces direct rubeClient.executeTool() to fix silent failures
@@ -5125,6 +2778,37 @@ export function WorkflowPreviewCard({
         })
         const friendlyMsg = errorAnalysis.friendlyMessage
 
+        // @NEXUS-FIX-111: Auto-retry for recoverable errors - DO NOT REMOVE
+        // Problem: Transient errors (rate limits, network, timeouts) killed the entire workflow
+        // Solution: Classify the error and retry recoverable ones with exponential backoff
+        const retryableCategories = ['rate_limited', 'network_error', 'timeout', 'service_unavailable']
+        const errorCategory = errorAnalysis.classification?.category || 'unknown'
+        const isRetryable = retryableCategories.includes(errorCategory)
+        const maxRetries = errorCategory === 'rate_limited' ? 3 : 2
+        const nodeRetryKey = `retry_${node.id}`
+        const currentRetry = (nodeRetryCounts.current.get(nodeRetryKey) || 0)
+
+        if (isRetryable && currentRetry < maxRetries) {
+          // Increment retry count
+          nodeRetryCounts.current.set(nodeRetryKey, currentRetry + 1)
+          const backoffMs = Math.min(2000 * Math.pow(2, currentRetry), 15000)
+          addLog(`⏳ ${node.name}: ${friendlyMsg} — Retrying in ${Math.round(backoffMs / 1000)}s (attempt ${currentRetry + 1}/${maxRetries})...`)
+
+          // Set node to connecting status during retry wait
+          setNodes((prev) =>
+            prev.map((n, idx) => ({
+              ...n,
+              status: idx === i ? 'connecting' : idx < i ? 'success' : 'pending',
+            }))
+          )
+
+          // Wait then retry this node by decrementing i
+          await new Promise(resolve => setTimeout(resolve, backoffMs))
+          i-- // Will be incremented by for loop, net effect: retry same node
+          continue
+        }
+        // @NEXUS-FIX-111-END
+
         // @NEXUS-FIX-020: Tool-not-found detection with fallback suggestions - DO NOT REMOVE
         if (isToolNotFoundError(error as Error)) {
           // Re-compute tool slug in catch block since try-block variables are out of scope
@@ -5140,6 +2824,35 @@ export function WorkflowPreviewCard({
           addLog(`✗ ${node.name}: ${friendlyMsg}`)
         }
 
+        // @NEXUS-FIX-112: Continue-on-error for non-critical nodes - DO NOT REMOVE
+        // Problem: Any node failure killed the entire workflow, even for non-critical steps
+        // Solution: Notification/output/non-critical nodes show warning but don't stop execution
+        const catchNodeNameLower = node.name.toLowerCase()
+        const isNonCriticalNode = catchNodeNameLower.includes('notify') ||
+          catchNodeNameLower.includes('alert') ||
+          catchNodeNameLower.includes('log') ||
+          catchNodeNameLower.includes('notification') ||
+          node.type === 'output' ||
+          (i === nodes.length - 1 && catchNodeNameLower.includes('summary'))
+
+        if (isNonCriticalNode && !errorMessage.includes('Missing Information')) {
+          addLog(`⚠️ ${node.name}: Skipped (non-critical) — ${friendlyMsg}`)
+          setNodes((prev) =>
+            prev.map((n, idx) => ({
+              ...n,
+              status: idx === i ? 'success' : idx < i ? 'success' : 'pending',
+              result: idx === i ? {
+                _skipped: true,
+                _warning: friendlyMsg,
+                _error: errorMessage,
+              } : n.result,
+            }))
+          )
+          continue // Skip this node and continue workflow
+        }
+        // @NEXUS-FIX-112-END
+
+        // Execution genuinely failed — show the error to the user
         setNodes((prev) =>
           prev.map((n, idx) => ({
             ...n,
@@ -5149,6 +2862,7 @@ export function WorkflowPreviewCard({
         )
 
         setPhase('error')
+        userMemoryService.recordEvent('workflow_executed', { success: false, name: workflow.name })
         onExecutionComplete?.(false)
         return
       }
@@ -5157,6 +2871,11 @@ export function WorkflowPreviewCard({
     // All done!
     addLog('Workflow completed successfully!')
     setPhase('complete')
+    userMemoryService.recordEvent('workflow_executed', {
+      success: true,
+      name: workflow.name,
+      integrations: requiredIntegrations.map(i => i.toolkit),
+    })
     onExecutionComplete?.(true)
   // @NEXUS-FIX-023: Added triggerSampleData to dependencies to fix stale closure bug - DO NOT REMOVE
   }, [phase, requiredIntegrations.length, nodes, checkConnections, addLog, onExecutionComplete, triggerSampleData])
@@ -5407,9 +3126,56 @@ export function WorkflowPreviewCard({
                     setNodes(prev => prev.filter(n => n.id !== id))
                   } : undefined}
                   canEdit={phase === 'ready' && !!onNodeRemove}
+                  onSelect={handleNodeSelect}
+                  isSelected={selectedNodeId === node.id}
                 />
               ))}
             </div>
+
+            {/* @NEXUS-FIX-121: Selected node detail panel - renders OUTSIDE scroll overflow so it's always visible - DO NOT REMOVE */}
+            {selectedNode && (
+              <div className="mt-2 mx-1 p-3 rounded-lg bg-slate-800/90 border border-slate-600 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{getIcon(selectedNode.integration)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white leading-snug">{selectedNode.name}</p>
+                      {selectedNode.integration && (
+                        <p className="text-xs text-cyan-400 mt-0.5 capitalize">{selectedNode.integration}</p>
+                      )}
+                      {selectedNode.description && (
+                        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">{selectedNode.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-slate-400">
+                          {selectedNode.type === 'trigger' ? '⚡ Trigger' : selectedNode.type === 'output' ? '📤 Output' : '⚙️ Action'}
+                        </span>
+                        <span className={cn(
+                          'text-xs px-2 py-0.5 rounded-full',
+                          selectedNode.status === 'success' && 'bg-emerald-500/20 text-emerald-400',
+                          selectedNode.status === 'connecting' && 'bg-amber-500/20 text-amber-400',
+                          selectedNode.status === 'error' && 'bg-red-500/20 text-red-400',
+                          selectedNode.status === 'idle' && 'bg-slate-600/50 text-slate-400',
+                          selectedNode.status === 'pending' && 'bg-blue-500/20 text-blue-400'
+                        )}>
+                          {selectedNode.status === 'idle' ? 'Waiting' : selectedNode.status === 'pending' ? 'Pending' : selectedNode.status === 'connecting' ? 'Running...' : selectedNode.status === 'success' ? 'Complete' : 'Failed'}
+                        </span>
+                      </div>
+                      {selectedNode.error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 p-2 rounded-lg mt-2">{selectedNode.error}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNodeId(null)}
+                    className="text-slate-400 hover:text-white transition-colors p-1 -mt-1 -mr-1 flex-shrink-0"
+                    aria-label="Close node details"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Progress bar */}
@@ -5558,7 +3324,7 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  🧪 Beta Test
+                  <FlaskConical className="w-3.5 h-3.5" /> Beta Test
                   <span className="text-[10px] opacity-70">(Your Account)</span>
                 </button>
                 <button
@@ -5570,7 +3336,7 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  🚀 Production
+                  <Rocket className="w-3.5 h-3.5" /> Production
                   <span className="text-[10px] opacity-70">(Client)</span>
                 </button>
               </div>
@@ -5785,8 +3551,8 @@ export function WorkflowPreviewCard({
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4" />
-                    {executionMode === 'beta' ? '🧪 Run Beta Test' : '🚀 Execute Now'}
+                    {executionMode === 'beta' ? <FlaskConical className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    {executionMode === 'beta' ? 'Run Beta Test' : 'Execute Now'}
                   </>
                 )}
               </button>
@@ -6050,16 +3816,70 @@ export function WorkflowPreviewCard({
                     }
                   }
 
-                  // @NEXUS-UX-001: Default error with buttons - DO NOT REMOVE
+                  // @NEXUS-FIX-117: Additional Composio-specific error patterns - DO NOT REMOVE
+                  // Problem: Many Composio errors fell through to generic "Oops!" message
+                  // Solution: Catch entity errors, SDK errors, connection errors specifically
+
+                  // Composio entity/connection errors
+                  if (errorLower.includes('entity') || errorLower.includes('no active connection') || errorLower.includes('connection not found') || errorLower.includes('no connected account')) {
+                    return {
+                      title: 'Account Not Connected',
+                      guidance: 'This service needs to be connected before it can run.',
+                      buttons: [
+                        { label: '🔗 Connect Now', value: 'connect this service', primary: true },
+                        { label: '🔄 Try Again', value: 'retry the workflow', primary: false },
+                      ],
+                    }
+                  }
+
+                  // Invalid/missing parameters from Composio
+                  if (errorLower.includes('invalid') || errorLower.includes('required field') || errorLower.includes('missing required') || errorLower.includes('validation failed') || errorLower.includes('missing information')) {
+                    return {
+                      title: 'One More Thing Needed',
+                      guidance: 'I need a bit more information to complete this step.',
+                      buttons: [
+                        { label: '💬 Provide Details', value: 'I will provide the missing details', primary: true },
+                        { label: '🔍 Help Me', value: 'help me figure out what is needed', primary: false },
+                      ],
+                      inputPrompt: 'Enter the required information...',
+                    }
+                  }
+
+                  // Quota/billing errors
+                  if (errorLower.includes('quota') || errorLower.includes('billing') || errorLower.includes('plan') || errorLower.includes('upgrade') || errorLower.includes('subscription')) {
+                    return {
+                      title: 'Service Limit Reached',
+                      guidance: 'This service has a usage limit that was reached.',
+                      buttons: [
+                        { label: '📊 Check Usage', value: 'check my service usage', primary: true },
+                        { label: '🔄 Try Again Later', value: 'retry later', primary: false },
+                      ],
+                    }
+                  }
+
+                  // Composio SDK errors
+                  if (errorLower.includes('composio') || errorLower.includes('sdk') || errorLower.includes('api key')) {
+                    return {
+                      title: 'Service Configuration',
+                      guidance: 'The integration service needs to be configured.',
+                      buttons: [
+                        { label: '🔧 Configure', value: 'configure the integration', primary: true },
+                        { label: '🔄 Try Again', value: 'retry the workflow', primary: false },
+                      ],
+                    }
+                  }
+
+                  // @NEXUS-FIX-117: Improved default - never say "Oops!" - DO NOT REMOVE
                   return {
-                    title: 'Oops! Something Unexpected',
-                    guidance: 'I hit a snag, but we can work through it!',
+                    title: 'Almost There!',
+                    guidance: 'This step needs a small adjustment. Let me help you fix it.',
                     buttons: [
                       { label: '🔄 Try Again', value: 'retry the workflow', primary: true },
-                      { label: '💬 Tell Me What Happened', value: 'describe the issue', primary: false },
-                      { label: '🆘 Get Help', value: 'help me troubleshoot this', primary: false },
+                      { label: '💬 Help Me Fix It', value: 'help me troubleshoot this step', primary: false },
+                      { label: '⏭️ Skip This Step', value: 'skip this step and continue', primary: false },
                     ],
                   }
+                  // @NEXUS-FIX-117-END
                 }
 
                 // @NEXUS-UX-001: Extract buttons for actionable error recovery - DO NOT REMOVE
@@ -6119,7 +3939,10 @@ export function WorkflowPreviewCard({
                           {buttons.map((btn, idx) => (
                             <button
                               key={idx}
-                              onClick={() => onMissingInfoSelect?.(collectionKey, btn.value)}
+                              onClick={() => {
+                                userContextService.learnFromChoice(collectionKey, btn.value)
+                                onMissingInfoSelect?.(collectionKey, btn.value)
+                              }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 btn.primary
                                   ? 'bg-cyan-500/30 text-cyan-300 hover:bg-cyan-500/40 border border-cyan-500/40'
@@ -6158,6 +3981,7 @@ export function WorkflowPreviewCard({
                                 const value = (e.target as HTMLInputElement).value
                                 if (value.trim()) {
                                   // @NEXUS-FIX-031: Use actual param name as key
+                                  userContextService.learnFromChoice(collectionKey, value.trim())
                                   onMissingInfoSelect?.(collectionKey, value.trim())
                                   pendingErrorInputRef.current = null // Clear after submit
                                 }

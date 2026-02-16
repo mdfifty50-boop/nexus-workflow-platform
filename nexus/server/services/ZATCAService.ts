@@ -289,7 +289,7 @@ class ZATCAServiceClass {
         })
       })
 
-      const result = await response.json()
+      const result = await response.json() as Record<string, any>
 
       invoice.zatcaResponse = {
         clearanceStatus: result.clearanceStatus || 'UNKNOWN',
@@ -436,16 +436,9 @@ class ZATCAServiceClass {
       vatAmount: invoice.vatAmount
     })
 
-    // In browser, use SubtleCrypto; in Node, use crypto
-    if (typeof window !== 'undefined' && window.crypto?.subtle) {
-      const msgBuffer = new TextEncoder().encode(data)
-      const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer)
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-    } else {
-      // Node.js fallback (simplified)
-      return Buffer.from(data).toString('base64')
-    }
+    // Server-side: use Node.js crypto for SHA-256
+    const { createHash } = await import('crypto')
+    return createHash('sha256').update(data).digest('hex')
   }
 
   // Helper: Generate QR code data (TLV format per ZATCA)

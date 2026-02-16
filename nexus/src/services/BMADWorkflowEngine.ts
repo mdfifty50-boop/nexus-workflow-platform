@@ -15,8 +15,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { EMBEDDED_TOOLS } from './SmartWorkflowEngine'
 import type { GeneratedWorkflow, WorkflowNode, IntegrationTool } from './SmartWorkflowEngine'
 
-// Claude Code Proxy URL (uses Max subscription for free)
-const PROXY_URL = 'http://localhost:4567'
+// Claude Code Proxy URL - skips entirely in production when not configured
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
 
 // Nexus Agent Types
 export type NexusAgent = 'director' | 'analyst' | 'builder' | 'reviewer'
@@ -125,8 +125,15 @@ export class NexusWorkflowEngine {
 
   /**
    * Check if Claude Code proxy is available (uses Max subscription)
+   * Skips check entirely in production when no proxy URL is configured
    */
   private async checkProxyHealth(): Promise<boolean> {
+    // No proxy configured (production without VITE_PROXY_URL) — skip entirely
+    if (!PROXY_URL) {
+      this.proxyAvailable = false
+      return false
+    }
+
     const now = Date.now()
 
     // Use cached result if recent
@@ -152,7 +159,8 @@ export class NexusWorkflowEngine {
       }
 
       return this.proxyAvailable
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to check proxy health:', e)
       this.proxyAvailable = false
       this.lastProxyCheck = now
       return false
@@ -348,7 +356,7 @@ Respond with JSON:
         console.log(`[Nexus ${agent.toUpperCase()}] Processing via direct API...`)
 
         const message = await this.client.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-6-20250115',
           max_tokens: 4096,
           system: NEXUS_AGENT_PROMPTS[agent],
           messages: [{ role: 'user', content: userMessage }]
@@ -412,7 +420,8 @@ Respond with JSON:
         return JSON.parse(jsonMatch[0])
       }
       throw new Error('No JSON found in response')
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse intent analysis:', e)
       // Return default analysis on parse error
       return {
         intent: 'general_automation',
@@ -437,7 +446,8 @@ Respond with JSON:
         return JSON.parse(jsonMatch[0])
       }
       return []
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse questions:', e)
       return []
     }
   }
@@ -462,7 +472,8 @@ Respond with JSON:
         }
       }
       throw new Error('No JSON found')
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse workflow:', e)
       return this.simulateWorkflowGeneration(request)
     }
   }

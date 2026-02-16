@@ -1,6 +1,10 @@
-import { SignIn } from '@clerk/clerk-react'
+import { SignIn, useAuth } from '@clerk/clerk-react'
+import { useTranslation } from 'react-i18next'
 
 export function Login() {
+  const { t } = useTranslation()
+  const { isLoaded } = useAuth()
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <div className="w-full max-w-md">
@@ -10,27 +14,41 @@ export function Login() {
               <span className="text-2xl font-bold text-white">N</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold gradient-text">Nexus</h1>
-          <p className="text-muted-foreground mt-2">Sign in to your account</p>
+          <h1 className="text-3xl font-bold gradient-text">{t('app.name')}</h1>
+          <p className="text-muted-foreground mt-2">{t('auth.signInToContinue')}</p>
         </div>
 
-        <SignIn
-          appearance={{
-            elements: {
-              rootBox: 'w-full',
-              card: 'glass rounded-xl border-2 border-border shadow-2xl',
-              headerTitle: 'hidden',
-              headerSubtitle: 'hidden',
-              socialButtonsBlockButton: 'bg-background hover:bg-muted border-2 border-border',
-              formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
-              footerActionLink: 'text-primary hover:text-primary/80',
-            },
-          }}
-          routing="path"
-          path="/login"
-          signUpUrl="/sign-up"
-          fallbackRedirectUrl="/dashboard"
-        />
+        {/* Show loading spinner while Clerk initializes */}
+        {!isLoaded && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-muted-foreground text-sm">{t('common.loading')}</p>
+          </div>
+        )}
+
+        {/* Only render SignIn when Clerk is loaded */}
+        {isLoaded && (
+          <SignIn
+            appearance={{
+              layout: {
+                socialButtonsVariant: 'blockButton',
+              },
+              elements: {
+                rootBox: 'w-full',
+                card: 'rounded-xl border-2 border-border shadow-2xl bg-white',
+                headerTitle: 'hidden',
+                headerSubtitle: 'hidden',
+                formButtonPrimary: 'bg-gradient-to-r from-primary to-secondary hover:opacity-90',
+                footerActionLink: 'text-primary hover:text-primary/80',
+              },
+            }}
+            routing="path"
+            path="/login"
+            signUpUrl="/sign-up"
+            fallbackRedirectUrl="/dashboard"
+            forceRedirectUrl="/dashboard"
+          />
+        )}
       </div>
     </div>
   )

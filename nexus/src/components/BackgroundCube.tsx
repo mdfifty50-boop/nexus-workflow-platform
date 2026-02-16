@@ -43,9 +43,16 @@ function isWebGLSupported(): boolean {
 }
 
 /**
- * Video fallback component for when Spline fails or for low-end devices
+ * Video fallback component for when Spline fails or for low-end devices.
+ * Falls back to static image if video fails to load (e.g., mp4 not deployed).
  */
 function VideoFallback() {
+  const [videoError, setVideoError] = useState(false)
+
+  if (videoError) {
+    return <ImageFallback />
+  }
+
   return (
     <video
       autoPlay
@@ -54,14 +61,10 @@ function VideoFallback() {
       playsInline
       className="w-full h-full object-contain"
       poster={CUBE_CONFIG.imageUrl}
+      onError={() => setVideoError(true)}
     >
-      <source src={CUBE_CONFIG.videoUrl} type="video/mp4" />
-      {/* Ultimate fallback to static image */}
-      <img
-        src={CUBE_CONFIG.imageUrl}
-        alt="3D Cube"
-        className="w-full h-full object-contain"
-      />
+      <source src={CUBE_CONFIG.videoUrl} type="video/mp4" onError={() => setVideoError(true)} />
+      <ImageFallback />
     </video>
   )
 }
@@ -126,7 +129,7 @@ export function BackgroundCube() {
 
   return (
     <div
-      className="fixed inset-0 pointer-events-none"
+      className="absolute top-0 right-0 pointer-events-none overflow-visible"
       style={{
         zIndex: 0,
       }}
@@ -134,12 +137,11 @@ export function BackgroundCube() {
     >
       {/* Container for the cube - positioned to match Resend's layout */}
       <div
-        className="absolute"
         style={{
           width: '650px',
           height: '550px',
-          right: '5%',
-          top: '15%',
+          marginRight: '5%',
+          marginTop: '80px', // Account for nav bar
           opacity: CUBE_CONFIG.opacity,
         }}
       >
@@ -164,7 +166,7 @@ export function BackgroundCube() {
 export function BackgroundCubeLite() {
   return (
     <div
-      className="fixed inset-0 pointer-events-none"
+      className="absolute inset-0 pointer-events-none overflow-visible"
       style={{
         zIndex: 0,
       }}
@@ -195,7 +197,7 @@ export function BackgroundCubeLite() {
 export function BackgroundCubeStatic() {
   return (
     <div
-      className="fixed inset-0 pointer-events-none"
+      className="absolute inset-0 pointer-events-none overflow-visible"
       style={{
         zIndex: 0,
       }}

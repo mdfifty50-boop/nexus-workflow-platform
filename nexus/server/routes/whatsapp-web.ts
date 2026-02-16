@@ -237,6 +237,8 @@ router.get('/qr/:id', async (req: Request, res: Response) => {
  * Body:
  * - sessionId: string (required)
  * - phoneNumber: string (required, with country code e.g., 96512345678)
+ *
+ * @NEXUS-FIX-130: Backend phone validation layer - DO NOT REMOVE
  */
 router.post('/pairing-code', async (req: Request, res: Response) => {
   try {
@@ -249,7 +251,32 @@ router.post('/pairing-code', async (req: Request, res: Response) => {
       })
     }
 
-    const result = await whatsAppWebService.requestPairingCode(sessionId, phoneNumber)
+    // @NEXUS-FIX-130: Layer 2 - Backend phone validation before Baileys call
+    const cleanNumber = String(phoneNumber).replace(/[^\d]/g, '')
+
+    if (cleanNumber.length < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number must include country code (e.g., 96591234567). Number is too short.',
+      })
+    }
+
+    if (cleanNumber.length > 15) {
+      return res.status(400).json({
+        success: false,
+        error: 'Phone number is too long. Please check and try again.',
+      })
+    }
+
+    // Validate it looks like a real phone number (starts with valid digits, not all zeros)
+    if (/^0+$/.test(cleanNumber)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid phone number. Please enter a real phone number with country code.',
+      })
+    }
+
+    const result = await whatsAppWebService.requestPairingCode(sessionId, cleanNumber)
 
     if (result.success) {
       res.json({
@@ -301,18 +328,12 @@ router.post('/send', async (req: Request, res: Response) => {
 
     const result = await whatsAppWebService.sendMessage(sessionId, to, message)
 
-    if (result.success) {
-      res.json({
-        success: true,
-        messageId: result.messageId,
-        message: 'Message sent successfully',
-      })
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-      })
-    }
+    // sendMessage returns WhatsAppMessage on success, throws on failure
+    res.json({
+      success: true,
+      messageId: result.id,
+      message: 'Message sent successfully',
+    })
   } catch (error) {
     console.error('[WhatsAppWeb API] Send message error:', error)
     res.status(500).json({

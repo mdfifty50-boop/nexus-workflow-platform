@@ -36,7 +36,7 @@ interface SyncResult {
 const STORAGE_KEY = 'nexus-chat-sessions'
 const CURRENT_SESSION_KEY = 'nexus-current-session'
 const SYNC_STATUS_KEY = 'nexus-chat-sync-status'
-const API_BASE = '/api/chat-persistence'
+const API_BASE = '/api/services/chat-persistence'
 
 // ============================================================================
 // localStorage Helpers (unchanged from useChatState for compatibility)
@@ -56,7 +56,8 @@ function loadSessionsFromStorage(): ChatSession[] {
         timestamp: new Date(msg.timestamp),
       })),
     }))
-  } catch {
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to load sessions:', e)
     return []
   }
 }
@@ -73,7 +74,8 @@ function saveSessionsToStorage(sessions: ChatSession[]): void {
 function loadCurrentSessionIdFromStorage(): string | null {
   try {
     return localStorage.getItem(CURRENT_SESSION_KEY)
-  } catch {
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to load session ID:', e)
     return null
   }
 }
@@ -81,8 +83,8 @@ function loadCurrentSessionIdFromStorage(): string | null {
 function saveCurrentSessionIdToStorage(sessionId: string): void {
   try {
     localStorage.setItem(CURRENT_SESSION_KEY, sessionId)
-  } catch {
-    // Silent fail
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to save session ID:', e)
   }
 }
 
@@ -141,7 +143,8 @@ class ChatPersistenceService {
    */
   private async checkCloudStatus(): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE}/status`)
+      // Flat path required: Vercel catch-all doesn't handle multi-segment paths
+      const response = await fetch('/api/services/chat-persistence-status')
       if (response.ok) {
         const data = await response.json()
         this.cloudEnabled = data.cloudEnabled

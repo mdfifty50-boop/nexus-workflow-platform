@@ -23,8 +23,16 @@
  * - Merges static knowledge with dynamic Rube MCP discovery
  * - Clear interface for tool resolution
  *
+ * Integration aliases are now sourced from MasterAliasRegistry.ts
+ * (the canonical alias source for the entire codebase).
+ *
  * @NEXUS-FIX-042: UnifiedToolRegistry - Single source of truth for tools - DO NOT REMOVE
  */
+
+import {
+  INTEGRATION_ALIASES as MASTER_INTEGRATION_ALIASES,
+  resolveIntegration,
+} from '../lib/MasterAliasRegistry'
 
 // ================================
 // TYPES
@@ -1430,41 +1438,11 @@ export const UNIFIED_REGISTRY: Record<string, ToolContract[]> = {
 // ================================
 
 /**
- * Maps common names/typos to canonical toolkit names
+ * Maps common names/typos to canonical toolkit names.
+ * Delegates to MasterAliasRegistry (the canonical source).
+ * Re-exported here for backward compatibility.
  */
-export const TOOLKIT_ALIASES: Record<string, string> = {
-  // Email
-  'email': 'gmail',
-  'mail': 'gmail',
-  'google mail': 'gmail',
-  'google email': 'gmail',
-
-  // Storage
-  'drive': 'googledrive',
-  'google drive': 'googledrive',
-  'gdrive': 'googledrive',
-
-  // Sheets
-  'sheets': 'googlesheets',
-  'google sheets': 'googlesheets',
-  'spreadsheet': 'googlesheets',
-  'spreadsheets': 'googlesheets',
-
-  // Calendar
-  'calendar': 'googlecalendar',
-  'google calendar': 'googlecalendar',
-  'gcal': 'googlecalendar',
-
-  // Social
-  'x': 'twitter',
-  'x.com': 'twitter',
-
-  // Messaging
-  'wa': 'whatsapp',
-  'whats app': 'whatsapp',
-  'tg': 'telegram',
-  'microsoft teams': 'teams',
-};
+export const TOOLKIT_ALIASES: Record<string, string> = MASTER_INTEGRATION_ALIASES;
 
 // ================================
 // ALTERNATIVE MAPPINGS
@@ -1537,11 +1515,11 @@ export const API_KEY_APPS: Record<string, ApiKeyInfo> = {
 export class UnifiedToolRegistryService {
 
   /**
-   * Normalize a toolkit name to its canonical form
+   * Normalize a toolkit name to its canonical form.
+   * Delegates to MasterAliasRegistry.resolveIntegration.
    */
   static normalizeToolkit(toolkit: string): string {
-    const lower = toolkit.toLowerCase().trim();
-    return TOOLKIT_ALIASES[lower] || lower;
+    return resolveIntegration(toolkit);
   }
 
   /**

@@ -1,0 +1,1210 @@
+{
+  "version": "1.0.0",
+  "description": "Dependency graph for FIX_REGISTRY fixes. Maps inter-fix dependencies, file groupings, and cascade risk levels for safe modification.",
+  "generatedDate": "2026-02-13",
+  "totalFixes": 110,
+
+  "dependencies": {
+    "FIX-001": {
+      "dependsOn": [],
+      "blocks": ["FIX-002", "FIX-003", "FIX-009", "FIX-044", "FIX-072"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "OAuth",
+      "description": "OAuth popup blocker bypass - foundational OAuth pattern"
+    },
+    "FIX-002": {
+      "dependsOn": ["FIX-001"],
+      "blocks": ["FIX-044", "FIX-045", "FIX-072"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "OAuth",
+      "description": "Expired connection detection - depends on popup pattern"
+    },
+    "FIX-003": {
+      "dependsOn": ["FIX-001"],
+      "blocks": ["FIX-010", "FIX-044", "FIX-072"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "OAuth",
+      "description": "Parallel OAuth Connect All - depends on popup pattern"
+    },
+    "FIX-004": {
+      "dependsOn": [],
+      "blocks": ["FIX-010", "FIX-037"],
+      "file": "CustomIntegrationService.ts",
+      "category": "API Keys",
+      "description": "Custom integration API key handling"
+    },
+    "FIX-005": {
+      "dependsOn": [],
+      "blocks": ["FIX-099", "FIX-103"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UI",
+      "description": "Visual workflow nodes with connecting lines"
+    },
+    "FIX-006": {
+      "dependsOn": [],
+      "blocks": ["FIX-041", "FIX-047"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Execution",
+      "description": "Real workflow execution via Composio"
+    },
+    "FIX-007": {
+      "dependsOn": [],
+      "blocks": ["FIX-008", "FIX-017", "FIX-018", "FIX-022", "FIX-024", "FIX-025", "FIX-034", "FIX-042", "FIX-051", "FIX-063", "FIX-078"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "TOOL_SLUGS static mapping - foundational tool resolution"
+    },
+    "FIX-008": {
+      "dependsOn": ["FIX-007"],
+      "blocks": ["FIX-019", "FIX-034", "FIX-042", "FIX-051"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "3-layer tool resolution system"
+    },
+    "FIX-009": {
+      "dependsOn": ["FIX-001"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "OAuth",
+      "description": "OAuth polling with timeout reset"
+    },
+    "FIX-010": {
+      "dependsOn": ["FIX-003", "FIX-004"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UI",
+      "description": "Custom integrations in Connect All count"
+    },
+    "FIX-011": {
+      "dependsOn": [],
+      "blocks": ["FIX-014"],
+      "file": "ChatContainer.tsx",
+      "category": "UI",
+      "description": "Other/Custom inline input component"
+    },
+    "FIX-012": {
+      "dependsOn": [],
+      "blocks": ["FIX-015", "FIX-016", "FIX-102"],
+      "file": "agents/index.ts",
+      "category": "AI",
+      "description": "Three-phase workflow generation"
+    },
+    "FIX-013": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "UI",
+      "description": "Remove early API key card from chat"
+    },
+    "FIX-014": {
+      "dependsOn": ["FIX-011"],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "UI",
+      "description": "Custom... option expands to input"
+    },
+    "FIX-015": {
+      "dependsOn": ["FIX-012"],
+      "blocks": ["FIX-079"],
+      "file": "agents/index.ts",
+      "category": "AI",
+      "description": "Concise response style"
+    },
+    "FIX-016": {
+      "dependsOn": ["FIX-012"],
+      "blocks": [],
+      "file": "agents/index.ts",
+      "category": "AI",
+      "description": "Context-aware missingInfo questions"
+    },
+    "FIX-017": {
+      "dependsOn": ["FIX-007"],
+      "blocks": ["FIX-018", "FIX-029"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "Storage action mappings (save/store/write -> upload)"
+    },
+    "FIX-018": {
+      "dependsOn": ["FIX-007", "FIX-017"],
+      "blocks": ["FIX-029"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "Storage defaults changed to upload"
+    },
+    "FIX-019": {
+      "dependsOn": ["FIX-008"],
+      "blocks": ["FIX-020", "FIX-034"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Validation",
+      "description": "Pre-execution tool slug validation"
+    },
+    "FIX-020": {
+      "dependsOn": ["FIX-019"],
+      "blocks": ["FIX-036", "FIX-037"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Error Handling",
+      "description": "Fallback tool suggestions on error"
+    },
+    "FIX-021": {
+      "dependsOn": [],
+      "blocks": ["FIX-028", "FIX-032", "FIX-038"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "User-friendly parameter prompts"
+    },
+    "FIX-022": {
+      "dependsOn": ["FIX-007"],
+      "blocks": ["FIX-078"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "Google Sheets create/add action mappings"
+    },
+    "FIX-023": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "React Hooks",
+      "description": "executeWorkflow stale closure fix"
+    },
+    "FIX-024": {
+      "dependsOn": ["FIX-007"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "Notion tool slug mappings"
+    },
+    "FIX-025": {
+      "dependsOn": ["FIX-007"],
+      "blocks": ["FIX-064"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Tool Mapping",
+      "description": "Google Calendar tool slug mappings + toolkit aliases"
+    },
+    "FIX-026": {
+      "dependsOn": [],
+      "blocks": ["FIX-027", "FIX-029", "FIX-030", "FIX-094"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Parameter answer infinite loop fix + auto-retry"
+    },
+    "FIX-027": {
+      "dependsOn": ["FIX-026"],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "UX",
+      "description": "Send to Myself button uses actual user email"
+    },
+    "FIX-028": {
+      "dependsOn": ["FIX-021"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Friendly colors for Missing Information prompts"
+    },
+    "FIX-029": {
+      "dependsOn": ["FIX-017", "FIX-018", "FIX-026"],
+      "blocks": ["FIX-031", "FIX-043", "FIX-050"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Workflow Execution",
+      "description": "Collected params mapped to tool params for retry"
+    },
+    "FIX-030": {
+      "dependsOn": ["FIX-026"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Retry button submits pending input"
+    },
+    "FIX-031": {
+      "dependsOn": ["FIX-029"],
+      "blocks": ["FIX-032", "FIX-038"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Workflow Execution",
+      "description": "Multi-param integrations use actual param names"
+    },
+    "FIX-032": {
+      "dependsOn": ["FIX-021", "FIX-031"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Dynamic error prompt based on actual missing parameter"
+    },
+    "FIX-033": {
+      "dependsOn": [],
+      "blocks": ["FIX-038", "FIX-040", "FIX-049", "FIX-054", "FIX-066", "FIX-074", "FIX-075"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Architecture",
+      "description": "Pre-flight validation system"
+    },
+    "FIX-034": {
+      "dependsOn": ["FIX-007", "FIX-008", "FIX-019"],
+      "blocks": ["FIX-035", "FIX-042"],
+      "file": "ToolRegistry.ts",
+      "category": "Architecture",
+      "description": "ToolRegistry - Single source of truth for tools"
+    },
+    "FIX-035": {
+      "dependsOn": ["FIX-034"],
+      "blocks": ["FIX-039"],
+      "file": "IntentResolver.ts",
+      "category": "Architecture",
+      "description": "IntentResolver - Natural language intent parsing"
+    },
+    "FIX-036": {
+      "dependsOn": ["FIX-020"],
+      "blocks": ["FIX-039"],
+      "file": "ErrorClassifier.ts",
+      "category": "Architecture",
+      "description": "ErrorClassifier - Intelligent error classification"
+    },
+    "FIX-037": {
+      "dependsOn": ["FIX-004", "FIX-020"],
+      "blocks": [],
+      "file": "UnsupportedToolCard.tsx",
+      "category": "UI",
+      "description": "UnsupportedToolCard - Smart alternative suggestions UI"
+    },
+    "FIX-038": {
+      "dependsOn": ["FIX-021", "FIX-031", "FIX-033"],
+      "blocks": [],
+      "file": "ParameterCollectionPanel.tsx",
+      "category": "UI",
+      "description": "ParameterCollectionPanel - Pre-flight parameter collection"
+    },
+    "FIX-039": {
+      "dependsOn": ["FIX-035", "FIX-036"],
+      "blocks": [],
+      "file": "WorkflowIntelligenceService.ts",
+      "category": "Architecture",
+      "description": "WorkflowIntelligenceService - Unified service facade"
+    },
+    "FIX-040": {
+      "dependsOn": ["FIX-033"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Bug Fix",
+      "description": "isPreFlightComplete race condition fix"
+    },
+    "FIX-041": {
+      "dependsOn": ["FIX-006"],
+      "blocks": ["FIX-047", "FIX-048"],
+      "file": "VerifiedExecutor.ts",
+      "category": "Verification",
+      "description": "VerifiedExecutor - Execute with proof of action"
+    },
+    "FIX-042": {
+      "dependsOn": ["FIX-007", "FIX-008", "FIX-034"],
+      "blocks": ["FIX-043"],
+      "file": "UnifiedToolRegistry.ts",
+      "category": "Architecture",
+      "description": "UnifiedToolRegistry - Single source of truth for tools"
+    },
+    "FIX-043": {
+      "dependsOn": ["FIX-029", "FIX-042"],
+      "blocks": [],
+      "file": "ParamResolutionPipeline.ts",
+      "category": "Architecture",
+      "description": "ParamResolutionPipeline - Complete param resolution"
+    },
+    "FIX-044": {
+      "dependsOn": ["FIX-001", "FIX-002", "FIX-003"],
+      "blocks": [],
+      "file": "OAuthController.ts",
+      "category": "Architecture",
+      "description": "OAuthController - OAuth flow extraction"
+    },
+    "FIX-045": {
+      "dependsOn": ["FIX-002"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "OAuth",
+      "description": "Auto-check connections on mount"
+    },
+    "FIX-046": {
+      "dependsOn": [],
+      "blocks": ["FIX-073"],
+      "file": "Integrations.tsx",
+      "category": "Integrations",
+      "description": "Real connection status from API"
+    },
+    "FIX-047": {
+      "dependsOn": ["FIX-006", "FIX-041"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Execution",
+      "description": "Surface verification failures to users"
+    },
+    "FIX-048": {
+      "dependsOn": ["FIX-041"],
+      "blocks": [],
+      "file": "VerifiedExecutor.ts",
+      "category": "Execution",
+      "description": "Slack channel name to ID resolution"
+    },
+    "FIX-049": {
+      "dependsOn": ["FIX-033"],
+      "blocks": ["FIX-050"],
+      "file": "PreFlightService.ts",
+      "category": "Parameter Resolution",
+      "description": "Support AI extractedParams format in pre-flight"
+    },
+    "FIX-050": {
+      "dependsOn": ["FIX-029", "FIX-049"],
+      "blocks": ["FIX-100"],
+      "file": "PreFlightService.ts",
+      "category": "Parameter Resolution",
+      "description": "Semantic param alias system - bidirectional mapping"
+    },
+    "FIX-051": {
+      "dependsOn": ["FIX-007", "FIX-008"],
+      "blocks": ["FIX-052", "FIX-053", "FIX-055"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Generic Orchestration",
+      "description": "Orchestration-First resolution for unknown toolkits"
+    },
+    "FIX-052": {
+      "dependsOn": ["FIX-051"],
+      "blocks": [],
+      "file": "IntegrationAuthService.ts",
+      "category": "Integration Detection",
+      "description": "Add Freshbooks to INTEGRATIONS mapping"
+    },
+    "FIX-053": {
+      "dependsOn": ["FIX-051"],
+      "blocks": ["FIX-055", "FIX-060", "FIX-062", "FIX-070"],
+      "file": "rube.ts",
+      "category": "Generic Orchestration",
+      "description": "Rube MCP server-side proxy for browser tool discovery"
+    },
+    "FIX-054": {
+      "dependsOn": ["FIX-033"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Pre-flight",
+      "description": "Reset question index when array changes"
+    },
+    "FIX-055": {
+      "dependsOn": ["FIX-051", "FIX-053"],
+      "blocks": ["FIX-056", "FIX-058", "FIX-059"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Wire orchestration params into pre-flight"
+    },
+    "FIX-056": {
+      "dependsOn": ["FIX-055"],
+      "blocks": ["FIX-057", "FIX-066"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Pre-flight race condition fix"
+    },
+    "FIX-057": {
+      "dependsOn": ["FIX-056"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Empty string validation for orchestration params"
+    },
+    "FIX-058": {
+      "dependsOn": ["FIX-055"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Add trigger node discovery to orchestration"
+    },
+    "FIX-059": {
+      "dependsOn": ["FIX-055"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Orchestration-First approach unification"
+    },
+    "FIX-060": {
+      "dependsOn": ["FIX-053"],
+      "blocks": [],
+      "file": "GenericExecutor.ts",
+      "category": "Orchestration",
+      "description": "Dry-run capability for workflow simulation"
+    },
+    "FIX-061": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "UX",
+      "description": "Keep workflow card at end of chat"
+    },
+    "FIX-062": {
+      "dependsOn": ["FIX-053"],
+      "blocks": ["FIX-063", "FIX-064"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Execution",
+      "description": "Dynamic schema-based parameter validation"
+    },
+    "FIX-063": {
+      "dependsOn": ["FIX-007", "FIX-062"],
+      "blocks": ["FIX-064"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Execution",
+      "description": "Use legacy TOOL_SLUGS for known toolkit discovery"
+    },
+    "FIX-064": {
+      "dependsOn": ["FIX-025", "FIX-062", "FIX-063"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Pre-flight",
+      "description": "Schema-driven pre-flight parameter collection"
+    },
+    "FIX-065": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "UI",
+      "description": "Workflow card missing after clarifying question"
+    },
+    "FIX-066": {
+      "dependsOn": ["FIX-033", "FIX-056"],
+      "blocks": ["FIX-071"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Pre-flight",
+      "description": "Questions disappearing after orchestration with no required params"
+    },
+    "FIX-067": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Debug",
+      "description": "Diagnostic logging for Quick Setup (removed)"
+    },
+    "FIX-068": {
+      "dependsOn": [],
+      "blocks": ["FIX-069"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "State Sync",
+      "description": "Sync parent collectedParams to local state"
+    },
+    "FIX-069": {
+      "dependsOn": ["FIX-068"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Pre-flight",
+      "description": "Fix allAnswered check to use displayed questions"
+    },
+    "FIX-070": {
+      "dependsOn": ["FIX-053"],
+      "blocks": [],
+      "file": "GenericSchemaResolver.ts",
+      "category": "Schema Caching",
+      "description": "Schema cache versioning and stale detection"
+    },
+    "FIX-071": {
+      "dependsOn": ["FIX-066"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Orchestration",
+      "description": "Fix orchestration filtering causing Quick Setup to disappear"
+    },
+    "FIX-072": {
+      "dependsOn": ["FIX-001", "FIX-002", "FIX-003"],
+      "blocks": ["FIX-073"],
+      "file": "rube.ts",
+      "category": "OAuth",
+      "description": "White-label OAuth priority and improved callback UX"
+    },
+    "FIX-073": {
+      "dependsOn": ["FIX-046", "FIX-072"],
+      "blocks": [],
+      "file": "Integrations.tsx",
+      "category": "OAuth",
+      "description": "Integrations page endpoint fix"
+    },
+    "FIX-074": {
+      "dependsOn": ["FIX-033"],
+      "blocks": ["FIX-075", "FIX-078", "FIX-106"],
+      "file": "PreFlightValidationService.ts",
+      "category": "Pre-flight",
+      "description": "Backend pre-flight with REAL Composio schema fetching"
+    },
+    "FIX-075": {
+      "dependsOn": ["FIX-074"],
+      "blocks": [],
+      "file": "PreFlightService.ts",
+      "category": "Pre-Flight",
+      "description": "Frontend TOOL_REQUIREMENTS fallback for ClickUp etc."
+    },
+    "FIX-076": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "SmartAIChatbot.tsx",
+      "category": "UX",
+      "description": "Double question display bug fix"
+    },
+    "FIX-077": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "WorkflowFlowChart.tsx",
+      "category": "UX",
+      "description": "Node hover tooltip + click expand for mobile"
+    },
+    "FIX-078": {
+      "dependsOn": ["FIX-007", "FIX-022", "FIX-074"],
+      "blocks": [],
+      "file": "PreFlightValidationService.ts",
+      "category": "Tool Mapping",
+      "description": "Google Sheets Create Spreadsheet tool support"
+    },
+    "FIX-079": {
+      "dependsOn": ["FIX-015"],
+      "blocks": ["FIX-080", "FIX-081", "FIX-082"],
+      "file": "agents/index.ts",
+      "category": "WhatsApp",
+      "description": "WhatsApp-optimized AI responses"
+    },
+    "FIX-080": {
+      "dependsOn": ["FIX-079"],
+      "blocks": ["FIX-081"],
+      "file": "whatsapp-composio.ts",
+      "category": "WhatsApp",
+      "description": "WhatsApp workflow creation via chat"
+    },
+    "FIX-081": {
+      "dependsOn": ["FIX-079", "FIX-080"],
+      "blocks": [],
+      "file": "whatsapp-composio.ts",
+      "category": "WhatsApp",
+      "description": "WhatsApp AI response systemBlocks format"
+    },
+    "FIX-082": {
+      "dependsOn": ["FIX-079"],
+      "blocks": [],
+      "file": "GenericUXTranslator.ts",
+      "category": "UX",
+      "description": "WhatsApp recipient inputType phone not email"
+    },
+    "FIX-085": {
+      "dependsOn": [],
+      "blocks": ["FIX-086"],
+      "file": "WhatsAppConnectionPrompt.tsx",
+      "category": "WhatsApp",
+      "description": "WhatsApp connection error handling and timing fixes"
+    },
+    "FIX-086": {
+      "dependsOn": ["FIX-085"],
+      "blocks": [],
+      "file": "WhatsAppWebService.ts",
+      "category": "WhatsApp",
+      "description": "Prevent server crash on WhatsApp session init failure"
+    },
+    "FIX-091": {
+      "dependsOn": [],
+      "blocks": ["FIX-092", "FIX-093", "FIX-095", "FIX-096"],
+      "file": "whatsapp-web.ts",
+      "category": "WhatsApp",
+      "description": "Use Baileys instead of whatsapp-web.js (foundational)"
+    },
+    "FIX-092": {
+      "dependsOn": ["FIX-091"],
+      "blocks": ["FIX-093", "FIX-095"],
+      "file": "WhatsAppBaileysService.ts",
+      "category": "WhatsApp",
+      "description": "Baileys logger (pino-compatible)"
+    },
+    "FIX-093": {
+      "dependsOn": ["FIX-091", "FIX-092"],
+      "blocks": ["FIX-095"],
+      "file": "WhatsAppBaileysService.ts",
+      "category": "WhatsApp",
+      "description": "QR code data URL generation"
+    },
+    "FIX-094": {
+      "dependsOn": ["FIX-026"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Workflow Execution",
+      "description": "Auto-retry mechanism fix for collected params"
+    },
+    "FIX-095": {
+      "dependsOn": ["FIX-091", "FIX-092", "FIX-093"],
+      "blocks": ["FIX-096", "FIX-098"],
+      "file": "rube.ts",
+      "category": "WhatsApp",
+      "description": "Route WhatsApp through Baileys when QR-connected"
+    },
+    "FIX-096": {
+      "dependsOn": ["FIX-091", "FIX-095"],
+      "blocks": ["FIX-098"],
+      "file": "rube.ts",
+      "category": "WhatsApp",
+      "description": "Debug logging and parameter aliases for Baileys routing"
+    },
+    "FIX-097": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Parameter Mapping",
+      "description": "Prevent placeholder overwriting valid phone numbers"
+    },
+    "FIX-098": {
+      "dependsOn": ["FIX-095", "FIX-096"],
+      "blocks": [],
+      "file": "rube.ts",
+      "category": "WhatsApp Baileys",
+      "description": "Fix Baileys sendMessage return type handling"
+    },
+    "FIX-099": {
+      "dependsOn": ["FIX-005"],
+      "blocks": ["FIX-103"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "NodeTooltip full description + touch-friendly mobile"
+    },
+    "FIX-100": {
+      "dependsOn": ["FIX-050"],
+      "blocks": ["FIX-104", "FIX-105", "FIX-107", "FIX-109"],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Pre-Flight",
+      "description": "Semantic parameter deduplication for Quick Setup"
+    },
+    "FIX-101": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "ChatContainer.tsx",
+      "category": "Chat Mode",
+      "description": "Think with me mode"
+    },
+    "FIX-102": {
+      "dependsOn": ["FIX-012"],
+      "blocks": [],
+      "file": "agents/index.ts",
+      "category": "AI Response",
+      "description": "Enhanced vagueness detection for clarifying questions"
+    },
+    "FIX-103": {
+      "dependsOn": ["FIX-005", "FIX-099"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "Mobile UX",
+      "description": "Unified horizontal scroll for mobile/desktop"
+    },
+    "FIX-104": {
+      "dependsOn": ["FIX-100"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Hide MissingInfoSection when Quick Setup has questions"
+    },
+    "FIX-105": {
+      "dependsOn": ["FIX-100"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Semantic deduplication within MissingInfoSection"
+    },
+    "FIX-106": {
+      "dependsOn": ["FIX-074"],
+      "blocks": ["FIX-107"],
+      "file": "PreFlightValidationService.ts",
+      "category": "UX",
+      "description": "Cross-node question deduplication"
+    },
+    "FIX-107": {
+      "dependsOn": ["FIX-100", "FIX-106"],
+      "blocks": [],
+      "file": "PreFlightValidationService.ts",
+      "category": "UX",
+      "description": "Space-to-underscore normalization for parameter matching"
+    },
+    "FIX-108": {
+      "dependsOn": ["FIX-100"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "MissingInfoSection collectedParams integration"
+    },
+    "FIX-109": {
+      "dependsOn": ["FIX-100"],
+      "blocks": [],
+      "file": "WorkflowPreviewCard.tsx",
+      "category": "UX",
+      "description": "Path/folder alias mapping for storage destinations"
+    },
+    "FIX-110": {
+      "dependsOn": [],
+      "blocks": [],
+      "file": "EmailService.ts",
+      "category": "Email",
+      "description": "Welcome email system for new users"
+    }
+  },
+
+  "fileGroups": {
+    "WorkflowPreviewCard.tsx": [
+      "FIX-001", "FIX-002", "FIX-003", "FIX-005", "FIX-006", "FIX-007", "FIX-008",
+      "FIX-009", "FIX-010", "FIX-017", "FIX-018", "FIX-019", "FIX-020", "FIX-021",
+      "FIX-022", "FIX-023", "FIX-024", "FIX-025", "FIX-026", "FIX-028", "FIX-029",
+      "FIX-030", "FIX-031", "FIX-032", "FIX-033", "FIX-039", "FIX-040", "FIX-045",
+      "FIX-047", "FIX-050", "FIX-051", "FIX-054", "FIX-055", "FIX-056", "FIX-057",
+      "FIX-058", "FIX-059", "FIX-062", "FIX-063", "FIX-064", "FIX-066", "FIX-067",
+      "FIX-068", "FIX-069", "FIX-071", "FIX-094", "FIX-097", "FIX-099", "FIX-100",
+      "FIX-103", "FIX-104", "FIX-105", "FIX-108", "FIX-109"
+    ],
+    "ChatContainer.tsx": [
+      "FIX-011", "FIX-013", "FIX-014", "FIX-026", "FIX-027", "FIX-061", "FIX-065", "FIX-101"
+    ],
+    "agents/index.ts": [
+      "FIX-012", "FIX-015", "FIX-016", "FIX-079", "FIX-102"
+    ],
+    "rube.ts": [
+      "FIX-053", "FIX-072", "FIX-095", "FIX-096", "FIX-098"
+    ],
+    "PreFlightService.ts": [
+      "FIX-049", "FIX-050", "FIX-075"
+    ],
+    "PreFlightValidationService.ts": [
+      "FIX-074", "FIX-078", "FIX-106", "FIX-107"
+    ],
+    "whatsapp-composio.ts": [
+      "FIX-080", "FIX-081"
+    ],
+    "WhatsAppBaileysService.ts": [
+      "FIX-092", "FIX-093"
+    ],
+    "whatsapp-web.ts": [
+      "FIX-085", "FIX-091"
+    ],
+    "Integrations.tsx": [
+      "FIX-046", "FIX-073"
+    ],
+    "VerifiedExecutor.ts": [
+      "FIX-041", "FIX-048"
+    ],
+    "ToolRegistry.ts": [
+      "FIX-034"
+    ],
+    "IntentResolver.ts": [
+      "FIX-035"
+    ],
+    "ErrorClassifier.ts": [
+      "FIX-036"
+    ],
+    "UnifiedToolRegistry.ts": [
+      "FIX-042"
+    ],
+    "ParamResolutionPipeline.ts": [
+      "FIX-043"
+    ],
+    "OAuthController.ts": [
+      "FIX-044"
+    ],
+    "GenericExecutor.ts": [
+      "FIX-060"
+    ],
+    "GenericSchemaResolver.ts": [
+      "FIX-070"
+    ],
+    "GenericUXTranslator.ts": [
+      "FIX-082"
+    ],
+    "WhatsAppWebService.ts": [
+      "FIX-086"
+    ],
+    "IntegrationAuthService.ts": [
+      "FIX-052"
+    ],
+    "CustomIntegrationService.ts": [
+      "FIX-004"
+    ],
+    "RubeClient.ts": [
+      "FIX-006"
+    ],
+    "SmartAIChatbot.tsx": [
+      "FIX-076"
+    ],
+    "WorkflowFlowChart.tsx": [
+      "FIX-077"
+    ],
+    "UnsupportedToolCard.tsx": [
+      "FIX-037"
+    ],
+    "ParameterCollectionPanel.tsx": [
+      "FIX-038"
+    ],
+    "WorkflowIntelligenceService.ts": [
+      "FIX-039"
+    ],
+    "NexusAIService.ts": [
+      "FIX-101"
+    ],
+    "chat.ts": [
+      "FIX-101"
+    ],
+    "SidebarNavigation.tsx": [
+      "FIX-101"
+    ],
+    "WhatsAppConnectionPrompt.tsx": [
+      "FIX-085"
+    ],
+    "EmailService.ts": [
+      "FIX-110"
+    ]
+  },
+
+  "cascadeRisk": {
+    "high": [
+      {
+        "fix": "FIX-007",
+        "blocksCount": 11,
+        "blocks": ["FIX-008", "FIX-017", "FIX-018", "FIX-022", "FIX-024", "FIX-025", "FIX-034", "FIX-042", "FIX-051", "FIX-063", "FIX-078"],
+        "reason": "TOOL_SLUGS mapping is foundational for ALL tool resolution. Modifying this cascades through the entire tool mapping chain, orchestration, and pre-flight systems."
+      },
+      {
+        "fix": "FIX-001",
+        "blocksCount": 5,
+        "blocks": ["FIX-002", "FIX-003", "FIX-009", "FIX-044", "FIX-072"],
+        "reason": "OAuth popup blocker bypass is the root pattern for all OAuth flows. Breaking this breaks every integration connection."
+      },
+      {
+        "fix": "FIX-008",
+        "blocksCount": 4,
+        "blocks": ["FIX-019", "FIX-034", "FIX-042", "FIX-051"],
+        "reason": "3-layer tool resolution system feeds into validation, registries, and orchestration."
+      },
+      {
+        "fix": "FIX-033",
+        "blocksCount": 7,
+        "blocks": ["FIX-038", "FIX-040", "FIX-049", "FIX-054", "FIX-066", "FIX-074", "FIX-075"],
+        "reason": "Pre-flight validation system is the foundation for ALL parameter collection before execution."
+      },
+      {
+        "fix": "FIX-026",
+        "blocksCount": 4,
+        "blocks": ["FIX-027", "FIX-029", "FIX-030", "FIX-094"],
+        "reason": "Parameter answer infinite loop fix + auto-retry is foundational for the entire param collection and retry UX."
+      },
+      {
+        "fix": "FIX-029",
+        "blocksCount": 3,
+        "blocks": ["FIX-031", "FIX-043", "FIX-050"],
+        "reason": "Collected params to tool params mapping is critical for execution. Breaking this breaks all param-dependent workflows."
+      },
+      {
+        "fix": "FIX-051",
+        "blocksCount": 3,
+        "blocks": ["FIX-052", "FIX-053", "FIX-055"],
+        "reason": "Orchestration-First resolution enables ALL unknown toolkit support (500+ apps via Composio)."
+      },
+      {
+        "fix": "FIX-053",
+        "blocksCount": 4,
+        "blocks": ["FIX-055", "FIX-060", "FIX-062", "FIX-070"],
+        "reason": "Rube MCP server-side proxy is the bridge between browser and Composio. Breaking this breaks all orchestration."
+      },
+      {
+        "fix": "FIX-055",
+        "blocksCount": 3,
+        "blocks": ["FIX-056", "FIX-058", "FIX-059"],
+        "reason": "Wire orchestration params into pre-flight is critical for dynamic parameter discovery."
+      },
+      {
+        "fix": "FIX-091",
+        "blocksCount": 4,
+        "blocks": ["FIX-092", "FIX-093", "FIX-095", "FIX-096"],
+        "reason": "Baileys WhatsApp foundation - breaking this breaks ALL WhatsApp QR-based messaging."
+      },
+      {
+        "fix": "FIX-012",
+        "blocksCount": 3,
+        "blocks": ["FIX-015", "FIX-016", "FIX-102"],
+        "reason": "Three-phase workflow generation is the core AI response pattern. Breaking this breaks all AI interactions."
+      },
+      {
+        "fix": "FIX-100",
+        "blocksCount": 5,
+        "blocks": ["FIX-104", "FIX-105", "FIX-107", "FIX-108", "FIX-109"],
+        "reason": "Semantic parameter deduplication is the foundation for all question dedup logic across the app."
+      },
+      {
+        "fix": "FIX-074",
+        "blocksCount": 3,
+        "blocks": ["FIX-075", "FIX-078", "FIX-106"],
+        "reason": "Backend pre-flight with real Composio schemas. Breaking this breaks pre-flight for all integrations."
+      },
+      {
+        "fix": "FIX-079",
+        "blocksCount": 3,
+        "blocks": ["FIX-080", "FIX-081", "FIX-082"],
+        "reason": "WhatsApp-optimized AI responses. Breaking this breaks all WhatsApp Business AI interactions."
+      },
+      {
+        "fix": "FIX-095",
+        "blocksCount": 2,
+        "blocks": ["FIX-096", "FIX-098"],
+        "reason": "Route WhatsApp through Baileys - breaking this means QR-connected WhatsApp cannot send messages."
+      }
+    ],
+    "medium": [
+      {
+        "fix": "FIX-002",
+        "blocksCount": 3,
+        "blocks": ["FIX-044", "FIX-045", "FIX-072"],
+        "reason": "Expired connection detection feeds into OAuth controller and white-label OAuth."
+      },
+      {
+        "fix": "FIX-003",
+        "blocksCount": 3,
+        "blocks": ["FIX-010", "FIX-044", "FIX-072"],
+        "reason": "Parallel OAuth is used by Connect All and white-label OAuth."
+      },
+      {
+        "fix": "FIX-017",
+        "blocksCount": 2,
+        "blocks": ["FIX-018", "FIX-029"],
+        "reason": "Storage action mappings feed into defaults and param mapping."
+      },
+      {
+        "fix": "FIX-019",
+        "blocksCount": 2,
+        "blocks": ["FIX-020", "FIX-034"],
+        "reason": "Tool slug validation feeds into fallback system and tool registry."
+      },
+      {
+        "fix": "FIX-020",
+        "blocksCount": 2,
+        "blocks": ["FIX-036", "FIX-037"],
+        "reason": "Fallback tool suggestions feed into error classifier and unsupported tool card."
+      },
+      {
+        "fix": "FIX-021",
+        "blocksCount": 3,
+        "blocks": ["FIX-028", "FIX-032", "FIX-038"],
+        "reason": "User-friendly parameter prompts are referenced by friendly colors, dynamic prompts, and collection panel."
+      },
+      {
+        "fix": "FIX-034",
+        "blocksCount": 2,
+        "blocks": ["FIX-035", "FIX-042"],
+        "reason": "ToolRegistry feeds IntentResolver and UnifiedToolRegistry."
+      },
+      {
+        "fix": "FIX-041",
+        "blocksCount": 2,
+        "blocks": ["FIX-047", "FIX-048"],
+        "reason": "VerifiedExecutor feeds verification UI and Slack channel resolution."
+      },
+      {
+        "fix": "FIX-006",
+        "blocksCount": 2,
+        "blocks": ["FIX-041", "FIX-047"],
+        "reason": "Real workflow execution is the base for verification and execution surfacing."
+      },
+      {
+        "fix": "FIX-050",
+        "blocksCount": 1,
+        "blocks": ["FIX-100"],
+        "reason": "Semantic param alias system feeds into deduplication."
+      },
+      {
+        "fix": "FIX-056",
+        "blocksCount": 2,
+        "blocks": ["FIX-057", "FIX-066"],
+        "reason": "Pre-flight race condition fix affects empty string validation and question visibility."
+      },
+      {
+        "fix": "FIX-062",
+        "blocksCount": 2,
+        "blocks": ["FIX-063", "FIX-064"],
+        "reason": "Dynamic schema validation feeds into legacy slug override and schema-driven pre-flight."
+      },
+      {
+        "fix": "FIX-063",
+        "blocksCount": 1,
+        "blocks": ["FIX-064"],
+        "reason": "Legacy TOOL_SLUGS override feeds schema-driven pre-flight parameter collection."
+      },
+      {
+        "fix": "FIX-066",
+        "blocksCount": 1,
+        "blocks": ["FIX-071"],
+        "reason": "Questions disappearing fix feeds into orchestration filtering fix."
+      },
+      {
+        "fix": "FIX-092",
+        "blocksCount": 2,
+        "blocks": ["FIX-093", "FIX-095"],
+        "reason": "Baileys logger feeds QR code generation and message routing."
+      },
+      {
+        "fix": "FIX-093",
+        "blocksCount": 1,
+        "blocks": ["FIX-095"],
+        "reason": "QR code generation is needed for Baileys routing to work."
+      },
+      {
+        "fix": "FIX-096",
+        "blocksCount": 1,
+        "blocks": ["FIX-098"],
+        "reason": "Debug logging and param aliases feed into return type handling."
+      },
+      {
+        "fix": "FIX-072",
+        "blocksCount": 1,
+        "blocks": ["FIX-073"],
+        "reason": "White-label OAuth is needed for Integrations page endpoint."
+      },
+      {
+        "fix": "FIX-080",
+        "blocksCount": 1,
+        "blocks": ["FIX-081"],
+        "reason": "WhatsApp workflow creation feeds systemBlocks format fix."
+      },
+      {
+        "fix": "FIX-046",
+        "blocksCount": 1,
+        "blocks": ["FIX-073"],
+        "reason": "Real connection status API is used by Integrations page endpoint."
+      },
+      {
+        "fix": "FIX-031",
+        "blocksCount": 2,
+        "blocks": ["FIX-032", "FIX-038"],
+        "reason": "Multi-param integrations feed dynamic prompt and collection panel."
+      },
+      {
+        "fix": "FIX-025",
+        "blocksCount": 1,
+        "blocks": ["FIX-064"],
+        "reason": "Calendar toolkit aliases feed schema-driven pre-flight."
+      },
+      {
+        "fix": "FIX-022",
+        "blocksCount": 1,
+        "blocks": ["FIX-078"],
+        "reason": "Google Sheets action mappings feed Sheets tool support."
+      },
+      {
+        "fix": "FIX-085",
+        "blocksCount": 1,
+        "blocks": ["FIX-086"],
+        "reason": "WhatsApp connection error handling feeds crash prevention."
+      },
+      {
+        "fix": "FIX-004",
+        "blocksCount": 2,
+        "blocks": ["FIX-010", "FIX-037"],
+        "reason": "API key handling feeds Connect All count and unsupported tool card."
+      },
+      {
+        "fix": "FIX-005",
+        "blocksCount": 2,
+        "blocks": ["FIX-099", "FIX-103"],
+        "reason": "Visual nodes feed tooltip system and mobile scroll layout."
+      },
+      {
+        "fix": "FIX-015",
+        "blocksCount": 1,
+        "blocks": ["FIX-079"],
+        "reason": "Concise response style feeds WhatsApp AI responses."
+      },
+      {
+        "fix": "FIX-049",
+        "blocksCount": 1,
+        "blocks": ["FIX-050"],
+        "reason": "AI extractedParams support feeds semantic alias system."
+      },
+      {
+        "fix": "FIX-106",
+        "blocksCount": 1,
+        "blocks": ["FIX-107"],
+        "reason": "Cross-node dedup feeds space normalization."
+      },
+      {
+        "fix": "FIX-068",
+        "blocksCount": 1,
+        "blocks": ["FIX-069"],
+        "reason": "Parent collectedParams sync feeds allAnswered check."
+      },
+      {
+        "fix": "FIX-042",
+        "blocksCount": 1,
+        "blocks": ["FIX-043"],
+        "reason": "UnifiedToolRegistry feeds ParamResolutionPipeline."
+      },
+      {
+        "fix": "FIX-035",
+        "blocksCount": 1,
+        "blocks": ["FIX-039"],
+        "reason": "IntentResolver feeds WorkflowIntelligenceService."
+      },
+      {
+        "fix": "FIX-036",
+        "blocksCount": 1,
+        "blocks": ["FIX-039"],
+        "reason": "ErrorClassifier feeds WorkflowIntelligenceService."
+      },
+      {
+        "fix": "FIX-011",
+        "blocksCount": 1,
+        "blocks": ["FIX-014"],
+        "reason": "Other/Custom input feeds Custom... option expansion."
+      },
+      {
+        "fix": "FIX-099",
+        "blocksCount": 1,
+        "blocks": ["FIX-103"],
+        "reason": "NodeTooltip touch support feeds mobile scroll layout."
+      },
+      {
+        "fix": "FIX-018",
+        "blocksCount": 1,
+        "blocks": ["FIX-029"],
+        "reason": "Storage defaults feed param mapping."
+      }
+    ],
+    "low": [
+      "FIX-009", "FIX-010", "FIX-013", "FIX-014", "FIX-016",
+      "FIX-023", "FIX-024", "FIX-027", "FIX-028", "FIX-030",
+      "FIX-032", "FIX-037", "FIX-038", "FIX-039", "FIX-040",
+      "FIX-043", "FIX-044", "FIX-045", "FIX-047", "FIX-048",
+      "FIX-052", "FIX-054", "FIX-057", "FIX-058", "FIX-059",
+      "FIX-060", "FIX-061", "FIX-064", "FIX-065", "FIX-067",
+      "FIX-069", "FIX-070", "FIX-071", "FIX-073", "FIX-075",
+      "FIX-076", "FIX-077", "FIX-078", "FIX-081", "FIX-082",
+      "FIX-086", "FIX-094", "FIX-097", "FIX-098", "FIX-101",
+      "FIX-102", "FIX-103", "FIX-104", "FIX-105", "FIX-107",
+      "FIX-108", "FIX-109", "FIX-110"
+    ]
+  },
+
+  "chains": {
+    "oauth": {
+      "description": "OAuth flow chain - popup -> detection -> parallel -> polling -> controller -> white-label",
+      "fixes": ["FIX-001", "FIX-002", "FIX-003", "FIX-009", "FIX-044", "FIX-045", "FIX-072", "FIX-073"]
+    },
+    "toolMapping": {
+      "description": "Tool slug resolution chain - mapping -> layers -> validation -> fallback -> registry",
+      "fixes": ["FIX-007", "FIX-008", "FIX-017", "FIX-018", "FIX-019", "FIX-020", "FIX-022", "FIX-024", "FIX-025", "FIX-034", "FIX-042", "FIX-063", "FIX-078"]
+    },
+    "parameterCollection": {
+      "description": "Parameter collection chain - prompts -> retry -> mapping -> multi-param -> pre-flight -> alias -> dedup",
+      "fixes": ["FIX-021", "FIX-026", "FIX-029", "FIX-031", "FIX-033", "FIX-038", "FIX-049", "FIX-050", "FIX-100", "FIX-104", "FIX-105", "FIX-106", "FIX-107", "FIX-108", "FIX-109"]
+    },
+    "orchestration": {
+      "description": "Generic orchestration chain - unknown toolkits -> proxy -> pre-flight -> race conditions -> schema",
+      "fixes": ["FIX-051", "FIX-052", "FIX-053", "FIX-055", "FIX-056", "FIX-057", "FIX-058", "FIX-059", "FIX-060", "FIX-062", "FIX-063", "FIX-064", "FIX-066", "FIX-069", "FIX-070", "FIX-071"]
+    },
+    "whatsappBaileys": {
+      "description": "WhatsApp Baileys chain - library switch -> logger -> QR -> routing -> params -> return types",
+      "fixes": ["FIX-091", "FIX-092", "FIX-093", "FIX-095", "FIX-096", "FIX-098"]
+    },
+    "whatsappBusiness": {
+      "description": "WhatsApp Business chain - AI responses -> workflow creation -> systemBlocks -> UX",
+      "fixes": ["FIX-079", "FIX-080", "FIX-081", "FIX-082", "FIX-085", "FIX-086"]
+    },
+    "aiPersonality": {
+      "description": "AI personality chain - phases -> concise -> context -> vagueness",
+      "fixes": ["FIX-012", "FIX-015", "FIX-016", "FIX-079", "FIX-102"]
+    },
+    "verification": {
+      "description": "Execution verification chain - executor -> proof -> channel resolution -> UI surfacing",
+      "fixes": ["FIX-006", "FIX-041", "FIX-047", "FIX-048"]
+    }
+  }
+}

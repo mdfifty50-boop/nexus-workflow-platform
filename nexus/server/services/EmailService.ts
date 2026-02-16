@@ -75,7 +75,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({})) as Record<string, any>;
       logger.error('[EmailService] Resend API error:', errorData);
       return {
         success: false,
@@ -83,7 +83,7 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
       };
     }
 
-    const data = await response.json();
+    const data = await response.json() as Record<string, any>;
     logger.info('[EmailService] Email sent successfully:', data.id);
 
     return { success: true, messageId: data.id };

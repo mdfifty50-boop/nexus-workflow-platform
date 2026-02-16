@@ -43,6 +43,64 @@ function isMobileDevice(): boolean {
   return /iPhone|iPad|Android|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 }
 
+// @NEXUS-FIX-130: Robust phone number validation and formatting - DO NOT REMOVE
+// Validates and normalizes phone numbers to E.164-like format (digits only with country code)
+// Handles: "+965 9123 4567", "965 91234567", "09123 4567" (Kuwait local), "91234567", etc.
+const COUNTRY_CODES: Record<string, { code: string; minLocal: number; maxLocal: number }> = {
+  '965': { code: '965', minLocal: 8, maxLocal: 8 },   // Kuwait
+  '966': { code: '966', minLocal: 9, maxLocal: 9 },   // Saudi Arabia
+  '971': { code: '971', minLocal: 9, maxLocal: 9 },   // UAE
+  '973': { code: '973', minLocal: 8, maxLocal: 8 },   // Bahrain
+  '968': { code: '968', minLocal: 8, maxLocal: 8 },   // Oman
+  '974': { code: '974', minLocal: 8, maxLocal: 8 },   // Qatar
+  '1':   { code: '1', minLocal: 10, maxLocal: 10 },   // US/Canada
+  '44':  { code: '44', minLocal: 10, maxLocal: 10 },  // UK
+  '91':  { code: '91', minLocal: 10, maxLocal: 10 },  // India
+  '20':  { code: '20', minLocal: 10, maxLocal: 10 },  // Egypt
+  '962': { code: '962', minLocal: 9, maxLocal: 9 },   // Jordan
+  '961': { code: '961', minLocal: 7, maxLocal: 8 },   // Lebanon
+}
+
+function validateAndFormatPhone(raw: string): { valid: boolean; formatted: string; error?: string } {
+  // Strip everything except digits
+  const digits = raw.replace(/[^\d]/g, '')
+
+  if (digits.length < 8) {
+    return { valid: false, formatted: '', error: 'Phone number too short. Include country code (e.g., +965 9XXX XXXX)' }
+  }
+
+  if (digits.length > 15) {
+    return { valid: false, formatted: '', error: 'Phone number too long. Check the number and try again.' }
+  }
+
+  // Check if starts with a known country code
+  for (const [prefix, info] of Object.entries(COUNTRY_CODES)) {
+    if (digits.startsWith(prefix)) {
+      const localPart = digits.slice(prefix.length)
+      if (localPart.length >= info.minLocal && localPart.length <= info.maxLocal) {
+        return { valid: true, formatted: digits } // Already has country code
+      }
+    }
+  }
+
+  // Kuwait-specific: local numbers start with 1,2,5,6,9 and are 8 digits
+  if (digits.length === 8 && /^[12569]/.test(digits)) {
+    return { valid: true, formatted: '965' + digits } // Auto-prepend Kuwait +965
+  }
+
+  // If 0-prefixed local number (e.g., "091234567"), strip leading 0 and prepend Kuwait code
+  if (digits.startsWith('0') && digits.length === 9) {
+    return { valid: true, formatted: '965' + digits.slice(1) }
+  }
+
+  // Generic: if 10+ digits, assume it includes a country code
+  if (digits.length >= 10) {
+    return { valid: true, formatted: digits }
+  }
+
+  return { valid: false, formatted: '', error: 'Could not detect country code. Enter full number with country code (e.g., +965 9XXX XXXX)' }
+}
+
 export function WhatsAppConnectionPrompt({
   onConnected,
   onSkip,
@@ -122,7 +180,18 @@ export function WhatsAppConnectionPrompt({
   }, [checkStatus, onConnected])
 
   // @NEXUS-FIX-085: Request pairing code (called after client is ready) - DO NOT REMOVE
+  // @NEXUS-FIX-130: Phone validation before API call - DO NOT REMOVE
   const requestPairingCode = React.useCallback(async (phone: string) => {
+    // Layer 1: Frontend validation before any network call
+    const validation = validateAndFormatPhone(phone)
+    if (!validation.valid) {
+      setConnection({
+        status: 'error',
+        error: validation.error || 'Invalid phone number format',
+      })
+      return
+    }
+
     const userId = getUserId()
     try {
       const response = await fetch('/api/whatsapp-web/pairing-code', {
@@ -133,7 +202,7 @@ export function WhatsAppConnectionPrompt({
         },
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
-          phoneNumber: phone.replace(/[^0-9]/g, ''),
+          phoneNumber: validation.formatted, // Send validated E.164 digits
         }),
       })
       const data = await response.json()
@@ -342,21 +411,36 @@ export function WhatsAppConnectionPrompt({
                   <Smartphone className="w-4 h-4" />
                   <span>Enter your WhatsApp phone number</span>
                 </div>
+                {/* @NEXUS-FIX-130: Phone input with validation feedback */}
                 <div className="flex gap-2">
                   <Input
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value)
+                      // Clear error when user edits phone number
+                      if (connection.status === 'error') {
+                        setConnection({ status: 'idle' })
+                      }
+                    }}
                     placeholder="+965 9XXX XXXX"
                     className="flex-1 bg-slate-800 border-slate-700"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && phoneNumber.trim()) {
+                        initConnection('pairing', phoneNumber)
+                      }
+                    }}
                   />
                   <Button
                     onClick={() => initConnection('pairing', phoneNumber)}
-                    disabled={!phoneNumber.trim()}
+                    disabled={!phoneNumber.trim() || phoneNumber.replace(/[^\d]/g, '').length < 8}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     Get Code
                   </Button>
                 </div>
+                <p className="text-[10px] text-slate-500">
+                  Include country code (e.g., +965 for Kuwait). Local numbers auto-detect.
+                </p>
               </div>
             ) : (
               // Desktop: Offer QR code option

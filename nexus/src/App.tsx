@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { initErrorTracking, setUserId } from '@/lib/errorTracking'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
-import { userPreferencesService } from '@/services'
+// @NEXUS-FIX-104: Import directly from file, NOT from barrel export (@/services)
+// Barrel import triggers ALL 80+ services to load at parse time, causing circular
+// dependency in vendor-core chunk → ReferenceError: Cannot access 'ao' before initialization
+import { userPreferencesService } from '@/services/UserPreferencesService'
 
 // Initialize theme immediately on app load (before first paint)
 userPreferencesService.initializeTheme()
@@ -22,8 +25,8 @@ import {
 } from '@/components/error-boundaries'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { PageTransition } from '@/components/PageTransition'
-import { SmartAIChatbot } from '@/components/SmartAIChatbot'
-import { AITeamChatButton } from '@/components/AITeamChatButton'
+// SmartAIChatbot removed — /chat provides the full chat experience
+// AITeamChatButton removed — chat feature replaces it
 
 // =============================================================================
 // LAZY-LOADED ROUTES
@@ -47,6 +50,7 @@ import { AITeamChatButton } from '@/components/AITeamChatButton'
 // =============================================================================
 const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login })))
 const SignUp = lazy(() => import('@/pages/SignUp').then(m => ({ default: m.SignUp })))
+// SSOCallback no longer needed — Clerk's <SignIn routing="path"> handles /login/sso-callback internally
 
 // =============================================================================
 // LANDING PAGE - Lazy loaded (large marketing page with animations)
@@ -123,10 +127,11 @@ const OnboardingNew = lazy(() => import('@/pages/OnboardingNew').then(m => ({ de
 // DEMO PAGES - Meeting room and component showcases
 // =============================================================================
 const MeetingRoomDemo = lazy(() => import('@/pages/MeetingRoomDemo'))
+const AIConsultancy = lazy(() => import('@/pages/AIConsultancy'))
 const VoiceDemo = lazy(() => import('@/pages/VoiceDemo'))
 const AvatarDemo = lazy(() => import('@/pages/AvatarDemo'))
 const ChatDemo = lazy(() => import('@/pages/ChatDemo'))
-const MobileChat = lazy(() => import('@/pages/Chat'))
+// MobileChat removed — /chat now uses full-featured ChatDemo with sidebar + "Think with me"
 
 // =============================================================================
 // WHATSAPP BUSINESS PAGES - AiSensy Integration
@@ -239,36 +244,10 @@ function RouteLoadingFallback() {
   )
 }
 
-// Simple test component to verify React rendering
-function TestButton() {
-  console.log('[TestButton] Rendering!')
-  return (
-    <button
-      onClick={() => alert('Test button works!')}
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '20px',
-        zIndex: 99999,
-        padding: '10px 20px',
-        background: 'red',
-        color: 'white',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer'
-      }}
-    >
-      TEST BUTTON
-    </button>
-  )
-}
 
 function App() {
   return (
-    <>
-      {/* Test components OUTSIDE BrowserRouter */}
-      <TestButton />
-      <BrowserRouter>
+    <BrowserRouter>
       <AuthProvider>
         <ErrorTrackingUserSync />
         <SubscriptionProvider>
@@ -281,26 +260,27 @@ function App() {
           <GlobalConfetti />
           <NetworkStatusBanner />
           <SubscriptionWarningBanner />
-          {/* AI Team Chat Button - Desktop only, positioned above chatbot */}
-          <AITeamChatButton />
-          {/* Global chatbot available on ALL pages */}
-          <SmartAIChatbot position="bottom-right" />
+          {/* AI Team Chat Button removed — chat feature in Nexus replaces this */}
+          {/* Global floating chatbot removed — Chat UI at /chat replaces it */}
           {/* 3D Avatar moved to top of App for debugging */}
           <BaseErrorBoundary variant="full-page" severity="critical">
           <Suspense fallback={<RouteLoadingFallback />}>
           <PageTransition type="fade" duration={300}>
           <Routes>
-          {/* Chat route - main Nexus chat interface (mobile-first design) */}
-          <Route path="/chat" element={<MobileChat />} />
-          {/* Legacy chat demo with sidebar */}
-          <Route path="/chat-legacy" element={<ChatDemo />} />
+          {/* Chat route - main Nexus chat with sidebar, "Think with me", dashboard panel */}
+          <Route path="/chat" element={<ChatDemo />} />
+          {/* Keep old route as redirect */}
+          <Route path="/chat-legacy" element={<Navigate to="/chat" replace />} />
 
           {/* Landing page - lazy loaded for smaller initial bundle */}
           <Route path="/" element={<LandingPage />} />
 
           {/* Auth routes - lazy loaded */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          {/* CRITICAL: Use wildcard /* so Clerk's <SignIn routing="path"> handles
+              its own sub-routes including /login/sso-callback internally.
+              A separate SSOCallback route CONFLICTS with path-based routing. */}
+          <Route path="/login/*" element={<Login />} />
+          <Route path="/sign-up/*" element={<SignUp />} />
 
           {/* Onboarding - new user flow (<5 min to first workflow) */}
           <Route
@@ -466,6 +446,7 @@ function App() {
           <Route path="/workflow-demo" element={<WorkflowErrorBoundary><WorkflowDemo /></WorkflowErrorBoundary>} />
           <Route path="/try" element={<Try />} />
           <Route path="/meeting-room-demo" element={<MeetingRoomDemo />} />
+          <Route path="/ai-consultancy" element={<AIConsultancy />} />
           <Route path="/voice-demo" element={<VoiceDemo />} />
           <Route path="/avatar-demo" element={<AvatarDemo />} />
           {/* Original ChatDemo route moved above */}
@@ -606,7 +587,6 @@ function App() {
         </SubscriptionProvider>
       </AuthProvider>
     </BrowserRouter>
-    </>
   )
 }
 

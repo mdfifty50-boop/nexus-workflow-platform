@@ -38,10 +38,43 @@ export default defineConfig({
     // Increase chunk size warning limit for better DX
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      // Exclude server-side dependencies from frontend bundle
+      external: [
+        'puppeteer',
+        'playwright',
+        'whatsapp-web.js',
+        '@whiskeysockets/baileys',
+        'express',
+        'cors',
+      ],
       output: {
-        // Fixed chunking to avoid circular dependencies
-        // React MUST be bundled with React-dependent libs to prevent loading order issues
+        // Optimized chunking for performance
+        // Strategy: Separate heavy libs, keep React core together
         manualChunks: (id) => {
+          // Server-side only - should never be bundled (external fallback)
+          if (id.includes('puppeteer') ||
+              id.includes('playwright') ||
+              id.includes('whatsapp-web.js') ||
+              id.includes('@whiskeysockets/baileys') ||
+              id.includes('node_modules/express') ||
+              id.includes('node_modules/cors')) {
+            return undefined // Skip - marked as external
+          }
+
+          // @NEXUS-FIX-103: 3D Libraries - DO NOT manually chunk
+          // Causes circular dependency: vendor-core <-> vendor-3d
+          // Let Vite auto-handle - they're code-split via dynamic imports anyway
+          // The LandingPage uses lazy() import which creates automatic chunks
+
+          // @NEXUS-FIX-103: Charts library - DO NOT manually chunk
+          // Causes circular dependency with vendor-core (recharts uses React)
+          // Auto-chunked via dynamic imports in Analytics page
+
+          // Workflow visualization - Load lazily
+          if (id.includes('@xyflow') || id.includes('reactflow')) {
+            return 'vendor-flow'
+          }
+
           // Heavy libs that can be split safely (NO React dependency)
           if (id.includes('node_modules/html2canvas')) {
             return 'vendor-html2canvas'
@@ -52,15 +85,67 @@ export default defineConfig({
           if (id.includes('node_modules/dompurify')) {
             return 'vendor-sanitize'
           }
+
+          // Stripe - Load lazily (only on checkout/pricing)
+          if (id.includes('@stripe')) {
+            return 'vendor-stripe'
+          }
+
+          // Auth - Load with core (needed on most pages)
+          if (id.includes('@clerk')) {
+            return 'vendor-auth'
+          }
+
+          // Supabase - Database client
+          if (id.includes('@supabase')) {
+            return 'vendor-supabase'
+          }
+
+          // Animation library - Used widely
+          if (id.includes('framer-motion')) {
+            return 'vendor-animation'
+          }
+
           // Icon library (uses React but loaded async is ok)
           if (id.includes('node_modules/lucide-react')) {
             return 'vendor-icons'
           }
-          // Everything else including React goes to main vendor chunk
-          // This prevents circular dependency: vendor-react <-> vendor
-          if (id.includes('node_modules')) {
-            return 'vendor'
+
+          // React core and ALL React-dependent essentials - Keep together to prevent circular deps
+          // @NEXUS-FIX-103: Include ALL React-importing packages to prevent circular chunk dependency
+          // DO NOT REMOVE - Causes blank page if circular dependency exists
+          if (id.includes('node_modules/react') ||
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/zustand') ||
+              id.includes('node_modules/clsx') ||
+              id.includes('node_modules/tailwind-merge') ||
+              id.includes('node_modules/class-variance-authority') ||
+              id.includes('node_modules/react-i18next') ||
+              id.includes('node_modules/i18next') ||
+              id.includes('node_modules/react-helmet') ||
+              id.includes('node_modules/use-sync-external-store') ||
+              // Additional React-dependent packages that MUST be in core
+              id.includes('node_modules/@radix-ui') ||
+              id.includes('node_modules/@floating-ui') ||
+              id.includes('node_modules/@tanstack') ||
+              id.includes('node_modules/react-hook-form') ||
+              id.includes('node_modules/@hookform') ||
+              id.includes('node_modules/cmdk') ||
+              id.includes('node_modules/sonner') ||
+              id.includes('node_modules/react-day-picker') ||
+              id.includes('node_modules/react-dropzone') ||
+              id.includes('node_modules/react-resizable') ||
+              id.includes('node_modules/react-hotkeys-hook') ||
+              id.includes('node_modules/react-colorful') ||
+              id.includes('node_modules/@dnd-kit') ||
+              id.includes('node_modules/vaul')) {
+            return 'vendor-core'
           }
+
+          // Let Vite auto-chunk remaining node_modules to prevent circular dependencies
+          // DO NOT use a catch-all 'vendor' chunk - it causes cycles with vendor-core
           return undefined
         },
       },

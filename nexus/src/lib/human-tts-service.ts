@@ -372,7 +372,7 @@ class HumanTTSService {
    */
   private async checkProviderStatus(): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE}/api/ai-proxy/status`)
+      const response = await fetch(`${API_BASE}/api/services/ai-proxy-status`)
       if (response.ok) {
         const data = await response.json()
         this.elevenLabsConfigured = data.services?.elevenlabs?.configured === true

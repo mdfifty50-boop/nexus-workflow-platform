@@ -11,7 +11,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { apiClient, type NexusAgent } from '@/lib/api-client'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001')
 
 // Message interface
 export interface ChatMessage {
@@ -298,7 +298,7 @@ export function WorkflowChatProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.chat({
         messages: conversationMessages,
         systemPrompt: WORKFLOW_SYSTEM_PROMPT,
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-6-20250115',
         maxTokens: 2048,
         autoRoute: true
       })

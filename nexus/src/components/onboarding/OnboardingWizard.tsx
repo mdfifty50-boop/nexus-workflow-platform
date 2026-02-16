@@ -38,6 +38,7 @@ import type {
   BusinessTypeIdType,
   CompanySizeType,
   IndustryType,
+  PrimaryRoleType,
   AutomationGoalType,
 } from './onboarding-types'
 
@@ -51,6 +52,7 @@ import {
   BUSINESS_TYPE_OPTIONS,
   COMPANY_SIZE_OPTIONS,
   INDUSTRY_OPTIONS,
+  ROLE_OPTIONS,
   GOAL_OPTIONS,
   TEMPLATE_OPTIONS,
   createInitialState,
@@ -58,6 +60,7 @@ import {
   loadWizardState,
   markWizardCompleted,
   markWizardSkipped,
+  syncWizardToBusinessProfile,
   canStepProceed,
   calculateProgress,
   getRecommendedIntegrations,
@@ -379,6 +382,15 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
     })
   }
 
+  const handleRoleSelect = (roleId: PrimaryRoleType) => {
+    updateState({
+      businessProfile: {
+        ...state.businessProfile,
+        primaryRole: roleId,
+      },
+    })
+  }
+
   const handleCompanyNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateState({
       businessProfile: {
@@ -514,11 +526,11 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
         </div>
       </div>
 
-      {/* Industry Selection (optional) */}
+      {/* Industry Selection */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-center text-muted-foreground">Industry (optional)</h3>
+        <h3 className="text-sm font-medium text-center">Industry <span className="text-destructive">*</span></h3>
         <div className="flex flex-wrap justify-center gap-2">
-          {INDUSTRY_OPTIONS.slice(0, 6).map((industry) => (
+          {INDUSTRY_OPTIONS.map((industry) => (
             <button
               key={industry.id}
               onClick={() => handleIndustrySelect(industry.id)}
@@ -531,6 +543,28 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
               )}
             >
               {industry.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Role Selection */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-center">Your role <span className="text-destructive">*</span></h3>
+        <div className="flex flex-wrap justify-center gap-2">
+          {ROLE_OPTIONS.map((role) => (
+            <button
+              key={role.id}
+              onClick={() => handleRoleSelect(role.id)}
+              className={cn(
+                'px-3 py-1.5 rounded-full border text-sm transition-all duration-200',
+                'hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                state.businessProfile.primaryRole === role.id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary/50'
+              )}
+            >
+              {role.name}
             </button>
           ))}
         </div>
@@ -1333,6 +1367,7 @@ export function OnboardingWizard({
           [STEP_CONFIGS[state.currentStepIndex].id]: StepStatus.COMPLETED,
         },
       }
+      syncWizardToBusinessProfile(completedState)
       markWizardCompleted()
       onComplete(completedState)
       return

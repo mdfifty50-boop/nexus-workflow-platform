@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { callClaude } from '../services/claudeProxy.js'
+import { callClaude, callClaudeWithTiering } from '../services/claudeProxy.js'
 import { getAgent } from '../agents/index.js'
 
 const router = Router()
@@ -196,6 +196,55 @@ router.post('/execute', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Workflow execution failed'
+    })
+  }
+})
+
+// @NEXUS-FIX-147: AI step execution endpoint with model tiering - DO NOT REMOVE
+// Handles AI-powered workflow steps (generate, summarize, translate, analyze)
+// Uses Haiku for simple tasks, Sonnet for moderate, Opus for complex
+router.post('/ai-step', async (req, res) => {
+  try {
+    const { prompt, previousData, complexity } = req.body
+
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: 'prompt is required' })
+    }
+
+    // Auto-select model tier based on complexity hint from frontend
+    const tierMap: Record<string, 'haiku' | 'sonnet' | 'opus'> = {
+      simple: 'haiku',     // quotes, greetings, short content ($0.25/1M)
+      moderate: 'sonnet',  // summaries, reports, translations ($3/1M)
+      complex: 'opus',     // business analysis, critical decisions ($15/1M)
+    }
+    const forceTier = tierMap[complexity] || undefined
+
+    // Build prompt with context from previous workflow steps
+    let fullPrompt = prompt
+    if (previousData && Object.keys(previousData).length > 0) {
+      fullPrompt += '\n\nContext from previous workflow steps:\n' + JSON.stringify(previousData, null, 2)
+    }
+
+    const result = await callClaudeWithTiering({
+      systemPrompt: 'You are an AI step in a workflow automation pipeline. Produce the requested output directly. Be concise and actionable. Return ONLY the requested content, no explanations or meta-commentary.',
+      userMessage: fullPrompt,
+      maxTokens: 2048,
+      forceTier,
+    })
+
+    res.json({
+      success: true,
+      output: result.text,
+      model: result.model,
+      tier: result.tier,
+      tokensUsed: result.tokensUsed,
+      costUSD: result.costUSD,
+    })
+  } catch (error: any) {
+    console.error('[AI-Step] Execution error:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'AI step execution failed',
     })
   }
 })

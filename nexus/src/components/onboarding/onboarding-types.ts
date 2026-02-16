@@ -94,6 +94,24 @@ export const Industry = {
 export type IndustryType = typeof Industry[keyof typeof Industry]
 
 // =============================================================================
+// PRIMARY ROLE (using const objects instead of enums)
+// =============================================================================
+
+export const PrimaryRole = {
+  FOUNDER: 'founder',
+  EXECUTIVE: 'executive',
+  MANAGER: 'manager',
+  DEVELOPER: 'developer',
+  MARKETER: 'marketer',
+  SALES: 'sales',
+  OPERATIONS: 'operations',
+  SUPPORT: 'support',
+  OTHER: 'other',
+} as const
+
+export type PrimaryRoleType = typeof PrimaryRole[keyof typeof PrimaryRole]
+
+// =============================================================================
 // STEP STATUS (using const objects instead of enums)
 // =============================================================================
 
@@ -131,8 +149,8 @@ export interface BusinessProfile {
   industry: IndustryType | null
   businessType: BusinessTypeIdType | null
   companySize: CompanySizeType | null
+  primaryRole: PrimaryRoleType | null
   website?: string
-  role?: string
 }
 
 /**
@@ -279,6 +297,15 @@ export interface CompanySizeOption {
  */
 export interface IndustryOption {
   id: IndustryType
+  name: string
+  icon: string
+}
+
+/**
+ * Role option configuration
+ */
+export interface RoleOption {
+  id: PrimaryRoleType
   name: string
   icon: string
 }
