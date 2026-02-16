@@ -507,6 +507,7 @@ export function ChatContainer({
     asana: 'create_task',
     hubspot: 'create_contact',
     whatsapp: 'send_message',
+    'whatsapp-business': 'send_message',
     twitter: 'post_tweet',
     linkedin: 'post_update',
     zoom: 'create_meeting',
@@ -625,7 +626,7 @@ export function ChatContainer({
   // Suggest alternatives for a removed integration
   const getSimilarIntegrations = React.useCallback((removed: string): string[] => {
     const categories: Record<string, string[]> = {
-      messaging: ['slack', 'discord', 'whatsapp', 'telegram'],
+      messaging: ['slack', 'discord', 'whatsapp', 'whatsapp-business', 'telegram'],
       email: ['gmail', 'outlook'],
       storage: ['dropbox', 'googledrive', 'onedrive'],
       sheets: ['googlesheets', 'airtable', 'notion'],
@@ -864,6 +865,8 @@ export function ChatContainer({
 
           // Accumulate streamed text for the onToken callback
           let streamedText = ''
+          // @NEXUS-FIX-150: Track if response looks like workflow JSON to hide raw code from users - DO NOT REMOVE
+          let looksLikeWorkflowJSON = false
 
           // Try streaming first, falls back to non-streaming internally
           const aiResponse = await nexusAIService.chatStream(
@@ -872,8 +875,29 @@ export function ChatContainer({
               // Incrementally update the placeholder message with each token
               streamedText += token
               if (streamingMessageIdRef.current) {
+                // @NEXUS-FIX-150: Detect JSON workflow responses and show friendly placeholder - DO NOT REMOVE
+                // Users should never see raw JSON like {"shouldGenerateWorkflow":true,"workflowSpec":...}
+                if (!looksLikeWorkflowJSON) {
+                  const trimmed = streamedText.trimStart()
+                  // Early detection: JSON starting with { followed by a quote (all AI responses are JSON)
+                  // Later confirmation: workflow-specific keys
+                  if (trimmed.startsWith('{') && trimmed.length > 5 && (
+                    /^\{\s*"/.test(trimmed) ||
+                    trimmed.includes('"shouldGenerateWorkflow"') ||
+                    trimmed.includes('"workflowSpec"') ||
+                    trimmed.includes('"intent"') ||
+                    trimmed.includes('"message"')
+                  )) {
+                    looksLikeWorkflowJSON = true
+                  }
+                }
+
                 updateMessage(streamingMessageIdRef.current, {
-                  content: streamedText,
+                  content: looksLikeWorkflowJSON
+                    ? (streamedText.includes('"shouldGenerateWorkflow":true') || streamedText.includes('"shouldGenerateWorkflow": true')
+                      ? '✨ Building your workflow...'
+                      : 'Thinking...')
+                    : streamedText,
                   isStreaming: true
                 })
               }

@@ -1151,6 +1151,13 @@ export function WorkflowPreviewCard({
 
       // @NEXUS-FIX-066: Orchestration found tools but NO required params (like triggers)
       // Fall through to use static result which may have AI-generated questions (missingInfo)
+      // @NEXUS-FIX-149: But if Quick Setup was already completed (preFlightResult.questions was []),
+      // don't reintroduce questions that would disable Run Beta Test and hide MissingInfoSection
+      if (preFlightResult && preFlightResult.questions.length === 0 && !showPreFlight) {
+        // Quick Setup already completed - preserve questions: [] state
+        console.log('[WorkflowPreviewCard] FIX-149: Quick Setup already completed, preserving questions: [] - not overwriting with static result')
+        return
+      }
       console.log('[WorkflowPreviewCard] FIX-066: Orchestration has tools but no required params - using static result')
     }
 
@@ -3231,10 +3238,12 @@ export function WorkflowPreviewCard({
           )}
 
           {/* Missing info questions (need answers before execution) */}
-          {/* @NEXUS-FIX-104: Hide MissingInfoSection when Quick Setup has questions to prevent duplicates - DO NOT REMOVE */}
+          {/* @NEXUS-FIX-104: Hide MissingInfoSection when Quick Setup is ACTIVELY showing to prevent duplicates - DO NOT REMOVE */}
           {/* @NEXUS-FIX-108: Pass collectedParams so MissingInfoSection can skip already-answered questions - DO NOT REMOVE */}
+          {/* @NEXUS-FIX-149: Use showPreFlight instead of questions.length to gate visibility - DO NOT REMOVE */}
+          {/* Bug: After Quick Setup completed, pre-flight re-check could return questions, hiding missingInfo forever */}
           {workflow.missingInfo && workflow.missingInfo.length > 0 && !isComplete && !hasError && !isExecuting &&
-           !(preFlightResult && preFlightResult.questions && preFlightResult.questions.length > 0) && (
+           !(showPreFlight && preFlightResult && preFlightResult.questions && preFlightResult.questions.length > 0) && (
             <MissingInfoSection
               missingInfo={workflow.missingInfo}
               onSelect={onMissingInfoSelect}
@@ -3940,8 +3949,13 @@ export function WorkflowPreviewCard({
                             <button
                               key={idx}
                               onClick={() => {
-                                userContextService.learnFromChoice(collectionKey, btn.value)
-                                onMissingInfoSelect?.(collectionKey, btn.value)
+                                // @NEXUS-FIX-148: Read textbox value when "Provide Details" clicked - DO NOT REMOVE
+                                // Bug: Button was sending hardcoded btn.value instead of user's typed input
+                                const inputValue = pendingErrorInputRef.current?.value
+                                const finalValue = inputValue || btn.value
+                                userContextService.learnFromChoice(collectionKey, finalValue)
+                                onMissingInfoSelect?.(collectionKey, finalValue)
+                                if (inputValue) pendingErrorInputRef.current = null
                               }}
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 btn.primary

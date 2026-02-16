@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.54",
-  "_lastUpdated": "2026-02-16",
-  "_totalFixes": 134,
+  "_version": "1.0.55",
+  "_lastUpdated": "2026-02-17",
+  "_totalFixes": 137,
 
   "fixes": [
     {
@@ -1623,6 +1623,42 @@
       "codeMarker": "@NEXUS-FIX-147",
       "testCommand": "POST /api/workflow/ai-step with {prompt: 'Generate a quote', complexity: 'simple'} should return real AI content",
       "critical": true
+    },
+    {
+      "id": "FIX-148",
+      "date": "2026-02-17",
+      "category": "UX",
+      "title": "Provide Details button reads textbox value instead of hardcoded default",
+      "problem": "When workflow step failed with missing params, clicking 'Provide Details' sent hardcoded string 'I will provide the missing details' instead of the user's typed input from the textbox",
+      "solution": "Button onClick now checks pendingErrorInputRef.current for typed value, falls back to btn.value only if textbox is empty",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "markers": ["@NEXUS-FIX-148"],
+      "testCommand": "Test workflow with external API step (Gmail), trigger missing param, type value in textbox, click Provide Details - should use typed value",
+      "critical": true
+    },
+    {
+      "id": "FIX-149",
+      "date": "2026-02-17",
+      "category": "UX",
+      "title": "Quick Question state desync - missingInfo questions no longer disappear after answering one",
+      "problem": "After answering a Quick Setup question, collectedParams change triggered pre-flight re-check which reintroduced questions to preFlightResult, hiding MissingInfoSection and disabling Run Beta Test button",
+      "solution": "Two changes: (1) MissingInfoSection visibility now gated on showPreFlight (active Quick Setup) instead of preFlightResult.questions.length. (2) Pre-flight fallthrough preserves questions:[] when Quick Setup already completed",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "markers": ["@NEXUS-FIX-149"],
+      "testCommand": "Create workflow with missingInfo questions, answer Quick Setup, verify missingInfo questions remain visible and Run Beta Test stays enabled",
+      "critical": true
+    },
+    {
+      "id": "FIX-150",
+      "date": "2026-02-17",
+      "category": "UX",
+      "title": "Hide raw JSON streaming during AI workflow generation",
+      "problem": "During streaming, users saw raw JSON including shouldGenerateWorkflow, workflowSpec, intent fields before WorkflowPreviewCard rendered",
+      "solution": "Detect JSON responses early in stream (starts with { followed by quote pattern) and show 'Building your workflow...' or 'Thinking...' placeholder instead of raw tokens",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "markers": ["@NEXUS-FIX-150"],
+      "testCommand": "Send workflow request in chat, verify no JSON visible during streaming - should show 'Building your workflow...' placeholder",
+      "critical": false
     }
   ],
 
