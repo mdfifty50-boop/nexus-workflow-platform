@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.53",
+  "_version": "1.0.54",
   "_lastUpdated": "2026-02-16",
-  "_totalFixes": 127,
+  "_totalFixes": 134,
 
   "fixes": [
     {
@@ -1539,6 +1539,90 @@
       "codeMarker": "@NEXUS-FIX-048",
       "testCommand": "POST /api/payment-links/generate with {amount: 5, currency: 'KWD'} - should return mock payment link",
       "critical": false
+    },
+    {
+      "id": "FIX-140",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Long-term retry after fast reconnection fails",
+      "problem": "After 5 fast reconnect attempts, the session would permanently error out. Transient network issues lasting >5 minutes would require manual re-scan.",
+      "solution": "After fast exponential backoff fails, switches to 5-minute interval retry for up to 24 hours. Only gives up if user explicitly logged out.",
+      "files": ["nexus/server/services/WhatsAppBaileysService.ts"],
+      "codeMarker": "@NEXUS-FIX-140",
+      "testCommand": "Disconnect network briefly, verify session auto-recovers within 5 minutes",
+      "critical": true
+    },
+    {
+      "id": "FIX-141",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Auto-restore sessions on server restart",
+      "problem": "After server restart or deployment, all WhatsApp sessions were lost. Users had to re-scan QR code even though auth files persisted on disk.",
+      "solution": "restoreSessions() scans persistent volume for saved auth directories and re-initializes sockets. Called on server startup. No QR re-scan needed.",
+      "files": ["nexus/server/services/WhatsAppBaileysService.ts", "nexus/server/index.ts"],
+      "codeMarker": "@NEXUS-FIX-141",
+      "testCommand": "Deploy new build, verify existing WhatsApp sessions reconnect automatically",
+      "critical": true
+    },
+    {
+      "id": "FIX-142",
+      "date": "2026-02-16",
+      "category": "WhatsApp Resilience",
+      "title": "Frontend polling fallback when SSE fails",
+      "problem": "Some proxies/CDNs (including Vercel rewrites) can drop long-lived SSE connections. Frontend would lose real-time updates with no recovery.",
+      "solution": "After 3 consecutive SSE errors, automatically switches to HTTP polling the session endpoint every 3 seconds. Transparent to user.",
+      "files": ["nexus/src/hooks/useWhatsAppWeb.ts"],
+      "codeMarker": "@NEXUS-FIX-142",
+      "testCommand": "Verify QR code updates work even when SSE is blocked/dropped",
+      "critical": true
+    },
+    {
+      "id": "FIX-144",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Expanded AI node detection for universal execution",
+      "problem": "AI node detection only matched toolkit==='ai'. Steps with toolkit='generate','summarize','translate' etc. fell to Composio and failed with 'Tool not found'.",
+      "solution": "Expanded isAINode with AI_INTERNAL_TOOLKITS Set (ai, generate, summarize, translate, transform, analyze, filter, condition, format) plus keyword regex catch-all. Also added executorHint='ai' support in agent prompt.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-144",
+      "testCommand": "Workflow with 'Generate Quote' step should be classified as AI node, not sent to Composio",
+      "critical": true
+    },
+    {
+      "id": "FIX-145",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "AI output data flow to downstream steps",
+      "problem": "AI step results had type='ai_processing' with no .data field. Downstream steps (WhatsApp, email) received empty data and couldn't find the generated content.",
+      "solution": "Changed AI result type to 'ai_output' with generated/text/data fields. Added extraction in wpc-helpers.ts that maps AI output to standard flow data keys (message, text, body, notification_text).",
+      "files": ["nexus/src/components/chat/wpc-helpers.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-145",
+      "testCommand": "AI-generated content should flow to next WhatsApp/email step as message parameter",
+      "critical": true
+    },
+    {
+      "id": "FIX-146",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Native WhatsApp routing via Baileys in workflows",
+      "problem": "WhatsApp steps always routed to Composio (WHATSAPP_SEND_MESSAGE tool) which requires WhatsApp Business API. Personal WhatsApp via Baileys was never used during workflow execution.",
+      "solution": "Added WhatsApp interception before Composio path. Checks toolkit='whatsapp' or executorHint='native-whatsapp', resolves message from pipeline data, finds active Baileys session, sends via /api/whatsapp-web/send.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-146",
+      "testCommand": "Workflow with WhatsApp step should send via Baileys when session is connected",
+      "critical": true
+    },
+    {
+      "id": "FIX-147",
+      "date": "2026-02-16",
+      "category": "Workflow Execution",
+      "title": "Backend AI step endpoint with model tiering",
+      "problem": "AI workflow nodes had no backend execution - only a fake 500ms delay. No real content generation happened.",
+      "solution": "Added /api/workflow/ai-step endpoint that calls callClaudeWithTiering(). Frontend gauges complexity (simple/moderate/complex) to select Haiku/Sonnet/Opus. Real Claude content generation with cost tracking.",
+      "files": ["nexus/server/routes/workflow.ts"],
+      "codeMarker": "@NEXUS-FIX-147",
+      "testCommand": "POST /api/workflow/ai-step with {prompt: 'Generate a quote', complexity: 'simple'} should return real AI content",
+      "critical": true
     }
   ],
 

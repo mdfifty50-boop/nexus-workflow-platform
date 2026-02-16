@@ -676,6 +676,13 @@ export function WorkflowPreviewCard({
           'x-user-id': localStorage.getItem('nexus_user_id') || 'anonymous'
         }
       })
+      // Guard against HTML 404 responses when backend is not deployed
+      if (!response.ok) {
+        console.warn('[WorkflowPreviewCard] WhatsApp backend not available (status', response.status, ')')
+        addLog('WhatsApp service requires backend deployment - showing connection prompt')
+        setWhatsAppState({ needed: true, connected: false, showPrompt: true })
+        return false
+      }
       const data = await response.json()
 
       // Check for an active/ready session
@@ -2269,15 +2276,28 @@ export function WorkflowPreviewCard({
           node.integration?.toLowerCase() !== 'ai' &&
           node.integration?.toLowerCase() !== 'nexus'
 
+        const nodeNameLower = node.name.toLowerCase()
+
+        // @NEXUS-FIX-144: Expanded AI node detection for universal execution - DO NOT REMOVE
+        // Problem: Only toolkit==='ai' was detected. Steps like "Generate Quote" (toolkit=generate) fell to Composio and failed.
+        // Solution: Recognize all AI-internal toolkit names + keyword patterns when no real integration exists.
+        const AI_INTERNAL_TOOLKITS = new Set([
+          'ai', 'nexus-ai', 'claude', 'anthropic', 'openai',
+          'generate', 'summarize', 'translate', 'transform', 'analyze',
+          'filter', 'condition', 'format'
+        ])
         const isAINode = !hasRealIntegration && (
-          integrationInfo.toolkit === 'ai' ||
-          node.integration?.toLowerCase() === 'ai'
+          AI_INTERNAL_TOOLKITS.has(integrationInfo.toolkit.toLowerCase()) ||
+          AI_INTERNAL_TOOLKITS.has((node.integration || '').toLowerCase()) ||
+          (node.config as Record<string, unknown>)?.executorHint === 'ai' ||
+          // Catch-all: name implies AI generation + no real integration + unknown toolkit
+          ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') &&
+            /\b(generat|compose|write|summariz|analyz|translat|classify|extract text|draft|creat(?:e|ing)\s+(?:a|an|the))\b/i.test(nodeNameLower))
         )
 
         // Detect internal/output nodes that don't need external API calls
         // These are Nexus-internal steps like "Display Results", "Show Summary", etc.
         // CRITICAL: Only treat as internal if the node does NOT have a real integration
-        const nodeNameLower = node.name.toLowerCase()
         const hasOutputPattern = nodeNameLower.includes('display') ||
           nodeNameLower.includes('show output') ||
           nodeNameLower.includes('show result') ||
@@ -2364,24 +2384,63 @@ export function WorkflowPreviewCard({
           continue // Move to next node
         }
 
-        // Handle AI processing nodes - internal processing, no external API
+        // @NEXUS-FIX-144: Real AI execution via backend Claude call - DO NOT REMOVE
+        // Problem: AI nodes did nothing (fake 500ms delay). No content was generated.
+        // Solution: Call POST /api/workflow/ai-step which uses callClaudeWithTiering() with model tiering.
         if (isAINode) {
-          addLog(`🤖 ${node.name} - AI processing step`)
+          addLog(`🤖 ${node.name} - AI processing...`)
 
-          // Simulate AI processing (in production, this would use Claude/OpenAI)
-          await new Promise(resolve => setTimeout(resolve, 500)) // Brief delay for UX
+          try {
+            // Gather context from previous steps for data flow
+            const prevResults = nodes.slice(0, i).map(n => n.result).filter(Boolean)
+            const prevData: Record<string, unknown> = {}
+            for (const r of prevResults) {
+              const res = r as Record<string, unknown>
+              if (res?.type === 'trigger_sample_data' && res.data) Object.assign(prevData, res.data as Record<string, unknown>)
+              if (res?.type === 'ai_output' && res.generated) prevData.previous_ai_output = res.generated
+              if (res?.text) prevData.previous_text = res.text
+            }
 
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx <= i ? 'success' : 'pending',
-              result: idx === i ? {
-                type: 'ai_processing',
-                message: 'AI analysis complete',
-                note: 'Internal processing step - no external API required'
-              } : n.result,
-            }))
-          )
+            // Auto-gauge complexity for model tiering (Haiku/Sonnet/Opus)
+            const gaugeComplexity = (name: string, desc: string): string => {
+              const t = `${name} ${desc}`.toLowerCase()
+              if (/\b(analyz|strateg|decision|evaluat|comprehensive|detailed report|business plan|compar)\b/.test(t)) return 'complex'
+              if (/\b(quote|greet|hello|format|label|tag|short|simple|one.?line|joke|tip)\b/.test(t)) return 'simple'
+              return 'moderate'
+            }
+
+            const complexity = gaugeComplexity(node.name, node.description || '')
+            const aiPrompt = node.description || node.name
+
+            const response = await fetch('/api/workflow/ai-step', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: aiPrompt, previousData: prevData, complexity }),
+            })
+
+            if (!response.ok) throw new Error(`AI step failed: ${response.status}`)
+            const aiResult = await response.json()
+            if (!aiResult.success) throw new Error(aiResult.error || 'AI processing failed')
+
+            addLog(`✓ ${node.name}: Done (${aiResult.tier || 'ai'}, ${aiResult.tokensUsed || 0} tokens)`)
+
+            setNodes((prev) =>
+              prev.map((n, idx) => ({
+                ...n,
+                status: idx <= i ? 'success' : 'pending',
+                result: idx === i ? {
+                  type: 'ai_output',
+                  generated: aiResult.output,
+                  text: aiResult.output,
+                  message: `AI generated: ${(aiResult.output || '').substring(0, 80)}...`,
+                  data: { generated_content: aiResult.output, ai_output: aiResult.output, text: aiResult.output },
+                } : n.result,
+              }))
+            )
+          } catch (aiErr) {
+            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
+            throw aiErr
+          }
           continue // Move to next node
         }
 
@@ -2409,6 +2468,81 @@ export function WorkflowPreviewCard({
             }))
           )
           continue // Move to next node
+        }
+
+        // @NEXUS-FIX-146: Native WhatsApp execution via Baileys - DO NOT REMOVE
+        // Problem: WhatsApp personal (toolkit='whatsapp') was routed to Composio which doesn't have it.
+        // Solution: Intercept before Composio path and send via Baileys API directly.
+        if (integrationInfo.toolkit.toLowerCase() === 'whatsapp' ||
+            (node.config as Record<string, unknown>)?.executorHint === 'native-whatsapp') {
+          addLog(`📱 ${node.name} - Sending via WhatsApp...`)
+          try {
+            // Resolve message content from previous steps via existing data flow pipeline
+            const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
+            const pipeResult = await _resolveParamsWithPipeline(
+              'WHATSAPP_SEND_MESSAGE',
+              'whatsapp',
+              node,
+              workflow.collectedParams as Record<string, string> | undefined,
+              { name: workflow.name, description: workflow.description },
+              previousNodeResults
+            )
+            const p = pipeResult.params
+            // Look for message in resolved params, flow data, or collected params
+            const waMessage = (p.message || p.text || p.body || p.notification_text || p.generated_message || p.ai_generated_content || '') as string
+            const waTo = (p.to || p.phone || p.phone_number ||
+              (workflow.collectedParams as Record<string, string>)?.whatsapp || '') as string
+
+            if (!waTo) {
+              throw new Error('Missing Information: Send WhatsApp Message [param:to]\n\n💡 I need the recipient phone number to send this WhatsApp message.\nPlease tell me:\n• Who should I send the WhatsApp message to? (phone number with country code)')
+            }
+            if (!waMessage) {
+              throw new Error('Missing Information: Send WhatsApp Message [param:message]\n\n💡 I need the message content.\nPlease tell me:\n• What message should I send?')
+            }
+
+            // Find active Baileys session
+            const sessResp = await fetch('/api/whatsapp-web/sessions')
+            const sessData = await sessResp.json()
+            const activeSession = sessData.sessions?.find((s: { state: string }) => s.state === 'ready')
+
+            if (!activeSession) {
+              throw new Error('WhatsApp is not connected. Please connect WhatsApp first using the QR code in Settings → WhatsApp.')
+            }
+
+            // Send via Baileys API
+            const sendResp = await fetch('/api/whatsapp-web/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: activeSession.id,
+                to: waTo.replace(/[^0-9]/g, ''),
+                message: waMessage,
+              }),
+            })
+
+            const sendResult = await sendResp.json()
+            if (!sendResult.success) throw new Error(sendResult.error || 'Failed to send WhatsApp message')
+
+            addLog(`✓ ${node.name}: Message sent to ${waTo}`)
+            setNodes((prev) =>
+              prev.map((n, idx) => ({
+                ...n,
+                status: idx <= i ? 'success' : 'pending',
+                result: idx === i ? {
+                  type: 'whatsapp_sent',
+                  messageId: sendResult.messageId,
+                  to: waTo,
+                  message: waMessage.substring(0, 100),
+                  _verified: true,
+                  _proof: { type: 'message_sent', details: { id: sendResult.messageId, destination: waTo, summary: `WhatsApp message sent to ${waTo}` } },
+                } : n.result,
+              }))
+            )
+            continue // Skip Composio path
+          } catch (waErr) {
+            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
+            throw waErr
+          }
         }
 
         // For ACTION nodes - these require actual API execution

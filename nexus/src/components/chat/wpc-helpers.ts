@@ -398,6 +398,23 @@ export async function _resolveParamsWithPipeline(
       if (result?.type === 'ai_processing' && result.data) {
         Object.assign(flowData, result.data)
       }
+      // @NEXUS-FIX-145: AI output data flow from real Claude execution - DO NOT REMOVE
+      // Problem: AI steps returned content in 'generated' field but downstream steps couldn't access it.
+      // Solution: Extract AI output into all standard flow data keys (message, text, body, etc.)
+      if (result?.type === 'ai_output') {
+        if (result.data && typeof result.data === 'object') {
+          Object.assign(flowData, result.data as Record<string, unknown>)
+        }
+        const gen = (result as Record<string, unknown>).generated
+        if (gen) {
+          flowData.ai_generated_content = gen
+          flowData.generated_message = gen
+          flowData.notification_text = gen
+          flowData.text = gen as string
+          flowData.message = gen as string
+          flowData.body = gen as string
+        }
+      }
       // @NEXUS-FIX-113: Capture action node results for downstream use - DO NOT REMOVE
       if (prev.result && typeof prev.result === 'object' && !result?.type) {
         const actionResult = prev.result as Record<string, unknown>

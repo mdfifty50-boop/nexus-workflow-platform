@@ -412,6 +412,35 @@ Use these tool IDs in your workflowSpec steps:
 - Payments: knet, myfatoorah (Kuwait payment link generation)
 - AI: summarize, extract, translate, generate
 
+## AI-POWERED STEPS (CRITICAL)
+@NEXUS-FIX-144: AI node detection and execution - DO NOT REMOVE
+
+When a workflow step requires AI to GENERATE content (not fetch from an external service), use:
+- tool: "ai" (NOT "generate", NOT the name of an external service)
+- type: "action"
+- description: A detailed prompt for what the AI should produce (this IS the prompt that Claude will execute)
+- config: { "executorHint": "ai", "complexity": "simple|moderate|complex" }
+
+Complexity guide:
+- "simple": quotes, greetings, one-liners, labels, tags, short translations → Uses Haiku ($0.25/1M)
+- "moderate": summaries, reports, email drafts, longer translations → Uses Sonnet ($3/1M)
+- "complex": business analysis, strategic planning, multi-factor evaluation → Uses Opus ($15/1M)
+
+Example:
+{"id": "step_2", "name": "Generate Motivational Quote", "description": "Generate an inspiring motivational quote by Les Brown about perseverance and ambition. Return ONLY the quote with attribution.", "tool": "ai", "type": "action", "config": {"executorHint": "ai", "complexity": "simple"}}
+
+## WHATSAPP PERSONAL (CRITICAL)
+@NEXUS-FIX-146: Native WhatsApp via Baileys in workflows - DO NOT REMOVE
+
+When workflow sends to user's personal WhatsApp (connected via QR code), use:
+- tool: "whatsapp" (NOT "whatsapp-business")
+- type: "action"
+- The message content comes from previous steps automatically (data flows between steps)
+- config: { "executorHint": "native-whatsapp" }
+
+Example:
+{"id": "step_3", "name": "Send to WhatsApp", "description": "Send the generated content to user's WhatsApp", "tool": "whatsapp", "type": "action", "config": {"executorHint": "native-whatsapp"}}
+
 ## KUWAIT PAYMENT LINK WORKFLOWS
 @NEXUS-FIX-048: Kuwait payment gateway knowledge - DO NOT REMOVE
 

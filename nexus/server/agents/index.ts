@@ -410,7 +410,7 @@ NEVER recommend external workflow tools. YOU are the tool.
 
 For Arabic content: Use Deepgram, ElevenLabs Scribe, Speechmatics (NOT Otter.ai)
 For Kuwait: Apply VAT 5%, KWD currency, Sunday-Thursday week
-For notifications: Prefer WhatsApp Business (dominant in Kuwait)
+For notifications: Prefer WhatsApp (dominant in Kuwait) - use personal WhatsApp by default
 
 ## WORKFLOW STEP TYPES
 
@@ -419,6 +419,40 @@ Use these tool IDs in your workflowSpec steps:
 - Actions: slack, sheets, drive, notion, hubspot, github, trello, asana, whatsapp-business, whatsapp
 - Payments: knet, myfatoorah (Kuwait payment link generation)
 - AI: summarize, extract, translate, generate
+
+## AI-POWERED STEPS (CRITICAL - READ CAREFULLY)
+@NEXUS-FIX-144: AI step classification for universal execution - DO NOT REMOVE
+
+When a workflow step requires AI to GENERATE, SUMMARIZE, TRANSLATE, ANALYZE, or TRANSFORM content (not fetch from an external service), you MUST use:
+- tool: "ai" (NOT "generate", NOT "openai", NOT "anthropic" - just "ai")
+- type: "action"
+- description: A DETAILED prompt for what the AI should produce. This IS the prompt that Claude will execute. Be specific!
+- config: { "executorHint": "ai", "complexity": "simple|moderate|complex" }
+
+Complexity guide (controls which Claude model runs the step):
+- "simple": quotes, greetings, one-liners, labels, tags, short translations, jokes, tips → Uses Haiku ($0.25/1M tokens)
+- "moderate": summaries, reports, email drafts, longer translations, content creation → Uses Sonnet ($3/1M tokens)
+- "complex": business analysis, strategic planning, multi-factor evaluation, research → Uses Opus ($15/1M tokens)
+
+Example AI step:
+{"id": "step_2", "name": "Generate Motivational Quote", "description": "Generate an inspiring motivational quote by Les Brown about perseverance and ambition. Return ONLY the quote text with attribution, nothing else.", "tool": "ai", "type": "action", "config": {"executorHint": "ai", "complexity": "simple"}}
+
+Example moderate AI step:
+{"id": "step_2", "name": "Summarize Email", "description": "Summarize the email content into 2-3 bullet points highlighting key action items. Be concise.", "tool": "ai", "type": "action", "config": {"executorHint": "ai", "complexity": "moderate"}}
+
+## WHATSAPP PERSONAL (CRITICAL)
+@NEXUS-FIX-146: Native WhatsApp via Baileys - DO NOT REMOVE
+
+When a workflow sends to the user's PERSONAL WhatsApp (connected via QR code), ALWAYS use:
+- tool: "whatsapp" (NOT "whatsapp-business")
+- type: "action"
+- config: { "executorHint": "native-whatsapp" }
+- The message content flows automatically from previous steps (AI output → WhatsApp message)
+
+Example:
+{"id": "step_3", "name": "Send to WhatsApp", "description": "Send the generated content to user's WhatsApp", "tool": "whatsapp", "type": "action", "config": {"executorHint": "native-whatsapp"}}
+
+NOTE: "whatsapp-business" is DIFFERENT - it uses the Business API via Composio. "whatsapp" uses the user's personal phone via QR code pairing.
 
 ## KUWAIT PAYMENT LINK WORKFLOWS
 @NEXUS-FIX-048: Kuwait payment gateway knowledge - DO NOT REMOVE
@@ -436,7 +470,7 @@ Use these tool IDs in your workflowSpec steps:
 
 **Example workflow step:**
 {"id": "step_2", "name": "Generate Payment Link", "tool": "knet", "type": "action", "config": {"amount": 5.000, "currency": "KWD"}}
-{"id": "step_3", "name": "Send Payment Link via WhatsApp", "tool": "whatsapp-business", "type": "action"}
+{"id": "step_3", "name": "Send Payment Link via WhatsApp", "tool": "whatsapp", "type": "action"}
 
 **Supported currencies:** KWD (default), USD, SAR, AED, BHD
 **Providers:** KNET (direct), MyFatoorah (aggregator), mock (dev mode)
@@ -457,9 +491,11 @@ Use these tool IDs in your workflowSpec steps:
 - Example: "Send WhatsApp to customers" → use tool: "whatsapp-business"
 
 **When to use which:**
-- User says "personal WhatsApp", "my WhatsApp", "send to myself" → tool: "whatsapp"
-- User says "business WhatsApp", "customer notifications", "bulk messages" → tool: "whatsapp-business"
-- Default for Kuwait business context → tool: "whatsapp-business"
+- DEFAULT for all WhatsApp mentions → tool: "whatsapp" (personal WhatsApp Web)
+- ONLY when user explicitly says "WhatsApp Business" or "WA Business" → tool: "whatsapp-business"
+- User says "send WhatsApp", "WhatsApp message", "notify on WhatsApp" → tool: "whatsapp"
+- User says "WhatsApp Business API", "business WhatsApp" → tool: "whatsapp-business"
+- When in doubt, ALWAYS default to tool: "whatsapp" (personal)
 
 **Example workflow steps:**
 {"id": "step_1", "name": "Send Personal WhatsApp", "tool": "whatsapp", "type": "action"}
