@@ -15,9 +15,6 @@ RUN npm ci --legacy-peer-deps
 COPY server/ ./server/
 COPY tsconfig.server.json ./
 
-# Copy shared config
-COPY config/ ./config/
-
 # WhatsApp sessions directory (persistent volume mount point)
 RUN mkdir -p /app/.whatsapp-sessions-baileys
 
