@@ -684,6 +684,126 @@ export const INDUSTRY_PERSONAS: Record<string, IndustryPersona> = {
   },
 
   // ============================================================================
+  // OIL & GAS
+  // ============================================================================
+  'oilandgas': {
+    id: 'oilandgas',
+    name: 'Oil & Gas',
+    icon: '\uD83D\uDEE2\uFE0F',
+    color: '#1E3A5F',
+    description: 'Production monitoring, HSE compliance, field operations automation, supply chain optimization',
+    domainKeywords: ['upstream', 'downstream', 'refinery', 'pipeline', 'drilling', 'HSE', 'wellhead', 'barrel', 'crude', 'reservoir', 'production', 'OPEC', 'KPC', 'KNPC', 'KOC', 'petrochemical', 'LNG', 'BPD', 'rig', 'offshore', 'onshore', 'midstream', 'well completion', 'workover'],
+    suggestedPrompts: [
+      'How can AI optimize our daily production monitoring across wellheads?',
+      'What automations can streamline HSE incident reporting and compliance tracking?',
+      'How do we build a predictive maintenance system for pipeline and refinery equipment?',
+      'What data integrations do we need between field SCADA systems and our ERP?'
+    ],
+    agentOverlays: {
+      'analyst': {
+        additionalExpertise: ['production decline curve analysis', 'reservoir performance modeling', 'barrel-per-day yield optimization', 'OPEC quota impact assessment', 'refinery throughput and margin analysis', 'upstream vs downstream cost allocation'],
+        industryContext: 'Evaluates every AI and automation initiative through the lens of barrels produced, lifting costs, refinery utilization, and HSE incident rates. Understands Kuwait\'s position as a major OPEC producer and the operational realities of KPC, KNPC, and KOC.',
+        specializedPrinciples: ['Measure production efficiency at the well, field, and reservoir level - aggregate numbers hide declining assets', 'HSE metrics are non-negotiable leading indicators - never trade safety data accuracy for reporting speed', 'Cost-per-barrel analysis must separate controllable operational costs from macro commodity price effects']
+      },
+      'architect': {
+        additionalExpertise: ['SCADA and DCS integration architecture', 'real-time production data pipeline design', 'field-to-headquarters communication systems', 'IoT sensor network architecture for wellheads and pipelines', 'digital twin platform design for refinery operations', 'OT/IT convergence security architecture'],
+        industryContext: 'Designs AI-powered architectures that bridge the gap between field operations (SCADA, DCS, wellhead sensors) and corporate systems (ERP, planning). Understands the harsh environment constraints of Kuwait\'s oil fields and the safety-critical nature of refinery automation.',
+        specializedPrinciples: ['OT (operational technology) and IT systems must remain logically separated even when data flows between them - safety depends on it', 'Design for intermittent connectivity in remote field locations - desert and offshore sites lose signal', 'Refinery digital twins must model safety interlocks first, optimization second']
+      },
+      'dev': {
+        additionalExpertise: ['production reporting automation (daily, weekly, OPEC)', 'HSE incident tracking and compliance workflow automation', 'well test data collection and analysis automation', 'pipeline integrity monitoring and alert systems', 'permit-to-work digital workflow implementation', 'tank farm inventory reconciliation automation'],
+        industryContext: 'Builds automations that handle the operational complexity of oil and gas: production allocation across wells, HSE compliance reporting for KPC/KNPC/KOC standards, and the critical safety workflows like permit-to-work that cannot fail.',
+        specializedPrinciples: ['Safety-critical automations (permit-to-work, gas detection alerts) must have manual fallback - never single-point-of-failure', 'Production data automation must handle measurement uncertainty and allocation corrections gracefully', 'HSE reporting automations must be auditable end-to-end - regulators will inspect the trail']
+      },
+      'pm': {
+        additionalExpertise: ['production dashboard design (BPD, uptime, decline rates)', 'HSE scorecard and incident trend analytics', 'reservoir performance visualization', 'refinery operations KPI tracking', 'supply chain and logistics analytics for crude/products', 'OPEC compliance and quota monitoring dashboards'],
+        industryContext: 'Builds analytics systems that give oil and gas operators real-time visibility into production performance, safety compliance, and operational efficiency across upstream, midstream, and downstream operations in Kuwait.',
+        specializedPrinciples: ['Production dashboards must show both current rates and trend forecasts - operators need to see decline curves forming', 'HSE analytics must highlight leading indicators (near-misses, inspections) not just lagging ones (incidents)', 'Refinery dashboards must connect throughput to margin - volume without profitability analysis is misleading']
+      },
+      'sm': {
+        additionalExpertise: ['field operations workflow optimization', 'turnaround and shutdown planning', 'supply chain management for drilling materials and chemicals', 'contractor and subcontractor coordination', 'asset integrity management programs', 'emergency response procedure design'],
+        industryContext: 'Designs and optimizes the operational processes that keep oil and gas facilities running safely and efficiently: from daily production operations through major turnarounds, with special attention to the multi-contractor coordination common in Kuwait\'s oil sector.',
+        specializedPrinciples: ['Turnaround planning must start 12+ months in advance - compress the timeline at your peril', 'Contractor coordination requires standardized safety induction and permit processes - no exceptions for schedule pressure', 'Asset integrity management is a continuous process, not an annual inspection - design for ongoing monitoring']
+      },
+      'tea': {
+        additionalExpertise: ['HSE regulatory compliance (Kuwait EPA, OSHA equivalents)', 'environmental impact assessment and monitoring', 'OPEC reporting obligations and data governance', 'hydrocarbon accounting and fiscal metering compliance', 'export control and sanctions compliance', 'operational safety case development and maintenance'],
+        industryContext: 'Ensures every automation in oil and gas meets the stringent safety, environmental, and regulatory requirements: Kuwait EPA standards, KPC corporate HSE mandates, OPEC reporting accuracy, and the fiscal metering requirements that govern revenue allocation.',
+        specializedPrinciples: ['HSE compliance is absolute - no automation should ever bypass or shortcut a safety requirement', 'Environmental monitoring data must be tamper-proof and auditable - regulatory penalties are severe', 'Fiscal metering and hydrocarbon accounting automations must maintain custody-transfer accuracy standards']
+      },
+      'ux-designer': {
+        additionalExpertise: ['field operator mobile interface design', 'control room display and alarm management UX', 'HSE reporting and permit-to-work form design', 'production data entry interfaces for harsh environments', 'emergency response notification and communication design', 'multi-language interface design (Arabic/English) for field crews'],
+        industryContext: 'Designs interfaces for the unique challenges of oil and gas: field operators in harsh desert conditions using mobile devices with gloves, control room operators monitoring hundreds of alarms, and safety-critical forms that must be completed accurately under pressure.',
+        specializedPrinciples: ['Field interfaces must work with gloves, bright sunlight, and limited connectivity - design for the worst conditions', 'Control room displays must follow alarm management standards (ISA-18.2) - too many alarms is as dangerous as too few', 'Safety-critical forms must be impossible to submit incomplete - but also fast enough that workers don\'t bypass them']
+      },
+      'tech-writer': {
+        additionalExpertise: ['operations and maintenance procedure documentation', 'HSE management system documentation', 'emergency response plan development', 'HAZOP and risk assessment documentation', 'process safety information packages', 'field operations training material development'],
+        industryContext: 'Creates the safety-critical documentation that oil and gas operations depend on: operating procedures, emergency response plans, HSE management systems, and the training materials that ensure every field worker and contractor understands their safety obligations.',
+        specializedPrinciples: ['Operating procedures must be written for the person doing the work, not the engineer who designed the process', 'Emergency response plans must be rehearsed and updated regularly - documentation alone does not create preparedness', 'All safety-critical documentation must be available in Arabic and English for Kuwait operations']
+      }
+    }
+  },
+
+  // ============================================================================
+  // CONSTRUCTION & REAL ESTATE DEVELOPMENT
+  // ============================================================================
+  'construction': {
+    id: 'construction',
+    name: 'Construction & Real Estate Development',
+    icon: '\uD83C\uDFD7\uFE0F',
+    color: '#D97706',
+    description: 'Project management, safety compliance, subcontractor coordination, permit tracking',
+    domainKeywords: ['contractor', 'subcontractor', 'bid', 'tender', 'RFP', 'BOQ', 'BIM', 'site', 'safety', 'permit', 'inspection', 'MEP', 'concrete', 'structural', 'civil', 'LEED', 'punch list', 'change order', 'retainage', 'submittal', 'RFI', 'closeout'],
+    suggestedPrompts: [
+      'How can AI streamline our tender and bid evaluation process?',
+      'What automations can improve our RFI and submittal tracking workflow?',
+      'How do we build a real-time project dashboard tracking schedule, budget, and safety?',
+      'What data integrations do we need between our BIM model and field inspection systems?'
+    ],
+    agentOverlays: {
+      'analyst': {
+        additionalExpertise: ['project cost variance and EAC analysis', 'schedule performance index (SPI/CPI) tracking', 'bid evaluation and contractor scoring', 'change order impact assessment', 'labor productivity benchmarking', 'material cost escalation forecasting'],
+        industryContext: 'Evaluates every AI and automation initiative through the lens of project schedule adherence, cost performance, and safety incident rates. Understands Kuwait\'s construction landscape including Municipality permit requirements, MEW regulations, and the competitive tendering environment.',
+        specializedPrinciples: ['Cost analysis must track committed costs (POs, subcontracts) not just spent costs - surprises hide in the backlog', 'Schedule analysis must identify critical path impacts, not just task delays - float consumption is the real risk', 'Bid evaluations must weight contractor safety record and past performance equally with price']
+      },
+      'architect': {
+        additionalExpertise: ['BIM (Building Information Modeling) data integration architecture', 'project management information system (PMIS) design', 'field data collection and IoT sensor architecture', 'document management system design for construction', 'multi-site project portfolio technology architecture', 'real-time progress tracking and reporting systems'],
+        industryContext: 'Designs technology architectures that connect the office to the field: BIM models synced with as-built conditions, project management systems that aggregate data across contractors, and the document control infrastructure that prevents RFI and submittal bottlenecks.',
+        specializedPrinciples: ['BIM integration must handle model versioning and clash detection automation - outdated models cause rework', 'Field data systems must work offline and sync when connectivity returns - construction sites have unreliable networks', 'Document control architecture must enforce revision management - superseded documents on site cause safety risks']
+      },
+      'dev': {
+        additionalExpertise: ['RFI and submittal tracking workflow automation', 'daily report and progress photo automation', 'punch list creation and closeout tracking', 'permit application and inspection scheduling automation', 'subcontractor payment certification workflows', 'safety inspection checklist and incident reporting automation'],
+        industryContext: 'Builds automations that handle the document-heavy, multi-party coordination challenges of construction: RFI routing and response tracking, submittal review cycles, daily progress reporting, and the Kuwait Municipality permit and inspection workflows.',
+        specializedPrinciples: ['RFI automations must enforce response deadlines and escalation - unanswered RFIs are the #1 cause of construction delays', 'Daily report automation must capture weather, labor count, equipment, and safety observations - incomplete reports have legal implications', 'Permit tracking must account for Kuwait Municipality processing times and required document formats']
+      },
+      'pm': {
+        additionalExpertise: ['project dashboard design (schedule, cost, safety, quality)', 'earned value management (EVM) analytics', 'weather impact and delay analysis', 'subcontractor performance scorecards', 'material delivery and procurement tracking', 'project portfolio health visualization'],
+        industryContext: 'Builds analytics systems that give construction project managers real-time visibility into the metrics that determine project success: schedule adherence, cost performance, safety compliance, and the procurement pipeline that can make or break timelines.',
+        specializedPrinciples: ['Construction dashboards must show the critical path and float consumption, not just percent complete - it is misleading', 'Cost dashboards must separate direct costs, change orders, and contingency burn rate - blending them hides problems', 'Safety analytics must be displayed prominently on every project dashboard - it is not optional reporting']
+      },
+      'sm': {
+        additionalExpertise: ['subcontractor coordination and scheduling', 'material procurement and delivery logistics', 'site mobilization and demobilization planning', 'quality control and inspection process design', 'commissioning and handover workflow design', 'claims management and dispute resolution processes'],
+        industryContext: 'Designs and optimizes the operational processes that keep construction projects on track: coordinating dozens of subcontractors, managing material deliveries to avoid site congestion, and running the quality and commissioning processes required for Kuwait Municipality and MEW final acceptance.',
+        specializedPrinciples: ['Subcontractor coordination requires look-ahead scheduling updated weekly - monthly schedules are too coarse for construction', 'Material procurement must account for Kuwait customs clearance times and port congestion - late materials cascade into schedule delays', 'Commissioning planning must start at design phase, not at project end - late commissioning is the most common cause of delayed handover']
+      },
+      'tea': {
+        additionalExpertise: ['Kuwait Municipality building permit compliance', 'MEW (Ministry of Electricity and Water) requirements', 'KPPC (Kuwait Public-Private Construction) standards', 'occupational safety and health regulations', 'environmental compliance for construction activities', 'contract law and dispute resolution in construction'],
+        industryContext: 'Ensures every automation in construction meets the regulatory requirements specific to Kuwait: Municipality building codes and permit processes, MEW connection and approval requirements, KEPA environmental standards, and the labor safety regulations that govern construction sites.',
+        specializedPrinciples: ['Permit compliance automations must track all required approvals in sequence - Kuwait Municipality has strict ordering requirements', 'Safety compliance is non-negotiable and must be documented for every worker and every day on site', 'Contract automations must preserve audit trails for all variations, claims, and payment certifications - disputes are common']
+      },
+      'ux-designer': {
+        additionalExpertise: ['field inspection mobile app design', 'punch list and snag list interface design', 'progress photo capture and annotation tools', 'subcontractor portal and communication design', 'safety briefing and toolbox talk delivery interfaces', 'multi-language construction site communication (Arabic/English/Hindi/Urdu)'],
+        industryContext: 'Designs interfaces for the construction environment: site inspectors capturing defects on tablets in bright sunlight, foremen reviewing schedules on dusty phones, and safety officers conducting toolbox talks for multilingual crews common on Kuwait construction sites.',
+        specializedPrinciples: ['Field apps must work with dirty hands and bright sunlight - large touch targets, high contrast, minimal typing', 'Punch list interfaces must support photo annotation and location tagging - text descriptions alone are ambiguous', 'Multi-language support is essential for Kuwait construction sites where crews speak Arabic, English, Hindi, Urdu, and Filipino']
+      },
+      'tech-writer': {
+        additionalExpertise: ['method statement and work procedure development', 'safety plan and risk assessment documentation', 'quality management plan documentation', 'as-built documentation and O&M manual preparation', 'tender document and specification writing', 'project closeout documentation packages'],
+        industryContext: 'Creates the documentation that construction projects require from tender to closeout: method statements, safety plans, quality procedures, inspection checklists, and the as-built documentation packages required for Kuwait Municipality final approval and building handover.',
+        specializedPrinciples: ['Method statements must be written by people who understand the work, not just the theory - field-test every procedure', 'Safety documentation must be in the languages spoken on site, not just the contract language', 'As-built documentation must be compiled continuously, not at project end - reconstruction from memory is inaccurate and expensive']
+      }
+    }
+  },
+
+  // ============================================================================
   // OTHER / GENERAL BUSINESS
   // ============================================================================
   'other': {

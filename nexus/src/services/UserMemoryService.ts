@@ -203,8 +203,8 @@ class UserMemoryService {
       // Keep last 200 events max
       const trimmed = events.slice(-200)
       localStorage.setItem('nexus_memory_events', JSON.stringify(trimmed))
-    } catch {
-      // Silently ignore storage errors
+    } catch (e) {
+      console.warn('[UserMemoryService] recordEvent failed:', e)
     }
   }
 
@@ -227,7 +227,7 @@ class UserMemoryService {
       if (Array.isArray(data.painPoints)) {
         profile.painPoints = data.painPoints
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadBusinessProfile failed:', e) }
   }
 
   private loadUserContext(profile: UserMemoryProfile): void {
@@ -248,7 +248,7 @@ class UserMemoryService {
       if (Array.isArray(data.mentionedChannels)) {
         profile.mentionedChannels = data.mentionedChannels
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadUserContext failed:', e) }
   }
 
   private loadChatHistory(profile: UserMemoryProfile): void {
@@ -273,7 +273,7 @@ class UserMemoryService {
           profile.peakUsageTime = this.computePeakTime(hours)
         }
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadChatHistory failed:', e) }
   }
 
   private loadWorkflows(profile: UserMemoryProfile): void {
@@ -328,7 +328,7 @@ class UserMemoryService {
           profile.workflowSuccessRate = Math.round((successCount / executedCount) * 100)
         }
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadWorkflows failed:', e) }
   }
 
   private loadPreferences(profile: UserMemoryProfile): void {
@@ -337,13 +337,13 @@ class UserMemoryService {
       if (!raw) return
       const prefs = JSON.parse(raw)
       if (prefs.language) profile.language = prefs.language
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadPreferences failed:', e) }
 
     // Also check i18n setting
     try {
       const lang = localStorage.getItem('i18nextLng')
       if (lang) profile.language = lang
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadPreferences/i18n failed:', e) }
   }
 
   private loadOnboardingStatus(_profile: UserMemoryProfile): void {
@@ -354,7 +354,7 @@ class UserMemoryService {
         // User engaged enough to complete onboarding
         // This influences maturity but is handled in computeMaturityLevel
       }
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadOnboardingStatus failed:', e) }
   }
 
   private loadEventLog(profile: UserMemoryProfile): void {
@@ -415,7 +415,7 @@ class UserMemoryService {
         .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([name]) => name)
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[UserMemoryService] loadEventLog failed:', e) }
   }
 
   // ==========================================================================

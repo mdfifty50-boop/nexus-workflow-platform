@@ -127,6 +127,7 @@ const OnboardingNew = lazy(() => import('@/pages/OnboardingNew').then(m => ({ de
 // DEMO PAGES - Meeting room and component showcases
 // =============================================================================
 const MeetingRoomDemo = lazy(() => import('@/pages/MeetingRoomDemo'))
+const AIConsultancy = lazy(() => import('@/pages/AIConsultancy'))
 const VoiceDemo = lazy(() => import('@/pages/VoiceDemo'))
 const AvatarDemo = lazy(() => import('@/pages/AvatarDemo'))
 const ChatDemo = lazy(() => import('@/pages/ChatDemo'))
@@ -445,6 +446,7 @@ function App() {
           <Route path="/workflow-demo" element={<WorkflowErrorBoundary><WorkflowDemo /></WorkflowErrorBoundary>} />
           <Route path="/try" element={<Try />} />
           <Route path="/meeting-room-demo" element={<MeetingRoomDemo />} />
+          <Route path="/ai-consultancy" element={<AIConsultancy />} />
           <Route path="/voice-demo" element={<VoiceDemo />} />
           <Route path="/avatar-demo" element={<AvatarDemo />} />
           {/* Original ChatDemo route moved above */}

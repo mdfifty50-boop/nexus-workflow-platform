@@ -14,8 +14,16 @@
  * 3. 3-tier support level (native, api_key, alternative)
  * 4. Parameter aliases for natural language flexibility
  *
+ * Integration aliases are now sourced from MasterAliasRegistry.ts
+ * (the canonical alias source for the entire codebase).
+ *
  * @NEXUS-FIX-034: ToolRegistry - Single source of truth for tool mappings - DO NOT REMOVE
  */
+
+import {
+  INTEGRATION_ALIASES as MASTER_INTEGRATION_ALIASES,
+  resolveIntegration,
+} from '../lib/MasterAliasRegistry'
 
 // ================================
 // TYPE DEFINITIONS
@@ -755,40 +763,11 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition[]> = {
 // ================================
 
 /**
- * Maps common names/typos to canonical integration names
+ * Maps common names/typos to canonical integration names.
+ * Delegates to MasterAliasRegistry (the canonical source).
+ * Re-exported here for backward compatibility.
  */
-export const INTEGRATION_ALIASES: Record<string, string> = {
-  // Email
-  'email': 'gmail',
-  'mail': 'gmail',
-  'google mail': 'gmail',
-  'google email': 'gmail',
-
-  // Storage
-  'drive': 'googledrive',
-  'google drive': 'googledrive',
-  'gdrive': 'googledrive',
-
-  // Sheets
-  'sheets': 'googlesheets',
-  'google sheets': 'googlesheets',
-  'spreadsheet': 'googlesheets',
-  'spreadsheets': 'googlesheets',
-
-  // Calendar
-  'calendar': 'googlecalendar',
-  'google calendar': 'googlecalendar',
-  'gcal': 'googlecalendar',
-
-  // Social
-  'x': 'twitter',
-  'x.com': 'twitter',
-
-  // Messaging
-  'wa': 'whatsapp',
-  'whats app': 'whatsapp',
-  'tg': 'telegram',
-};
+export const INTEGRATION_ALIASES: Record<string, string> = MASTER_INTEGRATION_ALIASES;
 
 // ================================
 // ALTERNATIVE MAPPINGS
@@ -873,11 +852,11 @@ export const API_KEY_APPS: Record<string, {
 export class ToolRegistryService {
 
   /**
-   * Resolve an integration name to its canonical form
+   * Resolve an integration name to its canonical form.
+   * Delegates to MasterAliasRegistry.resolveIntegration.
    */
   static normalizeIntegration(integration: string): string {
-    const lower = integration.toLowerCase().trim();
-    return INTEGRATION_ALIASES[lower] || lower;
+    return resolveIntegration(integration);
   }
 
   /**

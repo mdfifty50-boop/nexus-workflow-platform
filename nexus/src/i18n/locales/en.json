@@ -131,7 +131,19 @@
     "deleteFailed": "Failed to delete item.",
     "connectionFailed": "Failed to connect to the service.",
     "permissionDenied": "You do not have permission to access this content.",
-    "sessionExpired": "Your session has expired. Please sign in again."
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "aiNetworkError": "I'm having trouble connecting right now. Let me try a simpler approach - what would you like to automate today?",
+    "aiTimeout": "That took longer than expected. Could you try rephrasing your request? Shorter, more specific requests get faster responses.",
+    "aiUnavailable": "Sorry, I couldn't process your request right now. Please try again.",
+    "workflowGenerationFailed": "I encountered an issue creating the workflow. Let me try a different approach.\n\nCould you describe what you'd like to automate in more detail?",
+    "workflowNotFound": "The workflow couldn't be found. Try generating a new one.",
+    "noActiveWorkflow": "I don't see an active workflow to edit. Please generate a workflow first.",
+    "aiEngineFailed": "I'm having trouble connecting to the AI engine. Let me help you another way!\n\nYou can:\n1. **Browse templates** - Pre-built workflows ready to use\n2. **Connect apps** - Set up your integrations first\n3. **Try again** - Describe your automation need\n\nWhat would you like to do?",
+    "noEmailFound": "I couldn't find your email address. Please enter your email address manually.",
+    "rateLimited": "Too many requests. Please wait a moment and try again.",
+    "authExpired": "Your connection has expired. Please reconnect.",
+    "missingParams": "I need a bit more information to complete this action.",
+    "workflowGenerationFallback": "I understand you want to: *{{understanding}}*\n\nI can help you set this up! What specific tools or apps would you like to use?"
   },
 
   "success": {

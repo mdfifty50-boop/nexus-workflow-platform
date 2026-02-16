@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "description": "Agent Output Protocol (AOP) - Controls how agents return results to preserve context window",
+  "protocol": {
+    "maxInlineSummary": 500,
+    "detailsStorage": "file",
+    "detailsPath": "_bmad-output/nexus-sprint/agent-outputs/",
+    "format": {
+      "required": ["STATUS", "SUMMARY", "FILES_MODIFIED"],
+      "optional": ["ISSUES", "DETAILS_FILE", "METRICS"]
+    }
+  },
+  "rules": [
+    "Agents MUST return max 500 characters inline to the orchestrator",
+    "Detailed output (code, analysis, logs) goes to DETAILS_FILE on disk",
+    "Status must be one of: SUCCESS, PARTIAL, BLOCKED, FAILED",
+    "SUMMARY must be 2-3 sentences max describing what was accomplished",
+    "FILES_MODIFIED is a flat list of changed file paths",
+    "ISSUES lists any problems encountered (blockers, warnings)",
+    "DETAILS_FILE path is returned so orchestrator can read if needed"
+  ],
+  "returnTemplate": {
+    "STATUS": "SUCCESS | PARTIAL | BLOCKED | FAILED",
+    "SUMMARY": "2-3 sentence description of what was accomplished",
+    "FILES_MODIFIED": ["path/to/file1.ts", "path/to/file2.tsx"],
+    "ISSUES": ["Optional: any problems encountered"],
+    "DETAILS_FILE": "_bmad-output/nexus-sprint/agent-outputs/{agent}-{task}-{timestamp}.md",
+    "METRICS": {
+      "linesChanged": 0,
+      "filesCreated": 0,
+      "filesModified": 0,
+      "testsAdded": 0
+    }
+  },
+  "contextCeiling": {
+    "normal": 0.70,
+    "parallel": 0.60,
+    "critical": 0.80,
+    "actions": {
+      "atNormal": "Prefer agent delegation over direct work",
+      "atParallel": "ONLY use background agents, summary-only returns",
+      "atCritical": "Checkpoint to .claude-session.md, recommend /compact or fresh session"
+    }
+  }
+}

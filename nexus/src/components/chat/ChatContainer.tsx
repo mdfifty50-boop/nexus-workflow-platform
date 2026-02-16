@@ -15,7 +15,7 @@ import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { changeLanguage as changeI18nLanguage } from '@/i18n'
-import { MessageSquare, Sparkles, Zap, ArrowRight } from 'lucide-react'
+import { MessageSquare, Sparkles, Zap, ArrowRight, Send, X } from 'lucide-react'
 import { ChatHeader } from './ChatHeader'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
@@ -37,6 +37,8 @@ import {
 import { nexusAIService, type CustomIntegrationInfo } from '@/services/NexusAIService'
 // Persistent user memory tracking
 import { userMemoryService } from '@/services/UserMemoryService'
+// Onboarding prompt suggestion
+import { OnboardingPromptService, type OnboardingSuggestion } from '@/services/OnboardingPromptService'
 // workflowOrchestrator available for future execution features
 
 // ============================================================================
@@ -315,6 +317,7 @@ export function ChatContainer({
     isLoading,
     currentSession,
     addMessage,
+    updateMessage,
     clearMessages,
     startNewSession,
     setIsLoading,
@@ -407,6 +410,9 @@ export function ChatContainer({
     changeI18nLanguage(lang as 'en' | 'ar')
   }, [chatLanguage])
 
+  // Finding #14: Streaming message state - tracks the assistant message being streamed
+  const streamingMessageIdRef = React.useRef<string | null>(null)
+
   // Active workflow tracking - for refinement mode (update existing card instead of creating new)
   const [activeWorkflowId, setActiveWorkflowId] = React.useState<string | null>(null)
 
@@ -456,14 +462,36 @@ export function ChatContainer({
   }, [pendingCustomIntegrations])
 
   // ============================================================================
+  // Onboarding Suggested Prompt
+  // ============================================================================
+
+  const [onboardingSuggestion, setOnboardingSuggestion] = React.useState<OnboardingSuggestion | null>(null)
+
+  // Generate suggestion when chat is empty and user has profile data
+  React.useEffect(() => {
+    if (messages.length === 0 && !isLoading) {
+      const suggestion = OnboardingPromptService.generateSuggestion()
+      setOnboardingSuggestion(suggestion)
+    } else {
+      setOnboardingSuggestion(null)
+    }
+  }, [messages.length, isLoading])
+
+  const handleSuggestionDismiss = React.useCallback(() => {
+    OnboardingPromptService.dismiss()
+    setOnboardingSuggestion(null)
+  }, [])
+
+  // ============================================================================
   // Node Edit Commands (chat-based workflow modification)
   // ============================================================================
 
   // Types for edit commands
   interface NodeEditCommand {
-    type: 'remove' | 'add'
+    type: 'remove' | 'add' | 'replace'
     target?: string  // Node name/integration for remove
-    integration?: string  // For add
+    integration?: string  // For add or replacement
+    suggestAlternative?: boolean  // true for "don't have" patterns
   }
 
   // Default actions for auto-detection when adding nodes
@@ -485,11 +513,64 @@ export function ChatContainer({
     stripe: 'create_payment',
   }
 
-  // Parse edit commands from chat
+  // Parse edit commands from chat (including natural language)
   const parseNodeEditCommand = React.useCallback((message: string): NodeEditCommand | null => {
     const trimmed = message.trim()
 
-    // Remove patterns: "remove gmail", "delete the slack step", "remove node 2"
+    // === REPLACE PATTERNS (check first - most specific) ===
+
+    // "replace Slack with Discord" / "swap Gmail for Outlook" / "change Slack to Discord"
+    const replaceWithMatch = trimmed.match(
+      /(?:replace|swap|switch|change)\s+(?:the\s+)?["']?(\w+)["']?\s+(?:with|for|to)\s+["']?(\w+)["']?/i
+    )
+    if (replaceWithMatch) {
+      return { type: 'replace', target: replaceWithMatch[1].trim(), integration: replaceWithMatch[2].trim() }
+    }
+
+    // "use Discord instead of Slack"
+    const useInsteadMatch = trimmed.match(
+      /(?:use|try)\s+["']?(\w+)["']?\s+instead\s+of\s+["']?(\w+)["']?/i
+    )
+    if (useInsteadMatch) {
+      return { type: 'replace', target: useInsteadMatch[2].trim(), integration: useInsteadMatch[1].trim() }
+    }
+
+    // "instead of Slack, use Discord"
+    const insteadOfMatch = trimmed.match(
+      /instead\s+of\s+["']?(\w+)["']?\s*,?\s*(?:use|try|add)\s+["']?(\w+)["']?/i
+    )
+    if (insteadOfMatch) {
+      return { type: 'replace', target: insteadOfMatch[1].trim(), integration: insteadOfMatch[2].trim() }
+    }
+
+    // "I use WhatsApp, not Slack" / "I prefer Discord not Slack"
+    const useNotMatch = trimmed.match(
+      /(?:i\s+)?(?:use|prefer|have)\s+["']?(\w+)["']?\s*(?:,\s*|\s+)(?:not|instead\s+of)\s+["']?(\w+)["']?/i
+    )
+    if (useNotMatch) {
+      return { type: 'replace', target: useNotMatch[2].trim(), integration: useNotMatch[1].trim() }
+    }
+
+    // === "DON'T HAVE" PATTERNS → remove + suggest alternative ===
+
+    // "I don't have Slack" / "I can't use Gmail" / "I don't use Dropbox"
+    const dontHaveMatch = trimmed.match(
+      /(?:i\s+)?(?:don'?t|do\s*n'?t|can'?t|cannot|dont)\s+(?:have|use|want|need)\s+(?:a\s+|an?\s+)?(?:account\s+(?:on|with|for)\s+)?["']?(\w+)["']?/i
+    )
+    if (dontHaveMatch) {
+      return { type: 'remove', target: dontHaveMatch[1].trim(), suggestAlternative: true }
+    }
+
+    // "but I don't have Slack" (with leading "but")
+    const butDontMatch = trimmed.match(
+      /^but\s+(?:i\s+)?(?:don'?t|do\s*n'?t|cant|can'?t|cannot|dont)\s+(?:have|use|want|need)\s+["']?(\w+)["']?/i
+    )
+    if (butDontMatch) {
+      return { type: 'remove', target: butDontMatch[1].trim(), suggestAlternative: true }
+    }
+
+    // === EXPLICIT REMOVE PATTERNS ===
+
     const removePatterns = [
       /^(?:remove|delete)\s+(?:the\s+)?(?:node\s+|step\s+)?["']?([^"']+?)["']?(?:\s+(?:step|node))?$/i,
       /^(?:take out|get rid of)\s+(?:the\s+)?["']?(.+?)["']?$/i,
@@ -500,7 +581,8 @@ export function ChatContainer({
       if (match) return { type: 'remove', target: match[1].trim() }
     }
 
-    // Add patterns: "add slack", "add a notification step"
+    // === ADD PATTERNS ===
+
     const addPatterns = [
       /^add\s+(?:a\s+)?(?:new\s+)?["']?([a-zA-Z]+)["']?\s*(?:step|node|action)?$/i,
     ]
@@ -513,27 +595,97 @@ export function ChatContainer({
     return null
   }, [])
 
+  // Helper: find matching nodes in a workflow
+  const findMatchingNodes = React.useCallback((workflow: { nodes: Array<{ id: string; name: string; tool?: string; type?: string }> }, target: string) => {
+    const targetLower = target.toLowerCase()
+    return workflow.nodes.filter(n =>
+      n.name.toLowerCase().includes(targetLower) ||
+      n.tool?.toLowerCase() === targetLower ||
+      n.id === target
+    )
+  }, [])
+
+  // Helper: create a new workflow node
+  const createNode = React.useCallback((integration: string, nodeCount: number) => {
+    const integrationLower = integration.toLowerCase()
+    const actionType = defaultActions[integrationLower] || 'action'
+    const capitalizedIntegration = integration.charAt(0).toUpperCase() + integration.slice(1)
+    return {
+      id: `step_${Date.now()}`,
+      name: `${capitalizedIntegration} ${actionType.replace('_', ' ')}`,
+      type: 'action' as const,
+      tool: integrationLower,
+      toolIcon: `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/${integrationLower}.svg`,
+      description: `${actionType.replace('_', ' ')} via ${capitalizedIntegration}`,
+      config: {},
+      position: { x: 0, y: nodeCount * 100 },
+    }
+  }, [defaultActions])
+
+  // Suggest alternatives for a removed integration
+  const getSimilarIntegrations = React.useCallback((removed: string): string[] => {
+    const categories: Record<string, string[]> = {
+      messaging: ['slack', 'discord', 'whatsapp', 'telegram'],
+      email: ['gmail', 'outlook'],
+      storage: ['dropbox', 'googledrive', 'onedrive'],
+      sheets: ['googlesheets', 'airtable', 'notion'],
+      tasks: ['trello', 'asana', 'linear', 'github'],
+      social: ['twitter', 'linkedin'],
+    }
+    const removedLower = removed.toLowerCase()
+    for (const alts of Object.values(categories)) {
+      if (alts.includes(removedLower)) {
+        return alts.filter(a => a !== removedLower)
+      }
+    }
+    return []
+  }, [])
+
   // Handle node edit command
   const handleNodeEditCommand = React.useCallback((cmd: NodeEditCommand) => {
     if (!activeWorkflowId) {
-      addMessage("I don't see an active workflow to edit. Please generate a workflow first.", 'assistant')
+      addMessage(t('errors.noActiveWorkflow'), 'assistant')
       return true
     }
 
     const workflow = generatedWorkflows.get(activeWorkflowId)
     if (!workflow) {
-      addMessage("The workflow couldn't be found. Try generating a new one.", 'assistant')
+      addMessage(t('errors.workflowNotFound'), 'assistant')
       return true
     }
 
+    // === REPLACE: remove target + add replacement in one step ===
+    if (cmd.type === 'replace' && cmd.target && cmd.integration) {
+      const matches = findMatchingNodes(workflow, cmd.target)
+      const capitalizedReplacement = cmd.integration.charAt(0).toUpperCase() + cmd.integration.slice(1)
+
+      if (matches.length === 0) {
+        addMessage(
+          `I couldn't find a step matching "${cmd.target}" in your workflow.\n\n` +
+          `**Current steps:** ${workflow.nodes.map(n => n.name).join(', ')}`,
+          'assistant'
+        )
+      } else {
+        const node = matches[0]
+        const updatedNodes = workflow.nodes.filter(n => n.id !== node.id)
+        const newNode = createNode(cmd.integration, updatedNodes.length)
+        updatedNodes.push(newNode)
+
+        const updatedWorkflow = { ...workflow, nodes: updatedNodes }
+        setGeneratedWorkflows(prev => new Map(prev).set(activeWorkflowId, updatedWorkflow))
+
+        addMessage(
+          `Done! I've replaced **${node.name}** with **${capitalizedReplacement}** in your workflow.\n\n` +
+          `Your workflow now has ${updatedNodes.length} step${updatedNodes.length !== 1 ? 's' : ''}.`,
+          'assistant'
+        )
+      }
+      return true
+    }
+
+    // === REMOVE (with optional alternative suggestions) ===
     if (cmd.type === 'remove' && cmd.target) {
-      const targetLower = cmd.target.toLowerCase()
-      // Find matching node(s) - use 'tool' property per WorkflowNode type
-      const matches = workflow.nodes.filter(n =>
-        n.name.toLowerCase().includes(targetLower) ||
-        n.tool?.toLowerCase() === targetLower ||
-        n.id === cmd.target
-      )
+      const matches = findMatchingNodes(workflow, cmd.target)
 
       if (matches.length === 0) {
         addMessage(
@@ -545,21 +697,32 @@ export function ChatContainer({
         const node = matches[0]
         const isTrigger = node.type === 'trigger'
 
-        // Confirmation is handled via the chat - just do it
         const updatedNodes = workflow.nodes.filter(n => n.id !== node.id)
         const updatedWorkflow = { ...workflow, nodes: updatedNodes }
         setGeneratedWorkflows(prev => new Map(prev).set(activeWorkflowId, updatedWorkflow))
 
-        const warningMsg = isTrigger
-          ? '\n\n⚠️ **Note:** This was the trigger node. Your workflow won\'t start automatically now.'
-          : ''
-        addMessage(
-          `✓ Removed **"${node.name}"** from your workflow.${warningMsg}\n\n` +
-          `Your workflow now has ${updatedNodes.length} step${updatedNodes.length !== 1 ? 's' : ''}.`,
-          'assistant'
-        )
+        let responseMsg = `Got it! I've removed **"${node.name}"** from your workflow.`
+
+        if (isTrigger) {
+          responseMsg += `\n\n⚠️ **Note:** This was the trigger. Your workflow won't start automatically now.`
+        }
+
+        // Suggest alternatives when user says "I don't have X"
+        if (cmd.suggestAlternative && node.tool) {
+          const alternatives = getSimilarIntegrations(node.tool)
+          if (alternatives.length > 0) {
+            responseMsg += `\n\nWant to use something else instead? You can say:\n`
+            responseMsg += alternatives.map(alt => {
+              const cap = alt.charAt(0).toUpperCase() + alt.slice(1)
+              return `- "**use ${cap} instead**"`
+            }).join('\n')
+          }
+        }
+
+        responseMsg += `\n\nYour workflow now has ${updatedNodes.length} step${updatedNodes.length !== 1 ? 's' : ''}.`
+
+        addMessage(responseMsg, 'assistant')
       } else {
-        // Ambiguous - list options
         addMessage(
           `I found ${matches.length} steps matching "${cmd.target}":\n\n` +
           matches.map((n, i) => `${i + 1}. **${n.name}** (${n.tool || 'unknown'})`).join('\n') +
@@ -570,22 +733,9 @@ export function ChatContainer({
       return true
     }
 
+    // === ADD ===
     if (cmd.type === 'add' && cmd.integration) {
-      const integrationLower = cmd.integration.toLowerCase()
-      const actionType = defaultActions[integrationLower] || 'action'
-      const capitalizedIntegration = cmd.integration.charAt(0).toUpperCase() + cmd.integration.slice(1)
-
-      // Create new node matching WorkflowNode type from SmartWorkflowEngine
-      const newNode = {
-        id: `step_${Date.now()}`,
-        name: `${capitalizedIntegration} ${actionType.replace('_', ' ')}`,
-        type: 'action' as const,
-        tool: integrationLower,
-        toolIcon: `https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/${integrationLower}.svg`,
-        description: `${actionType.replace('_', ' ')} via ${capitalizedIntegration}`,
-        config: {},
-        position: { x: 0, y: workflow.nodes.length * 100 },
-      }
+      const newNode = createNode(cmd.integration, workflow.nodes.length)
 
       const updatedWorkflow = { ...workflow, nodes: [...workflow.nodes, newNode] }
       setGeneratedWorkflows(prev => new Map(prev).set(activeWorkflowId, updatedWorkflow))
@@ -593,14 +743,14 @@ export function ChatContainer({
       addMessage(
         `✓ Added **${newNode.name}** to your workflow.\n\n` +
         `Your workflow now has ${updatedWorkflow.nodes.length} steps. ` +
-        `Click "Edit Workflow" on the card to configure it, or just run it!`,
+        `Click "Execute Workflow" on the card to run it!`,
         'assistant'
       )
       return true
     }
 
     return false
-  }, [activeWorkflowId, generatedWorkflows, addMessage])
+  }, [activeWorkflowId, generatedWorkflows, addMessage, findMatchingNodes, createNode, getSimilarIntegrations])
 
   // Handle sending a message with REAL AI processing
   const handleSend = React.useCallback(
@@ -678,7 +828,7 @@ export function ChatContainer({
               } catch (workflowError) {
                 console.error('[ChatContainer] Workflow generation error:', workflowError)
                 addMessage(
-                  "I encountered an issue creating the workflow. Let me try a different approach.\n\nCould you describe what you'd like to automate in more detail?",
+                  t('errors.workflowGenerationFailed'),
                   'assistant'
                 )
                 setConversationState('idle')
@@ -698,9 +848,45 @@ export function ChatContainer({
         console.log('[ChatContainer] Trying Claude AI first...', { chatMode })
 
         try {
-          // Try Claude AI for natural conversation
-          // Pass chatMode for "Think with me" focused problem-solving
-          const aiResponse = await nexusAIService.chat(content, { chatMode })
+          // Finding #13: Sync persisted messages into NexusAIService before every Claude call
+          // This fixes post-refresh amnesia - Claude remembers the full conversation
+          nexusAIService.setConversationHistory(
+            messages.map(m => ({ role: m.role, content: m.content }))
+          )
+
+          // Finding #14: Create a placeholder assistant message for streaming updates
+          // Add an empty assistant message that will be updated token-by-token
+          const streamingMsg = addMessage('', 'assistant')
+          streamingMessageIdRef.current = streamingMsg.id
+          updateMessage(streamingMsg.id, { isStreaming: true })
+          // Hide the ThinkingIndicator since we have a streaming message
+          setIsLoading(false)
+
+          // Accumulate streamed text for the onToken callback
+          let streamedText = ''
+
+          // Try streaming first, falls back to non-streaming internally
+          const aiResponse = await nexusAIService.chatStream(
+            content,
+            (token: string) => {
+              // Incrementally update the placeholder message with each token
+              streamedText += token
+              if (streamingMessageIdRef.current) {
+                updateMessage(streamingMessageIdRef.current, {
+                  content: streamedText,
+                  isStreaming: true
+                })
+              }
+            },
+            { chatMode }
+          )
+
+          // Stream complete - mark message as no longer streaming
+          if (streamingMessageIdRef.current) {
+            updateMessage(streamingMessageIdRef.current, { isStreaming: false })
+          }
+          streamingMessageIdRef.current = null
+
           console.log('[ChatContainer] Claude AI response:', aiResponse)
 
           // Store any custom integrations for display
@@ -761,7 +947,9 @@ export function ChatContainer({
             // The integrations are stored in pendingCustomIntegrations state and will
             // be passed to WorkflowPreviewCard when the workflow is generated.
 
-            addMessage(displayText, 'assistant')
+            // Finding #14: Update the streaming placeholder with final display text
+            // instead of adding a new message (we already created one for streaming)
+            updateMessage(streamingMsg.id, { content: displayText, isStreaming: false })
             setIsLoading(false)
             return
           }
@@ -808,7 +996,7 @@ export function ChatContainer({
             setActiveWorkflowId(workflowDisplayId)
 
             // Adjust message based on confidence and whether there are questions to answer
-            const isHighConfidence = (aiResponse.confidence ?? 1) >= 0.85
+            const isHighConfidence = (aiResponse.confidence ?? 0.5) >= 0.85
             const hasMissingInfo = aiResponse.missingInfo && aiResponse.missingInfo.length > 0
 
             // Different messages for refinement vs new workflow
@@ -845,12 +1033,20 @@ export function ChatContainer({
               // Custom integrations are now rendered inside WorkflowPreviewCard (no separate markers needed)
             }
 
-            addMessage(workflowSummary, 'assistant')
+            // Finding #14: Update the streaming placeholder with workflow summary
+            updateMessage(streamingMsg.id, { content: workflowSummary, isStreaming: false })
             setIsLoading(false)
             return
           }
         } catch (claudeError) {
           console.warn('[ChatContainer] Claude AI failed, falling back to template system:', claudeError)
+          // Finding #14: Clean up streaming message on failure - remove the empty placeholder
+          if (streamingMessageIdRef.current) {
+            updateMessage(streamingMessageIdRef.current, { content: '', isStreaming: false })
+            streamingMessageIdRef.current = null
+          }
+          // Re-show loading for template fallback
+          setIsLoading(true)
           // Fall through to template-based system below
         }
 
@@ -909,7 +1105,7 @@ export function ChatContainer({
             } catch (workflowError) {
               console.error('[ChatContainer] Workflow generation error:', workflowError)
               addMessage(
-                `I understand you want to: *${intentAnalysis.understanding}*\n\nI can help you set this up! What specific tools or apps would you like to use?`,
+                t('errors.workflowGenerationFallback', { understanding: intentAnalysis.understanding }),
                 'assistant'
               )
             }
@@ -939,19 +1135,14 @@ export function ChatContainer({
       } catch (error) {
         console.error('[ChatContainer] Error processing message:', error)
         addMessage(
-          "I'm having trouble connecting to the AI engine. Let me help you another way!\n\n" +
-          "You can:\n" +
-          "1. **Browse templates** - Pre-built workflows ready to use\n" +
-          "2. **Connect apps** - Set up your integrations first\n" +
-          "3. **Try again** - Describe your automation need\n\n" +
-          "What would you like to do?",
+          t('errors.aiEngineFailed'),
           'assistant'
         )
       }
 
       setIsLoading(false)
     },
-    [addMessage, setIsLoading, conversationState, pendingQuestions, currentQuestionIndex, collectedInfo, currentIntent, messages]
+    [addMessage, updateMessage, setIsLoading, conversationState, pendingQuestions, currentQuestionIndex, collectedInfo, currentIntent, messages]
   )
 
   // Handle suggestion click
@@ -962,8 +1153,25 @@ export function ChatContainer({
     [handleSend]
   )
 
-  // Handle new chat
+  // Handle onboarding suggested prompt send
+  const handleSuggestionSend = React.useCallback(() => {
+    if (onboardingSuggestion) {
+      OnboardingPromptService.dismiss()
+      setOnboardingSuggestion(null)
+      handleSend(onboardingSuggestion.prompt)
+    }
+  }, [onboardingSuggestion, handleSend])
+
+  // Handle new chat - also clear AI service history to prevent cross-session bleed
   const handleNewChat = React.useCallback(() => {
+    setChatMode('standard')
+    nexusAIService.clearHistory()
+    startNewSession()
+  }, [startNewSession])
+
+  // Handle "Think with me" mode
+  const handleThinkWithMe = React.useCallback(() => {
+    setChatMode('think_with_me')
     startNewSession()
   }, [startNewSession])
 
@@ -986,6 +1194,7 @@ export function ChatContainer({
       {/* Header */}
       <ChatHeader
         onNewChat={handleNewChat}
+        onThinkWithMe={handleThinkWithMe}
         onToggleDashboard={onToggleDashboard}
         onClearHistory={handleClearHistory}
         showDashboardButton={showDashboardButton}
@@ -1066,7 +1275,7 @@ export function ChatContainer({
                         // Handle retry actions - just acknowledge, WorkflowPreviewCard handles the actual retry
                         if (isRetryAction) {
                           console.log(`[ChatContainer] Retry action detected: ${value}`)
-                          addMessage(`🔄 Retrying the workflow...`, 'assistant')
+                          addMessage(t('chat.retrying'), 'assistant')
                           // Signal retry by updating collectedParams with a retry flag
                           setGeneratedWorkflows(prev => {
                             const updated = new Map(prev)
@@ -1104,7 +1313,7 @@ export function ChatContainer({
                             actualValue = userEmail
                           } else {
                             console.log(`[ChatContainer] "Send to Myself" detected but no user email available`)
-                            addMessage(`❌ I couldn't find your email address. Please enter your email address manually.`, 'assistant')
+                            addMessage(t('errors.noEmailFound'), 'assistant')
                             return
                           }
                         }
@@ -1250,6 +1459,63 @@ export function ChatContainer({
           <EmptyState onSuggestionClick={handleSuggestionClick} />
         )}
       </div>
+
+      {/* Onboarding Suggested Prompt Card */}
+      {onboardingSuggestion && !hasMessages && (
+        <div className="flex-shrink-0 px-3 sm:px-4">
+          <div className="max-w-4xl mx-auto">
+            <div
+              className={cn(
+                'relative p-4 rounded-xl mb-2',
+                'bg-gradient-to-r from-nexus-500/10 via-accent-nexus-500/10 to-purple-500/10',
+                'border border-nexus-500/30',
+                'backdrop-blur-sm',
+                'animate-in fade-in slide-in-from-bottom-2 duration-500'
+              )}
+            >
+              {/* Dismiss button */}
+              <button
+                onClick={handleSuggestionDismiss}
+                className="absolute top-2.5 right-2.5 p-1 rounded-lg text-surface-400 hover:text-surface-200 hover:bg-surface-700/50 transition-colors"
+                aria-label="Dismiss suggestion"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-start gap-3 pr-6">
+                <div className="flex-shrink-0 p-2 rounded-lg bg-nexus-500/20">
+                  <Sparkles className="w-4 h-4 text-nexus-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-nexus-400 mb-1">
+                    Suggested for you
+                  </p>
+                  <p className="text-sm text-surface-200 leading-relaxed">
+                    {onboardingSuggestion.prompt}
+                  </p>
+                  <p className="text-xs text-surface-400 mt-1.5">
+                    {onboardingSuggestion.description}
+                  </p>
+                </div>
+                <button
+                  onClick={handleSuggestionSend}
+                  className={cn(
+                    'flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-lg',
+                    'bg-gradient-to-r from-nexus-500 to-accent-nexus-500',
+                    'text-white text-sm font-medium',
+                    'hover:shadow-lg hover:shadow-nexus-500/25',
+                    'transition-all duration-200',
+                    'active:scale-95'
+                  )}
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="flex-shrink-0 border-t border-surface-800 bg-surface-900/80 backdrop-blur-xl">

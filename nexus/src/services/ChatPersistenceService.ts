@@ -56,7 +56,8 @@ function loadSessionsFromStorage(): ChatSession[] {
         timestamp: new Date(msg.timestamp),
       })),
     }))
-  } catch {
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to load sessions:', e)
     return []
   }
 }
@@ -73,7 +74,8 @@ function saveSessionsToStorage(sessions: ChatSession[]): void {
 function loadCurrentSessionIdFromStorage(): string | null {
   try {
     return localStorage.getItem(CURRENT_SESSION_KEY)
-  } catch {
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to load session ID:', e)
     return null
   }
 }
@@ -81,8 +83,8 @@ function loadCurrentSessionIdFromStorage(): string | null {
 function saveCurrentSessionIdToStorage(sessionId: string): void {
   try {
     localStorage.setItem(CURRENT_SESSION_KEY, sessionId)
-  } catch {
-    // Silent fail
+  } catch (e) {
+    console.warn('[ChatPersistence] Failed to save session ID:', e)
   }
 }
 

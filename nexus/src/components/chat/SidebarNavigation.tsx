@@ -208,7 +208,7 @@ const NAV_ITEMS_CONFIG: Array<Omit<NavItem, 'label'> & { labelKey: string }> = [
   { id: 'templates', labelKey: 'navigation.templates', path: '/templates', icon: TemplatesIcon },
   { id: 'integrations', labelKey: 'navigation.integrations', path: '/integrations', icon: IntegrationsIcon },
   { id: 'whatsapp', labelKey: 'chat.whatsApp', path: '/whatsapp', icon: WhatsAppIcon, badge: 'NEW' },
-  { id: 'consultancy', labelKey: 'navigation.aiConsultancy', path: '/chat', icon: ConsultancyIcon, badge: 'AI' },
+  { id: 'consultancy', labelKey: 'navigation.aiConsultancy', path: '/ai-consultancy', icon: ConsultancyIcon, badge: 'AI' },
   { id: 'settings', labelKey: 'navigation.settings', path: '/settings', icon: SettingsIcon },
 ]
 

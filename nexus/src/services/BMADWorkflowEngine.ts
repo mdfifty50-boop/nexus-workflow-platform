@@ -159,7 +159,8 @@ export class NexusWorkflowEngine {
       }
 
       return this.proxyAvailable
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to check proxy health:', e)
       this.proxyAvailable = false
       this.lastProxyCheck = now
       return false
@@ -419,7 +420,8 @@ Respond with JSON:
         return JSON.parse(jsonMatch[0])
       }
       throw new Error('No JSON found in response')
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse intent analysis:', e)
       // Return default analysis on parse error
       return {
         intent: 'general_automation',
@@ -444,7 +446,8 @@ Respond with JSON:
         return JSON.parse(jsonMatch[0])
       }
       return []
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse questions:', e)
       return []
     }
   }
@@ -469,7 +472,8 @@ Respond with JSON:
         }
       }
       throw new Error('No JSON found')
-    } catch {
+    } catch (e) {
+      console.warn('[BMADWorkflowEngine] Failed to parse workflow:', e)
       return this.simulateWorkflowGeneration(request)
     }
   }

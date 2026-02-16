@@ -14,6 +14,17 @@
 
 import { EMBEDDED_TOOLS, type GeneratedWorkflow } from './SmartWorkflowEngine'
 import { userMemoryService } from './UserMemoryService'
+import { userContextService } from './UserContextService'
+// Finding #55: Wire IntentResolver into message pipeline for pre-parse intelligence
+import { IntentResolverService } from './IntentResolver'
+// Finding #16: Wire industry persona overlays for domain-specific AI behavior
+import { INDUSTRY_PERSONAS } from '../lib/industry-personas'
+// Finding #19: Retry with exponential backoff for transient API failures
+import { withRetry } from '../lib/retry-helper'
+// Finding #56: Arabic NLP preprocessing for intent context
+import { containsArabic } from '../lib/arabic-normalizer'
+// Finding #15: i18n support for error messages - Arabic/English
+import i18n from '../i18n'
 
 // Message format for Claude API
 export interface ChatMessage {
@@ -87,11 +98,81 @@ class NexusAIService {
    * Uses UserMemoryService to aggregate all data sources into a rich context.
    */
   private buildUserContext(): string {
+    // Finding #3: Inject current day/time so Claude can apply Layer 5 predictive intelligence
+    const now = new Date()
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayOfWeek = days[now.getDay()]
+    const hour = now.getHours()
+    const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+    const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+    // Kuwait work week: Sunday-Thursday
+    const isKuwaitWorkday = now.getDay() >= 0 && now.getDay() <= 4
+    const temporalContext = `Current date: ${dateStr} (${dayOfWeek})\nCurrent time: ${timeStr} (${timeOfDay})\nKuwait work day: ${isKuwaitWorkday ? 'Yes' : 'No (weekend)'}`
+
     try {
-      return userMemoryService.getMemoryForAI()
+      const memory = userMemoryService.getMemoryForAI()
+      const contextParts: string[] = [temporalContext]
+      if (memory) contextParts.push(memory)
+
+      // Finding #16: Inject industry persona overlay for domain-specific AI behavior
+      try {
+        const profileRaw = localStorage.getItem('nexus_business_profile')
+        if (profileRaw) {
+          const profile = JSON.parse(profileRaw)
+          const industryKey = profile.industry?.toLowerCase()?.replace(/[\s&]+/g, '') || ''
+          const persona = INDUSTRY_PERSONAS[industryKey]
+          if (persona) {
+            // Use 'analyst' overlay as the general Nexus context (closest to assistant role)
+            const overlay = persona.agentOverlays['analyst'] || Object.values(persona.agentOverlays)[0]
+            if (overlay) {
+              contextParts.push(`## Industry Context: ${persona.name}\n${overlay.industryContext}\nKey principles: ${overlay.specializedPrinciples.join('; ')}`)
+            }
+          }
+        }
+      } catch (e) { console.warn('[NexusAIService] Failed to load industry persona:', e) }
+
+      // Finding #51: Adapt AI tone based on user maturity level
+      try {
+        const memProfile = userMemoryService.buildMemoryProfile()
+        const level = memProfile.maturityLevel
+        if (level === 'new') {
+          contextParts.push('## Communication Style\nUser is NEW to automation. Be extra friendly, explain concepts, use simple language, suggest step-by-step guidance. Avoid jargon.')
+        } else if (level === 'learning') {
+          contextParts.push('## Communication Style\nUser is LEARNING automation. Be encouraging, explain briefly when introducing new concepts, offer tips proactively.')
+        } else if (level === 'proficient') {
+          contextParts.push('## Communication Style\nUser is PROFICIENT with automation. Be concise, skip basic explanations, focus on efficiency and advanced options.')
+        } else if (level === 'power_user') {
+          contextParts.push('## Communication Style\nUser is a POWER USER. Be terse and direct. Skip all explanations. Show advanced options first. Respect their expertise.')
+        }
+      } catch (e) { console.warn('[NexusAIService] Failed to compute maturity level:', e) }
+
+      // Finding #30 + Finding #61: Detect language mix pattern for bilingual code-switching
+      try {
+        const lastUserMsg = this.conversationHistory.filter(m => m.role === 'user').slice(-1)[0]
+        if (lastUserMsg && lastUserMsg.content.length > 0) {
+          // Count Arabic characters (extended Unicode ranges for Arabic script)
+          const arabicChars = (lastUserMsg.content.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length
+          // Count Latin/English characters
+          const englishChars = (lastUserMsg.content.match(/[a-zA-Z]/g) || []).length
+          const totalLangChars = arabicChars + englishChars
+          if (totalLangChars > 0) {
+            const arabicRatio = arabicChars / totalLangChars
+            if (arabicRatio > 0.8) {
+              contextParts.push('## Language Preference\nUser prefers Arabic with English technical terms. Respond in Gulf Arabic dialect, keeping tech terms (workflow, automation, trigger, action, API, app) in English. Use Kuwaiti expressions naturally.')
+            } else if (arabicRatio < 0.2) {
+              contextParts.push('## Language Preference\nUser prefers English.')
+            } else {
+              contextParts.push('## Language Preference\nUser uses Arabic-English code-switching. Match their bilingual mix style: conversational parts in Arabic (Gulf dialect), technical/business terms in English. Keep workflowSpec fields always in English.')
+            }
+          }
+        }
+      } catch (e) { console.warn('[NexusAIService] Failed to detect language preference:', e) }
+
+      return contextParts.join('\n\n')
     } catch {
       // Fallback: minimal context if memory service fails
-      const parts: string[] = []
+      const parts: string[] = [temporalContext]
       try {
         const profileRaw = localStorage.getItem('nexus_business_profile')
         if (profileRaw) {
@@ -99,7 +180,7 @@ class NexusAIService {
           if (profile.industry) parts.push(`Industry: ${profile.industry}`)
           if (profile.primaryRole) parts.push(`Role: ${profile.primaryRole}`)
         }
-      } catch { /* ignore */ }
+      } catch (e) { console.warn('[NexusAIService] Failed to load business profile fallback:', e) }
       try {
         const userCtxRaw = localStorage.getItem('nexus_user_context')
         if (userCtxRaw) {
@@ -107,8 +188,8 @@ class NexusAIService {
           if (userCtx.email) parts.push(`Email: ${userCtx.email}`)
           if (userCtx.name) parts.push(`Name: ${userCtx.name}`)
         }
-      } catch { /* ignore */ }
-      return parts.length > 0 ? parts.join('\n') : ''
+      } catch (e) { console.warn('[NexusAIService] Failed to load user context fallback:', e) }
+      return parts.join('\n')
     }
   }
 
@@ -135,29 +216,86 @@ class NexusAIService {
       // Build user context from stored business profile + preferences
       const userContext = this.buildUserContext()
 
-      // Call the backend chat API via Vite proxy (which uses real Claude)
-      // Using relative URL so Vite proxy handles it properly
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messages: this.conversationHistory,
-          agentId: 'nexus', // Use the Nexus agent personality
-          // Sonnet 4 for workflow generation (fast, reliable, cost-effective)
-          model: 'claude-sonnet-4-20250514',
-          maxTokens: 4096,
-          chatMode: context?.chatMode || 'standard', // Pass chat mode for "Think with me" feature
-          userContext: userContext || undefined // Business profile + preferences for industry-aware AI
-        })
-      })
+      // Extract entities (emails, names, channels, times) for cross-conversation memory
+      userContextService.extractFromMessage(userMessage)
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+      // Finding #55: Pre-parse user intent before sending to Claude
+      // Gives Claude structured integration/action/param data alongside natural language
+      let intentContext: string | undefined
+      try {
+        const resolved = IntentResolverService.resolve(userMessage)
+        if (resolved.success && resolved.integrations.length > 0) {
+          const parts: string[] = [`Detected integrations: ${resolved.integrations.map(i => `${i.normalizedName}(${i.action})`).join(', ')}`]
+          if (resolved.extractedParams.length > 0) {
+            parts.push(`Extracted params: ${resolved.extractedParams.map(p => `${p.type}=${p.value}`).join(', ')}`)
+          }
+          if (resolved.unsupportedTools.length > 0) {
+            parts.push(`Unsupported: ${resolved.unsupportedTools.map(u => u.requested).join(', ')}`)
+          }
+          parts.push(`Intent confidence: ${resolved.confidence}`)
+          // Finding #56: Flag Arabic input so backend can apply regional context
+          if (containsArabic(userMessage)) {
+            parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
+          }
+          intentContext = parts.join(' | ')
+        }
+      } catch (e) { console.warn('[NexusAIService] IntentResolver failed (non-blocking):', e) }
+
+      // Finding #56: Even if IntentResolver found no integrations, still flag Arabic for backend
+      if (!intentContext && containsArabic(userMessage)) {
+        intentContext = 'Language: Arabic detected - apply Gulf dialect awareness and regional context'
       }
 
-      const result = await response.json()
+      // Call the backend chat API via Vite proxy (which uses real Claude)
+      // Finding #4: AbortSignal.timeout prevents indefinite hangs - 30s for standard, 45s for think_with_me
+      const timeoutMs = context?.chatMode === 'think_with_me' ? 45000 : 30000
+
+      // Finding #19: Wrap fetch in retry with exponential backoff (1s, 3s delays)
+      // Only retries on 5xx server errors or network failures, NOT on 4xx client errors
+      const result = await withRetry(
+        async () => {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              messages: this.conversationHistory,
+              agentId: 'nexus',
+              model: 'claude-sonnet-4-20250514',
+              maxTokens: 4096,
+              chatMode: context?.chatMode || 'standard',
+              userContext: userContext || undefined,
+              intentContext: intentContext || undefined
+            }),
+            signal: AbortSignal.timeout(timeoutMs),
+          })
+
+          if (!response.ok) {
+            const err = new Error(`API error: ${response.status}`)
+            // Only retry on server errors (5xx), not client errors (4xx)
+            ;(err as any).statusCode = response.status
+            throw err
+          }
+
+          return response.json()
+        },
+        {
+          maxRetries: 2,
+          baseDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+          useJitter: true,
+          shouldRetry: (error: Error) => {
+            const status = (error as any).statusCode
+            // Retry on 5xx, network errors, or timeouts. NOT on 4xx
+            return !status || status >= 500
+          },
+          onRetry: (_error: Error, attempt: number) => {
+            console.warn(`[NexusAIService] Retrying chat request (attempt ${attempt})...`)
+          }
+        }
+      )
 
       if (!result.success) {
         throw new Error(result.error || 'API call failed')
@@ -183,13 +321,202 @@ class NexusAIService {
     } catch (error) {
       console.error('[NexusAIService] Error calling Claude:', error)
 
-      // Fallback response
+      // Finding #4: Detect timeout vs other errors for user-friendly messaging
+      const isTimeout = error instanceof DOMException && error.name === 'TimeoutError'
+      const isAbort = error instanceof DOMException && error.name === 'AbortError'
+
+      // Finding #15: Use i18n translations for error messages (Arabic/English)
+      const text = isTimeout || isAbort
+        ? i18n.t('errors.aiTimeout')
+        : i18n.t('errors.aiNetworkError')
+
       return {
-        text: "I'm having trouble connecting right now. Let me try a simpler approach - what would you like to automate today?",
+        text,
         shouldGenerateWorkflow: false,
         intent: 'error',
         confidence: 0
       }
+    }
+  }
+
+  /**
+   * Finding #14: Stream a message to Claude via SSE and receive tokens in real-time
+   * Falls back to non-streaming chat() on any error.
+   *
+   * @param userMessage The user's message
+   * @param onToken Callback fired for each incremental token received
+   * @param context Optional context including chatMode for "Think with me" mode
+   * @returns The final parsed NexusAIResponse (same shape as chat())
+   */
+  async chatStream(
+    userMessage: string,
+    onToken: (token: string) => void,
+    context?: { persona?: string; chatMode?: 'standard' | 'think_with_me' }
+  ): Promise<NexusAIResponse> {
+    // Add user message to history (same as chat())
+    this.conversationHistory.push({
+      role: 'user',
+      content: userMessage
+    })
+
+    // Keep history manageable (last 10 messages)
+    if (this.conversationHistory.length > 10) {
+      this.conversationHistory = this.conversationHistory.slice(-10)
+    }
+
+    try {
+      console.log('[NexusAIService] Starting SSE stream via /api/chat/stream...', { chatMode: context?.chatMode })
+
+      // Build user context
+      const userContext = this.buildUserContext()
+
+      // Extract entities for cross-conversation memory
+      userContextService.extractFromMessage(userMessage)
+
+      // Finding #55: Pre-parse user intent
+      let intentContext: string | undefined
+      try {
+        const resolved = IntentResolverService.resolve(userMessage)
+        if (resolved.success && resolved.integrations.length > 0) {
+          const parts: string[] = [`Detected integrations: ${resolved.integrations.map(i => `${i.normalizedName}(${i.action})`).join(', ')}`]
+          if (resolved.extractedParams.length > 0) {
+            parts.push(`Extracted params: ${resolved.extractedParams.map(p => `${p.type}=${p.value}`).join(', ')}`)
+          }
+          if (resolved.unsupportedTools.length > 0) {
+            parts.push(`Unsupported: ${resolved.unsupportedTools.map(u => u.requested).join(', ')}`)
+          }
+          parts.push(`Intent confidence: ${resolved.confidence}`)
+          // Finding #56: Flag Arabic input so backend can apply regional context (stream path)
+          if (containsArabic(userMessage)) {
+            parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
+          }
+          intentContext = parts.join(' | ')
+        }
+      } catch (e) { console.warn('[NexusAIService] IntentResolver failed (non-blocking):', e) }
+
+      // Finding #56: Even if IntentResolver found no integrations, still flag Arabic for backend (stream path)
+      if (!intentContext && containsArabic(userMessage)) {
+        intentContext = 'Language: Arabic detected - apply Gulf dialect awareness and regional context'
+      }
+
+      const timeoutMs = context?.chatMode === 'think_with_me' ? 45000 : 30000
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: this.conversationHistory,
+          agentId: 'nexus',
+          model: 'claude-sonnet-4-20250514',
+          maxTokens: 4096,
+          chatMode: context?.chatMode || 'standard',
+          userContext: userContext || undefined,
+          intentContext: intentContext || undefined
+        }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Stream API error: ${response.status}`)
+      }
+
+      if (!response.body) {
+        throw new Error('ReadableStream not supported by this browser')
+      }
+
+      // Parse the SSE stream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let finalResponse: NexusAIResponse | null = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // Process complete SSE events from the buffer
+        const lines = buffer.split('\n')
+        buffer = '' // Reset buffer; incomplete line goes back
+
+        let currentEvent = ''
+        let currentData = ''
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i]
+
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim()
+          } else if (line.startsWith('data: ')) {
+            currentData = line.slice(6)
+          } else if (line === '' && currentEvent) {
+            // Empty line = end of event
+            try {
+              const parsed = JSON.parse(currentData)
+
+              if (currentEvent === 'token') {
+                onToken(parsed.text || '')
+              } else if (currentEvent === 'complete') {
+                // Final structured response
+                const message = parsed.message || ''
+                finalResponse = {
+                  text: message,
+                  shouldGenerateWorkflow: parsed.shouldGenerateWorkflow || false,
+                  workflowSpec: parsed.workflowSpec,
+                  suggestedQuestions: parsed.suggestedQuestions,
+                  intent: parsed.intent,
+                  confidence: parsed.confidence,
+                  assumptions: parsed.assumptions,
+                  missingInfo: parsed.missingInfo,
+                  clarifyingQuestions: parsed.clarifyingQuestions,
+                  refiningWorkflowId: parsed.refiningWorkflowId,
+                  customIntegrations: parsed.customIntegrations
+                }
+              } else if (currentEvent === 'error') {
+                console.error('[NexusAIService] Stream error event:', parsed.error)
+                throw new Error(parsed.error || 'Stream error')
+              }
+              // 'done' event is handled by the stream ending
+            } catch (parseErr) {
+              // If JSON parse fails for a non-empty data line, skip it
+              if (currentData.trim()) {
+                console.warn('[NexusAIService] Failed to parse SSE data:', currentData)
+              }
+            }
+
+            currentEvent = ''
+            currentData = ''
+          } else if (line !== '' && !line.startsWith('event:') && !line.startsWith('data:')) {
+            // Incomplete line - put it back in the buffer for next chunk
+            buffer = lines.slice(i).join('\n')
+            break
+          }
+        }
+      }
+
+      if (!finalResponse) {
+        throw new Error('Stream ended without complete event')
+      }
+
+      // Add assistant response to history
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: finalResponse.text
+      })
+
+      return finalResponse
+
+    } catch (error) {
+      console.warn('[NexusAIService] Streaming failed, falling back to non-streaming chat():', error)
+      // Remove the user message we already added (chat() will re-add it)
+      this.conversationHistory.pop()
+      // Fallback to non-streaming
+      return this.chat(userMessage, context)
     }
   }
 
@@ -303,6 +630,16 @@ class NexusAIService {
    */
   getHistory(): ChatMessage[] {
     return [...this.conversationHistory]
+  }
+
+  /**
+   * Finding #13: Set conversation history from persisted messages
+   * Fixes post-refresh amnesia - restores Claude's memory of the conversation
+   */
+  setConversationHistory(messages: Array<{ role: string; content: string }>) {
+    this.conversationHistory = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
   }
 }
 

@@ -27,11 +27,13 @@ import aiProxyRoutes from './routes/ai-proxy.js'
 import rubeRoutes from './routes/rube.js'
 import oauthRoutes from './routes/oauth.js'
 import customIntegrationsRoutes from './routes/customIntegrations.js'
+import { generalApiLimiter } from './middleware/rate-limit.js'
 import preflightRoutes from './routes/preflight.js'
 import whatsappRoutes from './routes/whatsapp.js'
 import whatsappBusinessRoutes from './routes/whatsapp-business.js'
 import whatsappComposioRoutes from './routes/whatsapp-composio.js'
 import whatsappWebRoutes from './routes/whatsapp-web.js'
+import whatsappCampaignRoutes from './routes/whatsapp-campaigns.js'
 import suggestionsRoutes from './routes/suggestions.js'
 import voiceRoutes from './routes/voice.js'
 import chatPersistenceRoutes from './routes/chat-persistence.js'
@@ -39,6 +41,7 @@ import workflowPersistenceRoutes from './routes/workflow-persistence.js'
 import userPreferencesRoutes from './routes/user-preferences.js'
 import userProfileRoutes from './routes/user-profile.js'
 import adminAnalyticsRoutes from './routes/admin-analytics.js'
+import paymentLinksRoutes from './routes/payment-links.js'
 
 // WhatsApp Business trigger service (auto-initializes and registers message handler)
 import './services/WhatsAppBusinessTriggerService.js'
@@ -75,16 +78,17 @@ app.use('/api/tokens', tokenRoutes)
 app.use('/api/results', resultsRoutes)
 app.use('/api/payments', paymentRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
-app.use('/api/composio', composioRoutes)
+app.use('/api/composio', generalApiLimiter, composioRoutes)
 app.use('/api/browser', browserRoutes)
 app.use('/api/mcp', mcpProvidersRoutes)
 app.use('/api/ai-proxy', aiProxyRoutes)
 app.use('/api/rube', rubeRoutes)
 app.use('/api/oauth', oauthRoutes)
-app.use('/api/custom-integrations', customIntegrationsRoutes)
+app.use('/api/custom-integrations', generalApiLimiter, customIntegrationsRoutes)
 app.use('/api/preflight', preflightRoutes)
 app.use('/api/whatsapp', whatsappRoutes)
 app.use('/api/whatsapp-business', whatsappBusinessRoutes)
+app.use('/api/whatsapp-business', whatsappCampaignRoutes)
 app.use('/api/whatsapp-composio', whatsappComposioRoutes)
 app.use('/api/whatsapp-web', whatsappWebRoutes)
 app.use('/api/suggestions', suggestionsRoutes)
@@ -94,6 +98,7 @@ app.use('/api/workflow-persistence', workflowPersistenceRoutes)
 app.use('/api/user-preferences', userPreferencesRoutes)
 app.use('/api/user-profile', userProfileRoutes)
 app.use('/api/admin-analytics', adminAnalyticsRoutes)
+app.use('/api/payment-links', paymentLinksRoutes)
 
 // Serve static frontend in production
 const distPath = path.resolve(process.cwd(), 'dist')
@@ -200,6 +205,7 @@ if (!process.env.VITEST) {
     console.log(`   Payments:`)
     console.log(`     - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '⚠ Not configured'}`)
     console.log(`     - Subscriptions: ${process.env.VITE_STRIPE_LAUNCH_PRICE_ID ? '✓ Price IDs configured' : '⚠ Price IDs not set'}`)
+    console.log(`     - KNET/MyFatoorah: ${process.env.MYFATOORAH_API_KEY ? '✓ MyFatoorah configured' : '⚠ Mock mode (set MYFATOORAH_API_KEY)'}`)
     console.log(`   OAuth (White-Labeled):`)
     console.log(`     - Google: ${process.env.GOOGLE_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`)
     console.log(`     - Slack: ${process.env.SLACK_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`)

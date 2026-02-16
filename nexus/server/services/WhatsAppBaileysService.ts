@@ -452,6 +452,78 @@ class WhatsAppBaileysService extends EventEmitter {
   }
 
   /**
+   * Request a pairing code for phone-number-based linking
+   */
+  async requestPairingCode(sessionId: string, phoneNumber: string): Promise<{ success: boolean; code?: string; error?: string }> {
+    const session = this.sessions.get(sessionId)
+    if (!session) {
+      return { success: false, error: `Session ${sessionId} not found` }
+    }
+
+    const sock = this.sockets.get(sessionId)
+    if (!sock) {
+      return { success: false, error: `Socket not found for session ${sessionId}` }
+    }
+
+    try {
+      // @NEXUS-FIX-130: Layer 3 - Defensive phone validation at Baileys service level - DO NOT REMOVE
+      const cleanNumber = phoneNumber.replace(/[^\d]/g, '')
+
+      // Validate: Baileys requires 10-15 digit E.164 phone number (country code + local)
+      if (cleanNumber.length < 10 || cleanNumber.length > 15) {
+        console.warn(`[WhatsAppBaileys] Invalid phone length: ${cleanNumber.length} digits (need 10-15)`)
+        return {
+          success: false,
+          error: `Phone number must be 10-15 digits with country code (got ${cleanNumber.length} digits). Example: 96591234567`,
+        }
+      }
+
+      // Validate: must not be all zeros or obviously fake
+      if (/^0+$/.test(cleanNumber) || /^(.)\1+$/.test(cleanNumber)) {
+        return { success: false, error: 'Invalid phone number. Please enter a real phone number.' }
+      }
+
+      console.log(`[WhatsAppBaileys] Requesting pairing code for: ${cleanNumber.slice(0, 4)}****${cleanNumber.slice(-2)} (${cleanNumber.length} digits)`)
+
+      // Baileys requestPairingCode
+      const code = await (sock as unknown as { requestPairingCode: (jid: string) => Promise<string> }).requestPairingCode(cleanNumber)
+
+      session.pairingCode = code
+      session.state = 'code_pending'
+      session.lastActivity = new Date()
+      this.emit('stateChanged', sessionId, 'code_pending')
+      this.emit('pairingCode', sessionId, code)
+
+      console.log(`[WhatsAppBaileys] Pairing code generated for session ${sessionId}`)
+      return { success: true, code }
+    } catch (error) {
+      const errMsg = (error as Error).message || String(error)
+      console.error(`[WhatsAppBaileys] Failed to generate pairing code:`, errMsg)
+
+      // @NEXUS-FIX-130: Translate technical Baileys errors to user-friendly messages
+      let userFriendlyError = errMsg
+      if (errMsg.includes('did not match the expected pattern') || errMsg.includes('pattern')) {
+        userFriendlyError = 'Invalid phone number format. Please enter your full number with country code (e.g., +965 9XXX XXXX for Kuwait).'
+      } else if (errMsg.includes('not registered') || errMsg.includes('not on WhatsApp')) {
+        userFriendlyError = 'This number is not registered on WhatsApp. Please check the number and try again.'
+      } else if (errMsg.includes('timeout') || errMsg.includes('timed out')) {
+        userFriendlyError = 'Connection timed out. Please try again.'
+      } else if (errMsg.includes('rate') || errMsg.includes('limit')) {
+        userFriendlyError = 'Too many attempts. Please wait a few minutes and try again.'
+      }
+
+      return { success: false, error: userFriendlyError }
+    }
+  }
+
+  /**
+   * Logout alias (routes use logout, service uses logoutSession)
+   */
+  async logout(sessionId: string): Promise<void> {
+    return this.logoutSession(sessionId)
+  }
+
+  /**
    * Destroy a session
    */
   async destroySession(sessionId: string): Promise<void> {

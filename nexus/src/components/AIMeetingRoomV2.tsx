@@ -106,6 +106,8 @@ interface AIMeetingRoomV2Props {
   workflowTitle?: string
   workflowId?: string
   mode?: 'optimization' | 'troubleshooting' | 'brainstorm'
+  /** When true, renders as full-page layout instead of modal overlay (for /ai-consultancy route) */
+  fullPage?: boolean
 }
 
 export function AIMeetingRoomV2({
@@ -114,7 +116,8 @@ export function AIMeetingRoomV2({
   workflowContext,
   workflowTitle,
   workflowId,
-  mode = 'optimization'
+  mode = 'optimization',
+  fullPage = false
 }: AIMeetingRoomV2Props) {
   const [messages, setMessages] = useState<PartyModeMessage[]>([])
   const [userInput, setUserInput] = useState('')
@@ -359,20 +362,25 @@ export function AIMeetingRoomV2({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex bg-black/70 backdrop-blur-sm items-center justify-center"
-      role="dialog"
-      aria-modal="true"
+      className={fullPage
+        ? "w-full h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"
+        : "fixed inset-0 z-50 flex bg-black/70 backdrop-blur-sm items-center justify-center"
+      }
+      role={fullPage ? undefined : "dialog"}
+      aria-modal={fullPage ? undefined : true}
       aria-labelledby="meeting-room-title"
     >
       <div
         ref={combinedRef}
         tabIndex={-1}
         className={`relative bg-white dark:bg-slate-900 overflow-hidden shadow-2xl outline-none flex flex-col ${
-          isMobile
+          fullPage
             ? 'w-full h-full'
-            : 'w-full max-w-5xl h-[85vh] rounded-2xl border border-slate-200 dark:border-slate-700'
+            : isMobile
+              ? 'w-full h-full'
+              : 'w-full max-w-5xl h-[85vh] rounded-2xl border border-slate-200 dark:border-slate-700'
         }`}
-        style={isMobile ? {
+        style={(isMobile && !fullPage) ? {
           height: mobileHeight,
           paddingBottom: `env(safe-area-inset-bottom, 0px)`
         } : undefined}

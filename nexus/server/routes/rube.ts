@@ -18,6 +18,10 @@ import { composioService } from '../services/ComposioService'
 import { toolDiscoveryService } from '../services/ToolDiscoveryService'
 // @NEXUS-FIX-095: Import WhatsApp Baileys service for direct message routing
 import { whatsAppBaileysService } from '../services/WhatsAppBaileysService'
+// @NEXUS-FIX-022: Multi-tenant identity - per-user Composio entities
+import { getUserEntityId } from '../utils/user-entity'
+import { executionLimiter, discoveryLimiter, connectionLimiter } from '../middleware/rate-limit.js'
+import { promptGuardService } from '../services/PromptGuardService.js'
 
 const router = Router()
 
@@ -193,7 +197,7 @@ function searchToolCatalog(useCase: string, toolkit?: string): Array<{
  * Request: { queries: [{ use_case: string, known_fields?: string }], session_id?: string }
  * Response: { tools: [], connection_statuses: [], session_id: string }
  */
-router.post('/search-tools', async (req: Request, res: Response) => {
+router.post('/search-tools', discoveryLimiter, async (req: Request, res: Response) => {
   const { queries, session_id } = req.body
 
   if (!queries || !Array.isArray(queries)) {
@@ -270,8 +274,10 @@ router.post('/search-tools', async (req: Request, res: Response) => {
  * Request: { toolName: string, checkConnection?: boolean, includeAlternatives?: boolean }
  * Response: ToolDiscoveryResult
  */
-router.post('/discover-tool', async (req: Request, res: Response) => {
-  const { toolName, checkConnection = true, includeAlternatives = true, userId = 'default' } = req.body
+router.post('/discover-tool', discoveryLimiter, async (req: Request, res: Response) => {
+  const { toolName, checkConnection = true, includeAlternatives = true } = req.body
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req)
 
   if (!toolName) {
     return res.status(400).json({
@@ -324,8 +330,10 @@ router.post('/discover-tool', async (req: Request, res: Response) => {
  * Request: { toolNames: string[], checkConnection?: boolean }
  * Response: { results: ToolDiscoveryResult[] }
  */
-router.post('/discover-tools', async (req: Request, res: Response) => {
-  const { toolNames, checkConnection = true, includeAlternatives = true, userId = 'default' } = req.body
+router.post('/discover-tools', discoveryLimiter, async (req: Request, res: Response) => {
+  const { toolNames, checkConnection = true, includeAlternatives = true } = req.body
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req)
 
   if (!toolNames || !Array.isArray(toolNames) || toolNames.length === 0) {
     return res.status(400).json({
@@ -395,8 +403,10 @@ router.post('/discover-tools', async (req: Request, res: Response) => {
  * Request: { toolkits: string[], userId?: string, sessionId?: string }
  * Response: { results: { [toolkit]: { status, redirect_url? } } }
  */
-router.post('/manage-connections', async (req: Request, res: Response) => {
-  const { toolkits, userId = 'default', sessionId } = req.body
+router.post('/manage-connections', connectionLimiter, async (req: Request, res: Response) => {
+  const { toolkits, sessionId } = req.body
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req)
 
   if (!toolkits || !Array.isArray(toolkits)) {
     return res.status(400).json({
@@ -500,7 +510,7 @@ router.post('/manage-connections', async (req: Request, res: Response) => {
  * Request: { tools: [{ tool_slug: string, arguments: object }], session_id: string }
  * Response: { results: [], success: boolean }
  */
-router.post('/execute', async (req: Request, res: Response) => {
+router.post('/execute', executionLimiter, async (req: Request, res: Response) => {
   const { tools, session_id } = req.body
 
   if (!tools || !Array.isArray(tools)) {
@@ -533,6 +543,19 @@ router.post('/execute', async (req: Request, res: Response) => {
     const results = await Promise.all(
       tools.map(async (tool: { tool_slug: string; arguments: Record<string, unknown> }) => {
         try {
+          // === Finding #10: Prompt Injection Defense - Layer 5: Tool Execution Guardrails ===
+          const userId = (req.headers['x-user-id'] as string) || (req.headers['x-clerk-user-id'] as string) || 'anonymous'
+          const guardCheck = promptGuardService.validateToolExecution(tool.tool_slug, tool.arguments || {}, userId)
+          if (!guardCheck.allowed) {
+            console.warn(`[Rube][PromptGuard] Tool execution blocked: ${tool.tool_slug} - ${guardCheck.reason}`)
+            return {
+              tool_slug: tool.tool_slug,
+              success: false,
+              error: guardCheck.reason || 'Tool execution not permitted',
+              data: null,
+            }
+          }
+
           // Extract toolkit from tool_slug (e.g., GMAIL_SEND_EMAIL -> gmail)
           const toolkit = tool.tool_slug.split('_')[0].toLowerCase()
           console.log(`[Rube] Executing tool: ${tool.tool_slug} (toolkit: ${toolkit})`)
@@ -735,9 +758,10 @@ router.post('/execute', async (req: Request, res: Response) => {
  * Query: { userId?: string }
  * Response: { toolkit, connected: boolean, user_info?: object }
  */
-router.get('/connection-status/:toolkit', async (req: Request, res: Response) => {
+router.get('/connection-status/:toolkit', connectionLimiter, async (req: Request, res: Response) => {
   const { toolkit } = req.params
-  const userId = (req.query.userId as string) || 'default'
+  // @NEXUS-FIX-022: Per-user Composio entity
+  const userId = getUserEntityId(req)
 
   try {
     console.log(`[Rube] Checking connection status for: ${toolkit}`)
@@ -1031,7 +1055,7 @@ function generateGenericSchema(toolSlug: string): {
  * Request: { tool_slugs: string[], session_id: string }
  * Response: { success: boolean, schemas: Array<{ tool_slug, input_schema }> }
  */
-router.post('/get-tool-schemas', async (req: Request, res: Response) => {
+router.post('/get-tool-schemas', discoveryLimiter, async (req: Request, res: Response) => {
   const { tool_slugs, session_id } = req.body
 
   if (!tool_slugs || !Array.isArray(tool_slugs)) {

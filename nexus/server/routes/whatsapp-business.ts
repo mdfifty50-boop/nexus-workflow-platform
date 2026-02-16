@@ -14,10 +14,19 @@
  * - POST /api/whatsapp-business/webhook - Receive incoming messages
  * - GET /api/whatsapp-business/webhook - Webhook verification (Meta requirement)
  * - POST /api/whatsapp-business/disconnect - Disconnect account
+ *
+ * Catalogue Endpoints:
+ * - GET /api/whatsapp-business/catalogue - List products (with search/filter)
+ * - POST /api/whatsapp-business/catalogue - Create product
+ * - PUT /api/whatsapp-business/catalogue/:id - Update product
+ * - DELETE /api/whatsapp-business/catalogue/:id - Delete product
+ * - GET /api/whatsapp-business/catalogue/stats - Get catalogue stats
+ * - GET /api/whatsapp-business/catalogue/categories - Get all categories
  */
 
 import { Router, Request, Response } from 'express'
 import { aiSensyService } from '../services/AiSensyService.js'
+import { catalogueService } from '../services/CatalogueService.js'
 
 const router = Router()
 
@@ -435,6 +444,190 @@ router.get('/admin/accounts', (req: Request, res: Response) => {
       success: false,
       error: error.message
     })
+  }
+})
+
+// =============================================================================
+// CATALOGUE ROUTES
+// =============================================================================
+
+/**
+ * GET /api/whatsapp-business/catalogue/stats
+ * Get catalogue statistics
+ *
+ * NOTE: This route must be defined BEFORE the parameterized /:id routes
+ * to avoid "stats" being interpreted as a product ID.
+ */
+router.get('/catalogue/stats', (_req: Request, res: Response) => {
+  try {
+    const stats = catalogueService.getStats()
+    res.json({ success: true, stats })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/whatsapp-business/catalogue/categories
+ * Get all categories with item counts
+ */
+router.get('/catalogue/categories', (_req: Request, res: Response) => {
+  try {
+    const categories = catalogueService.getCategories()
+    res.json({ success: true, categories })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/whatsapp-business/catalogue
+ * List all products with optional filtering
+ *
+ * Query params:
+ * - search: string - Search by name/description/SKU
+ * - category: string - Filter by category name (or "all")
+ * - availability: "in_stock" | "out_of_stock" | "preorder"
+ * - visible: "true" | "false" - Filter by visibility
+ */
+router.get('/catalogue', (req: Request, res: Response) => {
+  try {
+    const filter: Record<string, any> = {}
+
+    if (req.query.search) {
+      filter.search = req.query.search as string
+    }
+    if (req.query.category) {
+      filter.category = req.query.category as string
+    }
+    if (req.query.availability) {
+      filter.availability = req.query.availability as string
+    }
+    if (req.query.visible !== undefined) {
+      filter.isVisible = req.query.visible === 'true'
+    }
+
+    const items = catalogueService.listProducts(filter)
+    const categories = catalogueService.getCategories()
+
+    res.json({
+      success: true,
+      items,
+      categories,
+      total: items.length,
+    })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * POST /api/whatsapp-business/catalogue
+ * Create a new product
+ *
+ * Body: { name, description?, price, currency?, imageUrl?, category, availability?, isVisible?, url?, sku? }
+ */
+router.post('/catalogue', (req: Request, res: Response) => {
+  try {
+    const { name, description, price, currency, imageUrl, category, availability, isVisible, url, sku } = req.body
+
+    if (!name || price === undefined || price === null || !category) {
+      return res.status(400).json({
+        success: false,
+        error: 'name, price, and category are required',
+      })
+    }
+
+    if (typeof price !== 'number' || price < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'price must be a non-negative number',
+      })
+    }
+
+    const product = catalogueService.createProduct({
+      name,
+      description,
+      price,
+      currency,
+      imageUrl,
+      category,
+      availability,
+      isVisible,
+      url,
+      sku,
+    })
+
+    res.status(201).json({ success: true, product })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * PUT /api/whatsapp-business/catalogue/:id
+ * Update an existing product
+ *
+ * Body: Partial product fields to update
+ */
+router.put('/catalogue/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { name, description, price, currency, imageUrl, category, availability, isVisible, url, sku } = req.body
+
+    // Validate price if provided
+    if (price !== undefined && (typeof price !== 'number' || price < 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'price must be a non-negative number',
+      })
+    }
+
+    const updated = catalogueService.updateProduct(id, {
+      name,
+      description,
+      price,
+      currency,
+      imageUrl,
+      category,
+      availability,
+      isVisible,
+      url,
+      sku,
+    })
+
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: `Product ${id} not found`,
+      })
+    }
+
+    res.json({ success: true, product: updated })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * DELETE /api/whatsapp-business/catalogue/:id
+ * Delete a product
+ */
+router.delete('/catalogue/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const deleted = catalogueService.deleteProduct(id)
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: `Product ${id} not found`,
+      })
+    }
+
+    res.json({ success: true, message: 'Product deleted' })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 

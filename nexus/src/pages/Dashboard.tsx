@@ -463,7 +463,7 @@ export function Dashboard() {
         </Link>
 
         {/* AI Consultancy — Compact secondary option (1/3 width) */}
-        <Link to="/chat" className="group">
+        <Link to="/ai-consultancy" className="group">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-500 p-[2px] h-full">
             <div className="relative bg-surface-900/[0.95] rounded-[calc(1rem-2px)] p-6 h-full flex flex-col justify-center hover:bg-surface-900/[0.90] transition-colors">
               <div className="flex items-center gap-3 mb-2">

@@ -1996,6 +1996,10 @@ export interface SetupFlowState {
 // App name aliases - map common variations to their canonical KNOWN_APP_APIS key
 // EXPANDED ALIASES DATABASE - Comprehensive name mappings (Jan 21, 2026)
 // DO NOT DELETE - This section is protected by CRITICAL_FIXES.md
+//
+// NOTE: The canonical source for integration aliases is src/lib/MasterAliasRegistry.ts.
+// This server-side file maintains its own copy because server code cannot import from
+// src/lib. When adding new aliases, update BOTH files to keep them in sync.
 const APP_NAME_ALIASES: Record<string, string> = {
   // ========== CRM ALIASES ==========
   'pipeline': 'pipeline_crm',

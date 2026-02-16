@@ -80,7 +80,8 @@ function getShownAdviceIds(): string[] {
   try {
     const stored = localStorage.getItem(SHOWN_ADVICE_KEY)
     return stored ? JSON.parse(stored) : []
-  } catch {
+  } catch (e) {
+    console.warn('[DailyAdvice] Failed to load shown advice IDs:', e)
     return []
   }
 }
@@ -132,8 +133,8 @@ export class DailyAdviceService {
           }
         }
       }
-    } catch {
-      // Storage error, continue with fresh advice
+    } catch (e) {
+      console.warn('[DailyAdvice] Failed to load today advice cache:', e)
     }
 
     // Get fresh advice for today
@@ -183,8 +184,8 @@ export class DailyAdviceService {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
         }
       }
-    } catch {
-      // Storage error, ignore
+    } catch (e) {
+      console.warn('[DailyAdvice] Failed to dismiss advice:', e)
     }
   }
 
@@ -200,8 +201,8 @@ export class DailyAdviceService {
         const data: DailyAdviceStorage = JSON.parse(stored)
         return data.lastShownDate === todayKey && data.dismissed
       }
-    } catch {
-      // Storage error, assume not dismissed
+    } catch (e) {
+      console.warn('[DailyAdvice] Failed to check dismissed status:', e)
     }
 
     return false

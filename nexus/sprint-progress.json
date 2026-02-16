@@ -1,0 +1,52 @@
+{
+  "$schema": "sprint-progress.schema.json",
+  "version": "1.0.0",
+  "sprint": null,
+  "vision": null,
+  "status": "idle",
+  "mode": null,
+  "startedAt": null,
+  "updatedAt": null,
+  "currentLoop": 0,
+  "maxLoops": 50,
+  "scope": {
+    "approved": [],
+    "outOfScope": [],
+    "successCriteria": []
+  },
+  "loops": [],
+  "blockers": [],
+  "gmReviews": [],
+  "notes": [],
+  "metrics": {
+    "totalAgentTasks": 0,
+    "completedTasks": 0,
+    "failedTasks": 0,
+    "estimatedTokensUsed": 0,
+    "estimatedCost": 0,
+    "loopsCompleted": 0
+  },
+  "loopTemplate": {
+    "_comment": "Template for each loop entry",
+    "number": 0,
+    "status": "pending | in_progress | completed | blocked",
+    "startedAt": null,
+    "completedAt": null,
+    "tasks": [
+      {
+        "id": "L0-T0",
+        "agent": "agent-name",
+        "model": "opus | sonnet | haiku",
+        "description": "Task description",
+        "status": "pending | in_progress | success | partial | blocked | failed",
+        "files": [],
+        "summary": "",
+        "detailsFile": ""
+      }
+    ],
+    "validatedBy": "ralph-qa",
+    "validationResult": "PASS | PARTIAL | FAIL",
+    "scopeAlignment": true,
+    "notes": []
+  }
+}

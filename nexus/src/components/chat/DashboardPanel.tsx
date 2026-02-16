@@ -228,7 +228,7 @@ export function DashboardPanel({
       key: 'nexus-pending-session',
       newValue: sessionId
     }))
-    navigate('/chat-demo')
+    navigate('/chat')
     onCloseSidebar?.()
   }, [navigate, onCloseSidebar])
 

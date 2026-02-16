@@ -1,0 +1,99 @@
+{
+  "version": "1.0.0",
+  "description": "OpenAI Codex integration configuration for Nexus. API keys to be provided separately.",
+  "status": "configured_awaiting_api_key",
+  "provider": {
+    "name": "OpenAI Codex",
+    "model": "codex-latest",
+    "endpoint": "https://api.openai.com/v1/responses",
+    "apiKeyEnvVar": "OPENAI_CODEX_API_KEY",
+    "fallbackModel": "gpt-4.1-mini"
+  },
+  "integration": {
+    "useCases": [
+      {
+        "name": "code-completion",
+        "description": "Fast code completions for boilerplate and repetitive patterns",
+        "model": "codex-latest",
+        "maxTokens": 4096,
+        "temperature": 0.2,
+        "when": "Simple, well-defined code generation tasks"
+      },
+      {
+        "name": "code-review-assist",
+        "description": "Quick static analysis and pattern detection",
+        "model": "codex-latest",
+        "maxTokens": 2048,
+        "temperature": 0.1,
+        "when": "Ralph QA wants fast pattern checks before deep review"
+      },
+      {
+        "name": "test-generation",
+        "description": "Generate unit test boilerplate from function signatures",
+        "model": "codex-latest",
+        "maxTokens": 4096,
+        "temperature": 0.3,
+        "when": "Creating test scaffolding for new features"
+      },
+      {
+        "name": "documentation-generation",
+        "description": "Generate JSDoc/TSDoc from function implementations",
+        "model": "codex-latest",
+        "maxTokens": 2048,
+        "temperature": 0.2,
+        "when": "Auto-documenting new or undocumented functions"
+      }
+    ],
+    "routing": {
+      "description": "When to use Codex vs Claude for code tasks",
+      "useCodex": [
+        "Boilerplate generation (interfaces, types, CRUD)",
+        "Test scaffolding from existing code",
+        "Documentation generation",
+        "Simple refactoring (rename, extract function)",
+        "Pattern-based code completion"
+      ],
+      "useClaude": [
+        "Complex logic implementation",
+        "Architecture decisions",
+        "Multi-file refactoring",
+        "Business logic requiring domain knowledge",
+        "Debugging complex issues",
+        "Workflow spec generation (Nexus AI)"
+      ]
+    }
+  },
+  "agentIntegration": {
+    "description": "How Codex integrates with the agent hierarchy",
+    "coder_agent": {
+      "canUseCodex": true,
+      "forTasks": ["boilerplate", "test-scaffolding", "docs"],
+      "fallsBackToClaude": true
+    },
+    "ralph_qa_agent": {
+      "canUseCodex": true,
+      "forTasks": ["pattern-detection", "static-analysis"],
+      "fallsBackToClaude": true
+    },
+    "director_agent": {
+      "canUseCodex": false,
+      "reason": "Director requires Claude's reasoning for orchestration"
+    }
+  },
+  "implementation": {
+    "serviceFile": "nexus/server/services/CodexService.ts",
+    "configPath": "nexus/config/codex-integration.json",
+    "envVars": {
+      "OPENAI_CODEX_API_KEY": "Required - OpenAI API key with Codex access",
+      "CODEX_MODEL": "Optional - Override model (default: codex-latest)",
+      "CODEX_ENABLED": "Optional - Toggle Codex usage (default: true)"
+    },
+    "notes": [
+      "Codex is used as a SUPPLEMENT to Claude, not a replacement",
+      "All Codex outputs go through Ralph QA validation",
+      "Claude handles all complex reasoning and orchestration",
+      "Codex reduces cost for repetitive code generation tasks",
+      "If Codex API is unavailable, gracefully falls back to Claude"
+    ]
+  }
+}

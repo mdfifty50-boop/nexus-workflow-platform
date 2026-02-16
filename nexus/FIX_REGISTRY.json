@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.46",
-  "_lastUpdated": "2026-02-14",
-  "_totalFixes": 120,
+  "_version": "1.0.53",
+  "_lastUpdated": "2026-02-16",
+  "_totalFixes": 127,
 
   "fixes": [
     {
@@ -1447,10 +1447,108 @@
       "codeMarker": "@NEXUS-FIX-118",
       "testCommand": "Create 'Gmail to Google Sheets Logger' workflow. Paste a Google Sheets URL when asked for spreadsheet. Run Beta Test — should succeed with no 'Oops!' errors. Also test with GitHub, Notion URLs.",
       "critical": true
+    },
+    {
+      "id": "FIX-121",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Zero Assumed Tools - absolute rule preventing AI from adding unmentioned tools",
+      "problem": "Nexus AI generated workflows with tools the user never mentioned (e.g., user said BambooHR but got Slack and ClickUp). System prompt had no enforcement that workflow tools must match user-stated tools.",
+      "solution": "Added 'ABSOLUTE RULE - ZERO ASSUMED TOOLS' section to Nexus personality in BOTH server/agents/index.ts AND api/_lib/agents.ts. Includes Tool Fidelity Check: 4-point validation (explicitly named, selected from options, direct obvious requirement, or ASSUMPTION → reject).",
+      "files": ["nexus/server/agents/index.ts", "nexus/api/_lib/agents.ts"],
+      "codeMarker": "@NEXUS-FIX-121",
+      "testCommand": "Ask 'monitor nurse break schedules', select BambooHR. Workflow MUST only contain BambooHR, not Slack/ClickUp.",
+      "critical": true
+    },
+    {
+      "id": "FIX-122",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Input AND output tool discovery in clarifying questions",
+      "problem": "Phase 1 clarifying questions only asked about source/input tools, never about destination/notification tools. This led to AI assuming output tools (defaulting to Slack).",
+      "solution": "Added explicit requirement that Phase 1 questions MUST cover BOTH source tools AND destination/notification tools. Added vagueness triggers list. Updated all example responses to show dual-tool questioning.",
+      "files": ["nexus/server/agents/index.ts", "nexus/api/_lib/agents.ts"],
+      "codeMarker": "@NEXUS-FIX-122",
+      "testCommand": "Ask 'help me onboard clients'. Questions MUST include both 'What CRM?' AND 'How should team be notified?'",
+      "critical": true
+    },
+    {
+      "id": "FIX-123",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Smart defaults only for parameters, never for tools",
+      "problem": "System prompt said 'USE SMART DEFAULTS - DON'T ASK QUESTIONS' which caused AI to add default tools (Slack, Sheets) without asking.",
+      "solution": "Changed to 'ACCURACY OVER SPEED' with explicit rule: Smart defaults are OK for PARAMETERS (channel name, time) but NEVER for TOOLS. Defaults only apply when user has already chosen the tool.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-123",
+      "testCommand": "Generate any workflow - no tool should appear that wasn't explicitly mentioned by user.",
+      "critical": true
+    },
+    {
+      "id": "FIX-124",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Fixed contradictory response patterns section",
+      "problem": "Response patterns section had 'ACCURACY OVER SPEED' header but old content saying 'USE SMART DEFAULTS - DON'T ASK QUESTIONS' and examples showing hardcoded Slack/Sheets without user confirmation.",
+      "solution": "Rewrote entire response patterns section. Changed from 'infer tools' to 'infer parameters only'. All examples now show only user-confirmed tools. Industry adaptation table changed from 'Default Tools' to 'Suggest These as OPTIONS'.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-124",
+      "testCommand": "Ask about HR automation. AI should ask which tools to use, not default to BambooHR+Slack.",
+      "critical": true
+    },
+    {
+      "id": "FIX-125",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Infer parameters not tools - fixed inference rule",
+      "problem": "Rule said 'NEVER ASK WHEN YOU CAN INFER' which AI interpreted as license to add inferred tools like Slack for notifications.",
+      "solution": "Changed to 'INFER PARAMETERS, NEVER INFER TOOLS'. Clear separation: OK to infer parameters (channel name, filter criteria), NEVER OK to infer which tool/app to use.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-125",
+      "testCommand": "User says 'email me updates'. AI should use gmail (obvious from 'email') but not add Sheets or Slack.",
+      "critical": true
+    },
+    {
+      "id": "FIX-126",
+      "date": "2026-02-15",
+      "category": "AI Accuracy",
+      "title": "Template-first matching restricted to first message only",
+      "problem": "Template matching in chat.ts ran on EVERY message including mid-conversation answers to clarifying questions. With threshold 0.4, generic user answers like 'BambooHR' could match wrong templates, bypassing Claude entirely.",
+      "solution": "Restricted template matching to first message only (userMessageCount <= 1). Raised threshold from 0.4 to 0.8. Mid-conversation messages always go to Claude for proper context-aware processing.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-126",
+      "testCommand": "Start conversation, answer clarifying questions. Answers should be processed by Claude, not matched to templates.",
+      "critical": true
+    },
+    {
+      "id": "FIX-048",
+      "date": "2026-02-16",
+      "category": "Payments",
+      "title": "Kuwait payment gateway - payment link generation workflow step",
+      "problem": "No native Kuwait payment collection capability. Users needed to manually generate KNET/MyFatoorah links and send them to customers.",
+      "solution": "Added PaymentLinkService supporting MyFatoorah (primary) and KNET (direct) providers with mock mode. Payment links auto-generated on WhatsApp orders with totalAmount. Webhook endpoints receive confirmations and auto-update order status + send receipt.",
+      "files": [
+        "nexus/server/services/PaymentLinkService.ts",
+        "nexus/server/routes/payment-links.ts",
+        "nexus/server/routes/whatsapp-composio.ts",
+        "nexus/server/index.ts",
+        "nexus/src/components/chat/wpc-constants.ts",
+        "nexus/server/agents/index.ts",
+        "nexus/api/_lib/agents.ts"
+      ],
+      "codeMarker": "@NEXUS-FIX-048",
+      "testCommand": "POST /api/payment-links/generate with {amount: 5, currency: 'KWD'} - should return mock payment link",
+      "critical": false
     }
   ],
 
   "protectedFiles": [
+    {
+      "path": "nexus/api/_lib/agents.ts",
+      "reason": "PRODUCTION Vercel serverless agent definitions - contains Nexus AI personality with tool fidelity rules (FIX-121, FIX-122)",
+      "warningThreshold": 20,
+      "note": "This is the PRODUCTION file deployed to Vercel. Must stay in sync with server/agents/index.ts"
+    },
     {
       "path": "nexus/src/components/chat/WorkflowPreviewCard.tsx",
       "reason": "Contains 15+ critical fixes for workflow execution",
@@ -1464,7 +1562,7 @@
     },
     {
       "path": "nexus/server/agents/index.ts",
-      "reason": "Contains Nexus AI personality and response format fixes - FIX-012, FIX-015, FIX-016, FIX-079, FIX-102",
+      "reason": "Contains Nexus AI personality and response format fixes - FIX-012, FIX-015, FIX-016, FIX-079, FIX-102, FIX-121 to FIX-125",
       "warningThreshold": 30
     },
     {
