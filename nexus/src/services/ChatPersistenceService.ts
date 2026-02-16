@@ -36,7 +36,7 @@ interface SyncResult {
 const STORAGE_KEY = 'nexus-chat-sessions'
 const CURRENT_SESSION_KEY = 'nexus-current-session'
 const SYNC_STATUS_KEY = 'nexus-chat-sync-status'
-const API_BASE = '/api/chat-persistence'
+const API_BASE = '/api/services/chat-persistence'
 
 // ============================================================================
 // localStorage Helpers (unchanged from useChatState for compatibility)

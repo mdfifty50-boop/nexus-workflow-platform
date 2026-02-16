@@ -78,7 +78,7 @@ interface SyncResult {
 const STORAGE_KEY = 'nexus-user-workflows'
 const EXECUTIONS_KEY = 'nexus-workflow-executions'
 const SYNC_STATUS_KEY = 'nexus-workflow-sync-status'
-const API_BASE = '/api/workflow-persistence'
+const API_BASE = '/api/services/workflow-persistence'
 
 // ============================================================================
 // localStorage Helpers
