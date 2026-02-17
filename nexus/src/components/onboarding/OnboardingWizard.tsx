@@ -1317,18 +1317,27 @@ export function OnboardingWizard({
   onTourStart,
 }: OnboardingWizardProps) {
   void _showTourOffer // Reserved for tour offer UI
-  // Initialize state from localStorage or defaults
+  // @NEXUS-FIX-159: Initialize state — always start fresh to prevent stale state jumps
+  // Previously used `initialStep || saved.currentStepIndex` which treated 0 as falsy,
+  // causing the wizard to jump to a saved step from a previous incomplete session.
+  // Now: only resume from saved state if the user explicitly provided a non-zero initialStep.
   const [state, setState] = useState<OnboardingWizardState>(() => {
     if (typeof window === 'undefined') {
       return { ...createInitialState(), currentStepIndex: initialStep }
     }
 
-    const saved = loadWizardState()
-    if (saved) {
-      return { ...saved, currentStepIndex: initialStep || saved.currentStepIndex }
+    // If caller explicitly sets a starting step > 0, use it
+    if (initialStep > 0) {
+      const saved = loadWizardState()
+      if (saved) {
+        return { ...saved, currentStepIndex: initialStep }
+      }
+      return { ...createInitialState(), currentStepIndex: initialStep }
     }
 
-    return { ...createInitialState(), currentStepIndex: initialStep }
+    // Default: start fresh at step 0 (Welcome) to prevent stale-state jumps
+    // The wizard is short enough that restarting is better than confusing the user
+    return createInitialState()
   })
 
   // Persist state to localStorage
@@ -1336,17 +1345,8 @@ export function OnboardingWizard({
     saveWizardState(state)
   }, [state])
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === KEYBOARD_KEYS.ESCAPE) {
-        handleSkip()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  // Keyboard navigation ref — assigned after handleSkip is defined below
+  const handleSkipRef = useRef<() => void>(() => {})
 
   // Update state helper
   const updateState = useCallback((updates: Partial<OnboardingWizardState>) => {
@@ -1424,6 +1424,18 @@ export function OnboardingWizard({
       stepStatuses: newStatuses,
     }))
   }, [state, handleSkip])
+
+  // Keyboard navigation — Escape to skip (ref avoids stale closure)
+  handleSkipRef.current = handleSkip
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === KEYBOARD_KEYS.ESCAPE) {
+        handleSkipRef.current()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Calculate progress
   const progress = calculateProgress(state)

@@ -57,7 +57,6 @@ export function OnboardingNew() {
     workflowDescription,
     workflowName,
     formattedTime,
-    isCompleted,
     nextStep,
     prevStep,
     selectBusinessType,
@@ -71,7 +70,9 @@ export function OnboardingNew() {
     startOnboarding,
   } = useOnboarding()
 
-  // Check if user already completed onboarding
+  // @NEXUS-FIX-158: Check if user already completed onboarding (only on initial mount)
+  // Removed isCompleted from dependencies to prevent auto-navigation race condition.
+  // Navigation to dashboard now happens ONLY via explicit user action (Go to Dashboard button).
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       setIsCheckingCompletion(true)
@@ -90,13 +91,6 @@ export function OnboardingNew() {
         return
       }
 
-      // Check the hook's internal state
-      if (isCompleted) {
-        localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true')
-        navigate('/dashboard', { replace: true })
-        return
-      }
-
       setIsCheckingCompletion(false)
     }
 
@@ -104,7 +98,7 @@ export function OnboardingNew() {
     if (!authLoading) {
       checkOnboardingStatus()
     }
-  }, [authLoading, userProfile, isCompleted, navigate])
+  }, [authLoading, userProfile, navigate])
 
   // Handle OAuth callback
   useEffect(() => {
@@ -199,10 +193,10 @@ export function OnboardingNew() {
     navigate('/dashboard', { replace: true })
   }, [navigate])
 
-  // Handle complete onboarding
+  // @NEXUS-FIX-158: Set completion marker BEFORE async call to prevent race condition
   const handleCompleteOnboarding = useCallback(async () => {
-    await completeOnboarding()
     localStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true')
+    await completeOnboarding()
   }, [completeOnboarding])
 
   // Handle OAuth connection initiation (saves state for callback)

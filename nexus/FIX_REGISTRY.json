@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.55",
+  "_version": "1.0.59",
   "_lastUpdated": "2026-02-17",
-  "_totalFixes": 137,
+  "_totalFixes": 146,
 
   "fixes": [
     {
@@ -1659,6 +1659,126 @@
       "markers": ["@NEXUS-FIX-150"],
       "testCommand": "Send workflow request in chat, verify no JSON visible during streaming - should show 'Building your workflow...' placeholder",
       "critical": false
+    },
+    {
+      "id": "FIX-151",
+      "date": "2026-02-17",
+      "category": "Onboarding",
+      "title": "Mandatory onboarding gate in ProtectedRoute",
+      "problem": "Users could access protected routes (dashboard, chat, templates) without a business profile, making the AI fly blind with no industry context",
+      "solution": "Added onboarding check in ProtectedRoute after auth check. If user is signed in but has no nexus_business_profile and hasn't completed onboarding, redirect to /onboarding. Skips redirect when already on /onboarding page.",
+      "files": ["nexus/src/components/ProtectedRoute.tsx"],
+      "codeMarker": "@NEXUS-FIX-151",
+      "testCommand": "Clear localStorage, navigate to /dashboard as signed-in user - should redirect to /onboarding",
+      "critical": true
+    },
+    {
+      "id": "FIX-152",
+      "date": "2026-02-17",
+      "category": "Onboarding",
+      "title": "Route /onboarding to comprehensive OnboardingWizard",
+      "problem": "Two competing onboarding components existed but the comprehensive 7-step OnboardingWizard was not routed. The basic Onboarding page collected minimal data.",
+      "solution": "Changed /onboarding route in App.tsx to use OnboardingWizard (7 steps: welcome, business profile, goals, integrations, templates, first workflow, completion). OnboardingWizard already calls syncWizardToBusinessProfile() which saves to nexus_business_profile localStorage + Supabase cloud sync.",
+      "files": ["nexus/src/App.tsx"],
+      "codeMarker": "@NEXUS-FIX-152",
+      "testCommand": "Navigate to /onboarding - should show comprehensive 7-step wizard, not basic onboarding page",
+      "critical": true
+    },
+    {
+      "id": "FIX-153",
+      "date": "2026-02-17",
+      "category": "UX",
+      "title": "Chat fallback domain prompt when business profile is missing",
+      "problem": "Users who somehow bypass onboarding (direct URL, cleared localStorage) have no business profile, causing the AI to lack industry context for responses",
+      "solution": "Added lightweight inline domain collection card in ChatContainer. On mount, checks nexus_business_profile. If missing, shows quick-select buttons for industry and role. Saves to nexus_business_profile on submit. Skip sets sessionStorage flag to avoid repeated prompts.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-153",
+      "testCommand": "Clear nexus_business_profile from localStorage, navigate to /chat - should see inline domain prompt above messages",
+      "critical": false
+    },
+    {
+      "id": "FIX-154",
+      "date": "2026-02-17",
+      "category": "Templates",
+      "title": "Industry-filtered template sorting and recommended section",
+      "problem": "Workflow templates were shown in fixed order regardless of user's industry, making it harder to find relevant templates",
+      "solution": "Added getByIndustry() to WorkflowTemplatesService that sorts templates by industry-category relevance. WorkflowTemplates page reads business profile industry and uses sorted templates. Added 'Recommended for [Industry]' section at top with top 4 industry-relevant templates when profile exists.",
+      "files": ["nexus/src/services/WorkflowTemplatesService.ts", "nexus/src/pages/WorkflowTemplates.tsx"],
+      "codeMarker": "@NEXUS-FIX-154",
+      "testCommand": "Set business profile with industry=ecommerce, navigate to /templates - sales/marketing templates should appear first with 'Recommended for E-commerce' section",
+      "critical": false
+    },
+    {
+      "id": "FIX-155",
+      "date": "2026-02-17",
+      "category": "AI Consultancy",
+      "title": "Domain-connected AI consultancy with industry badge and agent priority ordering",
+      "problem": "AI Consultancy room had 8 agents but didn't reorder them by industry relevance. Industry context was auto-detected from topic but not explicitly injected from the user's known business profile.",
+      "solution": "Three changes: (1) Added industry badge next to 'AI Consultancy' header showing '[Industry] Specialists'. (2) Agent list reordered by industry relevance using getIndustryRelevantAgentOrder() with per-industry priority mappings. (3) Explicit industry field added to PartyModeConfig and injected into workflow context during runDiscussionRound().",
+      "files": ["nexus/src/components/AIMeetingRoomV2.tsx", "nexus/src/lib/nexus-party-mode-service.ts"],
+      "codeMarker": "@NEXUS-FIX-155",
+      "testCommand": "Set business profile with industry=saas, navigate to /ai-consultancy - should show 'SaaS Specialists' badge, architect and dev agents should appear first",
+      "critical": false
+    },
+    {
+      "id": "FIX-156",
+      "date": "2026-02-17",
+      "category": "Banking Industry",
+      "title": "Full banking industry implementation: types, personas, templates, agent priorities",
+      "problem": "Banking was lumped into generic 'Finance/Banking' category with no role-specific workflows, no banking-specific AI consultancy overlays, and no institution-type awareness. A bank teller and a CRO got the same generic experience.",
+      "solution": "Added banking as dedicated first-class industry with: (1) 13 banking roles from teller to C-suite in business-profile-types.ts, (2) 10 banking institution types and 11 regulatory framework options, (3) Banking industry config with recommended integrations, templates, and pain points, (4) Full 8-agent banking persona overlay in industry-personas.ts with deep domain expertise per agent, (5) 18 banking-specific workflow templates organized by role level (teller, personal banker, loan officer, branch manager, compliance, risk, treasury, wealth, C-suite), (6) Banking agent priority ordering (compliance-first), (7) Banking category mapping in template service.",
+      "files": [
+        "nexus/src/components/onboarding/business-profile-types.ts",
+        "nexus/src/components/onboarding/industry-config.ts",
+        "nexus/src/lib/industry-personas.ts",
+        "nexus/src/services/WorkflowTemplatesService.ts",
+        "nexus/src/lib/nexus-party-mode-service.ts",
+        "nexus/src/hooks/useBusinessProfile.ts",
+        "nexus/src/components/chat/ChatContainer.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-156",
+      "testCommand": "Set business profile with industry=banking, bankingRole=compliance-officer. Navigate to /templates - banking templates should appear in 'Recommended'. Navigate to /ai-consultancy - compliance agent should appear first with 'Banking Specialists' badge.",
+      "critical": false
+    },
+    {
+      "id": "FIX-157",
+      "date": "2026-02-17",
+      "category": "AI Consultancy",
+      "title": "Dedicated industry agents: 8 unique agents per industry with domain-specific names, titles, icons, and identities",
+      "problem": "AI Consultancy used the same 8 generic agents (Mary, Winston, Amelia, etc.) for all industries. Industry overlays only added text prompts but kept the same names, titles, and icons — making the agents feel generic regardless of user's domain.",
+      "solution": "Created industry-agents.ts with 104 dedicated agent definitions (8 per 13 industries). Each industry gets agents with: (1) Unique human names (culturally diverse), (2) Domain-specific titles matching the industry (e.g., 'Chief Compliance & BSA Officer' for banking vs 'Commerce Compliance & Privacy Officer' for e-commerce), (3) Industry-relevant icons, (4) Deep domain-specific identities and communication styles, (5) Industry-specific principles. Agent IDs remain consistent for backward compatibility. Wired into AIMeetingRoomV2.tsx (lookupAgent), nexus-party-mode-service.ts (getIndustryRelevantAgentOrder, getAllAgents, getAgent, runDiscussionRound, generateWelcomeMessage).",
+      "files": [
+        "nexus/src/lib/industry-agents.ts",
+        "nexus/src/lib/nexus-party-mode-service.ts",
+        "nexus/src/components/AIMeetingRoomV2.tsx"
+      ],
+      "codeMarker": "@NEXUS-FIX-157",
+      "testCommand": "Set business profile industry=banking. Navigate to AI Consultancy. Agents should show as Victoria (Banking Strategy Director), Clarence (Chief Compliance & BSA Officer), Nadia (Banking Process Automation Engineer), etc. — NOT Mary, Murat, Amelia. Switch industry to ecommerce — agents should change to Priya, Henrik, Lena, etc.",
+      "critical": false
+    },
+    {
+      "id": "FIX-158",
+      "date": "2026-02-17",
+      "category": "Onboarding",
+      "title": "Onboarding completion markers set synchronously to prevent redirect loop",
+      "problem": "Clicking 'Go to Dashboard' after onboarding test would loop back to onboarding. The completeOnboarding() function in useOnboarding.ts never set nexus_onboarding_completed in localStorage. Onboarding.tsx's handleGoToDashboard didn't set any markers. OnboardingNew.tsx had a race condition where useEffect auto-navigated before localStorage was set.",
+      "solution": "Set nexus_onboarding_completed synchronously in completeOnboarding() before any async ops. Fixed handleGoToDashboard in Onboarding.tsx to set marker before navigation. Fixed OnboardingNew.tsx race condition by setting localStorage before async call and removing isCompleted from auto-navigation useEffect dependencies.",
+      "files": ["nexus/src/hooks/useOnboarding.ts", "nexus/src/pages/Onboarding.tsx", "nexus/src/pages/OnboardingNew.tsx", "nexus/src/App.tsx"],
+      "codeMarker": "@NEXUS-FIX-158",
+      "testCommand": "Complete onboarding flow (4-step or 7-step), click 'Go to Dashboard' — should reach dashboard without looping back to onboarding",
+      "critical": true
+    },
+    {
+      "id": "FIX-159",
+      "date": "2026-02-17",
+      "category": "Onboarding",
+      "title": "OnboardingWizard starts fresh to prevent stale state jumps",
+      "problem": "7-step OnboardingWizard used `initialStep || saved.currentStepIndex` which treated 0 as falsy, causing wizard to jump to a saved step from a previous incomplete session. Users saw 'Tell us about your business' briefly then it switched to a later step.",
+      "solution": "Changed wizard initialization to always start fresh at step 0 (Welcome) when initialStep is 0 (default). The wizard is short enough that restarting is better UX than confusing mid-wizard jumps. Also fixed keyboard handler stale closure issue.",
+      "files": ["nexus/src/components/onboarding/OnboardingWizard.tsx"],
+      "codeMarker": "@NEXUS-FIX-159",
+      "testCommand": "Navigate to /onboarding — should always start at Welcome step, never jump to a middle step",
+      "critical": true
     }
   ],
 

@@ -54,9 +54,10 @@ export function Onboarding() {
     startOnboarding()
   }, [startOnboarding])
 
-  // Handle navigation to dashboard
+  // @NEXUS-FIX-158: Set completion marker before navigating to prevent redirect loop
   const handleGoToDashboard = () => {
-    navigate('/dashboard')
+    localStorage.setItem('nexus_onboarding_completed', 'true')
+    navigate('/dashboard', { replace: true })
   }
 
   // Step labels for progress indicator

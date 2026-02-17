@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useCallback } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { initErrorTracking, setUserId } from '@/lib/errorTracking'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 // @NEXUS-FIX-104: Import directly from file, NOT from barrel export (@/services)
@@ -18,6 +18,7 @@ import { GlobalConfetti } from '@/components/GlobalConfetti'
 import { AchievementsProvider } from '@/contexts/AchievementsContext'
 import { AchievementNotification } from '@/components/AchievementNotification'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { AdminProtectedRoute } from '@/components/AdminProtectedRoute'
 import {
   BaseErrorBoundary,
   WorkflowErrorBoundary,
@@ -96,6 +97,8 @@ const MyConnectedApps = lazy(() => import('@/pages/MyConnectedApps').then(m => (
 // ADMIN PAGES
 // =============================================================================
 const AdminPanel = lazy(() => import('@/pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })))
+const UserDetail = lazy(() => import('@/pages/admin/UserDetail').then(m => ({ default: m.UserDetail })))
 const Monitoring = lazy(() => import('@/pages/admin/Monitoring').then(m => ({ default: m.Monitoring })))
 
 // =============================================================================
@@ -119,9 +122,11 @@ const Try = lazy(() => import('@/pages/Try').then(m => ({ default: m.Try })))
 
 // =============================================================================
 // ONBOARDING - New user onboarding flow (<5 min to first workflow)
+// @NEXUS-FIX-152: Use comprehensive OnboardingWizard as canonical onboarding flow
 // =============================================================================
-const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })))
+// Onboarding (basic) replaced by OnboardingWizard at FIX-152
 const OnboardingNew = lazy(() => import('@/pages/OnboardingNew').then(m => ({ default: m.OnboardingNew })))
+const OnboardingWizardPage = lazy(() => import('@/components/onboarding/OnboardingWizard'))
 
 // =============================================================================
 // DEMO PAGES - Meeting room and component showcases
@@ -245,6 +250,19 @@ function RouteLoadingFallback() {
 }
 
 
+// @NEXUS-FIX-152 + @NEXUS-FIX-158: OnboardingWizard wrapper that navigates to /dashboard on completion
+function OnboardingWizardRoute() {
+  const navigate = useNavigate()
+  const handleComplete = useCallback(() => {
+    // @NEXUS-FIX-158: Ensure completion markers are set before navigation
+    // The wizard's handleNext already calls markWizardCompleted() + syncWizardToBusinessProfile(),
+    // but we also set nexus_onboarding_completed as a defensive fallback.
+    localStorage.setItem('nexus_onboarding_completed', 'true')
+    navigate('/dashboard', { replace: true })
+  }, [navigate])
+  return <OnboardingWizardPage onComplete={handleComplete} />
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -282,14 +300,10 @@ function App() {
           <Route path="/login/*" element={<Login />} />
           <Route path="/sign-up/*" element={<SignUp />} />
 
-          {/* Onboarding - new user flow (<5 min to first workflow) */}
+          {/* @NEXUS-FIX-152: Onboarding uses comprehensive 7-step OnboardingWizard */}
           <Route
             path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
+            element={<OnboardingWizardRoute />}
           />
 
           {/* Enhanced Onboarding - new version with OAuth handling */}
@@ -398,17 +412,34 @@ function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
-                <AdminPanel />
-              </ProtectedRoute>
+              <AdminProtectedRoute>
+                <AdminDashboard />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users/:id"
+            element={
+              <AdminProtectedRoute>
+                <UserDetail />
+              </AdminProtectedRoute>
             }
           />
           <Route
             path="/admin/monitoring"
             element={
-              <ProtectedRoute>
+              <AdminProtectedRoute>
                 <Monitoring />
-              </ProtectedRoute>
+              </AdminProtectedRoute>
+            }
+          />
+          {/* Legacy admin panel route */}
+          <Route
+            path="/admin/system"
+            element={
+              <AdminProtectedRoute>
+                <AdminPanel />
+              </AdminProtectedRoute>
             }
           />
           <Route

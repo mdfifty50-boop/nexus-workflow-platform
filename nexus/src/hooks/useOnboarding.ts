@@ -236,13 +236,18 @@ export function useOnboarding() {
 
   // Complete onboarding
   const completeOnboarding = useCallback(async () => {
+    // @NEXUS-FIX-158: Set completion marker SYNCHRONOUSLY before any async ops
+    // This prevents the race condition where ProtectedRoute checks localStorage
+    // before the marker is set, causing a redirect loop back to onboarding.
+    localStorage.setItem('nexus_onboarding_completed', 'true')
+
     const completedState = {
       ...state,
       isCompleted: true,
     }
     setState(completedState)
 
-    // Also save to user profile if available
+    // Also save to user profile if available (async, non-blocking)
     if (userProfile && updateProfile) {
       try {
         await updateProfile({
