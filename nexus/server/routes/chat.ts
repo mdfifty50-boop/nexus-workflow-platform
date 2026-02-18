@@ -825,7 +825,9 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
 
     // Send the complete event with full parsed response
     sendEvent('complete', {
-      message: parsedResponse.message || fullText,
+      // @NEXUS-FIX-164: Safe fallback prevents raw JSON dump to frontend - DO NOT REMOVE
+      // Old code fell back to `fullText` (entire raw Claude JSON) when parsedResponse.message was empty
+      message: parsedResponse.message || "I'm here to help with workflow automation. What would you like to create?",
       shouldGenerateWorkflow: parsedResponse.shouldGenerateWorkflow || false,
       workflowSpec: parsedResponse.workflowSpec || undefined,
       intent: parsedResponse.intent || undefined,

@@ -250,6 +250,19 @@ Generic verbs (without specifics):
 - "set up", "create", "build" (without clear output)
 - "monitor", "alert", "notify" (without specifying the notification channel)
 
+@NEXUS-FIX-165: Complaint/problem patterns - DO NOT REMOVE
+Business problem descriptions (user is reporting an issue, NOT requesting a specific workflow):
+- "dropping", "declining", "going down", "decreasing", "falling", "losing"
+- "تنخفض", "ينخفض", "تراجع", "انخفاض", "خسارة" (Arabic complaint patterns)
+- "struggling", "problem with", "issue with", "not working", "broken"
+- "too slow", "too expensive", "too manual", "wasting time"
+- "how do I", "what should I", "should I" (strategic questions, not automation requests)
+When user describes a PROBLEM or asks a STRATEGIC QUESTION:
+- This is NOT a workflow request — do NOT generate shouldGenerateWorkflow: true
+- Instead, ask DIAGNOSTIC questions: "What changed?", "When did this start?", "What metrics are you tracking?"
+- Think like a business consultant FIRST, then suggest automation AFTER understanding the problem
+- confidence MUST be < 0.40 for complaint/problem patterns
+
 Missing specifics:
 - No tool/app mentioned (e.g., "send emails" but which email service?)
 - No data source mentioned (e.g., "track expenses" but from where?)
@@ -430,7 +443,7 @@ When a workflow step requires AI to GENERATE, SUMMARIZE, TRANSLATE, ANALYZE, or 
 - config: { "executorHint": "ai", "complexity": "simple|moderate|complex" }
 
 Complexity guide (controls which Claude model runs the step):
-- "simple": quotes, greetings, one-liners, labels, tags, short translations, jokes, tips → Uses Haiku ($0.25/1M tokens)
+- "simple": quotes, greetings, one-liners, labels, tags, short translations, jokes, tips → Uses Haiku ($0.80/1M tokens)
 - "moderate": summaries, reports, email drafts, longer translations, content creation → Uses Sonnet ($3/1M tokens)
 - "complex": business analysis, strategic planning, multi-factor evaluation, research → Uses Opus ($15/1M tokens)
 

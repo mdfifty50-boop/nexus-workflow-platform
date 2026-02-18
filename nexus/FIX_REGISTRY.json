@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.59",
-  "_lastUpdated": "2026-02-17",
-  "_totalFixes": 146,
+  "_version": "1.0.60",
+  "_lastUpdated": "2026-02-18",
+  "_totalFixes": 151,
 
   "fixes": [
     {
@@ -1778,6 +1778,66 @@
       "files": ["nexus/src/components/onboarding/OnboardingWizard.tsx"],
       "codeMarker": "@NEXUS-FIX-159",
       "testCommand": "Navigate to /onboarding — should always start at Welcome step, never jump to a middle step",
+      "critical": true
+    },
+    {
+      "id": "FIX-167",
+      "date": "2026-02-18",
+      "category": "AI Brain",
+      "title": "Gate workflow card on unanswered clarifyingQuestions",
+      "problem": "Claude returned both shouldGenerateWorkflow:true AND clarifyingQuestions in same response. Frontend created WorkflowPreviewCard immediately without waiting for user to answer diagnostic questions. This caused premature 'Gmail to Google Sheets' card for 'my sales are dropping'.",
+      "solution": "Added gate in ChatContainer: if AI returns both shouldGenerateWorkflow:true AND clarifyingQuestions, suppress the card and display questions first. Only generate card after questions are answered.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-167",
+      "testCommand": "Type 'my sales are dropping' in chat - should get clarifying questions FIRST, no workflow card until questions answered",
+      "critical": true
+    },
+    {
+      "id": "FIX-163",
+      "date": "2026-02-18",
+      "category": "JSON Leak",
+      "title": "Eliminate raw JSON flash during streaming",
+      "problem": "JSON detection during streaming required trimmed.length > 3, allowing first 1-3 tokens of raw JSON ({, {\", {\"m) to flash in the chat before detection kicked in.",
+      "solution": "Removed the length > 3 guard. Now any response starting with '{' is immediately treated as JSON and replaced with placeholder text.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-163",
+      "testCommand": "Send any message to AI - should never see raw '{' or '{\"' flash during streaming",
+      "critical": true
+    },
+    {
+      "id": "FIX-164",
+      "date": "2026-02-18",
+      "category": "JSON Leak",
+      "title": "Safe fallback for server complete event",
+      "problem": "Server SSE complete event used `parsedResponse.message || fullText` as fallback. When JSON parsing failed, fullText (entire raw Claude JSON) was sent as the message, exposing raw JSON to users.",
+      "solution": "Replaced fullText fallback with safe default message. Raw Claude JSON is never forwarded to frontend.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-164",
+      "testCommand": "Verify chat responses never show raw JSON even when server-side parsing fails",
+      "critical": true
+    },
+    {
+      "id": "FIX-165",
+      "date": "2026-02-18",
+      "category": "AI Brain",
+      "title": "Complaint/problem patterns added to vagueness triggers",
+      "problem": "User said 'my sales are dropping' but vagueness detection only covered generic verbs (automate, track, manage). Complaint patterns like 'dropping', 'declining', 'going down' were not recognized as vague/diagnostic, so Claude jumped to workflow generation instead of asking diagnostic questions.",
+      "solution": "Added complaint/problem patterns (English + Arabic) to vagueness triggers in system prompt. When user describes a business problem, confidence is forced below 0.40 and Claude asks diagnostic questions first.",
+      "files": ["nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-165",
+      "testCommand": "Type 'my sales are dropping' - AI should ask diagnostic questions like 'What changed?' not 'What CRM do you use?'",
+      "critical": true
+    },
+    {
+      "id": "FIX-166",
+      "date": "2026-02-18",
+      "category": "Race Condition",
+      "title": "Guard against double conversation history push",
+      "problem": "ChatContainer.handleSend() called setConversationHistory(messages) with stale React state, then chatStream() pushed the user message again. This caused duplicate user messages in Claude's context, confusing the AI into generating premature workflows.",
+      "solution": "Added guard in chatStream(): before pushing user message, check if the last message in history is already the same user message. Prevents duplicates regardless of React timing.",
+      "files": ["nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-166",
+      "testCommand": "Send multiple messages in quick succession - verify no duplicate user messages in AI context (check console logs)",
       "critical": true
     }
   ],

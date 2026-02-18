@@ -878,7 +878,9 @@ export function ChatContainer({
                   const trimmed = streamedText.trimStart()
                   // Detect ANY JSON response from the AI (all Claude responses are JSON-formatted)
                   // This prevents raw JSON from ever being shown during streaming
-                  if (trimmed.startsWith('{') && trimmed.length > 3 && /^\{\s*"/.test(trimmed)) {
+                  // @NEXUS-FIX-163: Detect JSON from first character - DO NOT REMOVE
+                  // Old code had `trimmed.length > 3` which allowed 1-3 raw JSON tokens to flash
+                  if (trimmed.startsWith('{')) {
                     looksLikeWorkflowJSON = true
                   }
                 }
@@ -1026,6 +1028,33 @@ export function ChatContainer({
               setIsLoading(false)
               return
             }
+          }
+
+          // @NEXUS-FIX-167: Gate card creation on unanswered clarifyingQuestions - DO NOT REMOVE
+          // If Claude returned BOTH a workflowSpec AND clarifyingQuestions, suppress the card
+          // and display the questions first. This prevents premature workflow generation when
+          // the user hasn't answered diagnostic questions yet.
+          if (aiResponse.shouldGenerateWorkflow && aiResponse.clarifyingQuestions && aiResponse.clarifyingQuestions.length > 0) {
+            console.log('[ChatContainer] @NEXUS-FIX-167: Suppressing premature workflow card - clarifying questions pending:', aiResponse.clarifyingQuestions.length)
+            aiResponse.shouldGenerateWorkflow = false
+            // Fall through to the non-workflow display path which handles clarifyingQuestions
+            let displayText = aiResponse.text || ''
+
+            // Encode clarifying questions as clickable options
+            for (const q of aiResponse.clarifyingQuestions) {
+              const optionsData = {
+                question: q.question || q,
+                options: q.options || [],
+                field: q.field || 'clarification',
+                remainingQuestions: aiResponse.clarifyingQuestions.filter((cq: unknown) => cq !== q)
+              }
+              const encodedData = btoa(JSON.stringify(optionsData))
+              displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
+            }
+
+            updateMessage(streamingMsg.id, { content: displayText, isStreaming: false })
+            setIsLoading(false)
+            return
           }
 
           // Claude indicated workflow generation - use the workflowSpec if provided

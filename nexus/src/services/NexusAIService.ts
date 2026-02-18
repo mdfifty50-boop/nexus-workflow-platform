@@ -426,11 +426,17 @@ class NexusAIService {
     onToken: (token: string) => void,
     context?: { persona?: string; chatMode?: 'standard' | 'think_with_me'; language?: string }
   ): Promise<NexusAIResponse> {
-    // Add user message to history (same as chat())
-    this.conversationHistory.push({
-      role: 'user',
-      content: userMessage
-    })
+    // @NEXUS-FIX-166: Guard against double-push of user message - DO NOT REMOVE
+    // ChatContainer.handleSend() calls setConversationHistory(messages) before chatStream(),
+    // and if React state is fast enough, the user message may already be in history.
+    // This guard prevents the message from appearing twice in Claude's context.
+    const lastMsg = this.conversationHistory[this.conversationHistory.length - 1]
+    if (!(lastMsg && lastMsg.role === 'user' && lastMsg.content === userMessage)) {
+      this.conversationHistory.push({
+        role: 'user',
+        content: userMessage
+      })
+    }
 
     // Keep history manageable (last 10 messages)
     if (this.conversationHistory.length > 10) {
