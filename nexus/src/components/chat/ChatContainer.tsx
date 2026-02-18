@@ -1333,6 +1333,7 @@ export function ChatContainer({
                       }}
                       customIntegrations={workflowCustomIntegrations}
                       autoExecute={false}
+                      chatLanguage={chatLanguage}
                       onExecutionComplete={(success) => {
                         console.log(`[ChatContainer] Workflow ${workflowId} execution:`, success ? 'SUCCESS' : 'FAILED')
                       }}

@@ -332,17 +332,34 @@ router.post('/', chatRateLimiter, async (req, res) => {
     // Combine user context with tool context and intent data
     let enrichedUserContext = userContext || ''
     // @NEXUS-FIX-160: Improved Arabic language instruction with explicit JSON format example - DO NOT REMOVE
+    // @NEXUS-FIX-161: Arabic workflow step names and descriptions - DO NOT REMOVE
     // Language preference from UI (user selected language)
     if (language && language !== 'en-US') {
       const langPrefix = language.startsWith('ar')
         ? `CRITICAL LANGUAGE RULE: The user has selected "${language}" as their preferred language.
 Respond in Arabic (Gulf/Kuwaiti dialect preferred).
 HOWEVER, your response MUST be valid JSON with these EXACT English field names: "message", "shouldGenerateWorkflow", "intent", "confidence", "workflowSpec".
-Only the VALUE of "message" should be in Arabic. All other field names and boolean/number values stay in English.
+
+ARABIC TEXT RULES:
+1. The VALUE of "message" MUST be in Arabic.
+2. When generating a workflowSpec, ALL human-readable text MUST be in Arabic:
+   - workflowSpec.name MUST be in Arabic (e.g., "حفظ رسائل البريد في جدول بيانات")
+   - workflowSpec.description MUST be in Arabic
+   - EVERY step's "name" field in workflowSpec.steps[] MUST be in Arabic (e.g., "استقبال بريد إلكتروني جديد")
+   - estimatedTimeSaved MUST be in Arabic (e.g., "ساعتين في الأسبوع")
+3. ONLY the JSON field KEYS stay in English: "name", "id", "tool", "type", "steps", "description", etc.
+4. ONLY "tool" VALUES stay in English lowercase (e.g., "gmail", "slack", "googlesheets")
+5. ONLY "type" VALUES stay in English ("trigger", "action")
+6. ONLY "id" VALUES stay in English (e.g., "step_1", "step_2")
+
+Example of a correct Arabic workflow response:
+{"message": "سأنشئ لك سير عمل لحفظ رسائل البريد في جدول بيانات.", "shouldGenerateWorkflow": true, "intent": "workflow", "confidence": 0.9, "workflowSpec": {"name": "حفظ رسائل البريد في جدول بيانات", "description": "عند استقبال بريد إلكتروني جديد، يتم حفظ المعلومات تلقائياً في جدول بيانات جوجل", "steps": [{"id": "step_1", "name": "استقبال بريد إلكتروني جديد", "tool": "gmail", "type": "trigger"}, {"id": "step_2", "name": "حفظ البيانات في جدول بيانات", "tool": "googlesheets", "type": "action"}], "requiredIntegrations": ["gmail", "googlesheets"], "estimatedTimeSaved": "ساعتين في الأسبوع"}}
+
+Example of a correct Arabic greeting response (no workflow):
+{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
+
 For conversational responses (no workflow needed), set shouldGenerateWorkflow to false.
 NEVER include workflow specs unless the user EXPLICITLY asks for automation/workflow.
-Example of a correct Arabic greeting response:
-{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
 Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
         : `The user has selected "${language}" as their preferred language. Respond in this language but ALWAYS maintain the JSON response format.`
       enrichedUserContext = langPrefix + '\n\n' + enrichedUserContext
@@ -696,17 +713,34 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
     // Build enriched context
     let enrichedUserContext = userContext || ''
     // @NEXUS-FIX-160: Improved Arabic language instruction with explicit JSON format example (stream path) - DO NOT REMOVE
+    // @NEXUS-FIX-161: Arabic workflow step names and descriptions (stream path) - DO NOT REMOVE
     // Language preference from UI (user selected language)
     if (language && language !== 'en-US') {
       const langPrefix = language.startsWith('ar')
         ? `CRITICAL LANGUAGE RULE: The user has selected "${language}" as their preferred language.
 Respond in Arabic (Gulf/Kuwaiti dialect preferred).
 HOWEVER, your response MUST be valid JSON with these EXACT English field names: "message", "shouldGenerateWorkflow", "intent", "confidence", "workflowSpec".
-Only the VALUE of "message" should be in Arabic. All other field names and boolean/number values stay in English.
+
+ARABIC TEXT RULES:
+1. The VALUE of "message" MUST be in Arabic.
+2. When generating a workflowSpec, ALL human-readable text MUST be in Arabic:
+   - workflowSpec.name MUST be in Arabic (e.g., "حفظ رسائل البريد في جدول بيانات")
+   - workflowSpec.description MUST be in Arabic
+   - EVERY step's "name" field in workflowSpec.steps[] MUST be in Arabic (e.g., "استقبال بريد إلكتروني جديد")
+   - estimatedTimeSaved MUST be in Arabic (e.g., "ساعتين في الأسبوع")
+3. ONLY the JSON field KEYS stay in English: "name", "id", "tool", "type", "steps", "description", etc.
+4. ONLY "tool" VALUES stay in English lowercase (e.g., "gmail", "slack", "googlesheets")
+5. ONLY "type" VALUES stay in English ("trigger", "action")
+6. ONLY "id" VALUES stay in English (e.g., "step_1", "step_2")
+
+Example of a correct Arabic workflow response:
+{"message": "سأنشئ لك سير عمل لحفظ رسائل البريد في جدول بيانات.", "shouldGenerateWorkflow": true, "intent": "workflow", "confidence": 0.9, "workflowSpec": {"name": "حفظ رسائل البريد في جدول بيانات", "description": "عند استقبال بريد إلكتروني جديد، يتم حفظ المعلومات تلقائياً في جدول بيانات جوجل", "steps": [{"id": "step_1", "name": "استقبال بريد إلكتروني جديد", "tool": "gmail", "type": "trigger"}, {"id": "step_2", "name": "حفظ البيانات في جدول بيانات", "tool": "googlesheets", "type": "action"}], "requiredIntegrations": ["gmail", "googlesheets"], "estimatedTimeSaved": "ساعتين في الأسبوع"}}
+
+Example of a correct Arabic greeting response (no workflow):
+{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
+
 For conversational responses (no workflow needed), set shouldGenerateWorkflow to false.
 NEVER include workflow specs unless the user EXPLICITLY asks for automation/workflow.
-Example of a correct Arabic greeting response:
-{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
 Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
         : `The user has selected "${language}" as their preferred language. Respond in this language but ALWAYS maintain the JSON response format.`
       enrichedUserContext = langPrefix + '\n\n' + enrichedUserContext

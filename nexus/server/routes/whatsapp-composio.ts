@@ -314,7 +314,7 @@ The WhatsApp handler will format the workflow preview appropriately.
     const response = await callClaudeWithCaching({
       systemBlocks,
       messages,
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       maxTokens: 1024, // Shorter for WhatsApp
     })
 
@@ -809,6 +809,40 @@ router.post('/connect', async (req: Request, res: Response) => {
     const result = await whatsAppComposioService.initiateConnection(redirectUrl)
 
     if (result.error) {
+      // @NEXUS-FIX-162: Detect WhatsApp Business WABA ID missing error and return user-friendly response - DO NOT REMOVE
+      // Composio requires a WhatsApp Business Account (WABA) ID to be pre-configured before OAuth.
+      // Without it, Composio returns 400 ConnectedAccount_MissingRequiredFields.
+      // We intercept this and return structured guidance so the user sees a friendly explanation,
+      // not raw JSON like '400 {"error":{"message":"Missing required fields: WABA ID..."}}'.
+      const errorStr = String(result.error)
+      const isWabaError = (
+        errorStr.includes('WABA') ||
+        errorStr.includes('WhatsApp Business Account ID') ||
+        errorStr.includes('ConnectedAccount_MissingRequiredFields') ||
+        errorStr.includes('Missing required fields')
+      )
+
+      if (isWabaError) {
+        return res.status(400).json({
+          success: false,
+          errorType: 'WABA_ID_REQUIRED',
+          error: 'WhatsApp Business Account ID (WABA ID) is required to connect.',
+          guidance: {
+            title: 'WhatsApp Business Account (WABA) ID Required',
+            description: 'To connect WhatsApp Business via the API, you need a WhatsApp Business Account ID (WABA ID) pre-configured in Composio.',
+            steps: [
+              'Log in to your Meta Business Suite at business.facebook.com',
+              'Go to WhatsApp > Settings (or call GET /me/businesses then GET /{business_id}/owned_whatsapp_business_accounts with your Meta access token)',
+              'Copy your WhatsApp Business Account ID (WABA ID)',
+              'Configure it in your Composio dashboard before attempting to connect',
+            ],
+            alternativeTitle: 'Alternative: Use WhatsApp Web (Scan QR Code)',
+            alternativeDescription: 'Connect your personal or business WhatsApp by scanning a QR code — no WABA ID needed. This works for most automation use cases.',
+            docsUrl: 'https://developers.facebook.com/docs/whatsapp/business-account',
+          },
+        })
+      }
+
       return res.status(400).json({
         success: false,
         error: result.error,

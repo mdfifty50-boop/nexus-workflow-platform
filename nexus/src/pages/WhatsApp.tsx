@@ -18,6 +18,16 @@ import { useNavigate } from 'react-router-dom'
 // TYPES
 // =============================================================================
 
+// @NEXUS-FIX-162: WABA ID guidance structure from backend - DO NOT REMOVE
+interface WabaGuidance {
+  title: string
+  description: string
+  steps: string[]
+  alternativeTitle: string
+  alternativeDescription: string
+  docsUrl: string
+}
+
 interface ConnectionStatus {
   connected: boolean
   businessName?: string
@@ -68,6 +78,8 @@ export function WhatsApp() {
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // @NEXUS-FIX-162: WABA ID guidance state - DO NOT REMOVE
+  const [wabaGuidance, setWabaGuidance] = useState<WabaGuidance | null>(null)
 
   // Conversation state
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -118,6 +130,8 @@ export function WhatsApp() {
     try {
       setConnecting(true)
       setError(null)
+      // @NEXUS-FIX-162: Clear WABA guidance on new attempt - DO NOT REMOVE
+      setWabaGuidance(null)
 
       const response = await fetch('/api/whatsapp-composio/connect', {
         method: 'POST',
@@ -135,6 +149,14 @@ export function WhatsApp() {
           businessName: data.account?.businessName,
           phoneNumberId: data.account?.phoneNumberId,
         })
+        return
+      }
+
+      // @NEXUS-FIX-162: Handle WABA ID missing error with user-friendly guidance - DO NOT REMOVE
+      // WhatsApp Business API via Composio requires a pre-configured WABA ID.
+      // Instead of showing raw JSON error, show structured setup instructions.
+      if (data.errorType === 'WABA_ID_REQUIRED' && data.guidance) {
+        setWabaGuidance(data.guidance)
         return
       }
 
@@ -168,7 +190,13 @@ export function WhatsApp() {
           setConnecting(false)
         }, 5 * 60 * 1000)
       } else if (data.error) {
-        setError(data.error)
+        // Show generic errors (non-WABA) as a plain message - strip raw JSON if present
+        const rawError = String(data.error)
+        const isRawJson = rawError.startsWith('{') || rawError.includes('"error":{')
+        setError(isRawJson
+          ? 'Connection failed. Please check your Composio configuration and try again.'
+          : rawError
+        )
       }
     } catch (err) {
       console.error('Failed to connect WhatsApp:', err)
@@ -298,6 +326,46 @@ export function WhatsApp() {
               Connect your WhatsApp Business account to send messages, automate responses,
               and engage with customers directly through Nexus.
             </p>
+
+            {/* @NEXUS-FIX-162: WABA ID guidance card - shows instead of raw error - DO NOT REMOVE */}
+            {wabaGuidance && (
+              <div className="w-full max-w-lg mb-6 text-left">
+                <div className="p-5 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-xl flex-shrink-0">⚠️</span>
+                    <div>
+                      <h3 className="text-amber-300 font-semibold text-base">{wabaGuidance.title}</h3>
+                      <p className="text-amber-200/70 text-sm mt-1">{wabaGuidance.description}</p>
+                    </div>
+                  </div>
+                  <ol className="space-y-2 mb-4 ml-8">
+                    {wabaGuidance.steps.map((step, i) => (
+                      <li key={i} className="text-sm text-slate-300">
+                        <span className="text-amber-400 font-medium mr-2">{i + 1}.</span>{step}
+                      </li>
+                    ))}
+                  </ol>
+                  <a
+                    href={wabaGuidance.docsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-amber-400 hover:text-amber-300 underline block mb-4"
+                  >
+                    Meta WhatsApp Business API Docs
+                  </a>
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <p className="text-green-400 font-medium text-sm mb-1">{wabaGuidance.alternativeTitle}</p>
+                    <p className="text-slate-400 text-xs">{wabaGuidance.alternativeDescription}</p>
+                    <button
+                      onClick={() => { setWabaGuidance(null); navigate('/chat') }}
+                      className="mt-2 text-xs text-green-400 hover:text-green-300 underline"
+                    >
+                      Go to Chat to connect via QR code
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="w-full max-w-md mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">

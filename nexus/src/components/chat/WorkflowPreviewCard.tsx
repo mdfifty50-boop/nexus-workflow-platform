@@ -482,6 +482,83 @@ function TriggerSampleDataPrompt({
 // Main Component
 // ============================================================================
 
+// @NEXUS-FIX-161: Arabic translations for WorkflowPreviewCard static UI strings - DO NOT REMOVE
+const AR_TRANSLATIONS: Record<string, string> = {
+  // Header & progress
+  'steps': 'خطوات',
+  'Open full visualization': 'فتح العرض الكامل',
+  // Progress bar status
+  'Workflow completed!': 'اكتمل سير العمل!',
+  'Execution failed': 'فشل التنفيذ',
+  'Executing...': 'جاري التنفيذ...',
+  'Checking connections...': 'جاري فحص الاتصالات...',
+  'Ready to execute': 'جاهز للتنفيذ',
+  // Node detail panel
+  'Trigger': 'المشغّل',
+  'Action': 'إجراء',
+  'Output': 'مخرج',
+  'Waiting': 'في الانتظار',
+  'Pending': 'قيد الانتظار',
+  'Running...': 'قيد التشغيل...',
+  'Complete': 'مكتمل',
+  'Failed': 'فشل',
+  'Close node details': 'إغلاق تفاصيل العقدة',
+  // Assumptions
+  'Smart defaults applied:': 'تم تطبيق الإعدادات الذكية:',
+  // Confidence
+  'Confidence:': 'مستوى الثقة:',
+  // Pre-flight
+  'Quick Setup': 'إعداد سريع',
+  'of': 'من',
+  'Next': 'التالي',
+  // Pre-flight complete
+  'All information collected - ready to execute!': 'تم جمع كل المعلومات - جاهز للتنفيذ!',
+  // Collected info
+  'Collected Information': 'المعلومات المجمّعة',
+  // Execution mode
+  'Beta Test': 'اختبار تجريبي',
+  '(Your Account)': '(حسابك)',
+  'Production': 'إنتاج',
+  '(Client)': '(العميل)',
+  'Test with YOUR connected accounts before deploying to clients': 'اختبر مع حساباتك المتصلة قبل النشر للعملاء',
+  'Execute using client\'s connected accounts': 'نفّذ باستخدام حسابات العميل المتصلة',
+  // Execute button
+  'Running beta test...': 'جاري الاختبار التجريبي...',
+  'Executing workflow...': 'جاري تنفيذ سير العمل...',
+  'Run Beta Test': 'تشغيل الاختبار التجريبي',
+  'Execute Now': 'نفّذ الآن',
+  // Edit
+  'Edit Workflow': 'تعديل سير العمل',
+  // Retry
+  'Retry Execution': 'إعادة التنفيذ',
+  // Success - Beta
+  'Beta Test Passed!': 'نجح الاختبار التجريبي!',
+  'Test Completed with Warnings': 'اكتمل الاختبار مع تحذيرات',
+  'Everything worked perfectly with your account': 'كل شيء يعمل بشكل مثالي مع حسابك',
+  'steps completed': 'خطوات مكتملة',
+  'Production mode': 'وضع الإنتاج',
+  'Some steps completed but we couldn\'t confirm delivery.': 'اكتملت بعض الخطوات لكن لم نتمكن من تأكيد التسليم.',
+  'Please check your connected apps to verify the actions took place.': 'يرجى التحقق من تطبيقاتك المتصلة للتأكد من تنفيذ الإجراءات.',
+  'What\'s next?': 'ما التالي؟',
+  'Deploy to Production': 'نشر للإنتاج',
+  'Run Again': 'تشغيل مرة أخرى',
+  'View All Workflows': 'عرض كل سير العمل',
+  'My Workflows': 'سير العمل الخاص بي',
+  // Success - Production
+  'Workflow Complete!': 'اكتمل سير العمل!',
+  'Your automation ran successfully': 'تم تشغيل الأتمتة بنجاح',
+  'Want this to run automatically? Ask me to set up a schedule!': 'تريد تشغيله تلقائياً؟ اطلب مني إعداد جدول زمني!',
+  // Orchestration loading
+  'Discovering required fields for new integration...': 'جاري اكتشاف الحقول المطلوبة للتكامل الجديد...',
+  // Success indicator
+  'Success': 'نجاح',
+}
+
+function t_wpc(key: string, isArabic: boolean): string {
+  if (!isArabic) return key
+  return AR_TRANSLATIONS[key] || key
+}
+
 export function WorkflowPreviewCard({
   workflow,
   className,
@@ -490,8 +567,11 @@ export function WorkflowPreviewCard({
   onMissingInfoSelect,
   onNodeRemove,
   onNodeAdd,
+  chatLanguage,
 }: WorkflowPreviewCardProps): React.ReactElement {
   const navigate = useNavigate()
+  // @NEXUS-FIX-161: Arabic RTL and translation support - DO NOT REMOVE
+  const isArabic = chatLanguage?.startsWith('ar') || false
 
   // Phase and execution state
   const [phase, setPhase] = React.useState<CardPhase>('ready')
@@ -3023,8 +3103,10 @@ export function WorkflowPreviewCard({
   const needsAuth = phase === 'needs_auth'
   const isChecking = phase === 'checking'
 
+  // @NEXUS-FIX-161: RTL direction for Arabic language - DO NOT REMOVE
   return (
     <div
+      dir={isArabic ? 'rtl' : undefined}
       className={cn(
         'relative rounded-xl border-2 overflow-hidden transition-all duration-300',
         'bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800',
@@ -3067,14 +3149,14 @@ export function WorkflowPreviewCard({
           </div>
           <div>
             <h4 className="font-semibold text-white text-sm">{workflow.name}</h4>
-            <p className="text-xs text-slate-400">{nodes.length} steps</p>
+            <p className="text-xs text-slate-400">{nodes.length} {t_wpc('steps', isArabic)}</p>
           </div>
         </div>
 
         <button
           onClick={openFullView}
           className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-          title="Open full visualization"
+          title={t_wpc('Open full visualization', isArabic)}
         >
           <ExternalLink className="w-4 h-4" />
         </button>
@@ -3155,7 +3237,7 @@ export function WorkflowPreviewCard({
                       )}
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-xs text-slate-400">
-                          {selectedNode.type === 'trigger' ? '⚡ Trigger' : selectedNode.type === 'output' ? '📤 Output' : '⚙️ Action'}
+                          {selectedNode.type === 'trigger' ? `⚡ ${t_wpc('Trigger', isArabic)}` : selectedNode.type === 'output' ? `📤 ${t_wpc('Output', isArabic)}` : `⚙️ ${t_wpc('Action', isArabic)}`}
                         </span>
                         <span className={cn(
                           'text-xs px-2 py-0.5 rounded-full',
@@ -3165,7 +3247,7 @@ export function WorkflowPreviewCard({
                           selectedNode.status === 'idle' && 'bg-slate-600/50 text-slate-400',
                           selectedNode.status === 'pending' && 'bg-blue-500/20 text-blue-400'
                         )}>
-                          {selectedNode.status === 'idle' ? 'Waiting' : selectedNode.status === 'pending' ? 'Pending' : selectedNode.status === 'connecting' ? 'Running...' : selectedNode.status === 'success' ? 'Complete' : 'Failed'}
+                          {selectedNode.status === 'idle' ? t_wpc('Waiting', isArabic) : selectedNode.status === 'pending' ? t_wpc('Pending', isArabic) : selectedNode.status === 'connecting' ? t_wpc('Running...', isArabic) : selectedNode.status === 'success' ? t_wpc('Complete', isArabic) : t_wpc('Failed', isArabic)}
                         </span>
                       </div>
                       {selectedNode.error && (
@@ -3176,7 +3258,7 @@ export function WorkflowPreviewCard({
                   <button
                     onClick={() => setSelectedNodeId(null)}
                     className="text-slate-400 hover:text-white transition-colors p-1 -mt-1 -mr-1 flex-shrink-0"
-                    aria-label="Close node details"
+                    aria-label={t_wpc('Close node details', isArabic)}
                   >
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 3L3 11M3 3l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                   </button>
@@ -3190,14 +3272,14 @@ export function WorkflowPreviewCard({
             <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
               <span>
                 {isComplete
-                  ? 'Workflow completed!'
+                  ? t_wpc('Workflow completed!', isArabic)
                   : hasError
-                  ? 'Execution failed'
+                  ? t_wpc('Execution failed', isArabic)
                   : isExecuting
-                  ? 'Executing...'
+                  ? t_wpc('Executing...', isArabic)
                   : isChecking
-                  ? 'Checking connections...'
-                  : 'Ready to execute'}
+                  ? t_wpc('Checking connections...', isArabic)
+                  : t_wpc('Ready to execute', isArabic)}
               </span>
               <span>
                 {completedNodes}/{nodes.length}
@@ -3225,7 +3307,7 @@ export function WorkflowPreviewCard({
                 <div className="flex items-start gap-2">
                   <Sparkles className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-xs font-medium text-blue-300 mb-1">Smart defaults applied:</p>
+                    <p className="text-xs font-medium text-blue-300 mb-1">{t_wpc('Smart defaults applied:', isArabic)}</p>
                     <ul className="space-y-1">
                       {workflow.assumptions.map((assumption, idx) => (
                         <li key={idx} className="text-xs text-blue-200/80">• {assumption}</li>
@@ -3298,7 +3380,7 @@ export function WorkflowPreviewCard({
           {workflow.confidence !== undefined && workflow.confidence < 0.85 && !isComplete && !hasError && (
             <div className="px-4 pb-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Confidence:</span>
+                <span className="text-slate-400">{t_wpc('Confidence:', isArabic)}</span>
                 <span className={cn(
                   'font-medium',
                   workflow.confidence >= 0.85 ? 'text-emerald-400' :
@@ -3333,8 +3415,8 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  <FlaskConical className="w-3.5 h-3.5" /> Beta Test
-                  <span className="text-[10px] opacity-70">(Your Account)</span>
+                  <FlaskConical className="w-3.5 h-3.5" /> {t_wpc('Beta Test', isArabic)}
+                  <span className="text-[10px] opacity-70">{t_wpc('(Your Account)', isArabic)}</span>
                 </button>
                 <button
                   onClick={() => setExecutionMode('production')}
@@ -3345,18 +3427,18 @@ export function WorkflowPreviewCard({
                       : 'text-slate-400 hover:text-slate-300'
                   )}
                 >
-                  <Rocket className="w-3.5 h-3.5" /> Production
-                  <span className="text-[10px] opacity-70">(Client)</span>
+                  <Rocket className="w-3.5 h-3.5" /> {t_wpc('Production', isArabic)}
+                  <span className="text-[10px] opacity-70">{t_wpc('(Client)', isArabic)}</span>
                 </button>
               </div>
               {executionMode === 'beta' && (
                 <p className="text-[10px] text-amber-400/80 mt-1.5 text-center">
-                  Test with YOUR connected accounts before deploying to clients
+                  {t_wpc('Test with YOUR connected accounts before deploying to clients', isArabic)}
                 </p>
               )}
               {executionMode === 'production' && (
                 <p className="text-[10px] text-emerald-400/80 mt-1.5 text-center">
-                  Execute using client's connected accounts
+                  {t_wpc('Execute using client\'s connected accounts', isArabic)}
                 </p>
               )}
             </div>
@@ -3373,7 +3455,7 @@ export function WorkflowPreviewCard({
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm text-purple-300">
-                    Discovering required fields for new integration...
+                    {t_wpc('Discovering required fields for new integration...', isArabic)}
                   </span>
                 </div>
               </div>
@@ -3390,11 +3472,11 @@ export function WorkflowPreviewCard({
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-cyan-400" />
                     <span className="text-xs font-medium text-cyan-300">
-                      Quick Setup
+                      {t_wpc('Quick Setup', isArabic)}
                     </span>
                   </div>
                   <span className="text-xs text-slate-400">
-                    {currentQuestionIndex + 1} of {preFlightResult.questions.length}
+                    {currentQuestionIndex + 1} {t_wpc('of', isArabic)} {preFlightResult.questions.length}
                   </span>
                 </div>
 
@@ -3475,7 +3557,7 @@ export function WorkflowPreviewCard({
                       disabled={!preFlightInputValue.trim()}
                       className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                     >
-                      Next
+                      {t_wpc('Next', isArabic)}
                     </button>
                   </div>
 
@@ -3496,7 +3578,7 @@ export function WorkflowPreviewCard({
             <div className="px-4 pb-2">
               <div className="flex items-center gap-2 text-xs text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>All information collected - ready to execute!</span>
+                <span>{t_wpc('All information collected - ready to execute!', isArabic)}</span>
               </div>
             </div>
           )}
@@ -3509,7 +3591,7 @@ export function WorkflowPreviewCard({
               <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-xs font-medium text-slate-300">Collected Information</span>
+                  <span className="text-xs font-medium text-slate-300">{t_wpc('Collected Information', isArabic)}</span>
                 </div>
                 <div className="space-y-1.5">
                   {Object.entries(collectedParams)
@@ -3551,17 +3633,17 @@ export function WorkflowPreviewCard({
                 {isExecuting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {executionMode === 'beta' ? 'Running beta test...' : 'Executing workflow...'}
+                    {executionMode === 'beta' ? t_wpc('Running beta test...', isArabic) : t_wpc('Executing workflow...', isArabic)}
                   </>
                 ) : isChecking ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Checking connections...
+                    {t_wpc('Checking connections...', isArabic)}
                   </>
                 ) : (
                   <>
                     {executionMode === 'beta' ? <FlaskConical className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    {executionMode === 'beta' ? 'Run Beta Test' : 'Execute Now'}
+                    {executionMode === 'beta' ? t_wpc('Run Beta Test', isArabic) : t_wpc('Execute Now', isArabic)}
                   </>
                 )}
               </button>
@@ -3576,7 +3658,7 @@ export function WorkflowPreviewCard({
                 className="text-xs text-slate-400 hover:text-white flex items-center gap-1 px-2 py-1 hover:bg-slate-700/50 rounded transition-colors"
               >
                 <Pencil className="w-3 h-3" />
-                Edit Workflow
+                {t_wpc('Edit Workflow', isArabic)}
               </button>
             </div>
           )}
@@ -4035,7 +4117,7 @@ export function WorkflowPreviewCard({
                 className="w-full py-2.5 rounded-lg font-medium text-sm bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all flex items-center justify-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
-                Retry Execution
+                {t_wpc('Retry Execution', isArabic)}
               </button>
             </div>
           )}
@@ -4059,11 +4141,11 @@ export function WorkflowPreviewCard({
                         "text-lg font-medium mt-2",
                         allVerified ? "text-amber-300" : "text-yellow-300"
                       )}>
-                        {allVerified ? 'Beta Test Passed!' : 'Test Completed with Warnings'}
+                        {allVerified ? t_wpc('Beta Test Passed!', isArabic) : t_wpc('Test Completed with Warnings', isArabic)}
                       </h3>
                       <p className="text-xs text-slate-400 mt-1">
                         {allVerified
-                          ? 'Everything worked perfectly with your account'
+                          ? t_wpc('Everything worked perfectly with your account', isArabic)
                           : `${unverifiedCount} step${unverifiedCount > 1 ? 's' : ''} completed but couldn't be verified`
                         }
                       </p>
@@ -4086,7 +4168,7 @@ export function WorkflowPreviewCard({
                               {!isNodeVerified && warningMsg
                                 ? `• ${warningMsg}`
                                 : typeof node.result === 'object'
-                                  ? '• Success'
+                                  ? `• ${t_wpc('Success', isArabic)}`
                                   : node.result !== undefined && node.result !== null
                                     ? `• ${String(node.result as string | number | boolean)}`
                                     : ''
@@ -4101,8 +4183,9 @@ export function WorkflowPreviewCard({
                       <div className="text-xs text-yellow-400/80 bg-yellow-500/10 rounded-lg p-3 flex items-start gap-2">
                         <span className="shrink-0">💡</span>
                         <span>
-                          Some steps completed but we couldn't confirm delivery.
-                          Please check your connected apps to verify the actions took place.
+                          {t_wpc('Some steps completed but we couldn\'t confirm delivery.', isArabic)}
+                          {' '}
+                          {t_wpc('Please check your connected apps to verify the actions took place.', isArabic)}
                         </span>
                       </div>
                     )}
@@ -4110,7 +4193,7 @@ export function WorkflowPreviewCard({
 
                   {/* @NEXUS-UX-006: Clear next step actions - DO NOT REMOVE */}
                   <div className="space-y-2">
-                    <p className="text-xs text-slate-400 text-center">What's next?</p>
+                    <p className="text-xs text-slate-400 text-center">{t_wpc('What\'s next?', isArabic)}</p>
                     <button
                       onClick={() => {
                         setExecutionMode('production')
@@ -4119,20 +4202,20 @@ export function WorkflowPreviewCard({
                       className="w-full py-3 rounded-lg font-medium text-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 transition-all flex items-center justify-center gap-2"
                     >
                       <Zap className="w-4 h-4" />
-                      🚀 Deploy to Production
+                      {isArabic ? `🚀 ${t_wpc('Deploy to Production', isArabic)}` : '🚀 Deploy to Production'}
                     </button>
                     <div className="flex gap-2">
                       <button
                         onClick={resetWorkflow}
                         className="flex-1 py-2 rounded-lg text-xs bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-all"
                       >
-                        🔄 Run Again
+                        🔄 {t_wpc('Run Again', isArabic)}
                       </button>
                       <button
                         onClick={() => navigate('/workflows')}
                         className="flex-1 py-2 rounded-lg text-xs bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-all"
                       >
-                        📋 View All Workflows
+                        📋 {t_wpc('View All Workflows', isArabic)}
                       </button>
                     </div>
                   </div>
@@ -4143,13 +4226,13 @@ export function WorkflowPreviewCard({
                   <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 space-y-3">
                     <div className="text-center pb-2">
                       <span className="text-3xl">🚀</span>
-                      <h3 className="text-lg font-medium text-emerald-300 mt-2">Workflow Complete!</h3>
-                      <p className="text-xs text-slate-400 mt-1">Your automation ran successfully</p>
+                      <h3 className="text-lg font-medium text-emerald-300 mt-2">{t_wpc('Workflow Complete!', isArabic)}</h3>
+                      <p className="text-xs text-slate-400 mt-1">{t_wpc('Your automation ran successfully', isArabic)}</p>
                     </div>
                     <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
-                      <span>✓ {nodes.length} steps completed</span>
+                      <span>✓ {nodes.length} {t_wpc('steps completed', isArabic)}</span>
                       <span>•</span>
-                      <span>⚡ Production mode</span>
+                      <span>⚡ {t_wpc('Production mode', isArabic)}</span>
                     </div>
                   </div>
 
@@ -4160,17 +4243,17 @@ export function WorkflowPreviewCard({
                       className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-all flex items-center justify-center gap-2"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      Run Again
+                      {t_wpc('Run Again', isArabic)}
                     </button>
                     <button
                       onClick={() => navigate('/workflows')}
                       className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-all"
                     >
-                      📋 My Workflows
+                      📋 {t_wpc('My Workflows', isArabic)}
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-500 text-center">
-                    💡 Want this to run automatically? Ask me to set up a schedule!
+                    💡 {t_wpc('Want this to run automatically? Ask me to set up a schedule!', isArabic)}
                   </p>
                 </>
               )}

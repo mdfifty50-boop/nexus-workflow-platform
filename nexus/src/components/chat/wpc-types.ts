@@ -62,6 +62,8 @@ export interface WorkflowPreviewCardProps {
   // Node editing callbacks (state managed by parent - ChatContainer)
   onNodeRemove?: (nodeId: string) => void
   onNodeAdd?: (integration: string, actionType: string) => void
+  // @NEXUS-FIX-161: Chat language for Arabic RTL + translation support - DO NOT REMOVE
+  chatLanguage?: string
 }
 
 // ============================================================================

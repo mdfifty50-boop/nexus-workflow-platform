@@ -173,10 +173,10 @@ function SettingsDropdown({
         <div
           className={cn(
             'absolute right-0 top-full mt-2 w-48',
-            'bg-surface-800/95 backdrop-blur-xl',
-            'border border-surface-700/50',
-            'rounded-xl shadow-xl shadow-black/20',
-            'py-1 z-50',
+            'bg-surface-800',
+            'border border-surface-600',
+            'rounded-xl shadow-2xl shadow-black/40',
+            'py-1 z-[100]',
             'animate-in fade-in slide-in-from-top-2 duration-200'
           )}
         >
