@@ -2,6 +2,12 @@ import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { HelmetProvider } from 'react-helmet-async'
+// Self-hosted Inter font - eliminates Google Fonts CDN dependency (@NEXUS-FIX-161)
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
+import '@fontsource/inter/800.css'
 import './index.css'
 // Initialize i18n before app loads
 import '@/i18n'
@@ -92,13 +98,16 @@ function ClerkWithFallback({ publishableKey }: { publishableKey: string }) {
     }
     window.addEventListener('error', handler)
 
-    // Timeout: if Clerk hasn't loaded after 10s, fall back
+    // @NEXUS-FIX-160: Reduce Clerk CDN timeout from 10s to 2s so fallback
+    // auth activates quickly when Clerk's CDN is unreachable in production.
+    // Clerk's script sets window.Clerk synchronously on load, so 2s is more
+    // than enough for a successful load; failures are detected within 2s.
     const timeout = window.setTimeout(() => {
       const clerkLoaded = !!(window as unknown as Record<string, unknown>).Clerk
       if (!clerkLoaded) {
         handleClerkError()
       }
-    }, 10000)
+    }, 2000)
 
     return () => {
       window.removeEventListener('error', handler)

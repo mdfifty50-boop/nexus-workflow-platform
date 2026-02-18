@@ -354,10 +354,10 @@ export default function Robot3DScene({ width, height }: Robot3DSceneProps) {
 
   return (
     <GlobalMouseContext.Provider value={mouseRef.current}>
-      <div ref={containerRef} style={{ width, height }}>
+      <div ref={containerRef} style={{ width, height, pointerEvents: 'none' }}>
         <Canvas
           camera={{ position: [0, 0.2, 3.2], fov: 35 }}
-          style={{ width, height, borderRadius: '1rem' }}
+          style={{ width, height, borderRadius: '1rem', pointerEvents: 'none' }}
           gl={{
             antialias: true,
             alpha: true,

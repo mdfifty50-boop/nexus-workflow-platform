@@ -77,10 +77,13 @@
          Dev server CSP is handled by vite.config.ts headers.
     -->
 
-    <!-- Premium Font Stack (Inter like ChatGPT + SF Pro fallback) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- @NEXUS-FIX-160: Preconnect to Clerk CDN so the auth script loads faster
+         and the 2s fallback timeout is less likely to trigger on good connections. -->
+    <link rel="preconnect" href="https://clerk.accounts.dev" />
+    <link rel="preconnect" href="https://img.clerk.com" crossorigin />
+
+    <!-- Inter font is self-hosted via @fontsource/inter (imported in src/main.tsx) -->
+    <!-- Google Fonts CDN removed to fix net::ERR_FAILED on production (@NEXUS-FIX-161) -->
 
     <!-- JSON-LD Structured Data: Organization -->
     <script type="application/ld+json">

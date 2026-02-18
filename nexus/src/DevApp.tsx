@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { DevAuthProvider } from '@/contexts/DevAuthContext'
 import { ToastProvider } from '@/contexts/ToastContext'
@@ -12,43 +13,49 @@ import {
 import { CommandPalette } from '@/components/CommandPalette'
 import { MinimalLayout } from '@/components/Layout'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
-import { LandingPage } from '@/pages/LandingPage'
-import { Dashboard } from '@/pages/Dashboard'
-import { Profile } from '@/pages/Profile'
-import { Projects } from '@/pages/Projects'
-import { ProjectDetail } from '@/pages/ProjectDetail'
-import { ProjectSettings } from '@/pages/ProjectSettings'
-import { WorkflowDetail } from '@/pages/WorkflowDetail'
-import { WorkflowBuilder } from '@/pages/WorkflowBuilder'
-import { Integrations } from '@/pages/Integrations'
-import { AdminPanel } from '@/pages/AdminPanel'
-import { WorkflowTemplates } from '@/pages/WorkflowTemplates'
-import { AdvancedWorkflows } from '@/pages/AdvancedWorkflows'
-import { WorkflowExecutionResults } from '@/pages/WorkflowExecutionResults'
-import { IntegrationCallback } from '@/pages/IntegrationCallback'
-import { OAuthCallback } from '@/pages/OAuthCallback'
-import { WorkflowDemo } from '@/pages/WorkflowDemo'
-import { Privacy } from '@/pages/Privacy'
-import { Terms } from '@/pages/Terms'
-import { Workflows } from '@/pages/Workflows'
-import { Settings } from '@/pages/Settings'
-import { Analytics } from '@/pages/Analytics'
-import { MyConnectedApps } from '@/pages/MyConnectedApps'
-import { Try } from '@/pages/Try'
-import { Onboarding } from '@/pages/Onboarding'
-import { NotFound } from '@/pages/NotFound'
-import MeetingRoomDemo from '@/pages/MeetingRoomDemo'
-import VoiceDemo from '@/pages/VoiceDemo'
-import { ChatDemo } from '@/pages/ChatDemo'
+
+// =============================================================================
+// LAZY-LOADED ROUTES — mirrors App.tsx to enable proper code-splitting
+// Static imports here defeat lazy() in App.tsx when both share an entry point
+// =============================================================================
+
+const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })))
+const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })))
+const Profile = lazy(() => import('@/pages/Profile').then(m => ({ default: m.Profile })))
+const Projects = lazy(() => import('@/pages/Projects').then(m => ({ default: m.Projects })))
+const ProjectDetail = lazy(() => import('@/pages/ProjectDetail').then(m => ({ default: m.ProjectDetail })))
+const ProjectSettings = lazy(() => import('@/pages/ProjectSettings').then(m => ({ default: m.ProjectSettings })))
+const WorkflowDetail = lazy(() => import('@/pages/WorkflowDetail').then(m => ({ default: m.WorkflowDetail })))
+const WorkflowBuilder = lazy(() => import('@/pages/WorkflowBuilder').then(m => ({ default: m.WorkflowBuilder })))
+const Integrations = lazy(() => import('@/pages/Integrations').then(m => ({ default: m.Integrations })))
+const AdminPanel = lazy(() => import('@/pages/AdminPanel').then(m => ({ default: m.AdminPanel })))
+const WorkflowTemplates = lazy(() => import('@/pages/WorkflowTemplates').then(m => ({ default: m.WorkflowTemplates })))
+const AdvancedWorkflows = lazy(() => import('@/pages/AdvancedWorkflows').then(m => ({ default: m.AdvancedWorkflows })))
+const WorkflowExecutionResults = lazy(() => import('@/pages/WorkflowExecutionResults').then(m => ({ default: m.WorkflowExecutionResults })))
+const IntegrationCallback = lazy(() => import('@/pages/IntegrationCallback').then(m => ({ default: m.IntegrationCallback })))
+const OAuthCallback = lazy(() => import('@/pages/OAuthCallback').then(m => ({ default: m.OAuthCallback })))
+const WorkflowDemo = lazy(() => import('@/pages/WorkflowDemo').then(m => ({ default: m.WorkflowDemo })))
+const Privacy = lazy(() => import('@/pages/Privacy').then(m => ({ default: m.Privacy })))
+const Terms = lazy(() => import('@/pages/Terms').then(m => ({ default: m.Terms })))
+const Workflows = lazy(() => import('@/pages/Workflows').then(m => ({ default: m.Workflows })))
+const Settings = lazy(() => import('@/pages/Settings').then(m => ({ default: m.Settings })))
+const Analytics = lazy(() => import('@/pages/Analytics').then(m => ({ default: m.Analytics })))
+const MyConnectedApps = lazy(() => import('@/pages/MyConnectedApps').then(m => ({ default: m.MyConnectedApps })))
+const Try = lazy(() => import('@/pages/Try').then(m => ({ default: m.Try })))
+const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })))
+const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })))
+const MeetingRoomDemo = lazy(() => import('@/pages/MeetingRoomDemo'))
+const VoiceDemo = lazy(() => import('@/pages/VoiceDemo'))
+const ChatDemo = lazy(() => import('@/pages/ChatDemo').then(m => ({ default: m.ChatDemo })))
 
 // WhatsApp Business Pages (AiSensy Integration)
-import { WhatsApp } from '@/pages/WhatsApp'
-import { WhatsAppInbox } from '@/pages/whatsapp/Inbox'
-import { WhatsAppBroadcasts } from '@/pages/whatsapp/Broadcasts'
-import { WhatsAppContacts } from '@/pages/whatsapp/Contacts'
-import { WhatsAppChatbots } from '@/pages/whatsapp/Chatbots'
-import { WhatsAppAnalytics } from '@/pages/whatsapp/Analytics'
-import { WhatsAppCatalogue } from '@/pages/whatsapp/Catalogue'
+const WhatsApp = lazy(() => import('@/pages/WhatsApp').then(m => ({ default: m.WhatsApp })))
+const WhatsAppInbox = lazy(() => import('@/pages/whatsapp/Inbox').then(m => ({ default: m.WhatsAppInbox })))
+const WhatsAppBroadcasts = lazy(() => import('@/pages/whatsapp/Broadcasts').then(m => ({ default: m.WhatsAppBroadcasts })))
+const WhatsAppContacts = lazy(() => import('@/pages/whatsapp/Contacts').then(m => ({ default: m.WhatsAppContacts })))
+const WhatsAppChatbots = lazy(() => import('@/pages/whatsapp/Chatbots').then(m => ({ default: m.WhatsAppChatbots })))
+const WhatsAppAnalytics = lazy(() => import('@/pages/whatsapp/Analytics').then(m => ({ default: m.WhatsAppAnalytics })))
+const WhatsAppCatalogue = lazy(() => import('@/pages/whatsapp/Catalogue').then(m => ({ default: m.WhatsAppCatalogue })))
 
 // Development App - runs without Clerk authentication
 // Uses mock auth for local testing
@@ -66,6 +73,7 @@ function DevApp() {
             <CommandPalette />
             {/* Network status banner for offline detection */}
             <NetworkStatusBanner />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">Loading...</div>}>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<MinimalLayout><LandingPage /></MinimalLayout>} />
@@ -125,6 +133,7 @@ function DevApp() {
             {/* 404 - catch all unmatched routes */}
             <Route path="*" element={<NotFound />} />
             </Routes>
+          </Suspense>
           </ToastProvider>
           </PersonalizationProvider>
           </WorkflowProvider>
