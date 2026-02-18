@@ -14,7 +14,6 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { changeLanguage as changeI18nLanguage } from '@/i18n'
 import { MessageSquare, Sparkles, Zap, ArrowRight, Send, X } from 'lucide-react'
 import { ChatHeader } from './ChatHeader'
 import { ChatMessage } from './ChatMessage'
@@ -400,15 +399,12 @@ export function ChatContainer({
   // "Think with me" mode - focused problem-solving chat mode
   const [chatMode, setChatMode] = React.useState<ChatMode>('standard')
 
-  // Voice language - when user selects Arabic dialect, entire chat flips to RTL
+  // Voice language - only affects speech recognition input, NOT the UI layout
   const [chatLanguage, setChatLanguage] = React.useState<VoiceLanguage>('en-US')
-  const isRTL = chatLanguage.startsWith('ar')
 
-  // Bridge voice language selector → global i18n system
-  React.useEffect(() => {
-    const lang = chatLanguage.startsWith('ar') ? 'ar' : 'en'
-    changeI18nLanguage(lang as 'en' | 'ar')
-  }, [chatLanguage])
+  // NOTE: Voice language selection intentionally does NOT change the global i18n language
+  // or document direction. The mic language selector is for speech recognition only.
+  // Changing document.documentElement.dir breaks the entire app layout.
 
   // Finding #14: Streaming message state - tracks the assistant message being streamed
   const streamingMessageIdRef = React.useRef<string | null>(null)
@@ -877,32 +873,47 @@ export function ChatContainer({
               if (streamingMessageIdRef.current) {
                 // @NEXUS-FIX-150: Detect JSON workflow responses and show friendly placeholder - DO NOT REMOVE
                 // Users should never see raw JSON like {"shouldGenerateWorkflow":true,"workflowSpec":...}
+                // @NEXUS-FIX-160: Improved JSON detection - covers ALL AI JSON responses, not just workflow ones - DO NOT REMOVE
                 if (!looksLikeWorkflowJSON) {
                   const trimmed = streamedText.trimStart()
-                  // Early detection: JSON starting with { followed by a quote (all AI responses are JSON)
-                  // Later confirmation: workflow-specific keys
-                  if (trimmed.startsWith('{') && trimmed.length > 5 && (
-                    /^\{\s*"/.test(trimmed) ||
-                    trimmed.includes('"shouldGenerateWorkflow"') ||
-                    trimmed.includes('"workflowSpec"') ||
-                    trimmed.includes('"intent"') ||
-                    trimmed.includes('"message"')
-                  )) {
+                  // Detect ANY JSON response from the AI (all Claude responses are JSON-formatted)
+                  // This prevents raw JSON from ever being shown during streaming
+                  if (trimmed.startsWith('{') && trimmed.length > 3 && /^\{\s*"/.test(trimmed)) {
                     looksLikeWorkflowJSON = true
                   }
                 }
 
-                updateMessage(streamingMessageIdRef.current, {
-                  content: looksLikeWorkflowJSON
-                    ? (streamedText.includes('"shouldGenerateWorkflow":true') || streamedText.includes('"shouldGenerateWorkflow": true')
-                      ? '✨ Building your workflow...'
-                      : 'Thinking...')
-                    : streamedText,
-                  isStreaming: true
-                })
+                if (looksLikeWorkflowJSON) {
+                  // @NEXUS-FIX-160: While streaming JSON, try to extract "message" field progressively - DO NOT REMOVE
+                  // This shows the human-readable part in real-time instead of a static placeholder
+                  const msgMatch = streamedText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/i)
+                  let placeholder: string
+                  if (streamedText.includes('"shouldGenerateWorkflow":true') || streamedText.includes('"shouldGenerateWorkflow": true')) {
+                    placeholder = '✨ Building your workflow...'
+                  } else if (msgMatch) {
+                    // Show the extracted message text during streaming
+                    placeholder = msgMatch[1]
+                      .replace(/\\"/g, '"')
+                      .replace(/\\n/g, '\n')
+                      .replace(/\\t/g, '\t')
+                      .replace(/\\\\/g, '\\')
+                      .replace(/\\u([0-9a-fA-F]{4})/g, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+                  } else {
+                    placeholder = 'Thinking...'
+                  }
+                  updateMessage(streamingMessageIdRef.current, {
+                    content: placeholder,
+                    isStreaming: true
+                  })
+                } else {
+                  updateMessage(streamingMessageIdRef.current, {
+                    content: streamedText,
+                    isStreaming: true
+                  })
+                }
               }
             },
-            { chatMode }
+            { chatMode, language: chatLanguage }
           )
 
           // Stream complete - mark message as no longer streaming
@@ -927,7 +938,7 @@ export function ChatContainer({
             console.log('[ChatContainer] Claude handled naturally, no workflow needed')
             console.log('[ChatContainer] Intent:', aiResponse.intent, 'ClarifyingQuestions:', aiResponse.clarifyingQuestions)
 
-            // SAFETY CHECK: Never display raw JSON to users
+            // @NEXUS-FIX-160: Arabic-safe JSON stripping - NEVER display raw JSON to users - DO NOT REMOVE
             let displayText = aiResponse.text
             if (displayText && displayText.trim().startsWith('{')) {
               console.warn('[ChatContainer] Response looks like JSON, extracting message...')
@@ -936,10 +947,28 @@ export function ChatContainer({
                 displayText = parsed.message || parsed.text || parsed.response ||
                              "I'm here to help you automate workflows. What would you like to create?"
               } catch {
-                // If JSON parse fails, try regex extraction
-                const messageMatch = displayText.match(/"message"\s*:\s*"([^"]+)"/i)
-                displayText = messageMatch ? messageMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') :
-                             "I'm here to help you automate workflows. What would you like to create?"
+                // If JSON parse fails, try Arabic-safe regex extraction
+                // The (?:[^"\\]|\\.)* pattern correctly handles escaped chars AND Arabic Unicode
+                const messageMatch = displayText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/i)
+                if (messageMatch) {
+                  displayText = messageMatch[1]
+                    .replace(/\\"/g, '"')
+                    .replace(/\\n/g, '\n')
+                    .replace(/\\t/g, '\t')
+                    .replace(/\\\\/g, '\\')
+                    .replace(/\\u([0-9a-fA-F]{4})/g, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+                } else {
+                  // Last resort: strip JSON artifacts and keep readable text
+                  displayText = displayText
+                    .replace(/[{}":\[\]]/g, ' ')
+                    .replace(/\\[nrt"\\]/g, ' ')
+                    .replace(/\b(shouldGenerateWorkflow|workflowSpec|intent|confidence|steps|requiredIntegrations|estimatedTimeSaved|true|false|null)\b/gi, '')
+                    .replace(/\s{2,}/g, ' ')
+                    .trim()
+                  if (!displayText || displayText.length < 5) {
+                    displayText = "I'm here to help! What workflow would you like to create?"
+                  }
+                }
               }
             }
 
@@ -976,6 +1005,27 @@ export function ChatContainer({
             updateMessage(streamingMsg.id, { content: displayText, isStreaming: false })
             setIsLoading(false)
             return
+          }
+
+          // @NEXUS-FIX-160: Validate workflowSpec before creating card - DO NOT REMOVE
+          // Prevents invalid/incomplete specs (e.g. from garbled Arabic JSON) from spawning broken cards
+          if (aiResponse.workflowSpec) {
+            const spec = aiResponse.workflowSpec
+            const isValidSpec = spec.name &&
+              spec.steps &&
+              Array.isArray(spec.steps) &&
+              spec.steps.length > 0 &&
+              spec.steps.every((s: { id?: string; name?: string; tool?: string }) => s.id && s.name && s.tool)
+
+            if (!isValidSpec) {
+              console.warn('[ChatContainer] Invalid workflowSpec detected, suppressing workflow card:', spec)
+              aiResponse.shouldGenerateWorkflow = false
+              // Show just the message text, fall through to non-workflow display
+              const fallbackText = aiResponse.text || "I'm here to help! What workflow would you like to create?"
+              updateMessage(streamingMsg.id, { content: fallbackText, isStreaming: false })
+              setIsLoading(false)
+              return
+            }
           }
 
           // Claude indicated workflow generation - use the workflowSpec if provided
@@ -1213,7 +1263,6 @@ export function ChatContainer({
         'bg-surface-950',
         className
       )}
-      dir={isRTL ? 'rtl' : 'ltr'}
     >
       {/* Header */}
       <ChatHeader

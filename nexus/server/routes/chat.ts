@@ -168,12 +168,13 @@ router.post('/', chatRateLimiter, async (req, res) => {
       messages,
       agentId,
       autoRoute = true, // automatically route to best agent
-      model = 'claude-sonnet-4-20250514',
+      model = 'claude-sonnet-4-6',
       maxTokens = 4096,
       images, // Array of image objects: { type: 'image', source: { type: 'base64', media_type, data } }
       userContext, // User context for auto-inference (from UserContextService)
       chatMode = 'standard', // "Think with me" mode: 'standard' | 'think_with_me'
-      intentContext // Finding #55: Pre-parsed intent data from IntentResolver
+      intentContext, // Finding #55: Pre-parsed intent data from IntentResolver
+      language // User-selected chat language from UI
     } = req.body
 
     const hasImages = images && Array.isArray(images) && images.length > 0
@@ -330,6 +331,22 @@ router.post('/', chatRateLimiter, async (req, res) => {
 
     // Combine user context with tool context and intent data
     let enrichedUserContext = userContext || ''
+    // @NEXUS-FIX-160: Improved Arabic language instruction with explicit JSON format example - DO NOT REMOVE
+    // Language preference from UI (user selected language)
+    if (language && language !== 'en-US') {
+      const langPrefix = language.startsWith('ar')
+        ? `CRITICAL LANGUAGE RULE: The user has selected "${language}" as their preferred language.
+Respond in Arabic (Gulf/Kuwaiti dialect preferred).
+HOWEVER, your response MUST be valid JSON with these EXACT English field names: "message", "shouldGenerateWorkflow", "intent", "confidence", "workflowSpec".
+Only the VALUE of "message" should be in Arabic. All other field names and boolean/number values stay in English.
+For conversational responses (no workflow needed), set shouldGenerateWorkflow to false.
+NEVER include workflow specs unless the user EXPLICITLY asks for automation/workflow.
+Example of a correct Arabic greeting response:
+{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
+Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
+        : `The user has selected "${language}" as their preferred language. Respond in this language but ALWAYS maintain the JSON response format.`
+      enrichedUserContext = langPrefix + '\n\n' + enrichedUserContext
+    }
     if (toolContext) enrichedUserContext += `\n\n${toolContext}`
     // Finding #55: Include pre-parsed intent for smarter workflow generation
     if (intentContext) enrichedUserContext += `\n\n## Pre-Parsed Intent\n${intentContext}`
@@ -541,11 +558,12 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
       messages,
       agentId,
       autoRoute = true,
-      model = 'claude-sonnet-4-20250514',
+      model = 'claude-sonnet-4-6',
       maxTokens = 4096,
       userContext,
       chatMode = 'standard',
-      intentContext
+      intentContext,
+      language // User-selected chat language from UI
     } = req.body
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -677,6 +695,22 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
 
     // Build enriched context
     let enrichedUserContext = userContext || ''
+    // @NEXUS-FIX-160: Improved Arabic language instruction with explicit JSON format example (stream path) - DO NOT REMOVE
+    // Language preference from UI (user selected language)
+    if (language && language !== 'en-US') {
+      const langPrefix = language.startsWith('ar')
+        ? `CRITICAL LANGUAGE RULE: The user has selected "${language}" as their preferred language.
+Respond in Arabic (Gulf/Kuwaiti dialect preferred).
+HOWEVER, your response MUST be valid JSON with these EXACT English field names: "message", "shouldGenerateWorkflow", "intent", "confidence", "workflowSpec".
+Only the VALUE of "message" should be in Arabic. All other field names and boolean/number values stay in English.
+For conversational responses (no workflow needed), set shouldGenerateWorkflow to false.
+NEVER include workflow specs unless the user EXPLICITLY asks for automation/workflow.
+Example of a correct Arabic greeting response:
+{"message": "مرحبا! كيف أقدر أساعدك اليوم؟", "shouldGenerateWorkflow": false, "intent": "greeting"}
+Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
+        : `The user has selected "${language}" as their preferred language. Respond in this language but ALWAYS maintain the JSON response format.`
+      enrichedUserContext = langPrefix + '\n\n' + enrichedUserContext
+    }
     if (toolContext) enrichedUserContext += `\n\n${toolContext}`
     if (intentContext) enrichedUserContext += `\n\n## Pre-Parsed Intent\n${intentContext}`
     enrichedUserContext = enrichedUserContext.trim() || undefined
@@ -726,12 +760,30 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
       fullText = outputCheck.redacted
     }
 
-    // Parse the complete response for structured data (workflowSpec, etc.)
+    // @NEXUS-FIX-160: Brace-depth JSON extraction for streaming (Arabic-safe) - DO NOT REMOVE
+    // The old greedy regex /\{[\s\S]*\}/ would match from first { to LAST },
+    // which fails with Arabic text and captures too much content.
+    // This uses proper brace-depth tracking identical to NexusAIService.extractJSON()
     let parsedResponse: Record<string, unknown> = {}
     try {
-      const jsonMatch = fullText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        parsedResponse = JSON.parse(jsonMatch[0])
+      const startIdx = fullText.indexOf('{')
+      if (startIdx !== -1) {
+        let depth = 0
+        let inStr = false
+        let esc = false
+        let endIdx = -1
+        for (let i = startIdx; i < fullText.length; i++) {
+          const ch = fullText[i]
+          if (esc) { esc = false; continue }
+          if (ch === '\\' && inStr) { esc = true; continue }
+          if (ch === '"' && !esc) { inStr = !inStr; continue }
+          if (inStr) continue
+          if (ch === '{') depth++
+          if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break } }
+        }
+        if (endIdx !== -1) {
+          parsedResponse = JSON.parse(fullText.substring(startIdx, endIdx + 1))
+        }
       }
     } catch {
       // Response was plain text, not JSON - that's fine

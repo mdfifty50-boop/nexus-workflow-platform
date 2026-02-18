@@ -148,7 +148,7 @@ function SettingsDropdown({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-1 px-3 py-2 rounded-xl',
+          'flex items-center gap-0.5 px-2 sm:px-3 py-2 rounded-xl',
           'text-surface-400',
           'hover:bg-surface-800 hover:text-surface-200',
           'transition-all duration-200'
@@ -159,7 +159,7 @@ function SettingsDropdown({
         <Settings className="w-5 h-5" />
         <ChevronDown
           className={cn(
-            'w-4 h-4 transition-transform duration-200',
+            'hidden xs:inline-block w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-200',
             isOpen && 'rotate-180'
           )}
         />

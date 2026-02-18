@@ -228,12 +228,40 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     return detected
   }, [])
 
-  // Handle transcript changes
+  // Auto-detect language from interim transcript for faster switching
+  useEffect(() => {
+    if (!autoDetectLanguage || !interimTranscript) return
+
+    const detected = detectLanguage(interimTranscript)
+    if (detected !== currentLanguage && detected !== detectedLanguage) {
+      setDetectedLanguage(detected)
+      onLanguageDetected?.(detected)
+
+      // Auto-switch language for better recognition
+      if (matchResponseLanguage) {
+        setCurrentLanguageState(detected)
+        setSpeechLanguage(mapToSpeechLanguage(detected))
+        setTTSLanguage(mapToTTSLanguage(detected))
+      }
+    }
+  }, [
+    interimTranscript,
+    autoDetectLanguage,
+    matchResponseLanguage,
+    currentLanguage,
+    detectedLanguage,
+    detectLanguage,
+    setSpeechLanguage,
+    setTTSLanguage,
+    onLanguageDetected,
+  ])
+
+  // Handle final transcript changes
   useEffect(() => {
     if (!transcript || transcript === lastTranscriptRef.current) return
     lastTranscriptRef.current = transcript
 
-    // Detect language if enabled
+    // Detect language if enabled (confirm detection from interim)
     if (autoDetectLanguage) {
       const detected = detectLanguage(transcript)
       if (detected !== detectedLanguage) {

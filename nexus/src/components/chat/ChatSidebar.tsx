@@ -138,7 +138,7 @@ export function ChatSidebar({
   className
 }: ChatSidebarProps) {
   const { t } = useTranslation()
-  const { sidebarOpen, sidebarWidth, isMobile, closeSidebar } = useChatLayout()
+  const { sidebarOpen, sidebarWidth, isMobile, isRTL, closeSidebar } = useChatLayout()
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Handle clicks outside sidebar on mobile to close
@@ -209,8 +209,14 @@ export function ChatSidebar({
         ref={sidebarRef}
         className={cn(
           // Base styles
-          'flex flex-col bg-card border-r border-border',
+          'flex flex-col bg-card',
           'transition-transform duration-300 ease-in-out',
+
+          // overflow-hidden keeps the fixed container from letting content bleed out
+          'overflow-hidden',
+
+          // Border on the correct side (end = right in LTR, left in RTL)
+          isRTL ? 'border-l border-border' : 'border-r border-border',
 
           // Mobile: fixed overlay
           'fixed md:relative',
@@ -219,30 +225,45 @@ export function ChatSidebar({
           // Width
           'w-[260px]',
 
-          // Transform based on open state
+          // Transform based on open state + direction
           sidebarOpen
             ? 'translate-x-0'
-            : '-translate-x-full md:translate-x-0 md:hidden',
+            : isRTL
+              ? 'translate-x-full md:translate-x-0 md:hidden'
+              : '-translate-x-full md:translate-x-0 md:hidden',
 
           className
         )}
         style={{
-          width: isMobile ? 260 : sidebarWidth
+          width: isMobile ? 260 : sidebarWidth,
+          // Position on correct side: RTL = right edge, LTR = left edge (default)
+          ...(isMobile && isRTL ? { right: 0, left: 'auto' } : {}),
         }}
         role="complementary"
         aria-label={t('chat.chatSidebar')}
       >
-        {/* Header */}
-        <SidebarHeader onClose={closeSidebar} />
+        {/* Header — flex-shrink-0 keeps it pinned at the top, never scrolls away */}
+        <div className="flex-shrink-0">
+          <SidebarHeader onClose={closeSidebar} />
+        </div>
 
-        {/* Content */}
-        <DashboardPanel
-          stats={stats}
-          recentWorkflows={recentWorkflows}
-          loading={loading}
-          onCloseSidebar={isMobile ? closeSidebar : undefined}
-          onWorkflowClick={onWorkflowClick}
-        />
+        {/* Scrollable content area — independent scroll, won't chain to the page */}
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          }}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <DashboardPanel
+            stats={stats}
+            recentWorkflows={recentWorkflows}
+            loading={loading}
+            onCloseSidebar={isMobile ? closeSidebar : undefined}
+            onWorkflowClick={onWorkflowClick}
+          />
+        </div>
       </aside>
     </>
   )
@@ -261,10 +282,10 @@ export function ChatSidebarContainer({
   children,
   sidebarProps
 }: ChatSidebarContainerProps) {
-  const { sidebarOpen, isMobile } = useChatLayout()
+  const { sidebarOpen, isMobile, isRTL } = useChatLayout()
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className={cn("flex h-screen overflow-hidden", isRTL && 'flex-row-reverse')} dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Sidebar */}
       <ChatSidebar {...sidebarProps} />
 

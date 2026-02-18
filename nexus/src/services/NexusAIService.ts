@@ -202,26 +202,32 @@ class NexusAIService {
       } catch (e) { console.warn('[NexusAIService] Failed to compute maturity level:', e) }
 
       // Finding #30 + Finding #61: Detect language mix pattern for bilingual code-switching
-      try {
-        const lastUserMsg = this.conversationHistory.filter(m => m.role === 'user').slice(-1)[0]
-        if (lastUserMsg && lastUserMsg.content.length > 0) {
-          // Count Arabic characters (extended Unicode ranges for Arabic script)
-          const arabicChars = (lastUserMsg.content.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length
-          // Count Latin/English characters
-          const englishChars = (lastUserMsg.content.match(/[a-zA-Z]/g) || []).length
-          const totalLangChars = arabicChars + englishChars
-          if (totalLangChars > 0) {
-            const arabicRatio = arabicChars / totalLangChars
-            if (arabicRatio > 0.8) {
-              contextParts.push('## Language Preference\nUser prefers Arabic with English technical terms. Respond in Gulf Arabic dialect, keeping tech terms (workflow, automation, trigger, action, API, app) in English. Use Kuwaiti expressions naturally.')
-            } else if (arabicRatio < 0.2) {
-              contextParts.push('## Language Preference\nUser prefers English.')
-            } else {
-              contextParts.push('## Language Preference\nUser uses Arabic-English code-switching. Match their bilingual mix style: conversational parts in Arabic (Gulf dialect), technical/business terms in English. Keep workflowSpec fields always in English.')
+      // @NEXUS-FIX-160: SKIP auto-detection when language is explicitly set via UI - DO NOT REMOVE
+      // The server-side chat.ts already adds a comprehensive language instruction when
+      // the user selects a language from the UI. Adding a second instruction here causes
+      // Claude to receive CONFLICTING duplicate language rules, which breaks Arabic JSON responses.
+      if (!this._explicitLanguageSet) {
+        try {
+          const lastUserMsg = this.conversationHistory.filter(m => m.role === 'user').slice(-1)[0]
+          if (lastUserMsg && lastUserMsg.content.length > 0) {
+            // Count Arabic characters (extended Unicode ranges for Arabic script)
+            const arabicChars = (lastUserMsg.content.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length
+            // Count Latin/English characters
+            const englishChars = (lastUserMsg.content.match(/[a-zA-Z]/g) || []).length
+            const totalLangChars = arabicChars + englishChars
+            if (totalLangChars > 0) {
+              const arabicRatio = arabicChars / totalLangChars
+              if (arabicRatio > 0.8) {
+                contextParts.push('## Language Preference\nUser prefers Arabic with English technical terms. Respond in Gulf Arabic dialect, keeping tech terms (workflow, automation, trigger, action, API, app) in English. Use Kuwaiti expressions naturally. IMPORTANT: Always maintain JSON response format with English field names.')
+              } else if (arabicRatio < 0.2) {
+                contextParts.push('## Language Preference\nUser prefers English.')
+              } else {
+                contextParts.push('## Language Preference\nUser uses Arabic-English code-switching. Match their bilingual mix style: conversational parts in Arabic (Gulf dialect), technical/business terms in English. Keep workflowSpec fields always in English.')
+              }
             }
           }
-        }
-      } catch (e) { console.warn('[NexusAIService] Failed to detect language preference:', e) }
+        } catch (e) { console.warn('[NexusAIService] Failed to detect language preference:', e) }
+      }
 
       return contextParts.join('\n\n')
     } catch {
@@ -252,7 +258,10 @@ class NexusAIService {
    * @param userMessage The user's message
    * @param context Optional context including chatMode for "Think with me" mode
    */
-  async chat(userMessage: string, context?: { persona?: string; chatMode?: 'standard' | 'think_with_me' }): Promise<NexusAIResponse> {
+  // @NEXUS-FIX-160: Track if language was explicitly set via UI to avoid duplicate instructions - DO NOT REMOVE
+  private _explicitLanguageSet = false
+
+  async chat(userMessage: string, context?: { persona?: string; chatMode?: 'standard' | 'think_with_me'; language?: string }): Promise<NexusAIResponse> {
     // Add user message to history
     this.conversationHistory.push({
       role: 'user',
@@ -269,6 +278,9 @@ class NexusAIService {
 
     try {
       console.log('[NexusAIService] Calling Claude AI via /api/chat...', { chatMode: context?.chatMode })
+
+      // @NEXUS-FIX-160: Track if language was explicitly set to avoid duplicate Arabic instructions - DO NOT REMOVE
+      this._explicitLanguageSet = !!(context?.language && context.language !== 'en-US')
 
       // Build user context from stored business profile + preferences
       const userContext = this.buildUserContext()
@@ -319,11 +331,12 @@ class NexusAIService {
             body: JSON.stringify({
               messages: this.conversationHistory,
               agentId: 'nexus',
-              model: 'claude-sonnet-4-20250514',
+              model: 'claude-sonnet-4-6',
               maxTokens: 4096,
               chatMode: context?.chatMode || 'standard',
               userContext: userContext || undefined,
-              intentContext: intentContext || undefined
+              intentContext: intentContext || undefined,
+              language: context?.language || undefined
             }),
             signal: AbortSignal.timeout(timeoutMs),
           })
@@ -411,7 +424,7 @@ class NexusAIService {
   async chatStream(
     userMessage: string,
     onToken: (token: string) => void,
-    context?: { persona?: string; chatMode?: 'standard' | 'think_with_me' }
+    context?: { persona?: string; chatMode?: 'standard' | 'think_with_me'; language?: string }
   ): Promise<NexusAIResponse> {
     // Add user message to history (same as chat())
     this.conversationHistory.push({
@@ -429,6 +442,9 @@ class NexusAIService {
 
     try {
       console.log('[NexusAIService] Starting SSE stream via /api/chat/stream...', { chatMode: context?.chatMode })
+
+      // @NEXUS-FIX-160: Track if language was explicitly set to avoid duplicate Arabic instructions (stream path) - DO NOT REMOVE
+      this._explicitLanguageSet = !!(context?.language && context.language !== 'en-US')
 
       // Build user context
       const userContext = this.buildUserContext()
@@ -472,11 +488,12 @@ class NexusAIService {
         body: JSON.stringify({
           messages: this.conversationHistory,
           agentId: 'nexus',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           maxTokens: 4096,
           chatMode: context?.chatMode || 'standard',
           userContext: userContext || undefined,
-          intentContext: intentContext || undefined
+          intentContext: intentContext || undefined,
+          language: context?.language || undefined
         }),
         signal: controller.signal
       })
@@ -588,15 +605,67 @@ class NexusAIService {
   }
 
   /**
+   * Extract the first complete top-level JSON object from text using brace-depth tracking.
+   * Unlike a greedy regex (/\{[\s\S]*\}/), this correctly handles nested braces,
+   * string escapes, and avoids capturing unrelated trailing content.
+   * @NEXUS-FIX-160: Brace-depth JSON extractor for Arabic-safe parsing - DO NOT REMOVE
+   */
+  private extractJSON(text: string): string | null {
+    const start = text.indexOf('{')
+    if (start === -1) return null
+
+    let depth = 0
+    let inString = false
+    let escaped = false
+
+    for (let i = start; i < text.length; i++) {
+      const char = text[i]
+
+      if (escaped) { escaped = false; continue }
+      if (char === '\\' && inString) { escaped = true; continue }
+      if (char === '"' && !escaped) { inString = !inString; continue }
+      if (inString) continue
+
+      if (char === '{') depth++
+      if (char === '}') {
+        depth--
+        if (depth === 0) return text.substring(start, i + 1)
+      }
+    }
+    return null
+  }
+
+  /**
+   * Validate that a workflowSpec has all minimum required fields.
+   * Prevents invalid/incomplete specs from creating broken workflow cards.
+   * @NEXUS-FIX-160: Workflow spec validation gate - DO NOT REMOVE
+   */
+  private isValidWorkflowSpec(spec: unknown): spec is WorkflowSpec {
+    if (!spec || typeof spec !== 'object') return false
+    const s = spec as Record<string, unknown>
+    return (
+      typeof s.name === 'string' && s.name.length > 0 &&
+      Array.isArray(s.steps) &&
+      s.steps.length > 0 &&
+      s.steps.every((step: unknown) => {
+        if (!step || typeof step !== 'object') return false
+        const st = step as Record<string, unknown>
+        return typeof st.id === 'string' && typeof st.name === 'string' && typeof st.tool === 'string'
+      })
+    )
+  }
+
+  /**
    * Parse Claude's JSON response into our format
    * CRITICAL: This must NEVER return raw JSON as text - always extract the message field
+   * @NEXUS-FIX-160: Arabic-safe JSON parsing with brace-depth extraction - DO NOT REMOVE
    */
   private parseResponse(output: string): NexusAIResponse {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = output.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
+      // Use brace-depth extractor instead of greedy regex (fixes Arabic text issues)
+      const jsonStr = this.extractJSON(output)
+      if (jsonStr) {
+        const parsed = JSON.parse(jsonStr)
 
         // CRITICAL: Extract clean message, NEVER return raw JSON to user
         const cleanMessage = parsed.message ||
@@ -605,10 +674,14 @@ class NexusAIService {
                             parsed.content ||
                             "I understand. How can I help you with workflow automation?"
 
+        // @NEXUS-FIX-160: Only allow shouldGenerateWorkflow if spec is valid - DO NOT REMOVE
+        const wantsWorkflow = parsed.shouldGenerateWorkflow === true
+        const specIsValid = this.isValidWorkflowSpec(parsed.workflowSpec)
+
         return {
           text: cleanMessage,
-          shouldGenerateWorkflow: parsed.shouldGenerateWorkflow || false,
-          workflowSpec: parsed.workflowSpec,
+          shouldGenerateWorkflow: wantsWorkflow && specIsValid,
+          workflowSpec: specIsValid ? parsed.workflowSpec : undefined,
           suggestedQuestions: parsed.suggestedQuestions,
           intent: parsed.intent,
           confidence: parsed.confidence,
@@ -620,17 +693,24 @@ class NexusAIService {
         }
       }
     } catch (e) {
-      console.warn('[NexusAIService] Failed to parse JSON response, using raw text')
+      console.warn('[NexusAIService] Failed to parse JSON response, using recovery path')
     }
 
     // If JSON parsing fails but output looks like JSON, try to extract message anyway
     if (output.trim().startsWith('{')) {
       console.warn('[NexusAIService] Output looks like JSON but parsing failed, attempting recovery')
-      // Try regex extraction of message field
-      const messageMatch = output.match(/"message"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/i)
+      // @NEXUS-FIX-160: Arabic-safe regex for message extraction - DO NOT REMOVE
+      // Use a regex that correctly handles escaped characters inside JSON strings,
+      // including Arabic Unicode content (the [^"\\] class matches any non-quote/non-backslash char)
+      const messageMatch = output.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/i)
       if (messageMatch) {
         // Unescape the JSON string
-        const extractedMessage = messageMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n')
+        const extractedMessage = messageMatch[1]
+          .replace(/\\"/g, '"')
+          .replace(/\\n/g, '\n')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex) => String.fromCharCode(parseInt(hex, 16)))
         return {
           text: extractedMessage,
           shouldGenerateWorkflow: false,
