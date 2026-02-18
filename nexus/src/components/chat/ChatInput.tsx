@@ -129,6 +129,7 @@ export function ChatInput({
     stopListening,
     clearTranscript,
     clearError,
+    setLanguage: setVoiceLanguage,
   } = useVoiceInput({
     defaultLanguage,
     autoDetectLanguage: true,
@@ -136,6 +137,13 @@ export function ChatInput({
     autoClose: false,
     silenceTimeout: 5000,
   })
+
+  // Sync voice language when parent changes defaultLanguage (e.g., ENG/AR toggle)
+  React.useEffect(() => {
+    if (defaultLanguage && defaultLanguage !== currentLanguage) {
+      setVoiceLanguage(defaultLanguage as VoiceLanguage)
+    }
+  }, [defaultLanguage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recording timer
   const { formatted: recordingTime } = useRecordingTimer(isListening)

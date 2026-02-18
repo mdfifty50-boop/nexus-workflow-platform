@@ -1272,6 +1272,8 @@ export function ChatContainer({
         onClearHistory={handleClearHistory}
         showDashboardButton={showDashboardButton}
         sessionTitle={currentSession?.title}
+        chatLanguage={chatLanguage}
+        onLanguageToggle={setChatLanguage}
       />
 
       {/* Think with me mode indicator */}
@@ -1597,6 +1599,7 @@ export function ChatContainer({
             onSend={handleSend}
             disabled={isLoading}
             placeholder={t('chat.describeWorkflow')}
+            defaultLanguage={chatLanguage}
             onLanguageChange={setChatLanguage}
           />
         </div>

@@ -35,6 +35,8 @@ import { useChatLayout } from './ChatLayoutContext'
 // Types
 // ============================================================================
 
+type ChatLanguage = 'en-US' | 'ar-SA' | 'ar-EG' | 'ar-KW'
+
 interface ChatHeaderProps {
   onNewChat?: () => void
   onThinkWithMe?: () => void
@@ -45,6 +47,8 @@ interface ChatHeaderProps {
   showSidebarToggle?: boolean
   sessionTitle?: string
   className?: string
+  chatLanguage?: ChatLanguage
+  onLanguageToggle?: (lang: ChatLanguage) => void
 }
 
 // ============================================================================
@@ -213,6 +217,8 @@ export function ChatHeader({
   showSidebarToggle = true,
   sessionTitle,
   className,
+  chatLanguage = 'en-US',
+  onLanguageToggle,
 }: ChatHeaderProps): React.ReactElement {
   const { t } = useTranslation()
   // Try to get ChatLayoutContext - may not exist if not wrapped in provider
@@ -279,6 +285,28 @@ export function ChatHeader({
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* ENG/AR Language Toggle */}
+        {onLanguageToggle && (
+          <button
+            onClick={() => {
+              const newLang = chatLanguage.startsWith('ar') ? 'en-US' : 'ar-KW'
+              onLanguageToggle(newLang as ChatLanguage)
+            }}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold',
+              'border transition-all duration-200',
+              chatLanguage.startsWith('ar')
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+                : 'bg-surface-800 border-surface-700 text-surface-300 hover:bg-surface-700'
+            )}
+            title={chatLanguage.startsWith('ar') ? 'Switch to English' : 'التبديل إلى العربية'}
+          >
+            <span>{chatLanguage.startsWith('ar') ? 'عربي' : 'ENG'}</span>
+            <span className="text-[10px] opacity-60">⇄</span>
+            <span className="opacity-50">{chatLanguage.startsWith('ar') ? 'ENG' : 'عربي'}</span>
+          </button>
+        )}
+
         {/* New Chat Button */}
         <button
           onClick={onNewChat}
