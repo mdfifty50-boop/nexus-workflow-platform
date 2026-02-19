@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.71",
+  "_version": "1.0.72",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 167,
+  "_totalFixes": 168,
 
   "fixes": [
     {
@@ -2026,10 +2026,22 @@
       "category": "WhatsApp",
       "title": "WhatsApp backend URL must point to persistent server (Northflank), not Vercel serverless",
       "problem": "All WhatsApp API calls used hardcoded relative URLs (/api/whatsapp-web/...) which resolve to Vercel serverless on production. WhatsApp Baileys requires a persistent backend (Northflank) with session file persistence. Connection always failed with 'WhatsApp service is not available'.",
-      "solution": "Added VITE_WHATSAPP_BACKEND_URL env var support across 3 files. API_BASE now reads from import.meta.env.VITE_WHATSAPP_BACKEND_URL, falls back to VITE_API_URL, then empty string (relative). User must set VITE_WHATSAPP_BACKEND_URL in Vercel env vars to their Northflank deployment URL.",
+      "solution": "Added VITE_WHATSAPP_BACKEND_URL env var support across 3 files. API_BASE now reads from import.meta.env.VITE_WHATSAPP_BACKEND_URL, falls back to VITE_API_URL, then empty string (relative). On Vercel, leave VITE_WHATSAPP_BACKEND_URL UNSET — the vercel.json rewrite proxy handles routing to Northflank server-side (avoids CORS). The env var is for non-Vercel deployments (e.g. direct Docker hosting) where there's no proxy layer.",
       "files": ["nexus/src/hooks/useWhatsAppWeb.ts", "nexus/src/components/chat/WhatsAppConnectionPrompt.tsx", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
       "codeMarker": "@NEXUS-FIX-185",
       "testCommand": "Deploy to Vercel with VITE_WHATSAPP_BACKEND_URL set to Northflank URL. Click 'Show QR Code' on any WhatsApp workflow - should connect to Northflank backend and show QR code.",
+      "critical": true
+    },
+    {
+      "id": "FIX-186",
+      "date": "2026-02-19",
+      "category": "Server",
+      "title": "Dynamic import for isolated-vm prevents server crash on Northflank",
+      "problem": "Server had a hard static 'import ivm from isolated-vm' at top of workflow.ts. isolated-vm is a native C++ addon that fails to compile on Northflank's container. This caused ERR_MODULE_NOT_FOUND crash on every startup, creating a crash loop (10+ restarts) that took down ALL API endpoints — chat, OAuth, WhatsApp, everything — returning 503 'no healthy upstream'.",
+      "solution": "Replaced static import with dynamic 'await import()' wrapped in try/catch. When isolated-vm is unavailable, data-transform and condition steps use a safe Function() fallback. The server starts successfully regardless of whether the native addon compiled.",
+      "files": ["nexus/server/routes/workflow.ts"],
+      "codeMarker": "@NEXUS-FIX-186",
+      "testCommand": "Deploy to Northflank. Server should start without crash. curl https://http--nexus-server--qlbw2fmhf4z2.code.run/api/health should return 200.",
       "critical": true
     }
   ],

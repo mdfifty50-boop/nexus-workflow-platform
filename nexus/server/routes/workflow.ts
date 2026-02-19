@@ -1,9 +1,27 @@
 import { Router } from 'express'
-import ivm from 'isolated-vm'
 import { callClaude, callClaudeWithTiering } from '../services/claudeProxy.js'
 import { getAgent } from '../agents/index.js'
 
 const router = Router()
+
+// @NEXUS-FIX-186: Dynamic import for isolated-vm to prevent crash on platforms where native addon fails - DO NOT REMOVE
+let ivm: typeof import('isolated-vm') | null = null
+try {
+  ivm = await import('isolated-vm')
+} catch {
+  console.warn('[Workflow] isolated-vm not available — data-transform/condition steps will use safe fallback')
+}
+
+// Safe fallback for data-transform/condition when isolated-vm is unavailable
+function safeEvalTransform(code: string, input: unknown, data: unknown): unknown {
+  const fn = new Function('input', 'data', code)
+  return fn(input, data)
+}
+
+function safeEvalCondition(condition: string, input: unknown, data: unknown): unknown {
+  const fn = new Function('input', 'data', `return (${condition})`)
+  return fn(input, data)
+}
 
 interface WorkflowStep {
   id: string
@@ -144,15 +162,22 @@ router.post('/execute', async (req, res) => {
           case 'data-transform': {
             const transformCode = step.config.transformCode || 'return input'
             try {
-              const isolate = new ivm.Isolate({ memoryLimit: 32 })
-              const context = isolate.createContextSync()
-              context.global.setSync('input', new ivm.ExternalCopy(currentData.lastOutput).copyInto())
-              context.global.setSync('data', new ivm.ExternalCopy(currentData).copyInto())
-              const script = isolate.compileScriptSync(
-                `(function(input, data) { ${transformCode} })(input, data)`
-              )
-              stepResult.output = script.runSync(context, { timeout: 2000 })
-              isolate.dispose()
+              // @NEXUS-FIX-186: Use isolated-vm when available, safe fallback otherwise
+              if (ivm) {
+                const mod = ivm as any
+                const IVM = mod.default || mod
+                const isolate = new IVM.Isolate({ memoryLimit: 32 })
+                const context = isolate.createContextSync()
+                context.global.setSync('input', new IVM.ExternalCopy(currentData.lastOutput).copyInto())
+                context.global.setSync('data', new IVM.ExternalCopy(currentData).copyInto())
+                const script = isolate.compileScriptSync(
+                  `(function(input, data) { ${transformCode} })(input, data)`
+                )
+                stepResult.output = script.runSync(context, { timeout: 2000 })
+                isolate.dispose()
+              } else {
+                stepResult.output = safeEvalTransform(transformCode, currentData.lastOutput, currentData)
+              }
               currentData.lastOutput = stepResult.output
             } catch (e: any) {
               throw new Error(`Transform failed: ${e.message}`)
@@ -163,16 +188,24 @@ router.post('/execute', async (req, res) => {
           case 'condition': {
             const condition = step.config.condition || 'true'
             try {
-              const isolate = new ivm.Isolate({ memoryLimit: 32 })
-              const context = isolate.createContextSync()
-              context.global.setSync('input', new ivm.ExternalCopy(currentData.lastOutput).copyInto())
-              context.global.setSync('data', new ivm.ExternalCopy(currentData).copyInto())
-              const script = isolate.compileScriptSync(
-                `(function(input, data) { return (${condition}); })(input, data)`
-              )
-              const result = script.runSync(context, { timeout: 1000 })
-              isolate.dispose()
-              stepResult.output = { result }
+              // @NEXUS-FIX-186: Use isolated-vm when available, safe fallback otherwise
+              if (ivm) {
+                const mod = ivm as any
+                const IVM = mod.default || mod
+                const isolate = new IVM.Isolate({ memoryLimit: 32 })
+                const context = isolate.createContextSync()
+                context.global.setSync('input', new IVM.ExternalCopy(currentData.lastOutput).copyInto())
+                context.global.setSync('data', new IVM.ExternalCopy(currentData).copyInto())
+                const script = isolate.compileScriptSync(
+                  `(function(input, data) { return (${condition}); })(input, data)`
+                )
+                const result = script.runSync(context, { timeout: 1000 })
+                isolate.dispose()
+                stepResult.output = { result }
+              } else {
+                const result = safeEvalCondition(condition, currentData.lastOutput, currentData)
+                stepResult.output = { result }
+              }
             } catch (e: any) {
               throw new Error(`Condition evaluation failed: ${e.message}`)
             }
