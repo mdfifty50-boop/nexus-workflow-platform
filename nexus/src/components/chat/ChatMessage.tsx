@@ -11,6 +11,7 @@
 
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Copy, Check, User, Sparkles } from 'lucide-react'
 import type { ChatMessage as ChatMessageType, EmbeddedContent } from './types'
@@ -206,6 +207,7 @@ export function ChatMessage({
   className,
 }: ChatMessageProps): React.ReactElement {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [copied, setCopied] = React.useState(false)
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -213,7 +215,8 @@ export function ChatMessage({
   // Process content to extract and render workflow previews, custom integrations, and clarifying options
   const renderContentWithEmbedded = React.useCallback((content: string): React.ReactNode => {
     // Combined regex to match all types of markers (clarifying options use Base64 encoding)
-    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([A-Za-z0-9+/=]+)\]/g
+    // @NEXUS-FIX-176: Added DEEP_DIVE_BUTTON marker for strategic consulting bridge - DO NOT REMOVE
+    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([A-Za-z0-9+/=]+)\]|\[DEEP_DIVE_BUTTON\]/g
 
     // Remove markers if no renderers provided
     if (!renderWorkflowPreview && !renderCustomIntegration && !renderClarifyingOptions) {
@@ -222,6 +225,7 @@ export function ChatMessage({
           .replace(WORKFLOW_PREVIEW_REGEX, '')
           .replace(CUSTOM_INTEGRATION_REGEX, '')
           .replace(CLARIFYING_OPTIONS_REGEX, '')
+          .replace(/\[DEEP_DIVE_BUTTON\]/g, '')
       )
     }
 
@@ -264,8 +268,11 @@ export function ChatMessage({
       } else if (match[3] && renderClarifyingOptions) {
         // Clarifying options marker (Base64 encoded)
         try {
-          // Decode Base64, then parse JSON
-          const decodedJson = atob(match[3])
+          // @NEXUS-FIX-189: Unicode-safe Base64 decoding for clarifying questions - DO NOT REMOVE
+          // Must match the encoder in ChatContainer.tsx (TextEncoder-based)
+          const binString = atob(match[3])
+          const bytes = Uint8Array.from(binString, (c) => c.codePointAt(0)!)
+          const decodedJson = new TextDecoder().decode(bytes)
           const optionsData = JSON.parse(decodedJson) as ClarifyingOptionsData
           parts.push(
             <div key={`clarifying-${partKey++}`} className="my-4">
@@ -275,6 +282,25 @@ export function ChatMessage({
         } catch (e) {
           console.error('[ChatMessage] Failed to parse clarifying options:', e)
         }
+      } else if (match[0] === '[DEEP_DIVE_BUTTON]') {
+        // @NEXUS-FIX-176: Deep Dive button for strategic consulting bridge - DO NOT REMOVE
+        parts.push(
+          <div key={`deepdive-${partKey++}`} className="mt-3">
+            <button
+              onClick={() => {
+                localStorage.setItem('nexus-consultancy-context', JSON.stringify({
+                  question: message.content.replace(/\[DEEP_DIVE_BUTTON\]/g, '').trim(),
+                  returnTo: 'chat'
+                }))
+                navigate('/ai-consultancy')
+              }}
+              className="text-sm px-3 py-1.5 border border-nexus-500/30 bg-nexus-500/5 text-nexus-400 hover:bg-nexus-500/15 hover:border-nexus-500/50 rounded-lg transition-all flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Get deeper analysis from our specialist team →
+            </button>
+          </div>
+        )
       }
 
       lastIndex = match.index + match[0].length

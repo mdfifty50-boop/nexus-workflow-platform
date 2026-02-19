@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.74",
+  "_version": "1.0.75",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 170,
+  "_totalFixes": 171,
 
   "fixes": [
     {
@@ -2066,6 +2066,18 @@
       "files": ["nexus/src/components/chat/ChatContainer.tsx"],
       "codeMarker": "@NEXUS-FIX-188",
       "testCommand": "Send any workflow request and verify no raw JSON is ever visible during streaming - only 'Nexus is thinking...' or 'Building your workflow...' placeholders.",
+      "critical": true
+    },
+    {
+      "id": "FIX-189",
+      "date": "2026-02-19",
+      "category": "UX",
+      "title": "Unicode-safe base64 for clarifying questions - fix emoji/Arabic crash in btoa()",
+      "problem": "When Claude returned clarifying questions with emojis (🔴💬📄👥) or Arabic text in options, btoa() threw 'characters outside Latin1 range' error. This caused the entire Claude response handler to crash, falling through to the template fallback system. Result: raw JSON displayed as code block + duplicate template message below it.",
+      "solution": "Replaced btoa()/atob() with TextEncoder/TextDecoder-based Unicode-safe base64 encoding/decoding in both ChatContainer.tsx (encoder) and ChatMessage.tsx (decoder). Added fallback plain-text rendering if encoding still fails.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/src/components/chat/ChatMessage.tsx"],
+      "codeMarker": "@NEXUS-FIX-189",
+      "testCommand": "Send a complex complaint with multiple problems. Verify: (1) No raw JSON visible, (2) Clickable option buttons render properly with emojis, (3) No duplicate template fallback message appears.",
       "critical": true
     }
   ],

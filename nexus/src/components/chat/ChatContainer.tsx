@@ -1050,14 +1050,26 @@ export function ChatContainer({
               // Show first question with clickable options
               const firstQuestion = questions[0]
               displayText += `**${firstQuestion.question}**\n\n`
-              // Base64 encode the JSON to avoid parsing issues with nested brackets
+              // @NEXUS-FIX-189: Unicode-safe base64 encoding for clarifying questions - DO NOT REMOVE
+              // btoa() cannot handle emojis or Arabic text - use TextEncoder for Unicode safety
               const optionsData = {
                 field: firstQuestion.field,
                 options: firstQuestion.options,
                 remainingQuestions: questions.slice(1)
               }
-              const encodedData = btoa(JSON.stringify(optionsData))
-              displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
+              try {
+                const jsonStr = JSON.stringify(optionsData)
+                const bytes = new TextEncoder().encode(jsonStr)
+                const binString = Array.from(bytes, (byte) => String.fromCodePoint(byte)).join('')
+                const encodedData = btoa(binString)
+                displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
+              } catch (encodeErr) {
+                console.warn('[ChatContainer] Base64 encoding failed, using fallback option display:', encodeErr)
+                // Fallback: render options as plain text buttons
+                for (const opt of firstQuestion.options) {
+                  displayText += `- ${opt}\n`
+                }
+              }
             }
 
             // @NEXUS-FIX-175: Diagnostic tree injection for complaint responses without server-provided questions - DO NOT REMOVE
@@ -1090,7 +1102,11 @@ export function ChatContainer({
                       field: q.field
                     }))
                   }
-                  const encodedData = btoa(JSON.stringify(optionsData))
+                  // @NEXUS-FIX-189: Unicode-safe base64 for diagnostic tree questions - DO NOT REMOVE
+                  const diagJsonStr = JSON.stringify(optionsData)
+                  const diagBytes = new TextEncoder().encode(diagJsonStr)
+                  const diagBinString = Array.from(diagBytes, (byte) => String.fromCodePoint(byte)).join('')
+                  const encodedData = btoa(diagBinString)
                   displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
                   console.log('[ChatContainer] Injected diagnostic tree questions for category:', diagCategory)
                 }
