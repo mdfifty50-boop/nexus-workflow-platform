@@ -658,6 +658,12 @@ export function WorkflowPreviewCard({
   // Those params are converted to PreFlightQuestions and merged into the pre-flight result.
   // This map stores the orchestration results keyed by node ID for use during execution.
   const [orchestrationResults, setOrchestrationResults] = React.useState<Map<string, OrchestrationResult>>(new Map())
+  // @NEXUS-FIX-184: Use ref to break orchestrationResults dependency loop - DO NOT REMOVE
+  // Bug: orchestrationResults was in the useEffect deps at line 1274, but setOrchestrationResults()
+  // was called inside the same effect (line 1082), creating an infinite re-trigger loop.
+  // On Vercel, /api/rube/* returns 404, so the loop never terminates (50+ errors/sec).
+  // Fix: Read from ref inside the effect, remove state from deps.
+  const orchestrationResultsRef = React.useRef<Map<string, OrchestrationResult>>(new Map())
   const [isLoadingOrchestration, setIsLoadingOrchestration] = React.useState(false)
 
   // Node state
@@ -888,7 +894,8 @@ export function WorkflowPreviewCard({
       // Check if we already have questions for this node in static pre-flight
       const hasQuestions = result.questions.some(q => q.nodeId === n.id)
       // @NEXUS-FIX-055: Skip if already processed by orchestration (prevents re-render loop)
-      const alreadyProcessed = orchestrationResults.has(n.id)
+      // @NEXUS-FIX-184: Read from ref to break dependency loop - DO NOT REMOVE
+      const alreadyProcessed = orchestrationResultsRef.current.has(n.id)
 
       // @NEXUS-FIX-059: For orchestration-first, skip nodes that already have static questions
       // Those will be used as fallback if orchestration fails
@@ -912,7 +919,8 @@ export function WorkflowPreviewCard({
 
       // Discover params for toolkits asynchronously
       const discoverToolkits = async () => {
-        const newOrchResults = new Map(orchestrationResults)
+        // @NEXUS-FIX-184: Read from ref to break dependency loop - DO NOT REMOVE
+        const newOrchResults = new Map(orchestrationResultsRef.current)
         const orchestrationQuestions: PreFlightQuestion[] = []
         // @NEXUS-FIX-059: Track nodes where orchestration failed (for static fallback)
         const orchestrationFailedNodes: string[] = []
@@ -1079,6 +1087,8 @@ export function WorkflowPreviewCard({
           }
         }
 
+        // @NEXUS-FIX-184: Update both state (for rendering) and ref (for effect reads) - DO NOT REMOVE
+        orchestrationResultsRef.current = newOrchResults
         setOrchestrationResults(newOrchResults)
 
         // @NEXUS-FIX-059: Merge orchestration questions with static fallback questions
@@ -1192,12 +1202,12 @@ export function WorkflowPreviewCard({
     }
 
     // @NEXUS-FIX-056 & @NEXUS-FIX-059: If orchestration already completed and set merged result, don't overwrite
-    // This handles the second useEffect run triggered by orchestrationResults dependency change
-    // After orchestration sets merged result with questions, useEffect re-runs due to dependency change
-    // On that re-run, nodesToOrchestrate is empty (all marked as processed), so we reach here
+    // @NEXUS-FIX-184: Read from ref instead of state to break dependency loop - DO NOT REMOVE
+    // After orchestration sets merged result with questions, check via ref not state deps
+    // On re-run, nodesToOrchestrate is empty (all marked as processed), so we reach here
     // But we must NOT overwrite the merged result - orchestration already set the correct result
     // EXCEPT: Allow update when all orchestration questions have been answered (to enable execution button)
-    if (orchestrationResults.size > 0) {
+    if (orchestrationResultsRef.current.size > 0) {
       // @NEXUS-FIX-069: Check DISPLAYED questions, not RAW orchestration questions - DO NOT REMOVE
       // Problem: Previous code built allOrchestrationQuestions from RAW orchestrationResults.questions,
       // which includes params that were filtered out at lines 3262-3266 (already collected).
@@ -1271,7 +1281,9 @@ export function WorkflowPreviewCard({
 
     // @NEXUS-FIX-074: Execute async pre-flight check - DO NOT REMOVE
     runPreFlightCheck()
-  }, [workflow.nodes, collectedParams, authState.connectedIntegrations, orchestrationResults])
+  // @NEXUS-FIX-184: Removed orchestrationResults from deps to break infinite re-trigger loop - DO NOT REMOVE
+  // orchestrationResults is now read via orchestrationResultsRef.current inside the effect
+  }, [workflow.nodes, collectedParams, authState.connectedIntegrations])
 
   // @NEXUS-FIX-054: Reset question index when questions array changes - DO NOT REMOVE
   // After pre-flight re-runs, the questions array shrinks (answered questions filtered out).

@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.69",
+  "_version": "1.0.70",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 165,
+  "_totalFixes": 166,
 
   "fixes": [
     {
@@ -2006,6 +2006,18 @@
       "files": ["nexus/src/lib/hitl/whatsapp-approval.ts", "nexus/server/routes/workflow.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
       "codeMarker": "@NEXUS-FIX-183",
       "testCommand": "Pause at approval node with WhatsApp connected - should send formatted WhatsApp message. Reply YES/نعم on WhatsApp - workflow should resume via polling. Reply NO/لا - workflow should stop.",
+      "critical": true
+    },
+    {
+      "id": "FIX-184",
+      "date": "2026-02-19",
+      "category": "Performance",
+      "title": "Break orchestration infinite polling loop on Vercel",
+      "problem": "orchestrationResults was in useEffect deps (line 1274) while setOrchestrationResults() was called inside the same effect (line 1082). On Vercel, /api/rube/* endpoints return 404, so the state change triggers infinite re-renders (50+ errors/sec). The loop never terminates because each 404 still creates a new Map object triggering another cycle.",
+      "solution": "Added orchestrationResultsRef to read from inside the effect instead of the state variable. Removed orchestrationResults from useEffect dependency array. Added graceful 404 handling in GenericToolDiscovery.ts and GenericSchemaResolver.ts to return empty results instead of throwing errors on Vercel.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/src/services/orchestration/GenericToolDiscovery.ts", "nexus/src/services/orchestration/GenericSchemaResolver.ts"],
+      "codeMarker": "@NEXUS-FIX-184",
+      "testCommand": "Deploy to Vercel, open chat, generate workflow card. Check console - should have 0 infinite 404 loops, 0 rapid re-render errors.",
       "critical": true
     }
   ],
