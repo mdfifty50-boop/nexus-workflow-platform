@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.77",
+  "_version": "1.0.78",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 173,
+  "_totalFixes": 174,
 
   "fixes": [
     {
@@ -2102,6 +2102,18 @@
       "files": ["nexus/src/components/chat/ChatContainer.tsx"],
       "codeMarker": "@NEXUS-FIX-191",
       "testCommand": "Test: In 'Think with me' mode, send a strategic business question. During streaming, user should see preamble text or 'Nexus is thinking...' but NEVER raw JSON, ```json, or { characters.",
+      "critical": true
+    },
+    {
+      "id": "FIX-192",
+      "date": "2026-02-19",
+      "category": "UX",
+      "title": "Permissive B64 regex prevents raw clarifying options marker from displaying",
+      "problem": "The CLARIFYING_OPTIONS_B64 regex used strict [A-Za-z0-9+/=]+ character class while other markers used [^\\]]+. Any unexpected character (whitespace, encoding artifact, Unicode replacement char) caused the regex to fail, leaving raw [CLARIFYING_OPTIONS_B64:...] text visible to users instead of rendered clickable buttons. Observed during Arabic multi-turn follow-ups (TEST 13).",
+      "solution": "Changed both standalone and COMBINED regex capture groups to permissive [^\\]]+ pattern matching other markers. Added pre-decode cleanup to strip non-base64 chars before atob(). Added B64 preview to error log for debugging. Actual base64 validation happens in try/catch, not the regex.",
+      "files": ["nexus/src/components/chat/ChatMessage.tsx"],
+      "codeMarker": "@NEXUS-FIX-192",
+      "testCommand": "Test: Send 3+ Arabic follow-up messages in chat. After each AI response with clarifying questions, clickable option buttons must render — never raw [CLARIFYING_OPTIONS_B64:...] text.",
       "critical": true
     }
   ],
