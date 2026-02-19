@@ -946,6 +946,32 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       // Response was plain text, not JSON - that's fine
     }
 
+    // @NEXUS-FIX-190: Robust message extraction for multi-turn conversations - DO NOT REMOVE
+    // When Claude returns a follow-up response, it may return plain text instead of JSON,
+    // or JSON with an empty/missing message field. In multi-turn contexts, extract the message
+    // from raw text rather than falling back to a generic message.
+    if (!parsedResponse.message && userMessageCount > 1) {
+      // Try to salvage a message from the raw response
+      const trimmedFull = fullText.trim()
+      if (trimmedFull && !trimmedFull.startsWith('{')) {
+        // Claude returned plain text - use it directly as the message
+        parsedResponse.message = trimmedFull
+        parsedResponse.shouldGenerateWorkflow = false
+        parsedResponse.intent = 'clarifying'
+        console.log(`[Chat/Stream] FIX-190: Extracted plain text response for multi-turn follow-up (${trimmedFull.length} chars)`)
+      } else if (parsedResponse.message === '' || parsedResponse.message === null) {
+        // JSON was valid but message was empty - try to extract from fullText
+        const msgExtract = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/i)
+        if (msgExtract && msgExtract[1].length > 0) {
+          parsedResponse.message = msgExtract[1]
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\\\/g, '\\')
+          console.log(`[Chat/Stream] FIX-190: Recovered message from regex extraction (${parsedResponse.message.length} chars)`)
+        }
+      }
+    }
+
     // === @NEXUS-FIX-170: Server-side confidence gating - DO NOT REMOVE ===
     // Phase enforcement: Claude can no longer skip phases by self-assigning high confidence.
     if (parsedResponse.shouldGenerateWorkflow === true) {
