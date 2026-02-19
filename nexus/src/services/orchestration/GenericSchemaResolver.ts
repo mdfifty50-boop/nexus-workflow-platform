@@ -206,13 +206,10 @@ export class GenericSchemaResolver {
       })
     });
 
-    // @NEXUS-FIX-184: Graceful 404 handling for Vercel (no Express backend) - DO NOT REMOVE
+    // @NEXUS-FIX-184: Graceful error handling for Vercel (no Express backend) - DO NOT REMOVE
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`[GenericSchemaResolver] Rube API not available (404) - returning empty schema for ${toolSlug}`);
-        return { slug: toolSlug, toolkit: this.extractToolkit(toolSlug), name: toolSlug, description: '', properties: {}, required: [] };
-      }
-      throw new Error(`Rube schema fetch failed: ${response.statusText}`);
+      console.warn(`[GenericSchemaResolver] Rube API not available (${response.status}) - returning empty schema for ${toolSlug}`);
+      return { slug: toolSlug, toolkit: this.extractToolkit(toolSlug), name: toolSlug, description: '', properties: {}, required: [] };
     }
 
     const result = await response.json();
@@ -245,13 +242,10 @@ export class GenericSchemaResolver {
       })
     });
 
-    // @NEXUS-FIX-184: Graceful 404 handling for Vercel (no Express backend) - DO NOT REMOVE
+    // @NEXUS-FIX-184: Graceful error handling for Vercel (no Express backend) - DO NOT REMOVE
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`[GenericSchemaResolver] Rube API not available (404) - returning empty schemas`);
-        return results;
-      }
-      throw new Error(`Rube batch schema fetch failed: ${response.statusText}`);
+      console.warn(`[GenericSchemaResolver] Rube API not available (${response.status}) - returning empty schemas`);
+      return results;
     }
 
     const result = await response.json();

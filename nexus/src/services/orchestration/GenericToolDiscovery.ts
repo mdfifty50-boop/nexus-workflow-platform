@@ -143,13 +143,11 @@ export class GenericToolDiscovery {
       })
     });
 
-    // @NEXUS-FIX-184: Graceful 404 handling for Vercel (no Express backend) - DO NOT REMOVE
+    // @NEXUS-FIX-184: Graceful error handling for Vercel (no Express backend) - DO NOT REMOVE
+    // On Vercel, /api/rube/* endpoints don't exist. Return empty results instead of throwing.
     if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('[GenericToolDiscovery] Rube API not available (404) - returning empty results');
-        return { tools: [], session_id: '' };
-      }
-      throw new Error(`Rube search failed: ${response.statusText}`);
+      console.warn(`[GenericToolDiscovery] Rube API not available (${response.status}) - returning empty results`);
+      return { tools: [], session_id: '' };
     }
 
     const data = await response.json();

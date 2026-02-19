@@ -664,6 +664,11 @@ export function WorkflowPreviewCard({
   // On Vercel, /api/rube/* returns 404, so the loop never terminates (50+ errors/sec).
   // Fix: Read from ref inside the effect, remove state from deps.
   const orchestrationResultsRef = React.useRef<Map<string, OrchestrationResult>>(new Map())
+  // @NEXUS-FIX-184: Guard ref to prevent re-running orchestration discovery on async re-triggers - DO NOT REMOVE
+  // The useEffect runs multiple times due to async state changes (preflight result, collected params).
+  // Without this guard, each run re-attempts orchestration discovery (hitting 404s on Vercel).
+  // This ref ensures orchestration discovery runs AT MOST ONCE per workflow card mount.
+  const orchestrationAttemptedRef = React.useRef(false)
   const [isLoadingOrchestration, setIsLoadingOrchestration] = React.useState(false)
 
   // Node state
@@ -902,7 +907,9 @@ export function WorkflowPreviewCard({
       return shouldOrchestrate && !alreadyProcessed && (USE_ORCHESTRATION_FIRST ? true : !hasQuestions)
     })
 
-    if (nodesToOrchestrate.length > 0 && USE_GENERIC_ORCHESTRATION) {
+    // @NEXUS-FIX-184: Skip orchestration if already attempted (prevents async re-trigger loop) - DO NOT REMOVE
+    if (nodesToOrchestrate.length > 0 && USE_GENERIC_ORCHESTRATION && !orchestrationAttemptedRef.current) {
+      orchestrationAttemptedRef.current = true
       // @NEXUS-FIX-059: Log whether we're using orchestration-first approach
       if (USE_ORCHESTRATION_FIRST) {
         const knownToolkits = nodesToOrchestrate
