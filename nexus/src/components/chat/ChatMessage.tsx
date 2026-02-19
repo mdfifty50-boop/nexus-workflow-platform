@@ -195,7 +195,11 @@ const WORKFLOW_PREVIEW_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]/g
 // Regex to match custom integration markers
 const CUSTOM_INTEGRATION_REGEX = /\[CUSTOM_INTEGRATION:([^\]]+)\]/g
 // Regex to match clarifying options markers (Base64 encoded to avoid parsing issues)
-const CLARIFYING_OPTIONS_REGEX = /\[CLARIFYING_OPTIONS_B64:([A-Za-z0-9+/=]+)\]/g
+// @NEXUS-FIX-192: Use permissive capture group [^\]]+ instead of strict base64 charset - DO NOT REMOVE
+// The strict [A-Za-z0-9+/=]+ pattern fails when any unexpected character (whitespace, encoding artifact)
+// appears in the B64 string, causing raw markers to be displayed as text. The actual base64 validation
+// happens in the try/catch during decoding, so the regex just needs to capture the content between [ and ].
+const CLARIFYING_OPTIONS_REGEX = /\[CLARIFYING_OPTIONS_B64:([^\]]+)\]/g
 
 export function ChatMessage({
   message,
@@ -216,7 +220,8 @@ export function ChatMessage({
   const renderContentWithEmbedded = React.useCallback((content: string): React.ReactNode => {
     // Combined regex to match all types of markers (clarifying options use Base64 encoding)
     // @NEXUS-FIX-176: Added DEEP_DIVE_BUTTON marker for strategic consulting bridge - DO NOT REMOVE
-    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([A-Za-z0-9+/=]+)\]|\[DEEP_DIVE_BUTTON\]/g
+    // @NEXUS-FIX-192: Permissive B64 capture group matches COMBINED_REGEX standalone pattern - DO NOT REMOVE
+    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([^\]]+)\]|\[DEEP_DIVE_BUTTON\]/g
 
     // Remove markers if no renderers provided
     if (!renderWorkflowPreview && !renderCustomIntegration && !renderClarifyingOptions) {
@@ -270,7 +275,10 @@ export function ChatMessage({
         try {
           // @NEXUS-FIX-189: Unicode-safe Base64 decoding for clarifying questions - DO NOT REMOVE
           // Must match the encoder in ChatContainer.tsx (TextEncoder-based)
-          const binString = atob(match[3])
+          // @NEXUS-FIX-192: Clean captured B64 string before decoding - DO NOT REMOVE
+          // The permissive regex [^\]]+ may capture whitespace or stray chars; strip them
+          const cleanB64 = match[3].replace(/[^A-Za-z0-9+/=]/g, '')
+          const binString = atob(cleanB64)
           const bytes = Uint8Array.from(binString, (c) => c.codePointAt(0)!)
           const decodedJson = new TextDecoder().decode(bytes)
           const optionsData = JSON.parse(decodedJson) as ClarifyingOptionsData
@@ -280,7 +288,7 @@ export function ChatMessage({
             </div>
           )
         } catch (e) {
-          console.error('[ChatMessage] Failed to parse clarifying options:', e)
+          console.error('[ChatMessage] Failed to parse clarifying options:', e, 'Raw B64:', match[3]?.substring(0, 50))
         }
       } else if (match[0] === '[DEEP_DIVE_BUTTON]') {
         // @NEXUS-FIX-176: Deep Dive button for strategic consulting bridge - DO NOT REMOVE
