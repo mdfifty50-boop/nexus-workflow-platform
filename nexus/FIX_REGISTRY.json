@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.75",
+  "_version": "1.0.76",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 171,
+  "_totalFixes": 172,
 
   "fixes": [
     {
@@ -2078,6 +2078,18 @@
       "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/src/components/chat/ChatMessage.tsx"],
       "codeMarker": "@NEXUS-FIX-189",
       "testCommand": "Send a complex complaint with multiple problems. Verify: (1) No raw JSON visible, (2) Clickable option buttons render properly with emojis, (3) No duplicate template fallback message appears.",
+      "critical": true
+    },
+    {
+      "id": "FIX-190",
+      "date": "2026-02-19",
+      "category": "UX",
+      "title": "Eliminate JSON flash during streaming + fix context loss on short follow-ups",
+      "problem": "Two bugs: (1) Brief 2-second raw JSON text flash before 'Nexus is thinking...' appeared during streaming. (2) When user sends short follow-up to clarifying question (e.g., 'Mixed chaos'), server returns generic fallback because Claude doesn't recognize short text as an answer.",
+      "solution": "(1) Initialize streaming message with 'Nexus is thinking...' placeholder instead of empty string. Buffer first 3 characters before showing non-JSON text to give detection time. (2) Add context bridge in server that tells Claude short messages are answers to previous questions. Context-aware fallback message for multi-turn conversations. (3) Fixed FIX-167 btoa() crash path (was still using old non-Unicode-safe btoa).",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-190",
+      "testCommand": "Test: (1) Send any message and verify no JSON flash during streaming. (2) Start complex complaint, answer clarifying question with short text, verify Nexus acknowledges the answer. (3) Check 'Nexus is thinking...' shows from first moment.",
       "critical": true
     }
   ],

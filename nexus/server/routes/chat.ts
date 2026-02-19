@@ -836,6 +836,24 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
     }
     if (toolContext) enrichedUserContext += `\n\n${toolContext}`
     if (intentContext) enrichedUserContext += `\n\n## Pre-Parsed Intent\n${intentContext}`
+
+    // @NEXUS-FIX-190: Context bridge for multi-turn follow-ups - DO NOT REMOVE
+    // When a user sends a short answer (e.g., "Mixed chaos") as a follow-up to a clarifying question,
+    // Claude sometimes returns an empty message because it doesn't recognize the short text as an answer.
+    // This context bridge explicitly tells Claude it's a continuation.
+    if (userMessageCount > 1 && lastUserMessage?.content && lastUserMessage.content.length < 50) {
+      // Find the last assistant message to understand what question was asked
+      const lastAssistantMsg = [...messages].reverse().find((m: any) => m.role === 'assistant')
+      const prevAssistantContent = typeof lastAssistantMsg?.content === 'string' ? lastAssistantMsg.content : ''
+      if (prevAssistantContent) {
+        enrichedUserContext += `\n\n## CONVERSATION CONTINUATION (CRITICAL)
+The user's latest message "${lastUserMessage.content}" is a DIRECT ANSWER to your previous question/options.
+Your previous message included: "${prevAssistantContent.substring(0, 200)}..."
+IMPORTANT: Treat this as a follow-up answer, NOT a new conversation. Acknowledge what they chose and continue helping with their original request.
+Your "message" field MUST contain a substantive response acknowledging their answer. NEVER return an empty message.`
+      }
+    }
+
     enrichedUserContext = enrichedUserContext.trim() || undefined
 
     // Build system prompt
@@ -1004,7 +1022,10 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
     sendEvent('complete', {
       // @NEXUS-FIX-164: Safe fallback prevents raw JSON dump to frontend - DO NOT REMOVE
       // Old code fell back to `fullText` (entire raw Claude JSON) when parsedResponse.message was empty
-      message: parsedResponse.message || "I'm here to help with workflow automation. What would you like to create?",
+      // @NEXUS-FIX-190: Context-aware fallback for multi-turn conversations - DO NOT REMOVE
+      message: parsedResponse.message || (userMessageCount > 1
+        ? "Got it! Let me continue helping with your request. Could you provide a bit more detail?"
+        : "I'm here to help with workflow automation. What would you like to create?"),
       shouldGenerateWorkflow: parsedResponse.shouldGenerateWorkflow || false,
       workflowSpec: parsedResponse.workflowSpec || undefined,
       intent: parsedResponse.intent || undefined,

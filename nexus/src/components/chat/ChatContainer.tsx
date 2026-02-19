@@ -877,8 +877,11 @@ export function ChatContainer({
           )
 
           // Finding #14: Create a placeholder assistant message for streaming updates
-          // Add an empty assistant message that will be updated token-by-token
-          const streamingMsg = addMessage('', 'assistant')
+          // @NEXUS-FIX-190: Initialize with "Nexus is thinking..." to prevent ANY raw JSON flash - DO NOT REMOVE
+          // Previously initialized as empty string (''), which allowed a brief window where raw JSON tokens
+          // could render before the detection at FIX-150/FIX-188 kicks in.
+          // Now the user always sees a friendly placeholder from the very start.
+          const streamingMsg = addMessage('Nexus is thinking...', 'assistant')
           streamingMessageIdRef.current = streamingMsg.id
           updateMessage(streamingMsg.id, { isStreaming: true })
           // Hide the ThinkingIndicator since we have a streaming message
@@ -888,6 +891,8 @@ export function ChatContainer({
           let streamedText = ''
           // @NEXUS-FIX-150: Track if response looks like workflow JSON to hide raw code from users - DO NOT REMOVE
           let looksLikeWorkflowJSON = false
+          // @NEXUS-FIX-190: Track whether we've received the first meaningful token - DO NOT REMOVE
+          let firstTokenReceived = false
 
           // Try streaming first, falls back to non-streaming internally
           const aiResponse = await nexusAIService.chatStream(
@@ -944,10 +949,19 @@ export function ChatContainer({
                       isStreaming: true
                     })
                   } else {
-                    updateMessage(streamingMessageIdRef.current, {
-                      content: streamedText,
-                      isStreaming: true
-                    })
+                    // @NEXUS-FIX-190: Only show streaming text after confirming it's NOT JSON - DO NOT REMOVE
+                    // Buffer first few characters to give JSON detection time to activate.
+                    // For non-JSON (conversational) responses, replace "Nexus is thinking..." with actual text.
+                    if (!firstTokenReceived && recheck.length < 3) {
+                      // Still accumulating - keep showing "Nexus is thinking..." until we have enough to confirm
+                      // This prevents any brief flash of partial tokens like `{` or `"`
+                    } else {
+                      firstTokenReceived = true
+                      updateMessage(streamingMessageIdRef.current, {
+                        content: streamedText,
+                        isStreaming: true
+                      })
+                    }
                   }
                 }
               }
@@ -1174,7 +1188,11 @@ export function ChatContainer({
                 field: q.field || 'clarification',
                 remainingQuestions: aiResponse.clarifyingQuestions.filter((cq: unknown) => cq !== q)
               }
-              const encodedData = btoa(JSON.stringify(optionsData))
+              // @NEXUS-FIX-189: Unicode-safe base64 encoding (FIX-167 path) - DO NOT REMOVE
+              const jsonStr167 = JSON.stringify(optionsData)
+              const bytes167 = new TextEncoder().encode(jsonStr167)
+              const binString167 = Array.from(bytes167, (byte) => String.fromCodePoint(byte)).join('')
+              const encodedData = btoa(binString167)
               displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
             }
 
