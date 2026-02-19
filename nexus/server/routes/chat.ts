@@ -436,10 +436,13 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
                   parsed.shouldGenerateWorkflow = false
                   parsed.confidence = Math.min(claudeConf, 0.35)
                   console.log(`[Chat] Phase gate (non-stream): complaint/strategic suppressed`)
-                } else if (phase === 'discovery') {
+                // @NEXUS-FIX-187: Tool-aware discovery gate - only suppress if no explicit tools detected - DO NOT REMOVE
+                } else if (phase === 'discovery' && !toolContext) {
                   parsed.shouldGenerateWorkflow = false
                   parsed.confidence = Math.min(claudeConf, 0.50)
-                  console.log(`[Chat] Phase gate (non-stream): discovery phase suppressed`)
+                  console.log(`[Chat] Phase gate (non-stream): discovery phase suppressed (no tools detected)`)
+                } else if (phase === 'discovery' && toolContext) {
+                  console.log(`[Chat] Phase gate (non-stream): discovery phase but explicit tools detected, allowing workflow (confidence: ${claudeConf})`)
                 } else if (intentConf !== null && intentConf < 0.3 && claudeConf > 0.6) {
                   parsed.shouldGenerateWorkflow = false
                   parsed.confidence = 0.50
@@ -931,9 +934,9 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
         parsedResponse.shouldGenerateWorkflow = false
         parsedResponse.confidence = Math.min(claudeConfidence, 0.35)
       }
-      // RULE 2: Discovery phase - always suppress workflow cards
-      else if (phase === 'discovery') {
-        console.log(`[Chat/Stream] Phase gate: discovery phase (first message), suppressing workflow card`)
+      // @NEXUS-FIX-187: RULE 2: Discovery phase - suppress ONLY if no explicit tools detected - DO NOT REMOVE
+      else if (phase === 'discovery' && !toolContext) {
+        console.log(`[Chat/Stream] Phase gate: discovery phase (first message, no tools), suppressing workflow card`)
         parsedResponse.shouldGenerateWorkflow = false
         parsedResponse.confidence = Math.min(claudeConfidence, 0.50)
         if (!parsedResponse.clarifyingQuestions) {
@@ -944,6 +947,10 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
           }]
           parsedResponse.intent = 'clarifying'
         }
+      }
+      // @NEXUS-FIX-187: Discovery phase WITH explicit tools - allow workflow generation
+      else if (phase === 'discovery' && toolContext) {
+        console.log(`[Chat/Stream] Phase gate: discovery phase but explicit tools detected (${toolContext.substring(0, 80)}...), allowing workflow (confidence: ${claudeConfidence})`)
       }
       // RULE 3: If IntentResolver confidence is < 0.3 but Claude says > 0.6, override
       else if (intentConfidence !== null && intentConfidence < 0.3 && claudeConfidence > 0.6) {

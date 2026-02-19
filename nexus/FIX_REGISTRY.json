@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.72",
+  "_version": "1.0.73",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 168,
+  "_totalFixes": 169,
 
   "fixes": [
     {
@@ -2042,6 +2042,18 @@
       "files": ["nexus/server/routes/workflow.ts"],
       "codeMarker": "@NEXUS-FIX-186",
       "testCommand": "Deploy to Northflank. Server should start without crash. curl https://http--nexus-server--qlbw2fmhf4z2.code.run/api/health should return 200.",
+      "critical": true
+    },
+    {
+      "id": "FIX-187",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Tool-aware discovery gate - allow workflow generation when tools are explicitly mentioned",
+      "problem": "Server-side confidence gating unconditionally suppressed workflow generation on first messages (phase === 'discovery'), even when the user explicitly named tools like Gmail and Slack. This caused unnecessary clarifying questions ('What tools do you currently use?') when tools were already specified.",
+      "solution": "Made the discovery phase gate tool-aware: if appDetectionService detected tools in the message (toolContext is non-empty), allow Claude's workflow generation to proceed. Only suppress and ask clarifying questions when no tools are detected. Applied to both stream and non-stream paths.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-187",
+      "testCommand": "Send 'When I receive a new email in Gmail, send a notification to Slack' as first message. Should generate workflow card directly, not ask clarifying questions.",
       "critical": true
     }
   ],
