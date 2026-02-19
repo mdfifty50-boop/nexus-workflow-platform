@@ -11,19 +11,45 @@ import type { CollectionQuestion } from '@/services/orchestration'
 // Core Types
 // ============================================================================
 
-export type NodeStatus = 'idle' | 'pending' | 'connecting' | 'success' | 'error'
-export type CardPhase = 'ready' | 'checking' | 'needs_auth' | 'executing' | 'complete' | 'error'
+export type NodeStatus = 'idle' | 'pending' | 'connecting' | 'success' | 'error' | 'awaiting_approval'
+export type CardPhase = 'ready' | 'checking' | 'needs_auth' | 'executing' | 'complete' | 'error' | 'awaiting_approval'
 
 export interface WorkflowNode {
   id: string
   name: string
-  type: 'trigger' | 'action' | 'output'
+  type: 'trigger' | 'action' | 'output' | 'approval'
   integration?: string
   status: NodeStatus
   result?: unknown
   error?: string
   config?: Record<string, unknown>
   description?: string
+  // @NEXUS-FIX-178: HITL approval node configuration - DO NOT REMOVE
+  approvalConfig?: {
+    priority?: 'low' | 'medium' | 'high' | 'critical'
+    reason?: string
+    reviewers?: string[]
+    timeoutMs?: number
+    timeoutAction?: 'auto_approve' | 'auto_reject' | 'escalate'
+    approvalMessage?: string
+    riskLevel?: 'low' | 'medium' | 'high' | 'critical'
+    // @NEXUS-FIX-182: Multi-mode approval support - DO NOT REMOVE
+    mode?: 'binary' | 'review_edit' | 'choose_path'
+    editableFields?: Array<{
+      field: string
+      label: string
+      currentValue: unknown
+      type: 'text' | 'number' | 'select'
+      options?: string[]
+    }>
+    pathOptions?: Array<{
+      id: string
+      label: string
+      description?: string
+      nextStepId?: string
+    }>
+  }
+  approvalRequestId?: string
 }
 
 export interface MissingInfoItem {

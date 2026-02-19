@@ -173,6 +173,7 @@ export type WorkflowStepType =
   | 'loop'               // Iterate over items
   | 'wait'               // Wait for external event or time
   | 'notification'       // Notify user of progress/completion
+  | 'approval'           // Human-in-the-loop approval gate
 
 /**
  * Individual step in a workflow
@@ -511,7 +512,7 @@ export interface ExecutionState {
   workflowId: string
 
   // Progress
-  status: 'initializing' | 'running' | 'paused' | 'waiting_user' | 'completed' | 'failed' | 'cancelled'
+  status: 'initializing' | 'running' | 'paused' | 'waiting_user' | 'awaiting_approval' | 'completed' | 'failed' | 'cancelled'
   currentStepId?: string
   completedSteps: string[]
 

@@ -18,6 +18,7 @@ export const statusColors: Record<NodeStatus, { bg: string; border: string; dot:
   connecting: { bg: 'bg-amber-900/30', border: 'border-amber-500', dot: 'bg-amber-500', line: 'bg-amber-500' },
   success: { bg: 'bg-emerald-900/30', border: 'border-emerald-500', dot: 'bg-emerald-500', line: 'bg-emerald-500' },
   error: { bg: 'bg-red-900/30', border: 'border-red-500', dot: 'bg-red-500', line: 'bg-red-500' },
+  awaiting_approval: { bg: 'bg-amber-900/30', border: 'border-amber-500', dot: 'bg-amber-500 animate-pulse', line: 'bg-amber-500' },
 }
 
 export const integrationIcons: Record<string, string> = {
@@ -40,6 +41,7 @@ export const integrationIcons: Record<string, string> = {
   asana: '✅',
   knet: '💳',
   myfatoorah: '💳',
+  'nexus-approval': '✋',
   default: '⚙️',
 }
 
@@ -134,18 +136,32 @@ export const TOOL_SLUGS: Record<string, Record<string, string>> = {
     watch: 'SLACK_NEW_MESSAGE_TRIGGER',
   },
   whatsapp: {
-    // Outbound
+    // Outbound - personal WhatsApp via WhatsApp Web (Baileys)
     send: 'WHATSAPP_SEND_MESSAGE',
     message: 'WHATSAPP_SEND_MESSAGE',
     notify: 'WHATSAPP_SEND_MESSAGE',
     template: 'WHATSAPP_SEND_TEMPLATE_MESSAGE',
-    // Triggers/Inbound (via WhatsApp Business API webhooks)
+    // Triggers/Inbound
     trigger: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
     receive: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
     capture: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
     listen: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
     incoming: 'WHATSAPP_NEW_MESSAGE_TRIGGER',
     webhook: 'WHATSAPP_WEBHOOK_TRIGGER',
+  },
+  'whatsapp-business': {
+    // Outbound - WhatsApp Business API via Composio OAuth
+    send: 'WHATSAPP_BUSINESS_SEND_MESSAGE',
+    message: 'WHATSAPP_BUSINESS_SEND_MESSAGE',
+    notify: 'WHATSAPP_BUSINESS_SEND_MESSAGE',
+    template: 'WHATSAPP_BUSINESS_SEND_TEMPLATE',
+    // Triggers/Inbound (via Business API webhooks)
+    trigger: 'WHATSAPP_BUSINESS_NEW_MESSAGE_TRIGGER',
+    receive: 'WHATSAPP_BUSINESS_NEW_MESSAGE_TRIGGER',
+    capture: 'WHATSAPP_BUSINESS_NEW_MESSAGE_TRIGGER',
+    listen: 'WHATSAPP_BUSINESS_NEW_MESSAGE_TRIGGER',
+    incoming: 'WHATSAPP_BUSINESS_NEW_MESSAGE_TRIGGER',
+    webhook: 'WHATSAPP_BUSINESS_WEBHOOK_TRIGGER',
   },
   discord: {
     send: 'DISCORD_SEND_MESSAGE',

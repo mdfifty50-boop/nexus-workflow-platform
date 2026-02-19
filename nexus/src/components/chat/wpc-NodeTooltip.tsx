@@ -26,18 +26,20 @@ export function NodeTooltip({
   position?: 'top' | 'bottom' | 'left' | 'right'
   useHoverClass?: boolean  // If true, visibility is controlled by parent's group-hover
 }) {
-  const typeLabels = {
+  const typeLabels: Record<string, string> = {
     trigger: '⚡ Trigger',
     action: '⚙️ Action',
-    output: '📤 Output'
+    output: '📤 Output',
+    approval: '✋ Approval'
   }
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     idle: 'Waiting',
     pending: 'Pending',
     connecting: 'Running...',
     success: 'Complete',
-    error: 'Failed'
+    error: 'Failed',
+    awaiting_approval: 'Awaiting Approval'
   }
 
   const positionClasses = {

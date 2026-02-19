@@ -303,7 +303,7 @@ export interface SmartQuestion {
 // Workflow node definition
 export interface WorkflowNode {
   id: string
-  type: 'trigger' | 'action' | 'condition' | 'output' | 'ai'
+  type: 'trigger' | 'action' | 'condition' | 'output' | 'ai' | 'approval'
   tool: string
   toolIcon: string
   name: string

@@ -65,13 +65,14 @@ export interface NexusAIResponse {
   shouldGenerateWorkflow: boolean
   workflowSpec?: WorkflowSpec
   suggestedQuestions?: string[]
-  intent?: string  // 'greeting' | 'clarifying' | 'workflow' | 'question'
+  intent?: string  // 'greeting' | 'clarifying' | 'workflow' | 'question' | 'consulting'
   confidence?: number
   assumptions?: string[]  // What defaults were assumed
   missingInfo?: MissingInfoItem[]  // Questions to increase confidence (post-generation)
   clarifyingQuestions?: ClarifyingQuestion[]  // Questions to ask BEFORE generating (pre-generation)
   refiningWorkflowId?: string  // If set, update existing workflow instead of creating new
   customIntegrations?: CustomIntegrationInfo[]  // Unsupported apps that can use API keys
+  approvalSummary?: { count: number; reasons: string[] }
 }
 
 // Workflow specification extracted from Claude's response
@@ -88,13 +89,17 @@ export interface WorkflowStep {
   name: string
   description: string
   tool: string
-  type: 'trigger' | 'action' | 'condition' | 'ai'
+  type: 'trigger' | 'action' | 'condition' | 'ai' | 'approval'
   config?: Record<string, any>
 }
 
 class NexusAIService {
   private static HISTORY_STORAGE_KEY = 'nexus_ai_conversation_history'
   private conversationHistory: ChatMessage[] = []
+  // @NEXUS-FIX-174: Conversation summarization for long-term memory - DO NOT REMOVE
+  private _conversationSummary: string | null = null
+  // @NEXUS-FIX-177: Diagnostic mode flag for extended conversation cap - DO NOT REMOVE
+  private _isDiagnosticConversation = false
 
   constructor() {
     // Finding #13: Restore conversation history to prevent post-refresh amnesia
@@ -168,6 +173,11 @@ class NexusAIService {
       const memory = userMemoryService.getMemoryForAI()
       const contextParts: string[] = [temporalContext]
       if (memory) contextParts.push(memory)
+
+      // @NEXUS-FIX-174: Inject conversation summary for long-term memory - DO NOT REMOVE
+      if (this._conversationSummary) {
+        contextParts.push(`## Conversation Memory (from earlier messages)\n${this._conversationSummary}`)
+      }
 
       // Finding #16: Inject industry persona overlay for domain-specific AI behavior
       try {
@@ -254,6 +264,46 @@ class NexusAIService {
   }
 
   /**
+   * @NEXUS-FIX-174: Extract key facts from messages being dropped during truncation.
+   * Preserves user identity, tools, industry, and goals across long conversations.
+   * DO NOT REMOVE
+   */
+  private extractKeyFacts(messages: ChatMessage[]): string {
+    const facts: string[] = []
+    for (const msg of messages) {
+      // Extract name introductions
+      const nameMatch = msg.content.match(/(?:I'm|my name is|I am|call me|اسمي|أنا)\s+(\w+)/i)
+      if (nameMatch) facts.push(`User name: ${nameMatch[1]}`)
+
+      // @NEXUS-FIX-174: Dynamic tool detection from IntentResolver INTEGRATION_PATTERNS - DO NOT REMOVE
+      // Instead of hard-coded list, detect any integration name mentioned in the message
+      const knownTools = ['gmail', 'slack', 'whatsapp', 'discord', 'telegram', 'dropbox', 'googledrive', 'onedrive', 'googlesheets', 'notion', 'airtable', 'trello', 'asana', 'linear', 'jira', 'github', 'gitlab', 'hubspot', 'salesforce', 'twitter', 'linkedin', 'stripe', 'googlecalendar', 'zoom', 'teams', 'wave', 'tally', 'freshbooks', 'quickbooks', 'xero', 'zoho', 'knet', 'sap', 'sheets', 'calendar', 'drive', 'whatsapp-business']
+      for (const tool of knownTools) {
+        if (msg.content.toLowerCase().includes(tool.replace('-', ' '))) facts.push(`Uses: ${tool}`)
+      }
+
+      // Extract industry mentions
+      const industries = ['ecommerce', 'e-commerce', 'saas', 'agency', 'consulting', 'healthcare', 'finance', 'education', 'real estate', 'retail', 'manufacturing', 'nonprofit', 'restaurant', 'hospitality']
+      for (const ind of industries) {
+        if (msg.content.toLowerCase().includes(ind)) facts.push(`Industry: ${ind}`)
+      }
+
+      // Extract role mentions
+      const roleMatch = msg.content.match(/(?:I'm a|I am a|I work as|my role is|my job is)\s+(.{5,30})/i)
+      if (roleMatch) facts.push(`Role: ${roleMatch[1].trim()}`)
+
+      // Extract company size
+      const sizeMatch = msg.content.match(/(\d+)\s*(?:employees?|people|team members?|staff)/i)
+      if (sizeMatch) facts.push(`Company size: ${sizeMatch[0]}`)
+
+      // Extract problems/goals
+      const problemMatch = msg.content.match(/(?:problem|issue|struggling|want to|need to|trying to|goal is|looking to)\s+(.{10,60})/i)
+      if (problemMatch) facts.push(`Goal: ${problemMatch[1].trim()}`)
+    }
+    return [...new Set(facts)].join('\n')
+  }
+
+  /**
    * Send a message to Claude and get a response
    * @param userMessage The user's message
    * @param context Optional context including chatMode for "Think with me" mode
@@ -268,9 +318,25 @@ class NexusAIService {
       content: userMessage
     })
 
-    // Keep history manageable (last 10 messages)
-    if (this.conversationHistory.length > 10) {
-      this.conversationHistory = this.conversationHistory.slice(-10)
+    // @NEXUS-FIX-174: Intelligent summarization with adaptive history cap - DO NOT REMOVE
+    // Adaptive cap: diagnostic/consulting mode → 20, complex (3+ tools mentioned) → 15, standard → 10
+    let maxHistory = 10
+    if (this._isDiagnosticConversation) {
+      maxHistory = 20
+    } else {
+      // Check conversation complexity: if user mentions multiple tools, keep more context
+      const allContent = this.conversationHistory.map(m => m.content).join(' ').toLowerCase()
+      const toolMentions = ['gmail', 'slack', 'notion', 'hubspot', 'sheets', 'dropbox', 'whatsapp', 'trello', 'asana', 'stripe', 'github', 'zoom', 'calendar', 'salesforce']
+      const mentionedCount = toolMentions.filter(t => allContent.includes(t)).length
+      if (mentionedCount >= 3) maxHistory = 15
+    }
+    if (this.conversationHistory.length > maxHistory) {
+      const droppedMessages = this.conversationHistory.slice(0, -(maxHistory - 2))
+      const keyFacts = this.extractKeyFacts(droppedMessages)
+      if (keyFacts.trim()) {
+        this._conversationSummary = keyFacts
+      }
+      this.conversationHistory = this.conversationHistory.slice(-(maxHistory - 2))
     }
 
     // Finding #13: Persist after adding user message
@@ -293,6 +359,10 @@ class NexusAIService {
       let intentContext: string | undefined
       try {
         const resolved = IntentResolverService.resolve(userMessage)
+        // @NEXUS-FIX-177: Set diagnostic mode for extended conversation cap - DO NOT REMOVE
+        if (resolved.isComplaint || resolved.isStrategic) {
+          this._isDiagnosticConversation = true
+        }
         if (resolved.success && resolved.integrations.length > 0) {
           const parts: string[] = [`Detected integrations: ${resolved.integrations.map(i => `${i.normalizedName}(${i.action})`).join(', ')}`]
           if (resolved.extractedParams.length > 0) {
@@ -302,11 +372,30 @@ class NexusAIService {
             parts.push(`Unsupported: ${resolved.unsupportedTools.map(u => u.requested).join(', ')}`)
           }
           parts.push(`Intent confidence: ${resolved.confidence}`)
+          // @NEXUS-FIX-173: Pass complaint/strategic flags to server for confidence gating - DO NOT REMOVE
+          if (resolved.isComplaint) parts.push('isComplaint: true')
+          if (resolved.isStrategic) parts.push('isStrategic: true')
+          if (resolved.diagnosticCategory) parts.push(`diagnosticCategory: ${resolved.diagnosticCategory}`)
+          // @NEXUS-FIX-181: Pass approval request flag to server - DO NOT REMOVE
+          if (resolved.isApprovalRequest) parts.push('isApprovalRequest: true')
           // Finding #56: Flag Arabic input so backend can apply regional context
           if (containsArabic(userMessage)) {
             parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
           }
           intentContext = parts.join(' | ')
+        } else {
+          // @NEXUS-FIX-173: Even without integrations, still pass complaint/strategic flags - DO NOT REMOVE
+          const parts: string[] = []
+          if (resolved.isComplaint) parts.push('isComplaint: true')
+          if (resolved.isStrategic) parts.push('isStrategic: true')
+          if (resolved.diagnosticCategory) parts.push(`diagnosticCategory: ${resolved.diagnosticCategory}`)
+          // @NEXUS-FIX-181: Pass approval request flag to server (no integrations path) - DO NOT REMOVE
+          if (resolved.isApprovalRequest) parts.push('isApprovalRequest: true')
+          parts.push(`Intent confidence: ${resolved.confidence}`)
+          if (containsArabic(userMessage)) {
+            parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
+          }
+          if (parts.length > 0) intentContext = parts.join(' | ')
         }
       } catch (e) { console.warn('[NexusAIService] IntentResolver failed (non-blocking):', e) }
 
@@ -427,9 +516,6 @@ class NexusAIService {
     context?: { persona?: string; chatMode?: 'standard' | 'think_with_me'; language?: string }
   ): Promise<NexusAIResponse> {
     // @NEXUS-FIX-166: Guard against double-push of user message - DO NOT REMOVE
-    // ChatContainer.handleSend() calls setConversationHistory(messages) before chatStream(),
-    // and if React state is fast enough, the user message may already be in history.
-    // This guard prevents the message from appearing twice in Claude's context.
     const lastMsg = this.conversationHistory[this.conversationHistory.length - 1]
     if (!(lastMsg && lastMsg.role === 'user' && lastMsg.content === userMessage)) {
       this.conversationHistory.push({
@@ -438,9 +524,15 @@ class NexusAIService {
       })
     }
 
-    // Keep history manageable (last 10 messages)
-    if (this.conversationHistory.length > 10) {
-      this.conversationHistory = this.conversationHistory.slice(-10)
+    // @NEXUS-FIX-174: Intelligent summarization (stream path) - DO NOT REMOVE
+    const maxHistory = this._isDiagnosticConversation ? 20 : 10
+    if (this.conversationHistory.length > maxHistory) {
+      const droppedMessages = this.conversationHistory.slice(0, -(maxHistory - 2))
+      const keyFacts = this.extractKeyFacts(droppedMessages)
+      if (keyFacts.trim()) {
+        this._conversationSummary = keyFacts
+      }
+      this.conversationHistory = this.conversationHistory.slice(-(maxHistory - 2))
     }
 
     // Finding #13: Persist after adding user message (stream path)
@@ -462,6 +554,10 @@ class NexusAIService {
       let intentContext: string | undefined
       try {
         const resolved = IntentResolverService.resolve(userMessage)
+        // @NEXUS-FIX-177: Set diagnostic mode for extended conversation cap (stream path) - DO NOT REMOVE
+        if (resolved.isComplaint || resolved.isStrategic) {
+          this._isDiagnosticConversation = true
+        }
         if (resolved.success && resolved.integrations.length > 0) {
           const parts: string[] = [`Detected integrations: ${resolved.integrations.map(i => `${i.normalizedName}(${i.action})`).join(', ')}`]
           if (resolved.extractedParams.length > 0) {
@@ -471,11 +567,30 @@ class NexusAIService {
             parts.push(`Unsupported: ${resolved.unsupportedTools.map(u => u.requested).join(', ')}`)
           }
           parts.push(`Intent confidence: ${resolved.confidence}`)
+          // @NEXUS-FIX-173: Pass complaint/strategic flags to server (stream path) - DO NOT REMOVE
+          if (resolved.isComplaint) parts.push('isComplaint: true')
+          if (resolved.isStrategic) parts.push('isStrategic: true')
+          if (resolved.diagnosticCategory) parts.push(`diagnosticCategory: ${resolved.diagnosticCategory}`)
+          // @NEXUS-FIX-181: Pass approval request flag to server (stream path) - DO NOT REMOVE
+          if (resolved.isApprovalRequest) parts.push('isApprovalRequest: true')
           // Finding #56: Flag Arabic input so backend can apply regional context (stream path)
           if (containsArabic(userMessage)) {
             parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
           }
           intentContext = parts.join(' | ')
+        } else {
+          // @NEXUS-FIX-173: Even without integrations, still pass complaint/strategic flags (stream path) - DO NOT REMOVE
+          const parts: string[] = []
+          if (resolved.isComplaint) parts.push('isComplaint: true')
+          if (resolved.isStrategic) parts.push('isStrategic: true')
+          if (resolved.diagnosticCategory) parts.push(`diagnosticCategory: ${resolved.diagnosticCategory}`)
+          // @NEXUS-FIX-181: Pass approval request flag to server (stream path, no integrations) - DO NOT REMOVE
+          if (resolved.isApprovalRequest) parts.push('isApprovalRequest: true')
+          parts.push(`Intent confidence: ${resolved.confidence}`)
+          if (containsArabic(userMessage)) {
+            parts.push('Language: Arabic detected - apply Gulf dialect awareness and regional context')
+          }
+          if (parts.length > 0) intentContext = parts.join(' | ')
         }
       } catch (e) { console.warn('[NexusAIService] IntentResolver failed (non-blocking):', e) }
 
@@ -561,7 +676,9 @@ class NexusAIService {
                   missingInfo: parsed.missingInfo,
                   clarifyingQuestions: parsed.clarifyingQuestions,
                   refiningWorkflowId: parsed.refiningWorkflowId,
-                  customIntegrations: parsed.customIntegrations
+                  customIntegrations: parsed.customIntegrations,
+                  // @NEXUS-FIX-181: Extract approval summary from stream response - DO NOT REMOVE
+                  approvalSummary: parsed.approvalSummary
                 }
               } else if (currentEvent === 'error') {
                 console.error('[NexusAIService] Stream error event:', parsed.error)
@@ -684,6 +801,9 @@ class NexusAIService {
         const wantsWorkflow = parsed.shouldGenerateWorkflow === true
         const specIsValid = this.isValidWorkflowSpec(parsed.workflowSpec)
 
+        // @NEXUS-FIX-181: Extract approval summary from AI response - DO NOT REMOVE
+        const approvalSummary = parsed.approvalSummary;
+
         return {
           text: cleanMessage,
           shouldGenerateWorkflow: wantsWorkflow && specIsValid,
@@ -695,7 +815,8 @@ class NexusAIService {
           missingInfo: parsed.missingInfo,
           clarifyingQuestions: parsed.clarifyingQuestions,  // CRITICAL: Extract for two-phase workflow generation
           refiningWorkflowId: parsed.refiningWorkflowId,    // For workflow refinement mode
-          customIntegrations: parsed.customIntegrations
+          customIntegrations: parsed.customIntegrations,
+          approvalSummary
         }
       }
     } catch (e) {

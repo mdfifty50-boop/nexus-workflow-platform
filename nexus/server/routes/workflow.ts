@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import ivm from 'isolated-vm'
 import { callClaude, callClaudeWithTiering } from '../services/claudeProxy.js'
 import { getAgent } from '../agents/index.js'
 
@@ -59,7 +60,7 @@ router.post('/execute', async (req, res) => {
               systemPrompt: agent?.personality || 'You are a helpful AI assistant.',
               userMessage: processedPrompt,
               maxTokens: step.config.maxTokens || 4096,
-              model: step.config.model || 'claude-sonnet-4-20250514'
+              model: step.config.model || 'claude-sonnet-4-6'
             })
 
             stepResult.output = claudeResult.text
@@ -143,8 +144,15 @@ router.post('/execute', async (req, res) => {
           case 'data-transform': {
             const transformCode = step.config.transformCode || 'return input'
             try {
-              const transformFn = new Function('input', 'data', transformCode)
-              stepResult.output = transformFn(currentData.lastOutput, currentData)
+              const isolate = new ivm.Isolate({ memoryLimit: 32 })
+              const context = isolate.createContextSync()
+              context.global.setSync('input', new ivm.ExternalCopy(currentData.lastOutput).copyInto())
+              context.global.setSync('data', new ivm.ExternalCopy(currentData).copyInto())
+              const script = isolate.compileScriptSync(
+                `(function(input, data) { ${transformCode} })(input, data)`
+              )
+              stepResult.output = script.runSync(context, { timeout: 2000 })
+              isolate.dispose()
               currentData.lastOutput = stepResult.output
             } catch (e: any) {
               throw new Error(`Transform failed: ${e.message}`)
@@ -155,8 +163,16 @@ router.post('/execute', async (req, res) => {
           case 'condition': {
             const condition = step.config.condition || 'true'
             try {
-              const conditionFn = new Function('input', 'data', `return ${condition}`)
-              stepResult.output = { result: conditionFn(currentData.lastOutput, currentData) }
+              const isolate = new ivm.Isolate({ memoryLimit: 32 })
+              const context = isolate.createContextSync()
+              context.global.setSync('input', new ivm.ExternalCopy(currentData.lastOutput).copyInto())
+              context.global.setSync('data', new ivm.ExternalCopy(currentData).copyInto())
+              const script = isolate.compileScriptSync(
+                `(function(input, data) { return (${condition}); })(input, data)`
+              )
+              const result = script.runSync(context, { timeout: 1000 })
+              isolate.dispose()
+              stepResult.output = { result }
             } catch (e: any) {
               throw new Error(`Condition evaluation failed: ${e.message}`)
             }
@@ -213,7 +229,7 @@ router.post('/ai-step', async (req, res) => {
 
     // Auto-select model tier based on complexity hint from frontend
     const tierMap: Record<string, 'haiku' | 'sonnet' | 'opus'> = {
-      simple: 'haiku',     // quotes, greetings, short content ($0.25/1M)
+      simple: 'haiku',     // quotes, greetings, short content ($0.80/1M)
       moderate: 'sonnet',  // summaries, reports, translations ($3/1M)
       complex: 'opus',     // business analysis, critical decisions ($15/1M)
     }
@@ -231,6 +247,11 @@ router.post('/ai-step', async (req, res) => {
       maxTokens: 2048,
       forceTier,
     })
+
+    // @NEXUS-FIX-171: Server-side AI step output validation - DO NOT REMOVE
+    if (!result.text || result.text.trim().length === 0) {
+      return res.status(500).json({ success: false, error: 'AI produced no output — please try again' })
+    }
 
     res.json({
       success: true,
@@ -252,12 +273,12 @@ router.post('/ai-step', async (req, res) => {
 // Helper: Calculate cost based on Claude pricing
 function _calculateCost(model: string, inputTokens: number, outputTokens: number): number {
   const pricing: Record<string, { input: number; output: number }> = {
-    'claude-opus-4-20250514': { input: 15.0, output: 75.0 },
-    'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
-    'claude-3-5-haiku-20241022': { input: 1.0, output: 5.0 }
+    'claude-opus-4-6': { input: 15.0, output: 75.0 },
+    'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
+    'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 }
   }
 
-  const modelPricing = pricing[model] || pricing['claude-sonnet-4-20250514']
+  const modelPricing = pricing[model] || pricing['claude-sonnet-4-6']
   const inputCost = (inputTokens / 1_000_000) * modelPricing.input
   const outputCost = (outputTokens / 1_000_000) * modelPricing.output
 
@@ -278,5 +299,165 @@ function extractYouTubeId(url: string): string | null {
 
   return null
 }
+
+// ============================================================================
+// @NEXUS-FIX-179: HITL Approval Endpoints - DO NOT REMOVE
+// ============================================================================
+
+// In-memory approval decision storage (future: Supabase persistence)
+const approvalDecisions = new Map<string, {
+  requestId: string
+  decision: 'approved' | 'rejected'
+  reviewer: string
+  comments?: string
+  workflowId: string
+  additionalData?: Record<string, unknown>
+  timestamp: string
+}>()
+
+// In-memory mapping for WhatsApp approval responses
+const whatsappApprovalMappings = new Map<string, {
+  requestId: string
+  mode: string
+  config: any
+  expiresAt: number
+}>()
+
+// POST /api/workflow/approve/:requestId - Record approval decision
+router.post('/approve/:requestId', async (req, res) => {
+  try {
+    const { requestId } = req.params
+    const { decision, reviewer, comments, workflowId, additionalData } = req.body
+
+    approvalDecisions.set(requestId, {
+      requestId,
+      decision: decision || 'approved',
+      reviewer: reviewer || 'user',
+      comments,
+      workflowId,
+      additionalData,
+      timestamp: new Date().toISOString(),
+    })
+
+    console.log(`[HITL] Approval recorded: ${requestId} = ${decision || 'approved'}`)
+
+    res.json({
+      success: true,
+      requestId,
+      decision: decision || 'approved',
+      message: 'Approval decision recorded',
+    })
+  } catch (error: any) {
+    console.error('[HITL] Approval error:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to record approval',
+    })
+  }
+})
+
+// POST /api/workflow/reject/:requestId - Record rejection decision
+router.post('/reject/:requestId', async (req, res) => {
+  try {
+    const { requestId } = req.params
+    const { reviewer, comments, workflowId } = req.body
+
+    approvalDecisions.set(requestId, {
+      requestId,
+      decision: 'rejected',
+      reviewer: reviewer || 'user',
+      comments,
+      workflowId,
+      timestamp: new Date().toISOString(),
+    })
+
+    console.log(`[HITL] Rejection recorded: ${requestId}`)
+
+    res.json({
+      success: true,
+      requestId,
+      decision: 'rejected',
+      message: 'Rejection decision recorded',
+    })
+  } catch (error: any) {
+    console.error('[HITL] Rejection error:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to record rejection',
+    })
+  }
+})
+
+// GET /api/workflow/approval-status/:workflowId - Get pending approvals
+router.get('/approval-status/:workflowId', async (req, res) => {
+  try {
+    const { workflowId } = req.params
+
+    // Find the most recent decision for this workflow
+    let lastDecision: any = null
+
+    for (const [_key, decision] of approvalDecisions) {
+      if (decision.workflowId === workflowId) {
+        if (!lastDecision || decision.timestamp > lastDecision.timestamp) {
+          lastDecision = decision
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      workflowId,
+      lastDecision,
+      pendingCount: 0, // Future: track pending count
+    })
+  } catch (error: any) {
+    console.error('[HITL] Status check error:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get approval status',
+    })
+  }
+})
+
+// POST /api/workflow/notify-approval - Send approval notification (WhatsApp/email)
+router.post('/notify-approval', async (req, res) => {
+  try {
+    const { requestId, workflowName, stepName, approvalConfig, channel } = req.body
+
+    // Store mapping for WhatsApp response matching
+    if (channel === 'whatsapp') {
+      // TODO: Get user's phone number from session/profile
+      // For now, log the notification request
+      console.log(`[HITL] WhatsApp notification requested for ${requestId}:`, {
+        workflowName,
+        stepName,
+        channel,
+      })
+
+      // Store approval mapping for WhatsApp response parsing
+      // The phone number would come from user profile in production
+      whatsappApprovalMappings.set(requestId, {
+        requestId,
+        mode: approvalConfig?.mode || 'binary',
+        config: approvalConfig,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24h expiry
+      })
+    }
+
+    res.json({
+      success: true,
+      channel,
+      message: 'Notification request processed',
+      // In production, this would return sent: true/false based on actual delivery
+    })
+  } catch (error: any) {
+    console.error('[HITL] Notification error:', error.message)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send notification',
+    })
+  }
+})
+// @NEXUS-FIX-179-END
 
 export default router

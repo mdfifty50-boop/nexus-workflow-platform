@@ -55,9 +55,9 @@ const POPULAR_INTEGRATIONS = [
 interface WorkflowNode {
   id: string
   name: string
-  type: 'trigger' | 'action' | 'output'
+  type: 'trigger' | 'action' | 'output' | 'approval'
   integration?: string
-  status: 'idle' | 'pending' | 'connecting' | 'success' | 'error'
+  status: 'idle' | 'pending' | 'connecting' | 'success' | 'error' | 'awaiting_approval'
 }
 
 interface NodeEditPanelProps {

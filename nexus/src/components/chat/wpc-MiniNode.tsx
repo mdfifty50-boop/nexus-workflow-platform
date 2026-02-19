@@ -62,6 +62,8 @@ export function MiniNodeHorizontal({
             colors.border,
             node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
             node.status === 'success' && 'shadow-lg shadow-emerald-500/20',
+            node.status === 'awaiting_approval' && 'shadow-lg shadow-amber-500/30',
+            node.type === 'approval' && 'border-amber-400 bg-amber-950/40 ring-1 ring-amber-500/30',
             isSelected && 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-slate-900 shadow-lg shadow-cyan-500/20',
             'hover:scale-105 hover:shadow-lg active:scale-95' // Active state for touch feedback
           )}
@@ -116,7 +118,7 @@ export function MiniNodeHorizontal({
               node.status === 'connecting' && 'animate-pulse'
             )}
             style={{
-              width: node.status === 'success' ? '100%' : node.status === 'connecting' ? '50%' : '0%',
+              width: node.status === 'success' ? '100%' : (node.status === 'connecting' || node.status === 'awaiting_approval') ? '50%' : '0%',
             }}
           />
           <div
@@ -124,7 +126,7 @@ export function MiniNodeHorizontal({
               'absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[3px] sm:border-t-[4px] border-t-transparent border-b-[3px] sm:border-b-[4px] border-b-transparent border-l-[4px] sm:border-l-[6px] transition-colors duration-300',
               node.status === 'success'
                 ? 'border-l-emerald-500'
-                : node.status === 'connecting'
+                : (node.status === 'connecting' || node.status === 'awaiting_approval')
                 ? 'border-l-amber-500'
                 : 'border-l-slate-600'
             )}
@@ -174,6 +176,8 @@ export function MiniNodeVertical({
             colors.border,
             node.status === 'connecting' && 'animate-pulse shadow-lg shadow-amber-500/30',
             node.status === 'success' && 'shadow-md shadow-emerald-500/30',
+            node.status === 'awaiting_approval' && 'shadow-lg shadow-amber-500/30',
+            node.type === 'approval' && 'border-amber-400 bg-amber-950/40 ring-1 ring-amber-500/30',
             'active:scale-95 hover:scale-105'
           )}
           onClick={() => setShowTooltip(!showTooltip)}
@@ -192,7 +196,7 @@ export function MiniNodeVertical({
             <div
               className={cn('absolute inset-x-0 top-0 rounded-full transition-all duration-500', colors.line)}
               style={{
-                height: node.status === 'success' ? '100%' : node.status === 'connecting' ? '50%' : '0%',
+                height: node.status === 'success' ? '100%' : (node.status === 'connecting' || node.status === 'awaiting_approval') ? '50%' : '0%',
               }}
             />
           </div>

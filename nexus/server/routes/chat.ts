@@ -142,6 +142,21 @@ function buildCachedSystemPrompt(
   ]
 }
 
+// @NEXUS-FIX-177: Conversation phase state machine - DO NOT REMOVE
+// Derives the current conversation phase from message history.
+// Phases: discovery → clarifying → generating → refining
+function deriveConversationPhase(messages: any[], parsedResponse: any): 'discovery' | 'clarifying' | 'generating' | 'refining' {
+  const userMsgCount = messages.filter((m: any) => m.role === 'user').length
+  const hasWorkflowInHistory = messages.some((m: any) =>
+    m.role === 'assistant' && typeof m.content === 'string' && m.content.includes('shouldGenerateWorkflow')
+  )
+
+  if (userMsgCount <= 1) return 'discovery'
+  if (userMsgCount <= 3 && !hasWorkflowInHistory) return 'clarifying'
+  if (hasWorkflowInHistory) return 'refining'
+  return 'generating'
+}
+
 // GET /api/chat/agents - List all available agents
 router.get('/agents', (req, res) => {
   const agents = getAllAgents().map(agent => ({
@@ -392,9 +407,80 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
         }
         const sanitizedOutput = outputCheck.safe ? claudeResult.text : outputCheck.redacted
 
+        // === @NEXUS-FIX-170: Server-side confidence gating (non-stream path) - DO NOT REMOVE ===
+        let gatedOutput = sanitizedOutput
+        try {
+          const startIdx = sanitizedOutput.indexOf('{')
+          if (startIdx !== -1) {
+            let depth = 0, inStr = false, esc = false, endIdx = -1
+            for (let i = startIdx; i < sanitizedOutput.length; i++) {
+              const ch = sanitizedOutput[i]
+              if (esc) { esc = false; continue }
+              if (ch === '\\' && inStr) { esc = true; continue }
+              if (ch === '"' && !esc) { inStr = !inStr; continue }
+              if (inStr) continue
+              if (ch === '{') depth++
+              if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break } }
+            }
+            if (endIdx !== -1) {
+              const parsed = JSON.parse(sanitizedOutput.substring(startIdx, endIdx + 1))
+              if (parsed.shouldGenerateWorkflow === true) {
+                const claudeConf = (parsed.confidence as number) ?? 0.5
+                const intentMatch = (enrichedUserContext || '').match(/Intent confidence:\s*([\d.]+)/)
+                const intentConf = intentMatch ? parseFloat(intentMatch[1]) : null
+                const isCmp = (enrichedUserContext || '').includes('isComplaint: true')
+                const isStrat = (enrichedUserContext || '').includes('isStrategic: true')
+                const phase = deriveConversationPhase(messages, parsed)
+
+                if (isCmp || isStrat) {
+                  parsed.shouldGenerateWorkflow = false
+                  parsed.confidence = Math.min(claudeConf, 0.35)
+                  console.log(`[Chat] Phase gate (non-stream): complaint/strategic suppressed`)
+                } else if (phase === 'discovery') {
+                  parsed.shouldGenerateWorkflow = false
+                  parsed.confidence = Math.min(claudeConf, 0.50)
+                  console.log(`[Chat] Phase gate (non-stream): discovery phase suppressed`)
+                } else if (intentConf !== null && intentConf < 0.3 && claudeConf > 0.6) {
+                  parsed.shouldGenerateWorkflow = false
+                  parsed.confidence = 0.50
+                  console.log(`[Chat] Phase gate (non-stream): IntentResolver/Claude mismatch`)
+                } else if (claudeConf < 0.60) {
+                  parsed.shouldGenerateWorkflow = false
+                  console.log(`[Chat] Phase gate (non-stream): low confidence ${claudeConf}`)
+                }
+                // @NEXUS-FIX-180: Server-side 20% approval density guard (non-stream) - DO NOT REMOVE
+                if (parsed.workflowSpec?.steps && Array.isArray(parsed.workflowSpec.steps)) {
+                  const wfSteps = parsed.workflowSpec.steps as Array<{ id: string; type: string; config?: { riskLevel?: string } }>
+                  const approvalCount = wfSteps.filter(s => s.type === 'approval').length
+                  const actionCount = wfSteps.filter(s => s.type === 'action').length
+                  const maxApprovals = Math.max(1, Math.ceil(actionCount / 5))
+
+                  if (approvalCount > maxApprovals) {
+                    const riskOrder: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 }
+                    const approvalSteps = wfSteps
+                      .filter(s => s.type === 'approval')
+                      .sort((a, b) => {
+                        const riskA = riskOrder[a.config?.riskLevel || 'medium'] || 1
+                        const riskB = riskOrder[b.config?.riskLevel || 'medium'] || 1
+                        return riskB - riskA
+                      })
+
+                    const keptIds = new Set(approvalSteps.slice(0, maxApprovals).map(s => s.id))
+                    parsed.workflowSpec.steps = wfSteps.filter(s => s.type !== 'approval' || keptIds.has(s.id))
+                    console.log(`[Chat] Density guard (non-stream): trimmed ${approvalCount} approvals to ${maxApprovals} (max for ${actionCount} actions)`)
+                  }
+                }
+
+                parsed._conversationPhase = phase
+                gatedOutput = JSON.stringify(parsed)
+              }
+            }
+          }
+        } catch { /* Non-JSON output, no gating needed */ }
+
         return res.json({
           success: true,
-          output: sanitizedOutput,
+          output: gatedOutput,
           agent: {
             id: agent.id,
             name: agent.name,
@@ -823,6 +909,90 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
       // Response was plain text, not JSON - that's fine
     }
 
+    // === @NEXUS-FIX-170: Server-side confidence gating - DO NOT REMOVE ===
+    // Phase enforcement: Claude can no longer skip phases by self-assigning high confidence.
+    if (parsedResponse.shouldGenerateWorkflow === true) {
+      const claudeConfidence = (parsedResponse.confidence as number) ?? 0.5
+
+      // Cross-reference with IntentResolver hint
+      const intentConfidenceMatch = (enrichedUserContext || '').match(/Intent confidence:\s*([\d.]+)/)
+      const intentConfidence = intentConfidenceMatch ? parseFloat(intentConfidenceMatch[1]) : null
+
+      // Check for complaint/strategic flags from IntentResolver
+      const isComplaint = (enrichedUserContext || '').includes('isComplaint: true')
+      const isStrategic = (enrichedUserContext || '').includes('isStrategic: true')
+
+      // @NEXUS-FIX-177: Derive conversation phase from message history - DO NOT REMOVE
+      const phase = deriveConversationPhase(messages, parsedResponse)
+
+      // RULE 1: Complaints/strategic questions NEVER get workflow cards
+      if (isComplaint || isStrategic) {
+        console.log(`[Chat/Stream] Phase gate: complaint/strategic detected, suppressing workflow card`)
+        parsedResponse.shouldGenerateWorkflow = false
+        parsedResponse.confidence = Math.min(claudeConfidence, 0.35)
+      }
+      // RULE 2: Discovery phase - always suppress workflow cards
+      else if (phase === 'discovery') {
+        console.log(`[Chat/Stream] Phase gate: discovery phase (first message), suppressing workflow card`)
+        parsedResponse.shouldGenerateWorkflow = false
+        parsedResponse.confidence = Math.min(claudeConfidence, 0.50)
+        if (!parsedResponse.clarifyingQuestions) {
+          parsedResponse.clarifyingQuestions = [{
+            question: 'What tools do you currently use for this?',
+            options: ['Google Workspace', 'Microsoft 365', 'Slack + project tools', 'CRM system', 'Custom...'],
+            field: 'current_tools'
+          }]
+          parsedResponse.intent = 'clarifying'
+        }
+      }
+      // RULE 3: If IntentResolver confidence is < 0.3 but Claude says > 0.6, override
+      else if (intentConfidence !== null && intentConfidence < 0.3 && claudeConfidence > 0.6) {
+        console.log(`[Chat/Stream] Phase gate: IntentResolver(${intentConfidence}) vs Claude(${claudeConfidence}) mismatch, capping to 0.50`)
+        parsedResponse.confidence = 0.50
+        parsedResponse.shouldGenerateWorkflow = false
+        if (!parsedResponse.clarifyingQuestions) {
+          parsedResponse.clarifyingQuestions = [{
+            question: 'What tools do you currently use for this?',
+            options: ['Google Workspace', 'Microsoft 365', 'Slack + project tools', 'CRM system', 'Custom...'],
+            field: 'current_tools'
+          }]
+          parsedResponse.intent = 'clarifying'
+        }
+      }
+      // RULE 4: Low confidence (< 0.60) should never produce a workflow card
+      else if (claudeConfidence < 0.60) {
+        console.log(`[Chat/Stream] Phase gate: confidence ${claudeConfidence} < 0.60, suppressing workflow card`)
+        parsedResponse.shouldGenerateWorkflow = false
+      }
+    }
+    // @NEXUS-FIX-180: Server-side 20% approval density guard (stream) - DO NOT REMOVE
+    if (parsedResponse.shouldGenerateWorkflow === true) {
+      const wfSpec = parsedResponse.workflowSpec as { steps?: Array<{ id: string; type: string; config?: { riskLevel?: string } }> } | undefined
+      if (wfSpec?.steps && Array.isArray(wfSpec.steps)) {
+        const approvalCount = wfSpec.steps.filter(s => s.type === 'approval').length
+        const actionCount = wfSpec.steps.filter(s => s.type === 'action').length
+        const maxApprovals = Math.max(1, Math.ceil(actionCount / 5))
+
+        if (approvalCount > maxApprovals) {
+          const riskOrder: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 }
+          const approvalSteps = wfSpec.steps
+            .filter(s => s.type === 'approval')
+            .sort((a, b) => {
+              const riskA = riskOrder[a.config?.riskLevel || 'medium'] || 1
+              const riskB = riskOrder[b.config?.riskLevel || 'medium'] || 1
+              return riskB - riskA
+            })
+
+          const keptIds = new Set(approvalSteps.slice(0, maxApprovals).map(s => s.id))
+          wfSpec.steps = wfSpec.steps.filter(s => s.type !== 'approval' || keptIds.has(s.id))
+          console.log(`[Chat/Stream] Density guard: trimmed ${approvalCount} approvals to ${maxApprovals} (max for ${actionCount} actions)`)
+        }
+      }
+    }
+
+    // Add conversation phase to response
+    parsedResponse._conversationPhase = deriveConversationPhase(messages, parsedResponse)
+
     // Send the complete event with full parsed response
     sendEvent('complete', {
       // @NEXUS-FIX-164: Safe fallback prevents raw JSON dump to frontend - DO NOT REMOVE
@@ -838,6 +1008,8 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
       refiningWorkflowId: parsedResponse.refiningWorkflowId || undefined,
       suggestedQuestions: parsedResponse.suggestedQuestions || undefined,
       customIntegrations: customIntegrations.length > 0 ? customIntegrations : undefined,
+      // @NEXUS-FIX-177: Include conversation phase for client-side display - DO NOT REMOVE
+      conversationPhase: parsedResponse._conversationPhase || undefined,
       agent: {
         id: agent.id,
         name: agent.name,

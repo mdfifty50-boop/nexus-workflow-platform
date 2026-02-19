@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom'
 
 interface WorkflowNode {
   id: string
-  type: 'trigger' | 'action' | 'condition' | 'output' | 'ai'
+  type: 'trigger' | 'action' | 'condition' | 'output' | 'ai' | 'approval'
   tool: string
   toolIcon: string
   name: string

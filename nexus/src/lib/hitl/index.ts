@@ -242,3 +242,38 @@ export {
   type RuleEvaluationResult,
   type EvaluationResult,
 } from './auto-approval-rules';
+
+// ============================================================================
+// Approval Density Guard (approval-density.ts)
+// ============================================================================
+
+export {
+  calculateApprovalDensity,
+  trimApprovalNodes,
+  type ApprovalDensityResult,
+} from './approval-density';
+
+// ============================================================================
+// Approval Suggester (approval-suggester.ts)
+// ============================================================================
+
+export {
+  suggestApprovalNodes,
+  type ApprovalSuggestion,
+} from './approval-suggester';
+
+// ============================================================================
+// WhatsApp Approval (whatsapp-approval.ts)
+// ============================================================================
+
+export {
+  formatApprovalMessage,
+  parseWhatsAppResponse,
+  isApprovalResponse,
+  isRejectionResponse,
+  normalizeResponse,
+  getConfirmationMessage,
+  type WhatsAppApprovalConfig,
+  type WhatsAppApprovalMessage,
+  type ParsedApprovalResponse,
+} from './whatsapp-approval';

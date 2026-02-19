@@ -30,6 +30,12 @@ export interface ResolvedIntent {
   unsupportedTools: UnsupportedToolIntent[];
   confidence: number;
   interpretation: string; // Human-readable interpretation
+  // @NEXUS-FIX-173: IntentResolver complaint/strategic detection - DO NOT REMOVE
+  isComplaint: boolean;       // complaint/problem pattern detected
+  isStrategic: boolean;       // strategic question detected
+  diagnosticCategory?: 'operational' | 'financial' | 'growth' | 'technical';
+  // @NEXUS-FIX-181: Approval request pattern detection - DO NOT REMOVE
+  isApprovalRequest: boolean; // user wants human approval gates
 }
 
 export interface IntegrationIntent {
@@ -83,7 +89,8 @@ const ACTION_PATTERNS: Record<string, string[]> = {
 const INTEGRATION_PATTERNS: Record<string, RegExp[]> = {
   gmail: [/\bgmail\b/i, /\bemail\b/i, /\bmail\b/i, /\binbox\b/i],
   slack: [/\bslack\b/i, /\bslack channel\b/i, /\bslack message\b/i],
-  whatsapp: [/\bwhatsapp\b/i, /\bwhats\s*app\b/i, /\bwa\b/i],
+  'whatsapp-business': [/\bwhatsapp\s*business\b/i, /\bwhats\s*app\s*business\b/i, /\bwa\s*business\b/i, /\bwhatsapp\s*biz\b/i, /\bwhatsapp\s*business\s*api\b/i],
+  whatsapp: [/\bwhatsapp(?!\s*business)\b/i, /\bwhats\s*app(?!\s*business)\b/i, /\bwa(?!\s*business)\b/i],
   discord: [/\bdiscord\b/i],
   telegram: [/\btelegram\b/i, /\btg\b/i],
   dropbox: [/\bdropbox\b/i],
@@ -116,6 +123,61 @@ const INTEGRATION_PATTERNS: Record<string, RegExp[]> = {
   zoho_books: [/\bzoho\b/i, /\bzoho\s*books\b/i],
   knet: [/\bknet\b/i],
   sap: [/\bsap\b/i]
+};
+
+// @NEXUS-FIX-173: Complaint and strategic pattern detection constants - DO NOT REMOVE
+/**
+ * Complaint/problem patterns - user is reporting an issue, not requesting a workflow
+ */
+const COMPLAINT_PATTERNS: RegExp[] = [
+  /\b(dropping|declining|going down|decreasing|falling|losing|lost)\b/i,
+  /\b(struggling|problem with|issue with|not working|broken)\b/i,
+  /\b(too slow|too expensive|too manual|wasting time)\b/i,
+  /\b(churn|turnover|attrition|bleeding|hemorrhaging)\b/i,
+  /\b(تنخفض|ينخفض|تراجع|انخفاض|خسارة)\b/,  // Arabic complaints
+  /\b(مشكلة|مشاكل|بطيء|غالي|يدوي)\b/,       // Arabic: problem, problems, slow, expensive, manual
+];
+
+/**
+ * Strategic question patterns - user wants advice/consulting, not automation
+ */
+const STRATEGIC_PATTERNS: RegExp[] = [
+  /\b(should i|how do i|what should|is it worth|invest in|compare)\b/i,
+  /\b(strategy|planning|roadmap|budget|roi|decision)\b/i,
+  /\b(better to|pros and cons|recommend|advice|consult)\b/i,
+  /\b(restructure|pivot|expand|scale|grow|enter)\s+(my|the|our|a)\b/i,
+  /\b(هل أستثمر|هل يجب|ما الأفضل|أنصحني|استشارة)\b/, // Arabic strategic
+];
+
+// @NEXUS-FIX-181: Approval request pattern detection - DO NOT REMOVE
+const APPROVAL_PATTERNS: RegExp[] = [
+  /\b(approv|sign off|authorize|review before|check with|confirm with|dual auth)/i,
+  /\b(my boss|my manager|supervisor|sign.?off|two.?person|four.?eye)/i,
+  /\b(needs? (to be )?approved?|requires? approval|approval (gate|step|process))/i,
+  /\b(human review|manual check|someone (should|needs to) (review|approve|check))/i,
+  /\b(موافقة|اعتماد|مراجعة قبل|تصديق)\b/,
+];
+
+/**
+ * Diagnostic category keyword groups for classifying complaint types
+ */
+const DIAGNOSTIC_CATEGORY_KEYWORDS: Record<string, RegExp[]> = {
+  growth: [
+    /\b(sales|revenue|customers|leads|conversion|pipeline|marketing|acquisition|churn|retention)\b/i,
+    /\b(مبيعات|إيرادات|عملاء|تسويق)\b/,
+  ],
+  financial: [
+    /\b(cost|expense|budget|profit|margin|pricing|cash\s*flow|overhead|spending)\b/i,
+    /\b(تكلفة|ميزانية|ربح|مصاريف)\b/,
+  ],
+  operational: [
+    /\b(slow|manual|process|bottleneck|efficiency|productivity|workflow|team|staff|delay)\b/i,
+    /\b(بطيء|يدوي|عملية|فريق)\b/,
+  ],
+  technical: [
+    /\b(error|bug|crash|broken|integration|api|system|software|downtime|server)\b/i,
+    /\b(خطأ|عطل|نظام)\b/,
+  ],
 };
 
 /**
@@ -200,8 +262,43 @@ export class IntentResolverService {
     // Check for unsupported tools
     const unsupportedTools = this.checkUnsupportedTools(integrations);
 
-    // Calculate confidence
-    const confidence = this.calculateConfidence(integrations, extractedParams);
+    // @NEXUS-FIX-173: Detect complaint and strategic patterns - DO NOT REMOVE
+    const isComplaint = COMPLAINT_PATTERNS.some(p => p.test(cleanInput));
+    const isStrategic = STRATEGIC_PATTERNS.some(p => p.test(cleanInput));
+
+    // @NEXUS-FIX-181: Detect approval request intent - DO NOT REMOVE
+    const isApprovalRequest = APPROVAL_PATTERNS.some(p => p.test(cleanInput));
+
+    // Classify diagnostic category if complaint detected
+    let diagnosticCategory: 'operational' | 'financial' | 'growth' | 'technical' | undefined;
+    if (isComplaint || isStrategic) {
+      for (const [category, patterns] of Object.entries(DIAGNOSTIC_CATEGORY_KEYWORDS)) {
+        if (patterns.some(p => p.test(cleanInput))) {
+          diagnosticCategory = category as typeof diagnosticCategory;
+          break;
+        }
+      }
+    }
+
+    // Calculate confidence (with complaint/strategic awareness)
+    let confidence = this.calculateConfidence(integrations, extractedParams);
+
+    // @NEXUS-FIX-173: Weighted complaint/strategic confidence scoring - DO NOT REMOVE
+    // Strong patterns get lower caps (more clearly non-workflow), weak patterns get higher caps
+    if (isComplaint) {
+      // Classify complaint strength: strong action words → 0.15, emotional → 0.20, mild → 0.30
+      const strongComplaint = [/\b(hemorrhaging|bleeding|crash|broken|lost)\b/i, /\b(خسارة|عطل)\b/].some(p => p.test(cleanInput))
+      const mediumComplaint = [/\b(dropping|declining|struggling|churn|turnover)\b/i, /\b(تنخفض|تراجع|انخفاض)\b/].some(p => p.test(cleanInput))
+      const complaintCap = strongComplaint ? 0.15 : mediumComplaint ? 0.25 : 0.30
+      confidence = Math.min(confidence, complaintCap);
+    }
+    if (isStrategic) {
+      // Strategic: direct advice-seeking → 0.20, general planning → 0.30, mild comparison → 0.35
+      const strongStrategic = [/\b(should i|is it worth|pros and cons|recommend)\b/i, /\b(هل أستثمر|هل يجب|أنصحني)\b/].some(p => p.test(cleanInput))
+      const mediumStrategic = [/\b(strategy|roadmap|budget|roi|restructure|pivot)\b/i, /\b(استشارة|ما الأفضل)\b/].some(p => p.test(cleanInput))
+      const strategicCap = strongStrategic ? 0.20 : mediumStrategic ? 0.30 : 0.35
+      confidence = Math.min(confidence, strategicCap);
+    }
 
     // Generate interpretation
     const interpretation = this.generateInterpretation(integrations, extractedParams);
@@ -213,7 +310,11 @@ export class IntentResolverService {
       extractedParams,
       unsupportedTools,
       confidence,
-      interpretation
+      interpretation,
+      isComplaint,
+      isStrategic,
+      diagnosticCategory,
+      isApprovalRequest,
     };
   }
 

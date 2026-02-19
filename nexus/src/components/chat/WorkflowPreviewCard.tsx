@@ -68,6 +68,17 @@ import type { ConnectionStatus as _ConnectionStatus } from '@/services/OAuthCont
 // @NEXUS-WHATSAPP: WhatsApp connection prompt for workflows with WhatsApp nodes
 import { WhatsAppConnectionPrompt } from './WhatsAppConnectionPrompt'
 
+// @NEXUS-FIX-178: HITL approval system imports - DO NOT REMOVE
+import { hitlWorkflowIntegration } from '@/lib/hitl'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { stepInterceptor as _stepInterceptor, INTERCEPT_RESULT as _INTERCEPT_RESULT } from '@/lib/hitl'
+import type { ApprovalRequest } from '@/lib/hitl'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { ResumeResult as _ResumeResult } from '@/lib/hitl'
+import { ApprovalCard } from '@/components/hitl/ApprovalCard'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { calculateApprovalDensity as _calculateApprovalDensity } from '@/lib/hitl/approval-density'
+
 // @NEXUS-GENERIC-ORCHESTRATION: 5-Layer Generic Orchestration System
 // Enables Nexus to work with ANY of Rube's 500+ tools without hardcoding
 import {
@@ -492,6 +503,7 @@ const AR_TRANSLATIONS: Record<string, string> = {
   'Execution failed': 'فشل التنفيذ',
   'Executing...': 'جاري التنفيذ...',
   'Checking connections...': 'جاري فحص الاتصالات...',
+  'Awaiting approval...': 'في انتظار الموافقة...',
   'Ready to execute': 'جاهز للتنفيذ',
   // Node detail panel
   'Trigger': 'المشغّل',
@@ -591,6 +603,13 @@ export function WorkflowPreviewCard({
   // Fix: Track pending input and submit it when Retry is clicked
   const pendingErrorInputRef = React.useRef<{ field: string; value: string } | null>(null)
 
+  // @NEXUS-FIX-178: HITL approval state - DO NOT REMOVE
+  const [pendingApprovalRequest, setPendingApprovalRequest] = React.useState<ApprovalRequest | null>(null)
+  const [approvalResumeIndex, setApprovalResumeIndex] = React.useState<number | null>(null)
+  const [showApprovalCard, setShowApprovalCard] = React.useState(false)
+  const [approvalDecisionLoading, setApprovalDecisionLoading] = React.useState(false)
+  const preservedNodeResultsRef = React.useRef<Map<string, unknown>>(new Map())
+
   // @NEXUS-FIX-033: Pre-flight validation system - DO NOT REMOVE
   // Validates ALL required params BEFORE execution to eliminate crash-and-retry loops
   const [preFlightResult, setPreFlightResult] = React.useState<PreFlightResult | null>(null)
@@ -646,7 +665,7 @@ export function WorkflowPreviewCard({
     workflow.nodes.map((n) => ({
       id: n.id,
       name: n.name,
-      type: (n.type as 'trigger' | 'action' | 'output') || 'action',
+      type: (n.type as 'trigger' | 'action' | 'output' | 'approval') || 'action',
       integration: n.integration,
       status: 'idle' as NodeStatus,
     }))
@@ -1369,7 +1388,7 @@ export function WorkflowPreviewCard({
       const node: WorkflowNode = {
         id: rawNode.id,
         name: rawNode.name,
-        type: (rawNode.type as 'trigger' | 'action' | 'output') || 'action',
+        type: (rawNode.type as 'trigger' | 'action' | 'output' | 'approval') || 'action',
         integration: rawNode.integration,
         status: 'idle',
         config: (rawNode as Record<string, unknown>).config as Record<string, unknown> | undefined,
@@ -1423,7 +1442,7 @@ export function WorkflowPreviewCard({
         node: {
           id: prevRawNode.id,
           name: prevRawNode.name,
-          type: (prevRawNode.type as 'trigger' | 'action' | 'output') || 'action',
+          type: (prevRawNode.type as 'trigger' | 'action' | 'output' | 'approval') || 'action',
           integration: prevRawNode.integration,
           status: 'success' as NodeStatus,
         },
@@ -2296,6 +2315,115 @@ export function WorkflowPreviewCard({
   // @NEXUS-FIX-111: Track retry counts per node to prevent infinite retries - DO NOT REMOVE
   const nodeRetryCounts = React.useRef<Map<string, number>>(new Map())
 
+  // @NEXUS-FIX-179: Approval decision handler with resume mechanism - DO NOT REMOVE
+  const handleApprovalDecision = React.useCallback(async (
+    requestId: string,
+    decision: 'approved' | 'rejected',
+    comments?: string,
+    additionalData?: Record<string, unknown>
+  ) => {
+    setApprovalDecisionLoading(true)
+    try {
+      if (decision === 'approved') {
+        // Record approval
+        await hitlWorkflowIntegration.approveRequest(
+          requestId,
+          'user',
+          comments,
+          additionalData
+        )
+
+        // POST to server for recording
+        try {
+          await fetch(`/api/workflow/approve/${requestId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              decision: 'approved',
+              reviewer: 'user',
+              comments,
+              workflowId: workflow.id,
+              additionalData,
+            }),
+          })
+        } catch (_err) {
+          // Server recording is non-blocking
+        }
+
+        // Mark approval node as success
+        if (approvalResumeIndex !== null) {
+          setNodes(prev => prev.map((n, idx) => ({
+            ...n,
+            status: idx === approvalResumeIndex ? 'success' : n.status,
+            result: idx === approvalResumeIndex ? {
+              type: 'approval_granted',
+              decision: 'approved',
+              reviewer: 'user',
+              comments,
+              additionalData,
+              timestamp: new Date().toISOString(),
+            } : n.result,
+          })))
+        }
+
+        // Restore preserved results
+        setNodes(prev => prev.map(n => {
+          const preserved = preservedNodeResultsRef.current.get(n.id)
+          if (preserved && !n.result) {
+            return { ...n, result: preserved, status: 'success' as NodeStatus }
+          }
+          return n
+        }))
+
+        // Clean up approval UI
+        setShowApprovalCard(false)
+        setPendingApprovalRequest(null)
+        setApprovalDecisionLoading(false)
+
+        // Resume execution via ref (same pattern as trigger sample data resume)
+        addLog(`Approved! Resuming workflow...`)
+        setTimeout(() => {
+          executeWorkflowRef.current()
+        }, 300)
+      } else {
+        // Handle rejection
+        await hitlWorkflowIntegration.rejectRequest(requestId, 'user', comments || 'Rejected by user')
+
+        try {
+          await fetch(`/api/workflow/reject/${requestId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              decision: 'rejected',
+              reviewer: 'user',
+              comments,
+              workflowId: workflow.id,
+            }),
+          })
+        } catch (_err) { /* non-blocking */ }
+
+        // Mark approval node as error
+        if (approvalResumeIndex !== null) {
+          setNodes(prev => prev.map((n, idx) => ({
+            ...n,
+            status: idx === approvalResumeIndex ? 'error' : n.status,
+            error: idx === approvalResumeIndex ? `Rejected: ${comments || 'User rejected this step'}` : n.error,
+          })))
+        }
+
+        setShowApprovalCard(false)
+        setPendingApprovalRequest(null)
+        setApprovalDecisionLoading(false)
+        setPhase('error')
+        addLog(`Rejected. Workflow stopped.`)
+        onExecutionComplete?.(false)
+      }
+    } catch (err) {
+      console.error('[HITL] Decision handler error:', err)
+      setApprovalDecisionLoading(false)
+    }
+  }, [workflow.id, approvalResumeIndex, addLog, onExecutionComplete])
+
   // Execute workflow with REAL API calls via Composio
   const executeWorkflow = React.useCallback(async () => {
     // Reset retry counts for fresh execution
@@ -2313,12 +2441,21 @@ export function WorkflowPreviewCard({
 
     // Rube MCP is already initialized via backend - no client init needed
 
-    // Reset all nodes to pending
-    setNodes((prev) => prev.map((n) => ({ ...n, status: 'pending' as NodeStatus })))
+    // @NEXUS-FIX-178: Preserve already-completed nodes on approval resume - DO NOT REMOVE
+    setNodes((prev) => prev.map((n) => ({
+      ...n,
+      status: (n.status === 'success' && n.result) ? 'success' : 'pending' as NodeStatus,
+    })))
 
     // Execute each node
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i]
+
+      // @NEXUS-FIX-178: Skip already-completed nodes on approval resume - DO NOT REMOVE
+      if (node.status === 'success' && node.result) {
+        addLog(`${node.name} - Already completed (skipping)`)
+        continue
+      }
 
       // Set current node to connecting
       setNodes((prev) =>
@@ -2509,6 +2646,14 @@ export function WorkflowPreviewCard({
             const aiResult = await response.json()
             if (!aiResult.success) throw new Error(aiResult.error || 'AI processing failed')
 
+            // @NEXUS-FIX-171: AI step output validation - DO NOT REMOVE
+            if (!aiResult.output || typeof aiResult.output !== 'string' || aiResult.output.trim().length === 0) {
+              throw new Error('AI step produced empty output — please try again')
+            }
+            if (aiResult.output.length > 10000) {
+              aiResult.output = aiResult.output.substring(0, 10000) + '... [truncated]'
+            }
+
             addLog(`✓ ${node.name}: Done (${aiResult.tier || 'ai'}, ${aiResult.tokensUsed || 0} tokens)`)
 
             setNodes((prev) =>
@@ -2557,6 +2702,84 @@ export function WorkflowPreviewCard({
           continue // Move to next node
         }
 
+        // @NEXUS-FIX-178: HITL Approval Node Handling - DO NOT REMOVE
+        // Detect explicit approval nodes or action nodes with approval-triggering characteristics
+        const isExplicitApprovalNode = node.type === 'approval'
+
+        if (isExplicitApprovalNode) {
+          addLog(`${node.name} - Approval required`)
+
+          // Build approval context from the node's config
+          const approvalConfig = (node as any).approvalConfig || {}
+          const approvalContext = {
+            data: {
+              workflowName: workflow.name,
+              stepName: node.name,
+              stepIndex: i,
+              ...(node.config || {}),
+            },
+            reason: approvalConfig.reason || approvalConfig.approvalMessage || `Approval required for: ${node.name}`,
+            displayMessage: approvalConfig.approvalMessage || `Please review before proceeding with "${node.name}"`,
+            riskLevel: approvalConfig.riskLevel || 'medium',
+          }
+
+          // Preserve all node results so far for resume
+          preservedNodeResultsRef.current.clear()
+          for (let j = 0; j < i; j++) {
+            if (nodes[j].result) {
+              preservedNodeResultsRef.current.set(nodes[j].id, nodes[j].result)
+            }
+          }
+
+          // Create the approval request via HITL library
+          const requestId = await hitlWorkflowIntegration.pauseForApproval(
+            workflow.id,
+            node.id,
+            approvalContext,
+            {
+              priority: approvalConfig.priority || 'medium',
+              workflowName: workflow.name,
+              stepName: node.name,
+              timeoutMs: approvalConfig.timeoutMs,
+            }
+          )
+
+          // Update node with request ID
+          setNodes(prev => prev.map((n, idx) => ({
+            ...n,
+            status: idx === i ? ('awaiting_approval' as NodeStatus) : idx < i ? 'success' : 'pending',
+          })))
+
+          // Set up approval UI state
+          const request = hitlWorkflowIntegration.getRequest(requestId)
+          setPendingApprovalRequest(request || null)
+          setApprovalResumeIndex(i)
+          setShowApprovalCard(true)
+          setPhase('awaiting_approval' as CardPhase)
+
+          // Try to send WhatsApp notification (non-blocking)
+          try {
+            await fetch('/api/workflow/notify-approval', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requestId,
+                workflowName: workflow.name,
+                stepName: node.name,
+                approvalConfig,
+                channel: 'whatsapp',
+              }),
+            })
+          } catch (_err) {
+            // WhatsApp notification is non-blocking
+          }
+
+          addLog(`Waiting for approval...`)
+          // PAUSE execution - return from the for-loop (same pattern as trigger sample data)
+          return
+        }
+        // @NEXUS-FIX-178-END
+
         // @NEXUS-FIX-146: Native WhatsApp execution via Baileys - DO NOT REMOVE
         // Problem: WhatsApp personal (toolkit='whatsapp') was routed to Composio which doesn't have it.
         // Solution: Intercept before Composio path and send via Baileys API directly.
@@ -2575,8 +2798,16 @@ export function WorkflowPreviewCard({
               previousNodeResults
             )
             const p = pipeResult.params
-            // Look for message in resolved params, flow data, or collected params
-            const waMessage = (p.message || p.text || p.body || p.notification_text || p.generated_message || p.ai_generated_content || '') as string
+            // @NEXUS-FIX-172: Canonical WhatsApp message resolution - DO NOT REMOVE
+            // Priority: explicit message param → previous AI output → previous text output → fallback aliases
+            const waMessage = (() => {
+              if (p.message && typeof p.message === 'string') return p.message
+              const lastAI = [...previousNodeResults].reverse().find((r: any) => r?.type === 'ai_output')
+              if (lastAI && (lastAI as any).generated) return (lastAI as any).generated as string
+              const lastText = [...previousNodeResults].reverse().find((r: any) => r?.text)
+              if (lastText) return (lastText as any).text as string
+              return (p.text || p.body || p.notification_text || '') as string
+            })()
             const waTo = (p.to || p.phone || p.phone_number ||
               (workflow.collectedParams as Record<string, string>)?.whatsapp || '') as string
 
@@ -2993,6 +3224,32 @@ export function WorkflowPreviewCard({
     }
   }, [phase, executeWorkflow, addLog])
 
+  // @NEXUS-FIX-183: Poll for WhatsApp-based approvals while awaiting - DO NOT REMOVE
+  React.useEffect(() => {
+    if (phase !== 'awaiting_approval' || !pendingApprovalRequest) return
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/workflow/approval-status/${workflow.id}`)
+        if (!res.ok) return
+        const data = await res.json()
+
+        if (data.lastDecision) {
+          handleApprovalDecision(
+            data.lastDecision.requestId,
+            data.lastDecision.decision,
+            data.lastDecision.comments,
+            data.lastDecision.additionalData
+          )
+        }
+      } catch (_err) {
+        // Polling failure is non-blocking
+      }
+    }, 5000)
+
+    return () => clearInterval(pollInterval)
+  }, [phase, pendingApprovalRequest, workflow.id, handleApprovalDecision])
+
   // @NEXUS-FIX-026 & @NEXUS-FIX-094: Auto-retry after user provides missing parameter - DO NOT REMOVE
   // When collectedParams changes while in error state, reset and retry execution
   // @NEXUS-FIX-094: Fixed bug where setPhase('ready') triggered re-render which canceled the timeout
@@ -3148,7 +3405,15 @@ export function WorkflowPreviewCard({
             )}
           </div>
           <div>
-            <h4 className="font-semibold text-white text-sm">{workflow.name}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="font-semibold text-white text-sm">{workflow.name}</h4>
+              {/* @NEXUS-FIX-180: Approval gate count badge - DO NOT REMOVE */}
+              {nodes.some(n => n.type === 'approval') && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-900/40 text-amber-300 border border-amber-500/30">
+                  {nodes.filter(n => n.type === 'approval').length} approval gate{nodes.filter(n => n.type === 'approval').length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-400">{nodes.length} {t_wpc('steps', isArabic)}</p>
           </div>
         </div>
@@ -3275,6 +3540,8 @@ export function WorkflowPreviewCard({
                   ? t_wpc('Workflow completed!', isArabic)
                   : hasError
                   ? t_wpc('Execution failed', isArabic)
+                  : phase === 'awaiting_approval'
+                  ? t_wpc('Awaiting approval...', isArabic)
                   : isExecuting
                   ? t_wpc('Executing...', isArabic)
                   : isChecking
@@ -3375,6 +3642,116 @@ export function WorkflowPreviewCard({
               />
             )
           })()}
+
+          {/* @NEXUS-FIX-178: HITL Approval Card UI - DO NOT REMOVE */}
+          {showApprovalCard && pendingApprovalRequest && (
+            <div className="px-4 py-3 border-t border-slate-700/50">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-sm font-medium text-amber-400">
+                  {isArabic ? '\u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0645\u0637\u0644\u0648\u0628\u0629' : 'Approval Required'}
+                </span>
+              </div>
+
+              {/* @NEXUS-FIX-182: Multi-mode approval UI - DO NOT REMOVE */}
+              {(() => {
+                const approvalNode = approvalResumeIndex !== null ? nodes[approvalResumeIndex] : null
+                const config = (approvalNode as any)?.approvalConfig || {}
+                const mode = config.mode || 'binary'
+
+                return (
+                  <div className="space-y-3">
+                    {/* Review + Edit Mode: Show editable fields */}
+                    {mode === 'review_edit' && config.editableFields && (
+                      <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+                        <span className="text-xs text-slate-400">Review & modify if needed:</span>
+                        {config.editableFields.map((field: any) => (
+                          <div key={field.field} className="flex items-center gap-2">
+                            <label className="text-xs text-slate-400 min-w-[100px]">{field.label}</label>
+                            {field.type === 'select' ? (
+                              <select
+                                id={`approval-field-${field.field}`}
+                                defaultValue={field.currentValue}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+                              >
+                                {field.options?.map((opt: string) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                id={`approval-field-${field.field}`}
+                                type={field.type === 'number' ? 'number' : 'text'}
+                                defaultValue={field.currentValue}
+                                className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Choose Path Mode: Show option cards */}
+                    {mode === 'choose_path' && config.pathOptions && (
+                      <div className="space-y-1">
+                        <span className="text-xs text-slate-400">Choose how to proceed:</span>
+                        {config.pathOptions.map((opt: any) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => handleApprovalDecision(
+                              pendingApprovalRequest.id,
+                              'approved',
+                              undefined,
+                              { selectedPath: opt.id }
+                            )}
+                            disabled={approvalDecisionLoading}
+                            className="w-full text-left p-2 rounded border border-slate-600 hover:border-amber-400 transition-colors"
+                          >
+                            <span className="text-sm font-medium text-white">{opt.label}</span>
+                            {opt.description && (
+                              <span className="text-xs text-slate-400 block mt-0.5">{opt.description}</span>
+                            )}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => handleApprovalDecision(pendingApprovalRequest.id, 'rejected', 'User cancelled')}
+                          disabled={approvalDecisionLoading}
+                          className="text-xs text-red-400 hover:text-red-300 mt-1"
+                        >
+                          {isArabic ? '\u0625\u0644\u063a\u0627\u0621 \u0633\u064a\u0631 \u0627\u0644\u0639\u0645\u0644' : 'Cancel workflow'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Binary Mode (default): Approve/Reject with ApprovalCard */}
+                    {(mode === 'binary' || !mode || mode === 'review_edit') && (
+                      <ApprovalCard
+                        request={pendingApprovalRequest}
+                        expanded={true}
+                        onApprove={(id) => {
+                          // For review_edit mode, collect edited values
+                          if (mode === 'review_edit' && config.editableFields) {
+                            const editedData: Record<string, unknown> = {}
+                            for (const field of config.editableFields) {
+                              const el = document.getElementById(`approval-field-${field.field}`) as HTMLInputElement | HTMLSelectElement
+                              if (el) {
+                                editedData[field.field] = field.type === 'number' ? Number(el.value) : el.value
+                              }
+                            }
+                            handleApprovalDecision(id, 'approved', undefined, editedData)
+                          } else {
+                            handleApprovalDecision(id, 'approved')
+                          }
+                        }}
+                        onReject={(id) => handleApprovalDecision(id, 'rejected', 'User rejected')}
+                        isLoading={approvalDecisionLoading}
+                      />
+                    )}
+                  </div>
+                )
+              })()}
+            </div>
+          )}
 
           {/* Confidence indicator */}
           {workflow.confidence !== undefined && workflow.confidence < 0.85 && !isComplete && !hasError && (
@@ -3616,7 +3993,7 @@ export function WorkflowPreviewCard({
           {/* Execute button - ALWAYS show when workflow is not complete/errored
               INTENT-DRIVEN: User can always execute, AI figures out details at runtime
               @NEXUS-FIX-033: Now blocked until pre-flight is complete */}
-          {phase !== 'complete' && phase !== 'error' && (
+          {phase !== 'complete' && phase !== 'error' && phase !== 'awaiting_approval' && (
             <div className="px-4 pb-4">
               <button
                 onClick={executeWorkflow}

@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.60",
-  "_lastUpdated": "2026-02-18",
-  "_totalFixes": 151,
+  "_version": "1.0.69",
+  "_lastUpdated": "2026-02-19",
+  "_totalFixes": 165,
 
   "fixes": [
     {
@@ -1839,6 +1839,174 @@
       "codeMarker": "@NEXUS-FIX-166",
       "testCommand": "Send multiple messages in quick succession - verify no duplicate user messages in AI context (check console logs)",
       "critical": true
+    },
+    {
+      "id": "FIX-170",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Server-side confidence gating",
+      "problem": "Claude self-assigned high confidence (0.7+) for vague requests and complaints, skipping the discovery/clarifying phase and generating premature workflow cards.",
+      "solution": "Added server-side gating in chat.ts that cross-references IntentResolver confidence vs Claude confidence. 4 rules: complaints/strategic always suppressed, discovery phase always suppressed, mismatch capped at 0.50, low confidence (<0.60) suppressed.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-170",
+      "testCommand": "Type 'automate my business' - must get clarifying questions, no workflow card. Type 'my sales are dropping' - must get diagnostic questions, no card.",
+      "critical": true
+    },
+    {
+      "id": "FIX-171",
+      "date": "2026-02-19",
+      "category": "Workflow Execution",
+      "title": "AI step output validation",
+      "problem": "AI steps in workflows could return empty or excessively long output without any validation, causing silent failures or memory issues in downstream steps.",
+      "solution": "Added output validation on both client (WorkflowPreviewCard.tsx) and server (workflow.ts): empty output throws error, output >10000 chars is truncated.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/routes/workflow.ts"],
+      "codeMarker": "@NEXUS-FIX-171",
+      "testCommand": "Execute a workflow with an AI processing step - verify empty output is caught and displayed as error, not silently passed to next step.",
+      "critical": true
+    },
+    {
+      "id": "FIX-172",
+      "date": "2026-02-19",
+      "category": "Workflow Execution",
+      "title": "Canonical WhatsApp message resolution",
+      "problem": "WhatsApp send step had 7+ aliases for message content (message, text, body, notification_text, etc.) requiring complex lookups. AI step output often failed to map correctly.",
+      "solution": "Replaced 7-alias lookup with canonical resolution function: priority 1 explicit message param, priority 2 previous AI output, priority 3 previous text output, priority 4 fallback aliases.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-172",
+      "testCommand": "Execute workflow: AI step → WhatsApp send. Verify WhatsApp receives the AI-generated text correctly.",
+      "critical": true
+    },
+    {
+      "id": "FIX-173",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "IntentResolver complaint/strategic detection",
+      "problem": "IntentResolver only detected workflow and integration intents. Complaints ('sales dropping') and strategic questions ('should I invest in...') were classified as generic questions with normal confidence.",
+      "solution": "Added COMPLAINT_PATTERNS, STRATEGIC_PATTERNS, and DIAGNOSTIC_CATEGORY_KEYWORDS to IntentResolver. Complaints cap confidence at 0.30, strategic at 0.35. Diagnostic category (growth/financial/operational/technical) extracted.",
+      "files": ["nexus/src/services/IntentResolver.ts", "nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-173",
+      "testCommand": "Check IntentResolver output for 'my sales are dropping' - should return isComplaint:true, diagnosticCategory:'growth', confidence<=0.30.",
+      "critical": true
+    },
+    {
+      "id": "FIX-174",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Conversation summarization",
+      "problem": "Conversation history was hard-truncated at 10 messages, losing early context like user name, industry, tools mentioned, and stated goals.",
+      "solution": "Added extractKeyFacts() that scans dropped messages for names, tools (16 known), industries (14 known), roles, company size, and goals. Summary injected as 'Conversation Memory' section in user context.",
+      "files": ["nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-174",
+      "testCommand": "Share name + industry in message 1, continue chatting past 10 messages, then ask 'what's my name?' - should remember from summarization.",
+      "critical": true
+    },
+    {
+      "id": "FIX-175",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Diagnostic tree framework",
+      "problem": "When users reported business problems, AI asked generic clarifying questions (What CRM? What channel?) instead of diagnostic questions (When did it start? What changed?).",
+      "solution": "Created diagnostic-trees.ts with structured trees for 6 industries x 5 problem categories. Added diagnostic framework instructions to system prompt guiding Claude to ask timeline, metrics, root cause, and funnel questions.",
+      "files": ["nexus/src/lib/diagnostic-trees.ts", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-175",
+      "testCommand": "Type 'my sales are dropping' - should get diagnostic questions like 'When did you first notice?' not 'What CRM do you use?'",
+      "critical": true
+    },
+    {
+      "id": "FIX-176",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Strategic consulting bridge",
+      "problem": "Complex strategic questions ('should I restructure my sales pipeline?') got a text-only response with no path to deeper analysis. AI Consultancy room was disconnected from main chat.",
+      "solution": "Added 'consulting' intent type. For complex strategic responses (intent=consulting, >100 chars, no workflow), a subtle Deep Dive button is appended. Button passes context to AIConsultancy page via localStorage.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/src/components/chat/ChatMessage.tsx", "nexus/src/pages/AIConsultancy.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-176",
+      "testCommand": "Ask 'should I invest in email marketing or social media?' - should get structured consulting response with optional Deep Dive button.",
+      "critical": true
+    },
+    {
+      "id": "FIX-177",
+      "date": "2026-02-19",
+      "category": "AI Brain",
+      "title": "Conversation phase state machine",
+      "problem": "No deterministic phase tracking - Claude could skip discovery/clarifying phases and jump straight to workflow generation on first message.",
+      "solution": "Added deriveConversationPhase() function that determines phase from message count + workflow history. Phases: discovery (msg 1), clarifying (msg 2-3), generating, refining. Phase enforced in confidence gating. UI shows phase indicator.",
+      "files": ["nexus/server/routes/chat.ts", "nexus/src/components/chat/ChatContainer.tsx", "nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-177",
+      "testCommand": "Send first message - phase indicator should show 'Understanding your needs'. Send 2nd message - should show 'Gathering details'. Workflow card only appears after clarifying phase.",
+      "critical": true
+    },
+    {
+      "id": "FIX-178",
+      "date": "2026-02-19",
+      "category": "HITL Execution",
+      "title": "Approval node type system + execution loop interception + resume-aware for-loop",
+      "problem": "Nexus had a complete HITL library (9 modules, 6 UI components) but it was entirely unwired to the workflow execution engine. No approval node type existed.",
+      "solution": "Added 'approval' to WorkflowNode.type, 'awaiting_approval' to NodeStatus/CardPhase, approvalConfig with multi-mode support. Wired StepInterceptor into the execution for-loop to detect approval nodes, pause execution, show ApprovalCard UI. Resume-aware loop preserves completed node results and skips them on resume.",
+      "files": ["nexus/src/components/chat/wpc-types.ts", "nexus/src/types/workflow-execution.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-178",
+      "testCommand": "Create workflow with approval node (e.g. 'Pay invoice 200 KWD'). Execution should pause at approval node, show amber ApprovalCard. Click Approve - execution resumes from next node with all previous results preserved.",
+      "critical": true
+    },
+    {
+      "id": "FIX-179",
+      "date": "2026-02-19",
+      "category": "HITL Decision",
+      "title": "Approval decision handler + resume mechanism + server endpoints",
+      "problem": "No way to record approval decisions or resume workflows after human decision.",
+      "solution": "Added handleApprovalDecision callback that calls hitlWorkflowIntegration.approveRequest/rejectRequest, POSTs to server endpoint, updates node status, and resumes execution via executeWorkflowRef. Server endpoints: POST /approve/:requestId, POST /reject/:requestId, GET /approval-status/:workflowId, POST /notify-approval.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/routes/workflow.ts"],
+      "codeMarker": "@NEXUS-FIX-179",
+      "testCommand": "Approve a paused workflow - should resume. Reject a paused workflow - should stop with error phase. Check /api/workflow/approval-status returns pending approvals.",
+      "critical": true
+    },
+    {
+      "id": "FIX-180",
+      "date": "2026-02-19",
+      "category": "HITL Density Guard",
+      "title": "20% approval density guard + approval suggester + server-side trimming",
+      "problem": "Without enforcement, Claude could add approval nodes to every step, making Nexus feel like a notification system rather than an automation platform.",
+      "solution": "Created approval-density.ts (calculateApprovalDensity, trimApprovalNodes) and approval-suggester.ts (suggestApprovalNodes with industry-aware defaults). Server-side guard in chat.ts trims excess approval nodes in both stream and non-stream paths. Client-side density warning badge in WorkflowPreviewCard.",
+      "files": ["nexus/src/lib/hitl/approval-density.ts", "nexus/src/lib/hitl/approval-suggester.ts", "nexus/server/routes/chat.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-180",
+      "testCommand": "Ask Claude for workflow with 10 steps all requiring approval. Should get max 2 approval nodes. Client should show amber density warning if >20%.",
+      "critical": true
+    },
+    {
+      "id": "FIX-181",
+      "date": "2026-02-19",
+      "category": "AI Brain HITL",
+      "title": "AI brain HITL awareness + system prompt + IntentResolver approval patterns",
+      "problem": "Claude had no knowledge of approval nodes - couldn't generate them in workflow specs.",
+      "solution": "Added ~2500 tokens of HITL awareness to system prompt (agents/index.ts): approval node FORMAT, risk category table, 20% guard rule, placement rules, progressive trust messaging, approval modes, industry defaults. Added APPROVAL_PATTERNS regex array to IntentResolver for detecting explicit approval requests in English and Arabic. Added isApprovalRequest flag to ResolvedIntent. NexusAIService parses approvalSummary from responses.",
+      "files": ["nexus/server/agents/index.ts", "nexus/src/services/IntentResolver.ts", "nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-181",
+      "testCommand": "Say 'Pay invoice of 200 KWD' - should include approval node. Say 'Send me summary email' - no approval. Say 'needs manager approval before sending' - isApprovalRequest should be true.",
+      "critical": true
+    },
+    {
+      "id": "FIX-182",
+      "date": "2026-02-19",
+      "category": "HITL Multi-Mode",
+      "title": "Multi-mode approval interactions (binary, review_edit, choose_path)",
+      "problem": "Simple yes/no approval is insufficient - users need to review/edit data before approving or choose between workflow paths.",
+      "solution": "Added three approval modes to approvalConfig type: binary (default approve/reject), review_edit (editable form fields for data verification), choose_path (option cards for workflow branching). UI renders different components based on mode. Edited field values flow via additionalData to next step's input. System prompt teaches Claude when to use each mode.",
+      "files": ["nexus/src/components/chat/wpc-types.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/server/agents/index.ts"],
+      "codeMarker": "@NEXUS-FIX-182",
+      "testCommand": "Create approval with editableFields - should show editable form. Create approval with pathOptions - should show option cards. Binary mode shows standard approve/reject buttons.",
+      "critical": true
+    },
+    {
+      "id": "FIX-183",
+      "date": "2026-02-19",
+      "category": "WhatsApp HITL",
+      "title": "WhatsApp-based approval delivery + response handler",
+      "problem": "Users had to be logged into Nexus website to approve workflows. Kuwait market users primarily use WhatsApp.",
+      "solution": "Created whatsapp-approval.ts with formatApprovalMessage (binary/choose_path/review_edit), parseWhatsAppResponse with Arabic support (نعم/لا/موافق/رفض). Server endpoints for WhatsApp notification and response handling with in-memory approval mapping. Client-side polling every 5 seconds while in awaiting_approval phase to detect WhatsApp-based approvals.",
+      "files": ["nexus/src/lib/hitl/whatsapp-approval.ts", "nexus/server/routes/workflow.ts", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-183",
+      "testCommand": "Pause at approval node with WhatsApp connected - should send formatted WhatsApp message. Reply YES/نعم on WhatsApp - workflow should resume via polling. Reply NO/لا - workflow should stop.",
+      "critical": true
     }
   ],
 
@@ -1867,8 +2035,28 @@
     },
     {
       "path": "nexus/server/routes/chat.ts",
-      "reason": "Contains Think with me mode directive - FIX-101",
+      "reason": "Contains Think with me mode directive, confidence gating, phase state machine - FIX-101, FIX-164, FIX-170, FIX-177",
       "warningThreshold": 30
+    },
+    {
+      "path": "nexus/src/services/IntentResolver.ts",
+      "reason": "Complaint/strategic pattern detection for confidence gating - FIX-173",
+      "warningThreshold": 20
+    },
+    {
+      "path": "nexus/src/services/NexusAIService.ts",
+      "reason": "Conversation summarization and diagnostic conversation handling - FIX-166, FIX-174, FIX-177",
+      "warningThreshold": 30
+    },
+    {
+      "path": "nexus/src/lib/diagnostic-trees.ts",
+      "reason": "Business diagnostic framework trees - FIX-175",
+      "warningThreshold": 15
+    },
+    {
+      "path": "nexus/src/pages/AIConsultancy.tsx",
+      "reason": "Strategic consulting bridge context receiver - FIX-176",
+      "warningThreshold": 10
     },
     {
       "path": "nexus/src/services/RubeClient.ts",
