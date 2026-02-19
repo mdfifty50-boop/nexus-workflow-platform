@@ -382,6 +382,22 @@ Do NOT wrap JSON in markdown code blocks. Return ONLY the raw JSON object.`
     if (toolContext) enrichedUserContext += `\n\n${toolContext}`
     // Finding #55: Include pre-parsed intent for smarter workflow generation
     if (intentContext) enrichedUserContext += `\n\n## Pre-Parsed Intent\n${intentContext}`
+
+    // @NEXUS-FIX-190: Context bridge for multi-turn follow-ups (non-stream path) - DO NOT REMOVE
+    // Same fix as stream path: when user sends a short follow-up to a clarifying question,
+    // Claude needs explicit instruction to treat it as a continuation.
+    if (userMessageCount > 1 && lastUserMessage?.content && lastUserMessage.content.length < 50) {
+      const lastAssistantMsg = [...messages].reverse().find((m: any) => m.role === 'assistant')
+      const prevAssistantContent = typeof lastAssistantMsg?.content === 'string' ? lastAssistantMsg.content : ''
+      if (prevAssistantContent) {
+        enrichedUserContext += `\n\n## CONVERSATION CONTINUATION (CRITICAL)
+The user's latest message "${lastUserMessage.content}" is a DIRECT ANSWER to your previous question/options.
+Your previous message included: "${prevAssistantContent.substring(0, 200)}..."
+IMPORTANT: Treat this as a follow-up answer, NOT a new conversation. Acknowledge what they chose and continue helping with their original request.
+Your "message" field MUST contain a substantive response acknowledging their answer. NEVER return an empty message.`
+      }
+    }
+
     enrichedUserContext = enrichedUserContext.trim() || undefined
 
     // Build system prompt with caching support (inject user context for inference)
