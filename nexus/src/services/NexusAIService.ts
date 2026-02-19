@@ -100,6 +100,14 @@ class NexusAIService {
   private _conversationSummary: string | null = null
   // @NEXUS-FIX-177: Diagnostic mode flag for extended conversation cap - DO NOT REMOVE
   private _isDiagnosticConversation = false
+  // @NEXUS-FIX-196: Streaming health tracker — skip streaming after consecutive failures - DO NOT REMOVE
+  // Prevents double-billing: if streaming endpoint is unreliable (e.g., Northflank 503),
+  // skip it entirely and go direct to non-streaming until it recovers.
+  private _streamConsecutiveFailures = 0
+  private _streamHealthy = true
+  private static STREAM_FAILURE_THRESHOLD = 3 // After 3 consecutive failures, disable streaming
+  private static STREAM_RECOVERY_INTERVAL = 5 * 60 * 1000 // Re-try streaming every 5 minutes
+  private _lastStreamFailure = 0
 
   constructor() {
     // Finding #13: Restore conversation history to prevent post-refresh amnesia
@@ -538,6 +546,22 @@ class NexusAIService {
     // Finding #13: Persist after adding user message (stream path)
     this.persistHistory()
 
+    // @NEXUS-FIX-196: Check streaming health before attempting SSE - DO NOT REMOVE
+    // If streaming has failed consecutively, skip to non-streaming to avoid wasted latency/cost
+    if (!this._streamHealthy) {
+      const timeSinceLastFailure = Date.now() - this._lastStreamFailure
+      if (timeSinceLastFailure > NexusAIService.STREAM_RECOVERY_INTERVAL) {
+        console.log('[NexusAIService] Stream recovery: re-enabling streaming after cooldown')
+        this._streamHealthy = true
+        this._streamConsecutiveFailures = 0
+      } else {
+        console.log(`[NexusAIService] Streaming disabled (${this._streamConsecutiveFailures} consecutive failures). Using non-streaming.`)
+        this.conversationHistory.pop() // Remove the user message (chat() will re-add)
+        this.persistHistory()
+        return this.chat(userMessage, context)
+      }
+    }
+
     try {
       console.log('[NexusAIService] Starting SSE stream via /api/chat/stream...', { chatMode: context?.chatMode })
 
@@ -706,6 +730,10 @@ class NexusAIService {
         throw new Error('Stream ended without complete event')
       }
 
+      // @NEXUS-FIX-196: Stream succeeded — reset failure counter
+      this._streamConsecutiveFailures = 0
+      this._streamHealthy = true
+
       // Add assistant response to history
       this.conversationHistory.push({
         role: 'assistant',
@@ -718,6 +746,13 @@ class NexusAIService {
       return finalResponse
 
     } catch (error) {
+      // @NEXUS-FIX-196: Track streaming failures for health monitoring - DO NOT REMOVE
+      this._streamConsecutiveFailures++
+      this._lastStreamFailure = Date.now()
+      if (this._streamConsecutiveFailures >= NexusAIService.STREAM_FAILURE_THRESHOLD) {
+        this._streamHealthy = false
+        console.warn(`[NexusAIService] Streaming disabled after ${this._streamConsecutiveFailures} consecutive failures. Will retry in ${NexusAIService.STREAM_RECOVERY_INTERVAL / 1000}s`)
+      }
       console.warn('[NexusAIService] Streaming failed, falling back to non-streaming chat():', error)
       // Remove the user message we already added (chat() will re-add it)
       this.conversationHistory.pop()

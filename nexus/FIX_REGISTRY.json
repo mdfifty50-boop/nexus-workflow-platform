@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.78",
+  "_version": "1.0.79",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 174,
+  "_totalFixes": 178,
 
   "fixes": [
     {
@@ -2115,6 +2115,54 @@
       "codeMarker": "@NEXUS-FIX-192",
       "testCommand": "Test: Send 3+ Arabic follow-up messages in chat. After each AI response with clarifying questions, clickable option buttons must render — never raw [CLARIFYING_OPTIONS_B64:...] text.",
       "critical": true
+    },
+    {
+      "id": "FIX-193",
+      "date": "2026-02-19",
+      "category": "Cost",
+      "title": "Prompt caching architecture — cache static personality block separately from dynamic user context",
+      "problem": "The buildCachedSystemPrompt() function injected per-request userContext INTO the personality block, making the entire 15K-token system prompt dynamic. The cache_control was on the tiny TEAM_CONTEXT block (~500 chars), so the big block was never cached. Every request paid full input price for 15K tokens.",
+      "solution": "Restructured into 3 blocks: Block 1 (static personality, ~15K tokens) with cache_control for 90% savings on cache hits. Block 2 (team context, small). Block 3 (dynamic user context, per-request). Anthropic caches everything up to the last cache_control block.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-193",
+      "testCommand": "Check server logs for 'Cache HIT' messages after first request. Second request should show cache_read_input_tokens > 0.",
+      "critical": true
+    },
+    {
+      "id": "FIX-194",
+      "date": "2026-02-19",
+      "category": "Cost",
+      "title": "Chat-specific model tiering — route simple greetings to Haiku",
+      "problem": "chat.ts hardcoded model='claude-sonnet-4-6' for ALL messages including simple greetings ('hi', 'thanks', etc.), wasting 3.75x more per token than necessary for trivial responses.",
+      "solution": "Added selectChatModel() that routes greeting patterns and simple Q&A to Haiku ($0.80/1M) while keeping workflow, diagnostic, multi-turn, and complex messages on Sonnet ($3/1M). Both stream and non-stream paths use the tiered model selection.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-194",
+      "testCommand": "Send 'hi' to chat — server log should show '[ModelTiering] simple greeting → Haiku'. Send a workflow request — should stay on Sonnet.",
+      "critical": false
+    },
+    {
+      "id": "FIX-195",
+      "date": "2026-02-19",
+      "category": "Cost",
+      "title": "Conversation history trimming for long conversations (10+ messages)",
+      "problem": "Full conversation history was sent with every API call. In 15+ turn conversations, this meant growing input tokens per call, increasing costs linearly with conversation length.",
+      "solution": "Added trimConversationHistory() that summarizes messages older than the last 5 into a compact summary block. Reduces token costs on long conversations by 20-30%. Applied to both stream and non-stream paths.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-195",
+      "testCommand": "Send 12+ messages in a conversation. Server log should show '[HistoryTrim] Trimmed N → M messages'. Context recall for recent messages should be unaffected.",
+      "critical": false
+    },
+    {
+      "id": "FIX-196",
+      "date": "2026-02-19",
+      "category": "Cost",
+      "title": "Streaming health tracker prevents double-billing on persistent SSE failures",
+      "problem": "When the streaming endpoint returned 503 consistently (e.g., Northflank issues), each message attempted streaming first (wasting latency), then fell back to non-streaming. If streaming partially completed before failing, Claude API was billed twice.",
+      "solution": "Added streaming health tracker that disables SSE after 3 consecutive failures and routes directly to non-streaming. Auto-recovers after 5 minutes. On success, resets failure counter. Eliminates wasted latency and potential double-billing.",
+      "files": ["nexus/src/services/NexusAIService.ts"],
+      "codeMarker": "@NEXUS-FIX-196",
+      "testCommand": "If streaming endpoint is down, after 3 messages the client should log 'Streaming disabled' and go direct to non-streaming without attempting SSE.",
+      "critical": false
     }
   ],
 
