@@ -60,7 +60,8 @@ export interface UseWhatsAppWebReturn {
   refreshSession: () => Promise<void>
 }
 
-const API_BASE = '/api/whatsapp-web'
+// @NEXUS-FIX-185: WhatsApp backend URL must point to persistent server (Northflank), not Vercel serverless - DO NOT REMOVE
+const API_BASE = (import.meta.env.VITE_WHATSAPP_BACKEND_URL || import.meta.env.VITE_API_URL || '') + '/api/whatsapp-web'
 
 export function useWhatsAppWeb(): UseWhatsAppWebReturn {
   const [session, setSession] = useState<WhatsAppSession | null>(null)

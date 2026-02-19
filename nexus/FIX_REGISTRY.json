@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.70",
+  "_version": "1.0.71",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 166,
+  "_totalFixes": 167,
 
   "fixes": [
     {
@@ -2018,6 +2018,18 @@
       "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx", "nexus/src/services/orchestration/GenericToolDiscovery.ts", "nexus/src/services/orchestration/GenericSchemaResolver.ts"],
       "codeMarker": "@NEXUS-FIX-184",
       "testCommand": "Deploy to Vercel, open chat, generate workflow card. Check console - should have 0 infinite 404 loops, 0 rapid re-render errors.",
+      "critical": true
+    },
+    {
+      "id": "FIX-185",
+      "date": "2026-02-19",
+      "category": "WhatsApp",
+      "title": "WhatsApp backend URL must point to persistent server (Northflank), not Vercel serverless",
+      "problem": "All WhatsApp API calls used hardcoded relative URLs (/api/whatsapp-web/...) which resolve to Vercel serverless on production. WhatsApp Baileys requires a persistent backend (Northflank) with session file persistence. Connection always failed with 'WhatsApp service is not available'.",
+      "solution": "Added VITE_WHATSAPP_BACKEND_URL env var support across 3 files. API_BASE now reads from import.meta.env.VITE_WHATSAPP_BACKEND_URL, falls back to VITE_API_URL, then empty string (relative). User must set VITE_WHATSAPP_BACKEND_URL in Vercel env vars to their Northflank deployment URL.",
+      "files": ["nexus/src/hooks/useWhatsAppWeb.ts", "nexus/src/components/chat/WhatsAppConnectionPrompt.tsx", "nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-185",
+      "testCommand": "Deploy to Vercel with VITE_WHATSAPP_BACKEND_URL set to Northflank URL. Click 'Show QR Code' on any WhatsApp workflow - should connect to Northflank backend and show QR code.",
       "critical": true
     }
   ],

@@ -21,6 +21,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+// @NEXUS-FIX-185: WhatsApp backend URL must point to persistent server (Northflank), not Vercel serverless - DO NOT REMOVE
+const WA_API_BASE = (import.meta.env.VITE_WHATSAPP_BACKEND_URL || import.meta.env.VITE_API_URL || '') + '/api/whatsapp-web'
+
 interface WhatsAppConnectionPromptProps {
   onConnected: () => void
   onSkip?: () => void
@@ -132,9 +135,14 @@ export function WhatsAppConnectionPrompt({
   const checkStatus = React.useCallback(async () => {
     try {
       const userId = getUserId()
-      const response = await fetch(`/api/whatsapp-web/sessions`, {
+      const response = await fetch(`${WA_API_BASE}/sessions`, {
         headers: { 'x-user-id': userId },
       })
+      // Check response.ok before parsing to avoid crash on HTML 404
+      if (!response.ok) {
+        console.warn('[WhatsApp] Backend not available (status', response.status, ')- persistent server needs deployment')
+        return false
+      }
       const data = await response.json()
 
       if (data.success && data.sessions && data.sessions.length > 0) {
@@ -194,7 +202,7 @@ export function WhatsAppConnectionPrompt({
 
     const userId = getUserId()
     try {
-      const response = await fetch('/api/whatsapp-web/pairing-code', {
+      const response = await fetch(`${WA_API_BASE}/pairing-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,6 +213,10 @@ export function WhatsAppConnectionPrompt({
           phoneNumber: validation.formatted, // Send validated E.164 digits
         }),
       })
+      // Check response.ok before parsing to avoid crash on HTML 404
+      if (!response.ok) {
+        throw new Error('WhatsApp service is not available. The persistent backend server needs to be deployed first.')
+      }
       const data = await response.json()
 
       if (data.success && data.pairingCode) {
@@ -238,7 +250,7 @@ export function WhatsAppConnectionPrompt({
       eventSourceRef.current.close()
     }
 
-    const eventSource = new EventSource(`/api/whatsapp-web/qr/${sessionIdRef.current}`)
+    const eventSource = new EventSource(`${WA_API_BASE}/qr/${sessionIdRef.current}`)
     eventSourceRef.current = eventSource
 
     eventSource.addEventListener('qr', (event) => {
@@ -314,13 +326,17 @@ export function WhatsAppConnectionPrompt({
 
       // First, create a session if we don't have one
       if (!sessionIdRef.current) {
-        const sessionResponse = await fetch('/api/whatsapp-web/session', {
+        const sessionResponse = await fetch(`${WA_API_BASE}/session`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-user-id': userId,
           },
         })
+        // Check response.ok before parsing JSON to avoid crash on HTML 404 pages
+        if (!sessionResponse.ok) {
+          throw new Error('WhatsApp service is not available. The persistent backend server needs to be deployed first.')
+        }
         const sessionData = await sessionResponse.json()
         if (!sessionData.success) {
           throw new Error(sessionData.error || 'Failed to create session')

@@ -68,6 +68,9 @@ import type { ConnectionStatus as _ConnectionStatus } from '@/services/OAuthCont
 // @NEXUS-WHATSAPP: WhatsApp connection prompt for workflows with WhatsApp nodes
 import { WhatsAppConnectionPrompt } from './WhatsAppConnectionPrompt'
 
+// @NEXUS-FIX-185: WhatsApp backend URL must point to persistent server (Northflank), not Vercel serverless - DO NOT REMOVE
+const WA_BACKEND_URL = (import.meta.env.VITE_WHATSAPP_BACKEND_URL || import.meta.env.VITE_API_URL || '') + '/api/whatsapp-web'
+
 // @NEXUS-FIX-178: HITL approval system imports - DO NOT REMOVE
 import { hitlWorkflowIntegration } from '@/lib/hitl'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -780,8 +783,8 @@ export function WorkflowPreviewCard({
     addLog('Checking WhatsApp connection...')
 
     try {
-      // Use the new whatsapp-web.js API endpoint
-      const response = await fetch('/api/whatsapp-web/sessions', {
+      // Use the new whatsapp-web.js API endpoint (FIX-185: use persistent backend URL)
+      const response = await fetch(`${WA_BACKEND_URL}/sessions`, {
         headers: {
           'x-user-id': localStorage.getItem('nexus_user_id') || 'anonymous'
         }
@@ -2837,8 +2840,8 @@ export function WorkflowPreviewCard({
               throw new Error('Missing Information: Send WhatsApp Message [param:message]\n\n💡 I need the message content.\nPlease tell me:\n• What message should I send?')
             }
 
-            // Find active Baileys session
-            const sessResp = await fetch('/api/whatsapp-web/sessions')
+            // Find active Baileys session (FIX-185: use persistent backend URL)
+            const sessResp = await fetch(`${WA_BACKEND_URL}/sessions`)
             const sessData = await sessResp.json()
             const activeSession = sessData.sessions?.find((s: { state: string }) => s.state === 'ready')
 
@@ -2846,8 +2849,8 @@ export function WorkflowPreviewCard({
               throw new Error('WhatsApp is not connected. Please connect WhatsApp first using the QR code in Settings → WhatsApp.')
             }
 
-            // Send via Baileys API
-            const sendResp = await fetch('/api/whatsapp-web/send', {
+            // Send via Baileys API (FIX-185: use persistent backend URL)
+            const sendResp = await fetch(`${WA_BACKEND_URL}/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
