@@ -942,10 +942,23 @@ export function ChatContainer({
                   // @NEXUS-FIX-188: Double-check non-JSON stream for late JSON detection - DO NOT REMOVE
                   // Sometimes JSON arrives after initial non-JSON tokens (e.g., whitespace then {)
                   const recheck = streamedText.trimStart()
-                  if (recheck.startsWith('{') || recheck.startsWith('```') || recheck.includes('"shouldGenerateWorkflow"')) {
+                  // @NEXUS-FIX-191: Mid-stream JSON detection - DO NOT REMOVE
+                  // Claude sometimes outputs a text preamble BEFORE the JSON (e.g., "Great brief.\n```json\n{...}")
+                  // The startsWith checks miss this since the text doesn't START with JSON markers.
+                  // We add includes() checks for JSON markers that appear mid-stream.
+                  if (recheck.startsWith('{') || recheck.startsWith('```') || recheck.includes('"shouldGenerateWorkflow"')
+                    || recheck.includes('```json') || recheck.includes('```\n{')
+                    || (recheck.includes('"message"') && recheck.includes('"intent"'))) {
                     looksLikeWorkflowJSON = true
+                    // @NEXUS-FIX-191: Extract message from preamble text before JSON marker - DO NOT REMOVE
+                    // If Claude wrote text before the JSON, show that text as the streaming message
+                    const jsonStartIdx = recheck.indexOf('```json') !== -1 ? recheck.indexOf('```json')
+                      : recheck.indexOf('```\n{') !== -1 ? recheck.indexOf('```\n{')
+                      : recheck.indexOf('{"') !== -1 ? recheck.indexOf('{"')
+                      : -1
+                    const preamble = jsonStartIdx > 10 ? recheck.substring(0, jsonStartIdx).trim() : ''
                     updateMessage(streamingMessageIdRef.current, {
-                      content: 'Nexus is thinking...',
+                      content: preamble || 'Nexus is thinking...',
                       isStreaming: true
                     })
                   } else {
@@ -957,8 +970,16 @@ export function ChatContainer({
                       // This prevents any brief flash of partial tokens like `{` or `"`
                     } else {
                       firstTokenReceived = true
+                      // @NEXUS-FIX-191: Strip any trailing JSON from visible streaming text - DO NOT REMOVE
+                      // If text is being shown but JSON starts mid-stream, only show the text part
+                      let visibleText = streamedText
+                      const lateJsonIdx = streamedText.indexOf('```json')
+                      if (lateJsonIdx > 0) {
+                        visibleText = streamedText.substring(0, lateJsonIdx).trim()
+                        looksLikeWorkflowJSON = true
+                      }
                       updateMessage(streamingMessageIdRef.current, {
-                        content: streamedText,
+                        content: visibleText,
                         isStreaming: true
                       })
                     }

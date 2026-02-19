@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.76",
+  "_version": "1.0.77",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 172,
+  "_totalFixes": 173,
 
   "fixes": [
     {
@@ -2090,6 +2090,18 @@
       "files": ["nexus/src/components/chat/ChatContainer.tsx", "nexus/server/routes/chat.ts"],
       "codeMarker": "@NEXUS-FIX-190",
       "testCommand": "Test: (1) Send any message and verify no JSON flash during streaming. (2) Start complex complaint, answer clarifying question with short text, verify Nexus acknowledges the answer. (3) Check 'Nexus is thinking...' shows from first moment.",
+      "critical": true
+    },
+    {
+      "id": "FIX-191",
+      "date": "2026-02-19",
+      "category": "UX",
+      "title": "Mid-stream JSON detection — prevent raw JSON when Claude outputs text preamble before JSON",
+      "problem": "When Claude outputs a text preamble before JSON (e.g., 'Great strategic brief...\\n```json\\n{\"message\":...}'), the streaming handler misses the JSON because startsWith checks fail. Raw JSON including ```json markers and { brackets flash on screen before final parsing cleans it up.",
+      "solution": "Added mid-stream JSON detection: includes('```json'), includes('```\\n{'), and combined includes('\"message\"') + includes('\"intent\"') checks. When JSON is detected mid-stream, extract preamble text to show instead of raw JSON. Also strip trailing JSON from visible streaming text if it starts appearing.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-191",
+      "testCommand": "Test: In 'Think with me' mode, send a strategic business question. During streaming, user should see preamble text or 'Nexus is thinking...' but NEVER raw JSON, ```json, or { characters.",
       "critical": true
     }
   ],
