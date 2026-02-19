@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.73",
+  "_version": "1.0.74",
   "_lastUpdated": "2026-02-19",
-  "_totalFixes": 169,
+  "_totalFixes": 170,
 
   "fixes": [
     {
@@ -2054,6 +2054,18 @@
       "files": ["nexus/server/routes/chat.ts"],
       "codeMarker": "@NEXUS-FIX-187",
       "testCommand": "Send 'When I receive a new email in Gmail, send a notification to Slack' as first message. Should generate workflow card directly, not ask clarifying questions.",
+      "critical": true
+    },
+    {
+      "id": "FIX-188",
+      "date": "2026-02-19",
+      "category": "UX",
+      "title": "Eliminate raw JSON flash during SSE streaming - show 'Nexus is thinking...' instead",
+      "problem": "When Claude responds with workflow JSON, users briefly see raw JSON text (```json, {\"message\":...) during SSE streaming before the WorkflowPreviewCard renders. Especially visible with Arabic responses.",
+      "solution": "Extended JSON detection to catch ```json wrappers and quote-prefixed responses. Added late-detection recheck in the else branch. Changed placeholder from 'Thinking...' to 'Nexus is thinking...' for branded UX. Added post-stream ```json stripping for display text.",
+      "files": ["nexus/src/components/chat/ChatContainer.tsx"],
+      "codeMarker": "@NEXUS-FIX-188",
+      "testCommand": "Send any workflow request and verify no raw JSON is ever visible during streaming - only 'Nexus is thinking...' or 'Building your workflow...' placeholders.",
       "critical": true
     }
   ],

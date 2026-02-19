@@ -38,6 +38,8 @@ import { nexusAIService, type CustomIntegrationInfo } from '@/services/NexusAISe
 import { userMemoryService } from '@/services/UserMemoryService'
 // Onboarding prompt suggestion
 import { OnboardingPromptService, type OnboardingSuggestion } from '@/services/OnboardingPromptService'
+// @NEXUS-FIX-175: Diagnostic tree framework for structured problem diagnosis - DO NOT REMOVE
+import { findDiagnosticTree } from '@/lib/diagnostic-trees'
 // workflowOrchestrator available for future execution features
 
 // ============================================================================
@@ -399,6 +401,9 @@ export function ChatContainer({
   // "Think with me" mode - focused problem-solving chat mode
   const [chatMode, setChatMode] = React.useState<ChatMode>('standard')
 
+  // @NEXUS-FIX-177: Conversation phase tracking for UX display - DO NOT REMOVE
+  const [conversationPhase, setConversationPhase] = React.useState<'discovery' | 'clarifying' | 'generating' | 'refining'>('discovery')
+
   // Voice language - only affects speech recognition input, NOT the UI layout
   const [chatLanguage, setChatLanguage] = React.useState<VoiceLanguage>('en-US')
 
@@ -456,6 +461,26 @@ export function ChatContainer({
       localStorage.setItem('nexus-pending-integrations', JSON.stringify(obj))
     }
   }, [pendingCustomIntegrations])
+
+  // ============================================================================
+  // @NEXUS-FIX-176: Consultancy result injection — "Back to Chat with Insights" - DO NOT REMOVE
+  // ============================================================================
+  React.useEffect(() => {
+    try {
+      const resultRaw = localStorage.getItem('nexus-consultancy-result')
+      if (resultRaw) {
+        const result = JSON.parse(resultRaw)
+        localStorage.removeItem('nexus-consultancy-result')
+        if (result.summary) {
+          addMessage(
+            `**Insights from your consultancy session:**\n\n${result.summary}\n\n---\n*How would you like to proceed? I can build automations based on these insights.*`,
+            'assistant'
+          )
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ============================================================================
   // Onboarding Suggested Prompt
@@ -880,7 +905,8 @@ export function ChatContainer({
                   // This prevents raw JSON from ever being shown during streaming
                   // @NEXUS-FIX-163: Detect JSON from first character - DO NOT REMOVE
                   // Old code had `trimmed.length > 3` which allowed 1-3 raw JSON tokens to flash
-                  if (trimmed.startsWith('{')) {
+                  // @NEXUS-FIX-188: Also detect ```json wrapper and "``` prefix - DO NOT REMOVE
+                  if (trimmed.startsWith('{') || trimmed.startsWith('```') || trimmed.startsWith('"')) {
                     looksLikeWorkflowJSON = true
                   }
                 }
@@ -901,17 +927,28 @@ export function ChatContainer({
                       .replace(/\\\\/g, '\\')
                       .replace(/\\u([0-9a-fA-F]{4})/g, (_m: string, hex: string) => String.fromCharCode(parseInt(hex, 16)))
                   } else {
-                    placeholder = 'Thinking...'
+                    placeholder = 'Nexus is thinking...'
                   }
                   updateMessage(streamingMessageIdRef.current, {
                     content: placeholder,
                     isStreaming: true
                   })
                 } else {
-                  updateMessage(streamingMessageIdRef.current, {
-                    content: streamedText,
-                    isStreaming: true
-                  })
+                  // @NEXUS-FIX-188: Double-check non-JSON stream for late JSON detection - DO NOT REMOVE
+                  // Sometimes JSON arrives after initial non-JSON tokens (e.g., whitespace then {)
+                  const recheck = streamedText.trimStart()
+                  if (recheck.startsWith('{') || recheck.startsWith('```') || recheck.includes('"shouldGenerateWorkflow"')) {
+                    looksLikeWorkflowJSON = true
+                    updateMessage(streamingMessageIdRef.current, {
+                      content: 'Nexus is thinking...',
+                      isStreaming: true
+                    })
+                  } else {
+                    updateMessage(streamingMessageIdRef.current, {
+                      content: streamedText,
+                      isStreaming: true
+                    })
+                  }
                 }
               }
             },
@@ -925,6 +962,30 @@ export function ChatContainer({
           streamingMessageIdRef.current = null
 
           console.log('[ChatContainer] Claude AI response:', aiResponse)
+
+          // @NEXUS-FIX-177: Update conversation phase from server response with semantic fallback - DO NOT REMOVE
+          if ((aiResponse as any).conversationPhase) {
+            setConversationPhase((aiResponse as any).conversationPhase)
+          } else {
+            // Semantic phase derivation: use response content signals, not just message count
+            if (aiResponse.shouldGenerateWorkflow && aiResponse.workflowSpec) {
+              // Has a workflow spec → either generating or refining
+              const hasExistingWorkflow = messages.some(m => m.role === 'assistant' && m.content?.includes('[WORKFLOW_PREVIEW:'))
+              setConversationPhase(hasExistingWorkflow ? 'refining' : 'generating')
+            } else if (aiResponse.clarifyingQuestions && aiResponse.clarifyingQuestions.length > 0) {
+              // Asking clarifying questions → clarifying phase
+              setConversationPhase('clarifying')
+            } else if (aiResponse.intent === 'consulting' || aiResponse.intent === 'clarifying') {
+              // Consulting or clarifying intent → clarifying phase
+              setConversationPhase('clarifying')
+            } else {
+              // Fallback to message count for edge cases
+              const userMsgCount = messages.filter(m => m.role === 'user').length + 1
+              if (userMsgCount <= 1) setConversationPhase('discovery')
+              else if (userMsgCount <= 3) setConversationPhase('clarifying')
+              else setConversationPhase('generating')
+            }
+          }
 
           // Store any custom integrations for display
           if (aiResponse.customIntegrations && aiResponse.customIntegrations.length > 0) {
@@ -942,6 +1003,10 @@ export function ChatContainer({
 
             // @NEXUS-FIX-160: Arabic-safe JSON stripping - NEVER display raw JSON to users - DO NOT REMOVE
             let displayText = aiResponse.text
+            // @NEXUS-FIX-188: Also strip ```json wrapper before JSON check - DO NOT REMOVE
+            if (displayText) {
+              displayText = displayText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+            }
             if (displayText && displayText.trim().startsWith('{')) {
               console.warn('[ChatContainer] Response looks like JSON, extracting message...')
               try {
@@ -995,12 +1060,57 @@ export function ChatContainer({
               displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
             }
 
+            // @NEXUS-FIX-175: Diagnostic tree injection for complaint responses without server-provided questions - DO NOT REMOVE
+            // If server didn't provide clarifying questions but this is a complaint/diagnostic response,
+            // inject structured diagnostic questions from the diagnostic tree framework
+            if ((!aiResponse.clarifyingQuestions || aiResponse.clarifyingQuestions.length === 0) &&
+                (aiResponse.intent === 'diagnostic' || aiResponse.intent === 'complaint' ||
+                 ((aiResponse as any).diagnosticCategory))) {
+              try {
+                const diagCategory = (aiResponse as any).diagnosticCategory as string | undefined
+                // Try to get user's industry from localStorage
+                let userIndustry: string | undefined
+                try {
+                  const profileRaw = localStorage.getItem('nexus_business_profile')
+                  if (profileRaw) {
+                    const profile = JSON.parse(profileRaw)
+                    userIndustry = profile.industry
+                  }
+                } catch { /* ignore */ }
+                const tree = findDiagnosticTree(content, userIndustry, diagCategory)
+                if (tree && tree.questions.length > 0) {
+                  const firstQ = tree.questions[0]
+                  displayText += `\n\n**${firstQ.question}**\n\n`
+                  const optionsData = {
+                    field: firstQ.field,
+                    options: firstQ.options,
+                    remainingQuestions: tree.questions.slice(1).map(q => ({
+                      question: q.question,
+                      options: q.options,
+                      field: q.field
+                    }))
+                  }
+                  const encodedData = btoa(JSON.stringify(optionsData))
+                  displayText += `[CLARIFYING_OPTIONS_B64:${encodedData}]\n`
+                  console.log('[ChatContainer] Injected diagnostic tree questions for category:', diagCategory)
+                }
+              } catch (e) { console.warn('[ChatContainer] Diagnostic tree injection failed:', e) }
+            }
+
             // REMOVED: "Additional connections needed" section
             // Custom integrations are ONLY displayed inside WorkflowPreviewCard now.
             // During clarifying questions, the workflow hasn't been generated yet, so
             // showing API key requirements is premature and intimidating to users.
             // The integrations are stored in pendingCustomIntegrations state and will
             // be passed to WorkflowPreviewCard when the workflow is generated.
+
+            // @NEXUS-FIX-176: Strategic consulting bridge - add Deep Dive button for complex strategic responses - DO NOT REMOVE
+            const isComplexStrategic = aiResponse.intent === 'consulting' &&
+              displayText.length > 100 &&
+              !aiResponse.shouldGenerateWorkflow
+            if (isComplexStrategic) {
+              displayText += `\n\n[DEEP_DIVE_BUTTON]`
+            }
 
             // Finding #14: Update the streaming placeholder with final display text
             // instead of adding a new message (we already created one for streaming)
@@ -1557,6 +1667,18 @@ export function ChatContainer({
                 }}
               />
             ))}
+            {/* @NEXUS-FIX-177: Persistent conversation phase indicator - DO NOT REMOVE */}
+            {/* Shows during loading AND persists after response until next user input */}
+            {(isLoading || (messages.length > 0 && conversationPhase !== 'discovery')) && (
+              <div className="px-4 py-1">
+                <span className={`text-xs font-medium transition-opacity duration-300 ${isLoading ? 'text-surface-500' : 'text-surface-400'}`}>
+                  {conversationPhase === 'discovery' && (isLoading ? '🔍 Understanding your needs...' : '🔍 Discovery phase')}
+                  {conversationPhase === 'clarifying' && (isLoading ? '💡 Gathering details...' : '💡 Clarifying your requirements')}
+                  {conversationPhase === 'generating' && (isLoading ? '⚡ Building your workflow...' : '⚡ Ready to build')}
+                  {conversationPhase === 'refining' && (isLoading ? '✨ Fine-tuning...' : '✨ Refining your workflow')}
+                </span>
+              </div>
+            )}
             {isLoading && <ThinkingIndicator />}
             <div ref={messagesEndRef} />
           </div>
