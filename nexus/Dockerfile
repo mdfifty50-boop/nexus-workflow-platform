@@ -11,8 +11,9 @@ COPY package.json package-lock.json ./
 # Install all dependencies (tsx is needed at runtime)
 RUN npm ci --legacy-peer-deps
 
-# Copy server source and config
+# Copy server source, config, and tsconfig
 COPY server/ ./server/
+COPY config/ ./config/
 COPY tsconfig.server.json ./
 
 # WhatsApp sessions directory (persistent volume mount point)
