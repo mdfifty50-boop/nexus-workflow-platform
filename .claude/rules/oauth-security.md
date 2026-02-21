@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/**/*"
+---
+
 # OAuth Security Rules (MANDATORY)
 
 ## Popup Blocker Bypass (FIX-001 Pattern)

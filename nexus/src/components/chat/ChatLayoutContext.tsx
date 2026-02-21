@@ -36,6 +36,8 @@ export interface ChatLayoutState {
   viewMode: ViewMode
   /** Whether we're on a mobile device */
   isMobile: boolean
+  /** Whether the layout is RTL (Arabic) */
+  isRTL: boolean
 }
 
 export interface ChatLayoutContextType extends ChatLayoutState {
@@ -51,6 +53,8 @@ export interface ChatLayoutContextType extends ChatLayoutState {
   closeSidebar: () => void
   /** Open sidebar (convenience method) */
   openSidebar: () => void
+  /** Set RTL state (called by ChatContainer when language changes) */
+  setIsRTL: (rtl: boolean) => void
 }
 
 // =============================================================================
@@ -97,6 +101,9 @@ export function ChatLayoutProvider({
     if (typeof window === 'undefined') return false
     return window.innerWidth < MOBILE_BREAKPOINT
   })
+
+  // RTL state (set by ChatContainer when language changes)
+  const [isRTL, setIsRTL] = useState(false)
 
   // Initialize sidebar state from localStorage
   const [sidebarOpen, setSidebarOpenState] = useState(() => {
@@ -195,12 +202,14 @@ export function ChatLayoutProvider({
     sidebarWidth,
     viewMode,
     isMobile,
+    isRTL,
     toggleSidebar,
     setSidebarOpen,
     setSidebarWidth,
     setViewMode,
     closeSidebar,
-    openSidebar
+    openSidebar,
+    setIsRTL
   }
 
   return (

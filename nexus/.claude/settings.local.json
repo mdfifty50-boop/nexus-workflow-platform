@@ -9,7 +9,17 @@
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_evaluate",
-      "mcp__playwright__browser_run_code"
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_resize",
+      "mcp__youtube-transcript__get_transcript",
+      "mcp__playwright__browser_tabs",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_press_key",
+      "mcp__rube__RUBE_SEARCH_TOOLS",
+      "mcp__rube__RUBE_MANAGE_CONNECTIONS",
+      "mcp__playwright__browser_navigate_back"
     ],
     "deny": []
   },

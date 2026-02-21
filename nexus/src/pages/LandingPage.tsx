@@ -235,22 +235,23 @@ function WorkflowNode({
   step,
   index,
   isActive,
-  totalSteps,
 }: {
   step: typeof workflowStepsDef[0]
   index: number
   isActive: boolean
-  totalSteps: number
+  totalSteps?: number
 }) {
   const { t } = useTranslation()
   const Logo = step.Logo
 
-  // On mobile 2x2 grid: node 0=top-left, 1=top-right, 2=bottom-left, 3=bottom-right
-  // Lines: 0→1 (horizontal top), 1→2 (diagonal/vertical), 2→3 (horizontal bottom)
+  // Mobile 2x2 grid layout:  [0] → [1]
+  //                           ↓
+  //                          [2] → [3]
+  // Flow: 0→1 (horizontal top), 0↓2 (vertical left col), 2→3 (horizontal bottom)
   const showDesktopLine = index > 0 // horizontal line left of each node (desktop row)
-  // Mobile: show right-pointing line from left column nodes (index 0, 2)
-  const showMobileHorizontalRight = index % 2 === 0 && index < totalSteps - 1
-  // Mobile: show downward line from top-right node (index 1) to bottom-left (index 2)
+  // Mobile: horizontal right-pointing line from left-column nodes (0→1, 2→3)
+  const showMobileHorizontalRight = index === 0 || index === 2
+  // Mobile: vertical line from node 0 down to node 2 (left column)
   const showMobileVerticalDown = index === 0
 
   return (
@@ -285,35 +286,37 @@ function WorkflowNode({
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.8 + index * 0.15, duration: 0.4 }}
-          className="md:hidden absolute left-full top-8 w-[calc(100%-8px)] h-0.5 origin-left z-10"
+          className="md:hidden absolute left-full top-8 h-0.5 origin-left z-10"
           style={{
+            width: '24px', // matches gap-x-6
             background: `linear-gradient(90deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3))`,
           }}
         >
           <motion.div
-            animate={{ x: ['-100%', '100%'] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.3 }}
-            className="absolute inset-y-0 w-6 bg-gradient-to-r from-transparent via-purple-400 to-transparent"
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear', delay: index === 0 ? 0 : 0.6 }}
+            className="absolute inset-y-0 w-3 bg-gradient-to-r from-transparent via-purple-400 to-transparent"
           />
         </motion.div>
       )}
 
-      {/* Mobile: vertical line going down from node 0 (top-left to bottom-left, connecting row 1→2) */}
+      {/* Mobile: vertical line going down from node 0 to node 2 (left column, spans gap-y-10) */}
       {showMobileVerticalDown && (
         <motion.div
           initial={{ scaleY: 0 }}
           animate={{ scaleY: 1 }}
           transition={{ delay: 1.0, duration: 0.4 }}
-          className="md:hidden absolute top-full left-1/2 -translate-x-1/2 w-0.5 h-[calc(100%-16px)] origin-top z-10"
+          className="md:hidden absolute left-1/2 -translate-x-1/2 w-0.5 origin-top z-10"
           style={{
+            top: '100%',
+            height: '40px', // matches gap-y-10
             background: `linear-gradient(180deg, rgba(139, 92, 246, 0.8), rgba(139, 92, 246, 0.3))`,
-            marginTop: '4px',
           }}
         >
           <motion.div
-            animate={{ y: ['-100%', '100%'] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
-            className="absolute inset-x-0 h-6 bg-gradient-to-b from-transparent via-purple-400 to-transparent"
+            animate={{ y: ['-100%', '200%'] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: 'linear', delay: 0.3 }}
+            className="absolute inset-x-0 h-3 bg-gradient-to-b from-transparent via-purple-400 to-transparent"
           />
         </motion.div>
       )}
@@ -485,7 +488,7 @@ export function LandingPage() {
               {/* Language Toggle */}
               <LanguageSwitcher variant="toggle" showFlag={true} showNativeName={false} />
 
-              <Link to="/login" className="text-surface-300 hover:text-white transition-colors hidden sm:block text-sm">
+              <Link to="/login" className="text-surface-300 hover:text-white transition-colors text-sm hidden sm:block">
                 {t('auth.signIn', 'Sign in')}
               </Link>
               <motion.button
@@ -495,6 +498,17 @@ export function LandingPage() {
                 className="btn-primary text-sm hidden sm:block"
               >
                 {t('common.getStarted', 'Get Started Free')}
+              </motion.button>
+              {/* Mobile: compact Sign In + Get Started */}
+              <Link to="/login" className="text-surface-300 hover:text-white transition-colors text-xs sm:hidden flex items-center py-1.5">
+                {t('auth.signIn', 'Sign in')}
+              </Link>
+              <motion.button
+                onClick={() => navigate('/sign-up')}
+                whileTap={{ scale: 0.95 }}
+                className="btn-primary text-xs px-3 py-1.5 sm:hidden"
+              >
+                {t('common.getStarted', 'Start Free')}
               </motion.button>
               {/* Mobile hamburger menu */}
               <button

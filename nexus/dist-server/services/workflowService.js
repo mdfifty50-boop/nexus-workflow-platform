@@ -7,16 +7,22 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL ||
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 // Check if we have a valid service role key (should be a JWT starting with eyJ)
 const isValidServiceKey = supabaseServiceKey.startsWith('eyJ');
-if (!isValidServiceKey && process.env.NODE_ENV !== 'production') {
-    console.warn('[DEV WARNING] SUPABASE_SERVICE_ROLE_KEY appears to be invalid (not a JWT).');
-    console.warn('[DEV WARNING] Using in-memory storage for workflows. Get the real service role key from Supabase Dashboard.');
+const hasValidCredentials = supabaseUrl && isValidServiceKey;
+if (!hasValidCredentials) {
+    console.warn('[WARNING] Missing or invalid Supabase credentials.');
+    console.warn('[WARNING] Using in-memory storage for workflows.');
+    console.warn('[WARNING] To use persistent storage, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (JWT format).');
 }
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-        autoRefreshToken: false,
-        persistSession: false
-    }
-});
+// Only create Supabase client if we have valid credentials
+// This prevents crash on startup when credentials are missing
+const supabase = hasValidCredentials
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    })
+    : null;
 // Dev mode project UUID - used when no real project is provided
 const DEV_PROJECT_UUID = '00000000-0000-0000-0000-000000000001';
 // In-memory storage for dev mode when database isn't available
@@ -26,6 +32,11 @@ const inMemoryCheckpoints = new Map();
 async function ensureDevProjectExists() {
     if (process.env.NODE_ENV === 'production')
         return true;
+    // If no Supabase client, skip this check
+    if (!supabase) {
+        console.log('[DEV] No Supabase client, skipping dev project check');
+        return true;
+    }
     const { data: existing } = await supabase
         .from('projects')
         .select('id')
@@ -72,6 +83,22 @@ export const workflowService = {
             config: configWithInput,
         };
         console.log('[DEV] Inserting workflow:', { ...insertData, config: '...' });
+        // If no Supabase client, use in-memory storage
+        if (!supabase) {
+            const workflowId = randomUUID();
+            const now = new Date().toISOString();
+            const inMemoryWorkflow = {
+                id: workflowId,
+                ...insertData,
+                created_at: now,
+                updated_at: now,
+                total_tokens_used: 0,
+                total_cost_usd: 0,
+            };
+            inMemoryWorkflows.set(workflowId, inMemoryWorkflow);
+            console.log('[IN-MEMORY] Created workflow:', workflowId);
+            return inMemoryWorkflow;
+        }
         const { data, error } = await supabase
             .from('workflows')
             .insert(insertData)
@@ -79,23 +106,20 @@ export const workflowService = {
             .single();
         if (error) {
             console.error('Error creating workflow:', error);
-            // In dev mode, fall back to in-memory storage
-            if (isDev) {
-                const workflowId = randomUUID();
-                const now = new Date().toISOString();
-                const inMemoryWorkflow = {
-                    id: workflowId,
-                    ...insertData,
-                    created_at: now,
-                    updated_at: now,
-                    total_tokens_used: 0,
-                    total_cost_usd: 0,
-                };
-                inMemoryWorkflows.set(workflowId, inMemoryWorkflow);
-                console.log('[DEV] Created in-memory workflow:', workflowId);
-                return inMemoryWorkflow;
-            }
-            return null;
+            // Fall back to in-memory storage
+            const workflowId = randomUUID();
+            const now = new Date().toISOString();
+            const inMemoryWorkflow = {
+                id: workflowId,
+                ...insertData,
+                created_at: now,
+                updated_at: now,
+                total_tokens_used: 0,
+                total_cost_usd: 0,
+            };
+            inMemoryWorkflows.set(workflowId, inMemoryWorkflow);
+            console.log('[FALLBACK] Created in-memory workflow:', workflowId);
+            return inMemoryWorkflow;
         }
         return data;
     },
@@ -103,11 +127,14 @@ export const workflowService = {
      * Get a workflow by ID with access check
      */
     async getWorkflowById(workflowId, clerkUserId) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // Check in-memory storage first in dev mode
-        if (isDev && inMemoryWorkflows.has(workflowId)) {
-            console.log('[DEV] Returning in-memory workflow:', workflowId);
+        // Check in-memory storage first
+        if (inMemoryWorkflows.has(workflowId)) {
+            console.log('[IN-MEMORY] Returning workflow:', workflowId);
             return inMemoryWorkflows.get(workflowId);
+        }
+        // If no Supabase client, can only return in-memory workflows
+        if (!supabase) {
+            return null;
         }
         // First get the user's profile ID
         const { data: profile } = await supabase
@@ -117,6 +144,7 @@ export const workflowService = {
             .single();
         if (!profile) {
             // In dev mode, allow access without profile
+            const isDev = process.env.NODE_ENV !== 'production';
             if (isDev && inMemoryWorkflows.has(workflowId)) {
                 return inMemoryWorkflows.get(workflowId);
             }
@@ -149,6 +177,10 @@ export const workflowService = {
      * Get all workflows for a project
      */
     async getWorkflowsForProject(projectId, clerkUserId) {
+        // If no Supabase client, return in-memory workflows for this project
+        if (!supabase) {
+            return Array.from(inMemoryWorkflows.values()).filter(w => w.project_id === projectId);
+        }
         // First get the user's profile ID
         const { data: profile } = await supabase
             .from('user_profiles')
@@ -182,11 +214,10 @@ export const workflowService = {
      * Get all workflows for a user across all their projects
      */
     async getAllWorkflowsForUser(clerkUserId) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // In dev mode, return in-memory workflows
-        if (isDev) {
+        // If no Supabase client, return all in-memory workflows
+        if (!supabase) {
             const workflows = Array.from(inMemoryWorkflows.values());
-            console.log('[DEV] Returning', workflows.length, 'in-memory workflows for user');
+            console.log('[IN-MEMORY] Returning', workflows.length, 'workflows for user');
             return workflows;
         }
         // First get the user's profile ID
@@ -229,6 +260,21 @@ export const workflowService = {
         const workflow = await this.getWorkflowById(workflowId, clerkUserId);
         if (!workflow)
             return null;
+        // Handle in-memory workflows
+        if (inMemoryWorkflows.has(workflowId)) {
+            const updated = {
+                ...workflow,
+                ...updates,
+                updated_at: new Date().toISOString(),
+            };
+            inMemoryWorkflows.set(workflowId, updated);
+            console.log('[IN-MEMORY] Updated workflow:', workflowId);
+            return updated;
+        }
+        // If no Supabase client, can't update database workflows
+        if (!supabase) {
+            return null;
+        }
         const { data, error } = await supabase
             .from('workflows')
             .update({
@@ -248,9 +294,8 @@ export const workflowService = {
      * Update workflow status (Story 4.4)
      */
     async updateWorkflowStatus(workflowId, status, additionalData) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // Handle in-memory workflows in dev mode
-        if (isDev && inMemoryWorkflows.has(workflowId)) {
+        // Handle in-memory workflows
+        if (inMemoryWorkflows.has(workflowId)) {
             const workflow = inMemoryWorkflows.get(workflowId);
             const updated = {
                 ...workflow,
@@ -259,7 +304,7 @@ export const workflowService = {
                 updated_at: new Date().toISOString(),
             };
             inMemoryWorkflows.set(workflowId, updated);
-            console.log('[DEV] Updated in-memory workflow status:', workflowId, status);
+            console.log('[IN-MEMORY] Updated workflow status:', workflowId, status);
             // Broadcast SSE update for real-time UI updates
             broadcastWorkflowUpdate({
                 workflowId,
@@ -267,6 +312,10 @@ export const workflowService = {
                 data: { status, ...additionalData },
             });
             return updated;
+        }
+        // If no Supabase client, can't update database workflows
+        if (!supabase) {
+            return null;
         }
         const { data, error } = await supabase
             .from('workflows')
@@ -296,9 +345,8 @@ export const workflowService = {
      * Create a checkpoint (Story 4.3)
      */
     async createCheckpoint(input) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // Handle in-memory checkpoints in dev mode
-        if (isDev && inMemoryWorkflows.has(input.workflow_id)) {
+        // Handle in-memory checkpoints when no Supabase client or in dev mode with in-memory workflow
+        if (!supabase || inMemoryWorkflows.has(input.workflow_id)) {
             const checkpoints = inMemoryCheckpoints.get(input.workflow_id) || [];
             const newVersion = checkpoints.length + 1;
             const checkpoint = {
@@ -313,7 +361,7 @@ export const workflowService = {
             };
             checkpoints.push(checkpoint);
             inMemoryCheckpoints.set(input.workflow_id, checkpoints);
-            console.log('[DEV] Created in-memory checkpoint:', checkpoint.checkpoint_name);
+            console.log('[IN-MEMORY] Created checkpoint:', checkpoint.checkpoint_name);
             return checkpoint;
         }
         // Get the current version number
@@ -347,9 +395,8 @@ export const workflowService = {
      * Get latest checkpoint for a workflow (Story 4.8)
      */
     async getLatestCheckpoint(workflowId) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // Check in-memory checkpoints in dev mode
-        if (isDev && inMemoryCheckpoints.has(workflowId)) {
+        // Check in-memory checkpoints when no Supabase client or has in-memory data
+        if (!supabase || inMemoryCheckpoints.has(workflowId)) {
             const checkpoints = inMemoryCheckpoints.get(workflowId) || [];
             return checkpoints[checkpoints.length - 1] || null;
         }
@@ -370,9 +417,8 @@ export const workflowService = {
      * Get all checkpoints for a workflow
      */
     async getCheckpoints(workflowId) {
-        const isDev = process.env.NODE_ENV !== 'production';
-        // Check in-memory checkpoints in dev mode
-        if (isDev && inMemoryCheckpoints.has(workflowId)) {
+        // Check in-memory checkpoints when no Supabase client or has in-memory data
+        if (!supabase || inMemoryCheckpoints.has(workflowId)) {
             return inMemoryCheckpoints.get(workflowId) || [];
         }
         const { data, error } = await supabase
@@ -436,6 +482,17 @@ export const workflowService = {
         const workflow = await this.getWorkflowById(workflowId, clerkUserId);
         if (!workflow)
             return false;
+        // Handle in-memory workflow deletion
+        if (inMemoryWorkflows.has(workflowId)) {
+            inMemoryWorkflows.delete(workflowId);
+            inMemoryCheckpoints.delete(workflowId);
+            console.log('[IN-MEMORY] Deleted workflow:', workflowId);
+            return true;
+        }
+        // If no Supabase client, can't delete database workflows
+        if (!supabase) {
+            return false;
+        }
         // Delete checkpoints first
         await supabase.from('workflow_states').delete().eq('workflow_id', workflowId);
         // Delete workflow nodes
@@ -452,6 +509,20 @@ export const workflowService = {
      * Add tokens and cost to workflow totals
      */
     async addUsage(workflowId, tokensUsed, costUsd) {
+        // Handle in-memory workflow usage
+        if (inMemoryWorkflows.has(workflowId)) {
+            const workflow = inMemoryWorkflows.get(workflowId);
+            workflow.total_tokens_used = (workflow.total_tokens_used || 0) + tokensUsed;
+            workflow.total_cost_usd = (workflow.total_cost_usd || 0) + costUsd;
+            workflow.updated_at = new Date().toISOString();
+            inMemoryWorkflows.set(workflowId, workflow);
+            console.log('[IN-MEMORY] Updated usage for workflow:', workflowId);
+            return workflow;
+        }
+        // If no Supabase client, can't update database workflows
+        if (!supabase) {
+            return null;
+        }
         const { data: current } = await supabase
             .from('workflows')
             .select('total_tokens_used, total_cost_usd')

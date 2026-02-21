@@ -1,0 +1,17 @@
+{
+  "sessionStarted": "2026-02-13T15:03:16.248Z",
+  "lastUpdated": "2026-02-13T15:03:16.249Z",
+  "totalToolCalls": 1,
+  "estimatedTokens": {
+    "input": 500,
+    "output": 2000
+  },
+  "estimatedCostUSD": 0.0315,
+  "byTool": {
+    "Read": {
+      "calls": 1,
+      "inputTokens": 500,
+      "outputTokens": 2000
+    }
+  }
+}

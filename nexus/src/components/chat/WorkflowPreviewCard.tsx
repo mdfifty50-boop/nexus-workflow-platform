@@ -829,6 +829,49 @@ export function WorkflowPreviewCard({
     }
   }, [addLog, authState.pendingIntegrations.length])
 
+  // @NEXUS-FIX-202: Fetch existing Composio connections on mount - DO NOT REMOVE
+  // Without this, authState.connectedIntegrations starts empty and pre-flight always shows
+  // connections as disconnected even when user has active OAuth connections in Composio.
+  React.useEffect(() => {
+    if (oauthIntegrations.length === 0) return
+
+    const fetchExistingConnections = async () => {
+      const connected = new Set<string>()
+      try {
+        // Check each required integration's connection status via Composio backend
+        const checks = oauthIntegrations.map(async (integration) => {
+          const toolkit = integration.toolkit.toLowerCase()
+          try {
+            const res = await fetch(`/api/composio/connection/${toolkit}`)
+            if (res.ok) {
+              const data = await res.json()
+              if (data.connected) {
+                connected.add(toolkit)
+                console.log(`[FIX-202] ${toolkit}: already connected`)
+              }
+            }
+          } catch {
+            // Silently skip failed checks
+          }
+        })
+        await Promise.all(checks)
+
+        if (connected.size > 0) {
+          setAuthState(prev => ({
+            ...prev,
+            connectedIntegrations: new Set([...prev.connectedIntegrations, ...connected]),
+          }))
+          console.log(`[FIX-202] Pre-loaded ${connected.size} existing connections:`, [...connected])
+        }
+      } catch (err) {
+        console.warn('[FIX-202] Failed to fetch existing connections:', err)
+      }
+    }
+
+    fetchExistingConnections()
+  }, [oauthIntegrations.length]) // Only re-run if integrations change
+  // @NEXUS-FIX-202-END
+
   // @NEXUS-FIX-033 & @NEXUS-FIX-055 & @NEXUS-FIX-074: Run pre-flight check with orchestration support - DO NOT REMOVE
   // This checks ALL required params BEFORE execution, eliminating the loop problem.
   // For unknown toolkits (not in TOOL_SLUGS), it also discovers required params via orchestration.
@@ -846,8 +889,42 @@ export function WorkflowPreviewCard({
         params: (n as { config?: Record<string, unknown> }).config
       }))
 
-      // Get list of connected integrations from authState
-      const connectedList = Array.from(authState.connectedIntegrations)
+      // @NEXUS-FIX-202: Fetch LIVE connection status from Composio before pre-flight check - DO NOT REMOVE
+      // Without this, connectedList starts empty and pre-flight always shows connections as disconnected
+      // even when user has active OAuth connections in Composio.
+      let connectedList = Array.from(authState.connectedIntegrations)
+      if (connectedList.length === 0 && preFlightNodes.length > 0) {
+        try {
+          const uniqueToolkits = [...new Set(preFlightNodes.map(n =>
+            (n.integration || n.tool || '').toLowerCase()
+          ).filter(Boolean))]
+
+          const liveChecks = await Promise.all(
+            uniqueToolkits.map(async (toolkit) => {
+              try {
+                const res = await fetch(`/api/composio/connection/${toolkit}`)
+                if (res.ok) {
+                  const data = await res.json()
+                  return data.connected ? toolkit : null
+                }
+              } catch { /* skip */ }
+              return null
+            })
+          )
+          const liveConnected = liveChecks.filter(Boolean) as string[]
+          if (liveConnected.length > 0) {
+            console.log('[FIX-202] Live connection check found:', liveConnected)
+            connectedList = [...new Set([...connectedList, ...liveConnected])]
+            // Also update authState so future checks don't need to re-fetch
+            setAuthState(prev => ({
+              ...prev,
+              connectedIntegrations: new Set([...prev.connectedIntegrations, ...liveConnected]),
+            }))
+          }
+        } catch (err) {
+          console.warn('[FIX-202] Live connection check failed:', err)
+        }
+      }
 
       // @NEXUS-FIX-074: Use async backend check with REAL schema fetching - DO NOT REMOVE
       // This calls /api/preflight/check which fetches schemas from Composio SDK
@@ -1251,9 +1328,83 @@ export function WorkflowPreviewCard({
         })
 
         if (allAnswered) {
-          // All orchestration questions answered - update preFlightResult to reflect completion
-          // This will set questions.length to 0, enabling the execution button
-          console.log('[WorkflowPreviewCard] All orchestration questions answered - updating pre-flight result')
+          // @NEXUS-FIX-203: Final schema validation before marking ready - DO NOT REMOVE
+          // Problem: Quick Setup collects params based on orchestration/static questions,
+          // but execution uses LIVE Composio schemas which may require ADDITIONAL params.
+          // This caused "One More Thing Needed" prompts mid-execution.
+          // Solution: Before marking ready, cross-check ALL orchestrated nodes against their
+          // LIVE schemas to catch any params missed by Quick Setup.
+          console.log('[WorkflowPreviewCard] FIX-203: All Quick Setup questions answered — running final schema validation...')
+
+          const finalMissingQuestions: PreFlightQuestion[] = []
+
+          for (const node of workflow.nodes) {
+            const orchResult = orchestrationResultsRef.current.get(node.id)
+            if (!orchResult?.sessionId || !orchResult?.slug) continue
+
+            try {
+              const schemaResolver = getSchemaResolver()
+              const liveSchema = await schemaResolver.getSchema(orchResult.slug, orchResult.sessionId)
+
+              if (liveSchema?.required && liveSchema.required.length > 0) {
+                const integration = (node.integration || (node as { tool?: string }).tool || '').toLowerCase()
+
+                for (const requiredParam of liveSchema.required) {
+                  // Check if already collected (exact key, integration-prefixed, or semantic alias)
+                  const isCollected = isParamSemanticallycollected(requiredParam, collectedParams) ||
+                    collectedParams[requiredParam] !== undefined && collectedParams[requiredParam] !== '' ||
+                    collectedParams[`${integration}_${requiredParam}`] !== undefined && collectedParams[`${integration}_${requiredParam}`] !== ''
+
+                  if (!isCollected) {
+                    // This param was NOT collected during Quick Setup — add it
+                    const propInfo = liveSchema.properties?.[requiredParam]
+                    const displayName = propInfo?.description || requiredParam.replace(/_/g, ' ')
+
+                    console.log(`[FIX-203] Missing param discovered: ${node.name} → ${requiredParam} (not in collectedParams)`)
+
+                    finalMissingQuestions.push({
+                      id: `${node.id}_${requiredParam}`,
+                      nodeId: node.id,
+                      nodeName: node.name,
+                      integration,
+                      paramName: requiredParam,
+                      displayName: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+                      prompt: `What ${displayName} should I use for ${node.name}?`,
+                      quickActions: [],
+                      inputType: requiredParam.includes('email') ? 'email' : requiredParam.includes('url') ? 'url' : 'text',
+                      placeholder: `Enter ${displayName}...`,
+                      required: true
+                    })
+                  }
+                }
+              }
+            } catch (schemaErr) {
+              console.warn(`[FIX-203] Schema validation failed for ${node.name}:`, schemaErr)
+              // Non-blocking — proceed with what we have
+            }
+          }
+
+          if (finalMissingQuestions.length > 0) {
+            // Found params that execution would need but Quick Setup didn't ask for
+            console.log(`[FIX-203] Found ${finalMissingQuestions.length} additional params needed:`,
+              finalMissingQuestions.map((q: PreFlightQuestion) => `${q.nodeName}:${q.paramName}`))
+
+            setPreFlightResult({
+              ...result,
+              ready: false,
+              questions: finalMissingQuestions,
+              summary: {
+                ...result.summary,
+                totalQuestions: finalMissingQuestions.length
+              }
+            })
+            setShowPreFlight(true)
+            return
+          }
+          // @NEXUS-FIX-203-END
+
+          // All orchestration questions answered AND final schema validation passed
+          console.log('[WorkflowPreviewCard] All orchestration questions answered + FIX-197 validation passed — updating pre-flight result')
           setPreFlightResult({
             ...result,
             ready: result.connections.length === 0, // Ready if no connections needed
@@ -3012,23 +3163,91 @@ export function WorkflowPreviewCard({
         // @NEXUS-FIX-021: User-friendly missing parameter messages - DO NOT REMOVE
         // @NEXUS-FIX-031: Include raw param name for correct collection key - DO NOT REMOVE
         // @NEXUS-FIX-043: Use enhanced missing params from pipeline when available - DO NOT REMOVE
-        // Problem: UI was using integration name (e.g., 'whatsapp') as collection key for ALL params
-        //          This caused second param to overwrite first (both mapped to 'to')
-        // Solution: Include [param:XXX] in error so UI can use actual param name as key
+        // @NEXUS-FIX-204: Auto-fill missing params with smart defaults before throwing - DO NOT REMOVE
+        // Problem: Quick Setup doesn't always collect ALL params the execution schema requires.
+        // This caused "One More Thing Needed" prompts mid-execution, breaking user flow.
+        // Solution: Before throwing, try to generate smart defaults for common param types.
+        // Only throw if a param truly cannot be auto-filled (e.g., recipient email).
         if (missingParams.length > 0) {
-          // Use enhanced prompts from pipeline if available, otherwise fall back to legacy
-          const enhancedMissing = _getEnhancedMissingParams(
-            pipelineResult.resolved,
-            integrationInfo.toolkit,
-            missingParams
-          )
-          const friendlyPrompts = enhancedMissing.map(p => p.prompt)
-          // @NEXUS-FIX-031: Include first missing param name for UI to use as collection key
-          throw new Error(
-            `Missing Information: ${node.name} [param:${missingParams[0]}]\n\n` +
-            `💡 I need more details to complete this step. Please tell me:\n` +
-            friendlyPrompts.map(p => `• ${p}`).join('\n')
-          )
+          // FIX-199: Try to auto-fill missing params with smart defaults
+          const toolkit = integrationInfo.toolkit.toLowerCase()
+          const trulyMissing: string[] = []
+
+          for (const paramName of missingParams) {
+            const pLower = paramName.toLowerCase()
+            let autoValue: string | null = null
+
+            // Content/message params: generate from workflow context
+            if (pLower === 'content' || pLower === 'text' || pLower === 'message' || pLower === 'body') {
+              // Use previous node results to build a message
+              const prevResults = nodes.slice(0, i).filter(n => n.result)
+              if (prevResults.length > 0) {
+                autoValue = `📋 Workflow update from ${workflow.name}: Step "${node.name}" triggered`
+              } else {
+                autoValue = `Automated notification from workflow: ${workflow.name}`
+              }
+              console.log(`[FIX-204] Auto-filled ${paramName} with context message for ${toolkit}`)
+            }
+            // Channel params: default to general
+            else if (pLower === 'channel' || pLower === 'channel_id') {
+              autoValue = toolkit === 'slack' ? 'general' : toolkit === 'discord' ? 'general' : 'general'
+              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
+            }
+            // Subject params: generate from workflow name
+            else if (pLower === 'subject' || pLower === 'email_subject' || pLower === 'subject_line') {
+              autoValue = `${workflow.name} — Automated Update`
+              console.log(`[FIX-204] Auto-filled ${paramName} with subject for ${toolkit}`)
+            }
+            // Name/title params: use node name or workflow name
+            else if (pLower === 'name' || pLower === 'title' || pLower === 'summary' || pLower === 'item_name' || pLower === 'task_name') {
+              autoValue = node.name || workflow.name || 'Nexus Workflow Item'
+              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
+            }
+            // Description params: use workflow description or generate
+            else if (pLower === 'description' || pLower === 'desc' || pLower === 'notes') {
+              autoValue = workflow.description || `Created by ${workflow.name} workflow`
+              console.log(`[FIX-204] Auto-filled ${paramName} with description for ${toolkit}`)
+            }
+            // Topic params (Zoom, etc.)
+            else if (pLower === 'topic') {
+              autoValue = node.name || 'Nexus Meeting'
+              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
+            }
+            // Path/folder params: default to root
+            else if (pLower === 'path' || pLower === 'folder' || pLower === 'folder_path') {
+              autoValue = '/'
+              console.log(`[FIX-204] Auto-filled ${paramName} → "/" for ${toolkit}`)
+            }
+            // List/board ID params: use "default" placeholder that triggers auto-resolution
+            else if (pLower === 'list_id' || pLower === 'board_id' || pLower === 'project_key') {
+              autoValue = 'default'
+              console.log(`[FIX-204] Auto-filled ${paramName} → "default" for ${toolkit}`)
+            }
+
+            if (autoValue) {
+              params[paramName] = autoValue
+            } else {
+              trulyMissing.push(paramName)
+            }
+          }
+
+          // Only throw if there are TRULY missing params that cannot be auto-filled
+          if (trulyMissing.length > 0) {
+            const enhancedMissing = _getEnhancedMissingParams(
+              pipelineResult.resolved,
+              integrationInfo.toolkit,
+              trulyMissing
+            )
+            const friendlyPrompts = enhancedMissing.map(p => p.prompt)
+            // @NEXUS-FIX-031: Include first missing param name for UI to use as collection key
+            throw new Error(
+              `Missing Information: ${node.name} [param:${trulyMissing[0]}]\n\n` +
+              `💡 I need more details to complete this step. Please tell me:\n` +
+              friendlyPrompts.map(p => `• ${p}`).join('\n')
+            )
+          } else {
+            console.log(`[FIX-204] All ${missingParams.length} missing params auto-filled! Proceeding with execution.`)
+          }
         }
 
         // @NEXUS-FIX-115: Pre-execution connection validation - DO NOT REMOVE

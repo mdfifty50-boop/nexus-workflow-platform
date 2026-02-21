@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Flat single-color version — for favicon, small sizes, print -->
+  <path
+    d="M 120 416 L 120 96 L 392 416 L 392 96"
+    fill="none"
+    stroke="#8B5CF6"
+    stroke-width="62"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

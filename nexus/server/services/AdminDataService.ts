@@ -21,6 +21,70 @@ const supabase: SupabaseClient | null = supabaseServiceKey && supabaseUrl
 // TYPES
 // =============================================================================
 
+export interface UserDetail {
+  id: string
+  email: string
+  name: string
+  avatarUrl: string | null
+  role: string
+  status: 'active' | 'inactive' | 'pending'
+  createdAt: string
+  lastActive: string
+  workflowsCreated: number
+  conversationCount: number
+  executionCount: number
+  errorCount: number
+  businessProfile: Record<string, any> | null
+}
+
+export interface UserConversation {
+  id: string
+  title: string
+  messageCount: number
+  createdAt: string
+  updatedAt: string
+  messages: Array<{
+    id: string
+    role: string
+    content: string
+    createdAt: string
+  }>
+}
+
+export interface UserWorkflow {
+  id: string
+  name: string
+  description: string | null
+  status: string
+  executionCount: number
+  lastExecutedAt: string | null
+  createdAt: string
+  executions: Array<{
+    id: string
+    status: string
+    createdAt: string
+    errorMessage: string | null
+  }>
+}
+
+export interface UserError {
+  id: string
+  workflowId: string
+  workflowName: string
+  status: string
+  errorMessage: string
+  createdAt: string
+}
+
+export interface ActivityItem {
+  id: string
+  type: 'chat' | 'workflow_created' | 'workflow_executed' | 'login' | 'signup' | 'error'
+  user: { id: string; name: string; email: string }
+  description: string
+  timestamp: string
+  metadata?: Record<string, any>
+}
+
 export interface AdminUser {
   id: string
   email: string
@@ -110,14 +174,14 @@ export const adminDataService = {
     }
 
     try {
-      // Get user profiles
+      // Get users from the 'users' table (production schema)
       const { data: profiles, error: profileError } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false })
 
       if (profileError) {
-        console.error('Error fetching user profiles:', profileError)
+        console.error('Error fetching users:', profileError)
         return []
       }
 
@@ -125,7 +189,7 @@ export const adminDataService = {
         return []
       }
 
-      // Get workflow counts per user
+      // Get workflow counts per user (by clerk_user_id or email)
       const { data: workflowCounts, error: workflowError } = await supabase
         .from('user_workflows')
         .select('clerk_user_id')
@@ -143,16 +207,24 @@ export const adminDataService = {
       }
 
       // Map to AdminUser format
-      return profiles.map((profile: any) => ({
-        id: profile.clerk_user_id,
-        email: profile.email || 'unknown@email.com',
-        name: profile.full_name || profile.email?.split('@')[0] || 'Unknown User',
-        role: profile.role || 'user',
-        status: this.getUserActivityStatus(profile.last_active_at),
-        createdAt: profile.created_at ? new Date(profile.created_at).toISOString().split('T')[0] : '-',
-        lastActive: profile.last_active_at ? new Date(profile.last_active_at).toISOString().split('T')[0] : '-',
-        workflowsCreated: workflowCountMap[profile.clerk_user_id] || 0
-      }))
+      // Use clerk_user_id if available, fall back to id
+      return profiles.map((profile: any) => {
+        const identifier = profile.clerk_user_id || profile.id
+        return {
+          id: identifier,
+          email: profile.email || 'unknown@email.com',
+          name: profile.full_name || profile.email?.split('@')[0] || 'Unknown User',
+          role: profile.role || 'user',
+          status: this.getUserActivityStatus(profile.last_active_at || profile.updated_at),
+          createdAt: profile.created_at ? new Date(profile.created_at).toISOString().split('T')[0] : '-',
+          lastActive: profile.last_active_at
+            ? new Date(profile.last_active_at).toISOString().split('T')[0]
+            : profile.updated_at
+              ? new Date(profile.updated_at).toISOString().split('T')[0]
+              : '-',
+          workflowsCreated: workflowCountMap[identifier] || 0
+        }
+      })
     } catch (error) {
       console.error('Error in getUsers:', error)
       return []
@@ -187,13 +259,31 @@ export const adminDataService = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
+      // Try by clerk_user_id first, then by id
+      let data: any = null
+      let error: any = null
+
+      const result1 = await supabase
+        .from('users')
         .select('role')
         .eq('clerk_user_id', clerkUserId)
         .single()
 
-      if (error || !data) {
+      if (result1.data) {
+        data = result1.data
+      } else {
+        // Fallback: try by id
+        const result2 = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', clerkUserId)
+          .single()
+        data = result2.data
+        error = result2.error
+      }
+
+      if (!data) {
+        // Last fallback: check by email via ADMIN_EMAIL
         return { exists: false, role: null }
       }
 
@@ -221,14 +311,14 @@ export const adminDataService = {
 
       // Get user counts
       const { count: totalUsers } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('*', { count: 'exact', head: true })
 
-      // Get active users (last 7 days)
+      // Get active users (last 7 days) - use last_active_at or updated_at
       const { count: activeUsers } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('*', { count: 'exact', head: true })
-        .gte('last_active_at', weekAgo.toISOString())
+        .gte('updated_at', weekAgo.toISOString())
 
       // Get workflow counts
       const { count: totalWorkflows } = await supabase
@@ -346,12 +436,12 @@ export const adminDataService = {
           .lt('created_at', endOfDay.toISOString())
           .eq('status', 'failed')
 
-        // Count active users for this day (simplified)
+        // Count active users for this day (simplified - use updated_at as proxy)
         const { count: users } = await supabase
-          .from('user_profiles')
+          .from('users')
           .select('*', { count: 'exact', head: true })
-          .gte('last_active_at', startOfDay.toISOString())
-          .lt('last_active_at', endOfDay.toISOString())
+          .gte('updated_at', startOfDay.toISOString())
+          .lt('updated_at', endOfDay.toISOString())
 
         result.push({
           date: startOfDay.toISOString().split('T')[0],
@@ -536,10 +626,20 @@ export const adminDataService = {
     }
 
     try {
-      const { error } = await supabase
-        .from('user_profiles')
+      // Try updating by clerk_user_id first, then by id
+      let error: any = null
+      const result1 = await supabase
+        .from('users')
         .update({ role })
         .eq('clerk_user_id', clerkUserId)
+
+      if (result1.error) {
+        const result2 = await supabase
+          .from('users')
+          .update({ role })
+          .eq('id', clerkUserId)
+        error = result2.error
+      }
 
       if (error) {
         console.error('Error updating user role:', error)
@@ -551,6 +651,397 @@ export const adminDataService = {
       console.error('Error in updateUserRole:', error)
       return false
     }
+  },
+
+  // =============================================================================
+  // PER-USER QUERIES (Admin Dashboard v2)
+  // =============================================================================
+
+  /**
+   * Get detailed info for a single user
+   */
+  async getUserDetail(clerkUserId: string): Promise<UserDetail | null> {
+    if (!supabase) return null
+
+    try {
+      // Fetch profile from users table - try clerk_user_id, then id, then email
+      let profile: any = null
+      const { data: p1 } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_user_id', clerkUserId)
+        .single()
+
+      if (p1) {
+        profile = p1
+      } else {
+        const { data: p2 } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', clerkUserId)
+          .single()
+        profile = p2
+      }
+
+      if (!profile) return null
+
+      const identifier = profile.clerk_user_id || profile.id
+
+      // Fetch business profile (table may not have data yet)
+      const { data: bizProfile } = await supabase
+        .from('user_business_profiles')
+        .select('*')
+        .eq('clerk_user_id', identifier)
+        .single()
+
+      // Count conversations (use the identifier that matches clerk_user_id in other tables)
+      const { count: conversationCount } = await supabase
+        .from('chat_conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('clerk_user_id', identifier)
+
+      // Count workflows
+      const { count: workflowCount } = await supabase
+        .from('user_workflows')
+        .select('*', { count: 'exact', head: true })
+        .eq('clerk_user_id', identifier)
+
+      // Count executions
+      const { data: userWorkflows } = await supabase
+        .from('user_workflows')
+        .select('id')
+        .eq('clerk_user_id', identifier)
+
+      let executionCount = 0
+      let errorCount = 0
+
+      if (userWorkflows && userWorkflows.length > 0) {
+        const workflowIds = userWorkflows.map((w: any) => w.id)
+
+        const { count: execCount } = await supabase
+          .from('user_workflow_executions')
+          .select('*', { count: 'exact', head: true })
+          .in('workflow_id', workflowIds)
+
+        const { count: errCount } = await supabase
+          .from('user_workflow_executions')
+          .select('*', { count: 'exact', head: true })
+          .in('workflow_id', workflowIds)
+          .eq('status', 'failed')
+
+        executionCount = execCount || 0
+        errorCount = errCount || 0
+      }
+
+      return {
+        id: identifier,
+        email: profile.email || '',
+        name: profile.full_name || profile.email?.split('@')[0] || 'Unknown',
+        avatarUrl: profile.avatar_url,
+        role: profile.role || 'user',
+        status: this.getUserActivityStatus(profile.last_active_at || profile.updated_at),
+        createdAt: profile.created_at,
+        lastActive: profile.last_active_at || profile.updated_at || profile.created_at,
+        workflowsCreated: workflowCount || 0,
+        conversationCount: conversationCount || 0,
+        executionCount,
+        errorCount,
+        businessProfile: bizProfile || null
+      }
+    } catch (error) {
+      console.error('Error in getUserDetail:', error)
+      return null
+    }
+  },
+
+  /**
+   * Get all conversations for a user with messages
+   */
+  async getUserConversations(clerkUserId: string): Promise<UserConversation[]> {
+    if (!supabase) return []
+
+    try {
+      const { data: conversations, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('clerk_user_id', clerkUserId)
+        .order('updated_at', { ascending: false })
+        .limit(50)
+
+      if (error || !conversations) return []
+
+      const result: UserConversation[] = []
+
+      for (const conv of conversations) {
+        const { data: messages, count } = await supabase
+          .from('chat_messages')
+          .select('id, role, content, created_at', { count: 'exact' })
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: true })
+          .limit(100)
+
+        result.push({
+          id: conv.id,
+          title: conv.title || 'Untitled',
+          messageCount: count || 0,
+          createdAt: conv.created_at,
+          updatedAt: conv.updated_at,
+          messages: (messages || []).map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            createdAt: m.created_at
+          }))
+        })
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error in getUserConversations:', error)
+      return []
+    }
+  },
+
+  /**
+   * Get all workflows for a user with execution history
+   */
+  async getUserWorkflows(clerkUserId: string): Promise<UserWorkflow[]> {
+    if (!supabase) return []
+
+    try {
+      const { data: workflows, error } = await supabase
+        .from('user_workflows')
+        .select('*')
+        .eq('clerk_user_id', clerkUserId)
+        .order('updated_at', { ascending: false })
+
+      if (error || !workflows) return []
+
+      const result: UserWorkflow[] = []
+
+      for (const wf of workflows) {
+        const { data: executions } = await supabase
+          .from('user_workflow_executions')
+          .select('id, status, created_at, error_message')
+          .eq('workflow_id', wf.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        result.push({
+          id: wf.id,
+          name: wf.name || 'Unnamed Workflow',
+          description: wf.description,
+          status: wf.status,
+          executionCount: wf.execution_count || 0,
+          lastExecutedAt: wf.last_executed_at,
+          createdAt: wf.created_at,
+          executions: (executions || []).map((e: any) => ({
+            id: e.id,
+            status: e.status,
+            createdAt: e.created_at,
+            errorMessage: e.error_message
+          }))
+        })
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error in getUserWorkflows:', error)
+      return []
+    }
+  },
+
+  /**
+   * Get all errors for a user
+   */
+  async getUserErrors(clerkUserId: string): Promise<UserError[]> {
+    if (!supabase) return []
+
+    try {
+      // Get user's workflow IDs
+      const { data: workflows } = await supabase
+        .from('user_workflows')
+        .select('id, name')
+        .eq('clerk_user_id', clerkUserId)
+
+      if (!workflows || workflows.length === 0) return []
+
+      const workflowMap: Record<string, string> = {}
+      for (const wf of workflows) {
+        workflowMap[wf.id] = wf.name || 'Unnamed Workflow'
+      }
+
+      const { data: errors, error } = await supabase
+        .from('user_workflow_executions')
+        .select('*')
+        .in('workflow_id', workflows.map((w: any) => w.id))
+        .eq('status', 'failed')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error || !errors) return []
+
+      return errors.map((e: any) => ({
+        id: e.id,
+        workflowId: e.workflow_id,
+        workflowName: workflowMap[e.workflow_id] || 'Unknown Workflow',
+        status: e.status,
+        errorMessage: e.error_message || 'Unknown error',
+        createdAt: e.created_at
+      }))
+    } catch (error) {
+      console.error('Error in getUserErrors:', error)
+      return []
+    }
+  },
+
+  /**
+   * Get platform-wide activity feed (merged timeline)
+   */
+  async getActivityFeed(limit: number = 50): Promise<ActivityItem[]> {
+    if (!supabase) return []
+
+    try {
+      const activities: ActivityItem[] = []
+
+      // Build a map of clerk_user_id -> { name, email } from users table
+      const { data: profiles } = await supabase
+        .from('users')
+        .select('id, clerk_user_id, full_name, email')
+
+      const userMap: Record<string, { name: string; email: string }> = {}
+      if (profiles) {
+        for (const p of profiles) {
+          // Map by both clerk_user_id and id for flexible lookup
+          const name = p.full_name || p.email?.split('@')[0] || 'Unknown'
+          const email = p.email || ''
+          if (p.clerk_user_id) {
+            userMap[p.clerk_user_id] = { name, email }
+          }
+          userMap[p.id] = { name, email }
+        }
+      }
+
+      // Recent signups (users created recently)
+      const { data: recentSignups } = await supabase
+        .from('users')
+        .select('id, clerk_user_id, full_name, email, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (recentSignups) {
+        for (const u of recentSignups) {
+          const identifier = u.clerk_user_id || u.id
+          activities.push({
+            id: `signup-${identifier}`,
+            type: 'signup',
+            user: {
+              id: identifier,
+              name: u.full_name || u.email?.split('@')[0] || 'Unknown',
+              email: u.email || ''
+            },
+            description: 'Signed up for Nexus',
+            timestamp: u.created_at
+          })
+        }
+      }
+
+      // Recent conversations
+      const { data: recentChats } = await supabase
+        .from('chat_conversations')
+        .select('id, clerk_user_id, title, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (recentChats) {
+        for (const c of recentChats) {
+          const user = userMap[c.clerk_user_id] || { name: 'Unknown', email: '' }
+          activities.push({
+            id: `chat-${c.id}`,
+            type: 'chat',
+            user: { id: c.clerk_user_id, ...user },
+            description: `Started conversation: "${c.title || 'New Chat'}"`,
+            timestamp: c.created_at
+          })
+        }
+      }
+
+      // Recent workflows created
+      const { data: recentWorkflows } = await supabase
+        .from('user_workflows')
+        .select('id, clerk_user_id, name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (recentWorkflows) {
+        for (const w of recentWorkflows) {
+          const user = userMap[w.clerk_user_id] || { name: 'Unknown', email: '' }
+          activities.push({
+            id: `wf-${w.id}`,
+            type: 'workflow_created',
+            user: { id: w.clerk_user_id, ...user },
+            description: `Created workflow: "${w.name || 'Untitled'}"`,
+            timestamp: w.created_at
+          })
+        }
+      }
+
+      // Recent executions
+      const { data: recentExecs } = await supabase
+        .from('user_workflow_executions')
+        .select('id, workflow_id, status, error_message, created_at')
+        .order('created_at', { ascending: false })
+        .limit(20)
+
+      if (recentExecs) {
+        // Get workflow details for these executions
+        const execWorkflowIds = [...new Set(recentExecs.map((e: any) => e.workflow_id))]
+        const { data: execWorkflows } = await supabase
+          .from('user_workflows')
+          .select('id, clerk_user_id, name')
+          .in('id', execWorkflowIds)
+
+        const wfMap: Record<string, { clerkUserId: string; name: string }> = {}
+        if (execWorkflows) {
+          for (const w of execWorkflows) {
+            wfMap[w.id] = { clerkUserId: w.clerk_user_id, name: w.name || 'Untitled' }
+          }
+        }
+
+        for (const e of recentExecs) {
+          const wf = wfMap[e.workflow_id]
+          const user = wf ? (userMap[wf.clerkUserId] || { name: 'Unknown', email: '' }) : { name: 'Unknown', email: '' }
+          const isError = e.status === 'failed'
+
+          activities.push({
+            id: `exec-${e.id}`,
+            type: isError ? 'error' : 'workflow_executed',
+            user: { id: wf?.clerkUserId || '', ...user },
+            description: isError
+              ? `Workflow "${wf?.name}" failed: ${e.error_message || 'Unknown error'}`
+              : `Executed workflow: "${wf?.name}"`,
+            timestamp: e.created_at,
+            metadata: isError ? { errorMessage: e.error_message } : undefined
+          })
+        }
+      }
+
+      // Sort all activities by timestamp descending
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+      return activities.slice(0, limit)
+    } catch (error) {
+      console.error('Error in getActivityFeed:', error)
+      return []
+    }
+  },
+
+  /**
+   * Check if a user is admin by email (ADMIN_EMAIL env var fallback)
+   */
+  isAdminByEmail(email: string): boolean {
+    const adminEmail = process.env.ADMIN_EMAIL || 'nexus.agii@gmail.com'
+    return email.toLowerCase() === adminEmail.toLowerCase()
   },
 
   /**

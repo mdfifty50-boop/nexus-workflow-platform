@@ -48,7 +48,7 @@ const response = await apiClient.chat({
     { role: 'user', content: 'Hello, how can you help me today?' }
   ],
   systemPrompt: 'You are a helpful workflow assistant.',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 1024,
   agentId: 'analyst',     // Optional: specific Nexus agent
   autoRoute: true,        // Optional: auto-route to best agent
@@ -404,7 +404,7 @@ import { nexusService } from '@/lib/nexus-service'
 const result = await nexusService.execute({
   type: 'Nexus',
   prompt: 'Analyze this data...',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 4096,
   temperature: 0.7
 })
@@ -540,7 +540,7 @@ Location: `src/lib/cost-estimator.ts`
 import { estimateCost, formatCost } from '@/lib/cost-estimator'
 
 const cost = estimateCost({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   inputTokens: 1000,
   outputTokens: 500
 })
@@ -671,7 +671,7 @@ interface ExecutionStep {
 interface ChatRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
   systemPrompt?: string
-  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20251101'
+  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-6' | 'claude-opus-4-6'
   maxTokens?: number
   agentId?: string
   autoRoute?: boolean

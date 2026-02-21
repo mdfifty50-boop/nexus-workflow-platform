@@ -199,14 +199,35 @@ class ComposioServiceClass {
                     authUrl: result?.redirectUrl,
                 };
             }
-            // No custom auth config - use Composio's toolkits.authorize method
-            // This creates auth config if none exists and initiates connection
-            console.log(`[ComposioService] No custom auth config for ${appName}, using toolkits.authorize`);
+            // FIX-072: No custom auth config - try connectedAccounts.initiate with callback URL
+            // Then fall back to toolkits.authorize if needed
+            console.log(`[ComposioService] No custom auth config for ${appName}, trying initiate with callback`);
             try {
-                // toolkits.authorize handles creating auth config and initiating OAuth
+                // Try to get default auth config ID for the toolkit
+                const toolkit = await this.composio.toolkits.get(appName.toLowerCase());
+                if (toolkit?.id) {
+                    // Use connectedAccounts.initiate with our callback URL
+                    console.log(`[ComposioService] Using connectedAccounts.initiate for ${appName} with callback: ${callbackUrl}`);
+                    const result = await this.composio.connectedAccounts.initiate(this.userId, toolkit.id, { callbackUrl, allowMultiple: true });
+                    if (result?.redirectUrl) {
+                        console.log(`[ComposioService] Got OAuth URL via initiate for ${appName}`);
+                        return { authUrl: result.redirectUrl };
+                    }
+                }
+            }
+            catch (initiateError) {
+                console.log(`[ComposioService] initiate with callback failed for ${appName}:`, initiateError instanceof Error ? initiateError.message : String(initiateError));
+            }
+            // Fall back to toolkits.authorize (may use Composio's default callback)
+            try {
+                console.log(`[ComposioService] Falling back to toolkits.authorize for ${appName}`);
                 const connectionRequest = await this.composio.toolkits.authorize(this.userId, appName.toLowerCase());
                 if (connectionRequest?.redirectUrl) {
                     console.log(`[ComposioService] Got OAuth URL from toolkits.authorize for ${appName}`);
+                    // Warn if this is a Composio URL (not ideal UX)
+                    if (connectionRequest.redirectUrl.includes('composio.dev') || connectionRequest.redirectUrl.includes('platform.composio')) {
+                        console.warn(`[ComposioService] WARNING: OAuth URL for ${appName} goes through Composio platform`);
+                    }
                     return { authUrl: connectionRequest.redirectUrl };
                 }
                 console.log(`[ComposioService] toolkits.authorize returned no redirectUrl for ${appName}:`, connectionRequest);

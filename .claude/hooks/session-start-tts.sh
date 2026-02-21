@@ -33,8 +33,15 @@ fi
 # Get verbosity level (Issue #32)
 VERBOSITY=$(cat .claude/tts-verbosity.txt 2>/dev/null || cat ~/.claude/tts-verbosity.txt 2>/dev/null || echo "low")
 
-# Output optimized TTS protocol
-cat <<'EOF'
+# Output TTS protocol - condensed at low verbosity, full at medium/high
+if [[ "$VERBOSITY" == "low" ]]; then
+  cat <<'EOF'
+
+# AgentVibes TTS: Ack start + completion via `.claude/hooks/play-tts.sh "[text]"`. Keep <150 chars.
+
+EOF
+else
+  cat <<'EOF'
 
 # AgentVibes TTS Protocol
 
@@ -51,6 +58,7 @@ cat <<'EOF'
 ```
 
 EOF
+fi
 
 # Add verbosity-specific protocol (Issue #32)
 case "$VERBOSITY" in

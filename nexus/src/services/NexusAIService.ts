@@ -414,7 +414,9 @@ class NexusAIService {
 
       // Call the backend chat API via Vite proxy (which uses real Claude)
       // Finding #4: AbortSignal.timeout prevents indefinite hangs - 30s for standard, 45s for think_with_me
-      const timeoutMs = context?.chatMode === 'think_with_me' ? 45000 : 30000
+      // @NEXUS-FIX-199: Extended timeouts for local dev (proxy routing is slower) - DO NOT REMOVE
+      const baseTimeout = context?.chatMode === 'think_with_me' ? 45000 : 30000
+      const timeoutMs = import.meta.env.DEV ? baseTimeout * 3 : baseTimeout
 
       // Finding #19: Wrap fetch in retry with exponential backoff (1s, 3s delays)
       // Only retries on 5xx server errors or network failures, NOT on 4xx client errors
@@ -623,7 +625,9 @@ class NexusAIService {
         intentContext = 'Language: Arabic detected - apply Gulf dialect awareness and regional context'
       }
 
-      const timeoutMs = context?.chatMode === 'think_with_me' ? 45000 : 30000
+      // @NEXUS-FIX-199: Extended timeouts for local dev (proxy routing is slower) - DO NOT REMOVE
+      const baseStreamTimeout = context?.chatMode === 'think_with_me' ? 45000 : 30000
+      const timeoutMs = import.meta.env.DEV ? baseStreamTimeout * 3 : baseStreamTimeout
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 

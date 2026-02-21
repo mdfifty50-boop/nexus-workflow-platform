@@ -13,10 +13,20 @@
 import { Router } from 'express';
 import Stripe from 'stripe';
 const router = Router();
-// Initialize Stripe with secret key from environment
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-12-15.clover',
-});
+// Initialize Stripe with credential validation
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
+// Validate Stripe key exists and looks valid (starts with 'sk_')
+const isValidStripeKey = stripeSecretKey.startsWith('sk_');
+const hasValidStripeKey = stripeSecretKey && isValidStripeKey;
+if (!hasValidStripeKey) {
+    console.warn('[payments] Missing or invalid Stripe credentials. Payment features disabled.');
+}
+// Only create Stripe instance if we have valid credentials
+const stripe = hasValidStripeKey
+    ? new Stripe(stripeSecretKey, {
+        apiVersion: '2025-12-15.clover',
+    })
+    : null;
 // In-memory store for demo (use database in production)
 const customers = new Map(); // userId -> stripeCustomerId
 /**
@@ -32,7 +42,7 @@ router.post('/create-intent', async (req, res) => {
             });
         }
         // Check if Stripe is configured
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
                 error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
@@ -103,7 +113,7 @@ router.post('/create-customer', async (req, res) => {
             });
         }
         // Check if Stripe is configured
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
                 error: 'Stripe is not configured',
@@ -159,7 +169,7 @@ router.post('/create-customer', async (req, res) => {
 router.get('/status/:paymentIntentId', async (req, res) => {
     try {
         const { paymentIntentId } = req.params;
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
                 error: 'Stripe is not configured',
@@ -197,7 +207,7 @@ router.post('/create-link', async (req, res) => {
                 error: 'Amount and productName are required',
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
                 error: 'Stripe is not configured',
@@ -247,7 +257,7 @@ router.post('/refund', async (req, res) => {
                 error: 'paymentIntentId is required',
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
                 error: 'Stripe is not configured',
@@ -278,6 +288,9 @@ router.post('/refund', async (req, res) => {
  * Stripe webhook handler
  */
 router.post('/webhook', async (req, res) => {
+    if (!stripe) {
+        return res.status(500).json({ error: 'Stripe is not configured' });
+    }
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
@@ -318,13 +331,12 @@ router.post('/webhook', async (req, res) => {
  * Check Stripe configuration status
  */
 router.get('/config-status', (req, res) => {
-    const hasSecretKey = !!process.env.STRIPE_SECRET_KEY;
     const hasPublishableKey = !!process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     const hasWebhookSecret = !!process.env.STRIPE_WEBHOOK_SECRET;
     res.json({
-        configured: hasSecretKey,
+        configured: !!stripe,
         details: {
-            secretKey: hasSecretKey ? 'configured' : 'missing',
+            secretKey: stripe ? 'configured' : 'missing or invalid',
             publishableKey: hasPublishableKey ? 'configured' : 'missing',
             webhookSecret: hasWebhookSecret ? 'configured' : 'missing',
         },

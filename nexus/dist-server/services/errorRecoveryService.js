@@ -1,7 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { tieredCalls, recordTieringMetrics } from './claudeProxy.js';
-// Initialize Supabase client
-const supabase = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+// Initialize Supabase with credential validation
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+// Validate service key is a JWT (starts with 'eyJ')
+const isValidServiceKey = supabaseServiceKey.startsWith('eyJ');
+const hasValidCredentials = supabaseUrl && isValidServiceKey;
+if (!hasValidCredentials) {
+    console.warn('[errorRecoveryService] Missing or invalid Supabase credentials. Error recovery disabled.');
+}
+const supabase = hasValidCredentials
+    ? createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    })
+    : null;
 // =============================================================================
 // Error Pattern Database
 // =============================================================================

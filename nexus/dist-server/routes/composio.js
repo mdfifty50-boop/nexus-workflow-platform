@@ -304,7 +304,9 @@ router.get('/debug/connect-gmail', async (_req, res) => {
                 error: 'No API key configured',
             });
         }
-        const result = await composioService.initiateConnection('gmail', 'http://localhost:5173/oauth/callback?app=gmail');
+        // PRODUCTION FIX: Use environment variable for callback URL
+        const callbackUrl = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:5173'}/oauth/callback?app=gmail`;
+        const result = await composioService.initiateConnection('gmail', callbackUrl);
         if (result.error) {
             return res.json({
                 success: false,

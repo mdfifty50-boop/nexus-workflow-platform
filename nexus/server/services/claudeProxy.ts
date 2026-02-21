@@ -6,7 +6,7 @@
  * Falls back to OpenAI if Anthropic unavailable
  *
  * INTELLIGENT MODEL TIERING:
- * - Haiku ($0.25/1M): Intent classification, simple Q&A, status updates
+ * - Haiku ($0.80/1M): Intent classification, simple Q&A, status updates
  * - Sonnet ($3/1M): Workflow planning, code generation, general tasks
  * - Opus ($15/1M): Complex multi-step reasoning, critical decisions
  *
@@ -18,6 +18,43 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+
+// @NEXUS-FIX-198: Sanitize unpaired Unicode surrogates that break JSON serialization - DO NOT REMOVE
+// The Claude API rejects requests with unpaired surrogates ("no low surrogate in string").
+// This strips lone high surrogates (U+D800-U+DBFF) and lone low surrogates (U+DC00-U+DFFF)
+// while preserving valid surrogate pairs (emoji, CJK extensions, etc.).
+export function sanitizeSurrogates(str: string): string {
+  let result = ''
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i)
+    if (code >= 0xD800 && code <= 0xDBFF) {
+      // High surrogate — check for matching low surrogate
+      const next = i + 1 < str.length ? str.charCodeAt(i + 1) : 0
+      if (next >= 0xDC00 && next <= 0xDFFF) {
+        // Valid pair — keep both
+        result += str[i] + str[i + 1]
+        i++ // skip the low surrogate
+      } else {
+        // Lone high surrogate — replace with U+FFFD
+        result += '\uFFFD'
+      }
+    } else if (code >= 0xDC00 && code <= 0xDFFF) {
+      // Lone low surrogate (not preceded by high) — replace
+      result += '\uFFFD'
+    } else {
+      result += str[i]
+    }
+  }
+  return result
+}
+
+/** Sanitize all message content in a conversation to remove unpaired surrogates */
+export function sanitizeMessages<T extends { content: string }>(messages: T[]): T[] {
+  return messages.map(m => ({
+    ...m,
+    content: typeof m.content === 'string' ? sanitizeSurrogates(m.content) : m.content
+  }))
+}
 
 // Production-ready: Use env var or fallback to localhost for development
 const PROXY_URL = process.env.CLAUDE_PROXY_URL || 'http://localhost:4568'
@@ -46,14 +83,14 @@ export type TaskType =
 
 // Model IDs for each tier
 const MODEL_IDS: Record<ModelTier, string> = {
-  haiku: 'claude-3-5-haiku-20241022',
-  sonnet: 'claude-sonnet-4-20250514',
-  opus: 'claude-opus-4-20250514'
+  haiku: 'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-6',
+  opus: 'claude-opus-4-6'
 }
 
 // Pricing per 1M tokens (input/output)
 const MODEL_PRICING: Record<ModelTier, { input: number; output: number }> = {
-  haiku: { input: 0.25, output: 1.25 },    // Haiku 3.5 pricing
+  haiku: { input: 0.80, output: 4.00 },    // claude-haiku-4-5-20251001: $0.80/$4.00 per 1M tokens
   sonnet: { input: 3.0, output: 15.0 },    // Sonnet 4 pricing
   opus: { input: 15.0, output: 75.0 }      // Opus 4 pricing
 }
@@ -94,10 +131,16 @@ const TASK_KEYWORDS: Record<TaskType, string[]> = {
 }
 
 /**
- * Classify a task based on the prompt content
+ * Classify a task based on the user message content.
+ *
+ * @param _systemPrompt - Retained for backward compatibility. Not used for classification
+ * to prevent system prompt keywords from contaminating task type scoring.
+ * @param userMessage - The actual user message to classify.
  */
-export function classifyTask(systemPrompt: string, userMessage: string): TaskType {
-  const combinedText = `${systemPrompt} ${userMessage}`.toLowerCase()
+export function classifyTask(_systemPrompt: string, userMessage: string): TaskType {
+  // Only score on user message — the 937-line system prompt contains instruction
+  // keywords that contaminate scores and cause every Nexus request to mis-classify.
+  const combinedText = userMessage.toLowerCase()
 
   // Score each task type based on keyword matches
   const scores: Record<TaskType, number> = {
@@ -122,18 +165,13 @@ export function classifyTask(systemPrompt: string, userMessage: string): TaskTyp
     }
   }
 
-  // Additional heuristics based on prompt characteristics
-  const promptLength = combinedText.length
+  // Additional heuristics based on user message characteristics
   const hasJson = combinedText.includes('json') || combinedText.includes('{')
   const hasMultipleSteps = (combinedText.match(/step|then|next|after|finally/g) || []).length > 3
-
-  // Short prompts are likely simple
-  if (promptLength < 200 && !hasMultipleSteps) {
-    scores.simple_qa += 2
-  }
+  const msgLength = combinedText.length
 
   // JSON output suggests structured extraction
-  if (hasJson && promptLength < 500) {
+  if (hasJson && msgLength < 500) {
     scores.data_extraction += 2
     scores.classification += 1
   }
@@ -144,8 +182,8 @@ export function classifyTask(systemPrompt: string, userMessage: string): TaskTyp
     scores.complex_reasoning += 1
   }
 
-  // Long prompts with analysis keywords suggest complex reasoning
-  if (promptLength > 2000 && scores.complex_reasoning > 0) {
+  // Long user messages with analysis keywords suggest complex reasoning
+  if (msgLength > 2000 && scores.complex_reasoning > 0) {
     scores.complex_reasoning += 2
     scores.multi_step_analysis += 1
   }
@@ -238,12 +276,17 @@ export async function callViaProxy(
   systemPrompt: string,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   maxTokens: number = 4096,
-  maxRetries: number = 3
+  maxRetries: number = 3,
+  model: string = 'claude-sonnet-4-6'
 ): Promise<{ text: string; tokensUsed: number }> {
   let lastError: Error | null = null
 
+  // @NEXUS-FIX-198: Sanitize surrogates before JSON.stringify - DO NOT REMOVE
+  const cleanMessages = sanitizeMessages(messages)
+  const cleanSystemPrompt = sanitizeSurrogates(systemPrompt)
+
   // Build conversation context from history
-  const conversationContext = messages.map(m =>
+  const conversationContext = cleanMessages.map(m =>
     `${m.role === 'user' ? 'Human' : 'Assistant'}: ${m.content}`
   ).join('\n\n')
 
@@ -252,13 +295,15 @@ export async function callViaProxy(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      console.log('[Backend] Passing model to proxy:', model)
       const response = await fetch(`${PROXY_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: fullPrompt,
-          systemPrompt,
-          maxTokens
+          systemPrompt: cleanSystemPrompt,
+          maxTokens,
+          model
         })
       })
 
@@ -312,6 +357,8 @@ export async function callClaude(options: {
   viaProxy: boolean
 }> {
   const { systemPrompt, userMessage, maxTokens = 4096 } = options
+  const selectedModel = options.model || 'claude-sonnet-4-6'
+  const selectedTier = getTierFromModel(selectedModel)
 
   // Try 1: Claude Code Proxy (FREE via Max subscription)
   const isProxyAvailable = await checkProxyHealth()
@@ -320,7 +367,7 @@ export async function callClaude(options: {
       console.log('[Backend] Calling Claude via proxy (FREE)...')
       // Wrap single message into messages array format
       const messagesArray = [{ role: 'user' as const, content: userMessage }]
-      const result = await callViaProxy(systemPrompt, messagesArray, maxTokens)
+      const result = await callViaProxy(systemPrompt, messagesArray, maxTokens, 3, selectedModel)
       return {
         text: result.text,
         tokensUsed: result.tokensUsed,
@@ -339,7 +386,7 @@ export async function callClaude(options: {
       console.log('[Backend] Calling Claude via direct API (paid)...')
       const client = new Anthropic({ apiKey })
       const response = await client.messages.create({
-        model: options.model || 'claude-sonnet-4-20250514',
+        model: selectedModel,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: userMessage }]
@@ -349,8 +396,9 @@ export async function callClaude(options: {
       const inputTokens = response.usage.input_tokens
       const outputTokens = response.usage.output_tokens
 
-      // Calculate cost (Sonnet 4 pricing)
-      const costUSD = (inputTokens * 0.003 + outputTokens * 0.015) / 1000
+      // Calculate cost based on actual model tier
+      const pricing = MODEL_PRICING[selectedTier]
+      const costUSD = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
 
       return {
         text,
@@ -397,17 +445,24 @@ export async function callClaudeWithCaching(options: {
     uncachedInputTokens: number
   }
 }> {
-  const { systemBlocks, messages, maxTokens = 4096, model = 'claude-sonnet-4-20250514' } = options
+  const { systemBlocks, messages: rawMessages, maxTokens = 4096, model = 'claude-sonnet-4-6' } = options
+
+  // @NEXUS-FIX-198: Sanitize all message content before any API call - DO NOT REMOVE
+  const messages = sanitizeMessages(rawMessages)
+  const cleanSystemBlocks = systemBlocks.map(b => ({
+    ...b,
+    text: sanitizeSurrogates(b.text)
+  }))
 
   // For proxy, combine system blocks into single prompt (no caching benefit)
-  const combinedSystemPrompt = systemBlocks.map(b => b.text).join('\n\n')
+  const combinedSystemPrompt = cleanSystemBlocks.map(b => b.text).join('\n\n')
 
   // Try 1: Claude Code Proxy (FREE via Max subscription)
   const isProxyAvailable = await checkProxyHealth()
   if (isProxyAvailable) {
     try {
       console.log('[Backend] Calling Claude via proxy (FREE, no caching)...')
-      const result = await callViaProxy(combinedSystemPrompt, messages, maxTokens)
+      const result = await callViaProxy(combinedSystemPrompt, messages, maxTokens, 3, model)
       return {
         text: result.text,
         tokensUsed: result.tokensUsed,
@@ -433,8 +488,8 @@ export async function callClaudeWithCaching(options: {
       const response = await client.messages.create({
         model,
         max_tokens: maxTokens,
-        system: systemBlocks,
-        messages: messages // Full conversation history for context
+        system: cleanSystemBlocks,
+        messages: messages // Full conversation history (sanitized via FIX-198)
       })
 
       const text = response.content[0].type === 'text' ? response.content[0].text : ''
@@ -550,12 +605,12 @@ export function getClaudeClient(): Anthropic | null {
  * Call Claude with intelligent model tiering
  *
  * Automatically selects the most cost-effective model based on task analysis:
- * - Haiku ($0.25/1M): Intent classification, simple Q&A, status updates, data extraction
+ * - Haiku ($0.80/1M): Intent classification, simple Q&A, status updates, data extraction
  * - Sonnet ($3/1M): Workflow planning, code generation, content generation, translation
  * - Opus ($15/1M): Complex reasoning, critical decisions, multi-step analysis
  *
  * Cost savings projection:
- * - 70% of requests can use Haiku (12x cheaper than Sonnet)
+ * - 70% of requests can use Haiku (3.75x cheaper than Sonnet)
  * - 25% use Sonnet (balanced)
  * - 5% use Opus (only when truly needed)
  *

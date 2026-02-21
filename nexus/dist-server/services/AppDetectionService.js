@@ -95,6 +95,10 @@ class AppDetectionService {
     /**
      * Detect apps and get discovery info for each
      */
+    /**
+     * @param userId - Should be derived from getUserEntityId(req) at the call site
+     * @NEXUS-FIX-022: Multi-tenant identity - callers must pass per-user entity ID
+     */
     async detectAndAnalyze(message, userId = 'default') {
         const detectedApps = this.detectApps(message);
         if (detectedApps.length === 0) {

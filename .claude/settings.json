@@ -12,7 +12,8 @@
       "Task",
       "TodoWrite",
       "NotebookEdit",
-      "mcp__*"
+      "mcp__*",
+      "Skill"
     ],
     "deny": []
   },
@@ -23,6 +24,98 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start-tts.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use/fix-registry-guard.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use/protected-file-guard.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use/constitution-enforcer.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use/env-secret-guard.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use/context-ceiling-enforcer.js\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/fix-marker-checker.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/build-verifier.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/self-heal-reporter.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/tracker-bridge.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Edit|Write|Bash|Grep|Glob|Task|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/cost-tracker.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use/agent-metrics.js\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-submit/session-context-loader.js\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/user-prompt-submit/task-queue-reader.js\""
           }
         ]
       }

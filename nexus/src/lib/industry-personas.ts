@@ -46,7 +46,7 @@ export const INDUSTRY_PERSONAS: Record<string, IndustryPersona> = {
         specializedPrinciples: ['Measure ROI at the SKU and channel level, not just aggregate', 'Cart abandonment is a goldmine of intent data - mine it before optimizing', 'Customer acquisition cost must be balanced against lifetime value across all strategic decisions']
       },
       'architect': {
-        additionalExpertise: ['headless commerce architecture', 'real-time inventory synchronization across channels', 'payment gateway orchestration (Stripe/PayPal/KNET)', 'product information management (PIM) systems', 'order management system design', 'composable commerce patterns'],
+        additionalExpertise: ['headless commerce architecture', 'real-time inventory synchronization across channels', 'payment gateway orchestration (KNET/MyFatoorah/PayPal)', 'product information management (PIM) systems', 'order management system design', 'composable commerce patterns'],
         industryContext: 'Designs AI-powered commerce architectures that handle flash sale traffic spikes, multi-warehouse inventory, and the complex data flows between storefronts, ERPs, and fulfillment centers.',
         specializedPrinciples: ['Inventory accuracy is the foundation - every automation depends on real-time stock truth', 'Design for 10x traffic spikes on campaign days without degrading checkout', 'Decouple storefront from fulfillment so each can evolve independently']
       },
@@ -379,6 +379,179 @@ export const INDUSTRY_PERSONAS: Record<string, IndustryPersona> = {
         additionalExpertise: ['regulatory compliance documentation', 'AI model documentation and model cards', 'customer-facing terms and disclosures', 'internal audit procedure documentation', 'risk management framework documentation', 'staff training on compliance and AI tools'],
         industryContext: 'Creates the documentation that financial regulators demand: model documentation packages, compliance procedure manuals, risk assessment documentation, and the customer-facing disclosures that must be accurate and understandable.',
         specializedPrinciples: ['Model documentation must satisfy both technical reviewers and regulatory examiners - write for both audiences', 'Compliance documentation must be version-controlled with change history available for audit', 'Customer disclosures must meet plain language requirements - legal accuracy and readability are both mandatory']
+      }
+    }
+  },
+
+  // ============================================================================
+  // BANKING (Full hierarchy: Teller → C-Suite)
+  // @NEXUS-FIX-156: Dedicated banking industry with role-level agent overlays
+  // ============================================================================
+  'banking': {
+    id: 'banking',
+    name: 'Banking',
+    icon: '🏦',
+    color: '#0369A1',
+    description: 'End-to-end banking operations: branch ops, lending, compliance, risk, treasury, wealth management, digital banking transformation',
+    domainKeywords: ['bank', 'banking', 'teller', 'branch', 'loan', 'mortgage', 'deposit', 'KYC', 'AML', 'BSA', 'FDIC', 'OCC', 'Basel', 'credit', 'underwriting', 'treasury', 'core banking', 'wire transfer', 'ACH', 'SWIFT', 'neobank', 'credit union', 'savings', 'checking', 'CD', 'interest rate', 'ALCO', 'liquidity', 'capital adequacy', 'CRA', 'Dodd-Frank', 'CFPB', 'wealth management', 'private banking', 'fiduciary'],
+    suggestedPrompts: [
+      'How can we automate our KYC/AML screening without increasing false positives?',
+      'What AI workflows can accelerate our loan origination from 30 days to 5?',
+      'How do we build real-time fraud detection for wire transfers and ACH?',
+      'What automations can help our branch staff spend more time with customers?',
+      'How can AI improve our regulatory exam readiness and reduce exam findings?',
+      'What digital banking features do we need to compete with neobanks?',
+      'How do we automate our ALCO reporting and interest rate risk analysis?',
+      'What AI tools can our wealth advisors use to provide better client recommendations?',
+    ],
+    agentOverlays: {
+      'analyst': {
+        additionalExpertise: [
+          'bank profitability analysis (NIM, ROA, ROE, efficiency ratio)',
+          'deposit mix optimization and cost-of-funds modeling',
+          'loan portfolio concentration risk assessment',
+          'branch performance benchmarking and rationalization',
+          'customer lifetime value by product and segment',
+          'competitive threat analysis from neobanks and fintechs',
+          'regulatory capital planning (CET1, Tier 1, Total Capital)',
+          'interest rate sensitivity analysis (EVE, NII)',
+        ],
+        industryContext: 'Evaluates banking AI initiatives through the lens of net interest margin impact, regulatory capital efficiency, and the unique economics of banking where risk IS the product. Understands that a bank teller and a CRO need completely different analytical frameworks — tellers need transaction efficiency metrics while C-suite needs enterprise risk-adjusted return analytics.',
+        specializedPrinciples: [
+          'Bank profitability is driven by spread management and credit quality — every AI investment must trace to one or both',
+          'Segment analysis in banking must separate relationship value from transaction value — high-balance dormant accounts and high-activity low-balance accounts require different strategies',
+          'Branch analytics must combine foot traffic, cross-sell conversion, and digital adoption to tell the full story of branch transformation',
+        ]
+      },
+      'architect': {
+        additionalExpertise: [
+          'core banking system architecture (Temenos, FIS, Fiserv, Jack Henry, Thought Machine)',
+          'open banking API design (PSD2, FDX, Consumer Financial Data Rights)',
+          'real-time payment rail integration (FedNow, RTP, SWIFT gpi)',
+          'banking data warehouse design for regulatory reporting (CCAR, DFAST, Call Report)',
+          'fraud detection ML pipeline architecture with sub-second decisioning',
+          'digital banking platform architecture (mobile, online, chatbot channels)',
+          'document management systems for loan files and compliance records',
+          'disaster recovery and business continuity for banking systems (RPO < 1hr)',
+        ],
+        industryContext: 'Designs banking technology architectures that satisfy the unique constraints of financial institutions: 99.999% uptime requirements, real-time transaction processing, immutable audit trails for every decision, multi-regulator compliance, and the challenge of modernizing while maintaining decades-old core banking systems. Understands that architecture decisions at a community bank differ dramatically from a G-SIB.',
+        specializedPrinciples: [
+          'Core banking modernization must be incremental — big-bang replacements fail. Strangler fig pattern with API abstraction layers is the proven approach.',
+          'Every architecture decision must answer: "Can we explain this to an OCC examiner?" — auditability is non-negotiable',
+          'Design for regulatory change as a first-class requirement — new rules arrive quarterly and the architecture must absorb them without rebuilds',
+        ]
+      },
+      'dev': {
+        additionalExpertise: [
+          'KYC/CDD/EDD workflow automation with watchlist screening integration',
+          'loan origination system (LOS) workflow automation from application to closing',
+          'mortgage underwriting automation with automated valuation models (AVM)',
+          'CTR/SAR filing automation and transaction monitoring rule engines',
+          'ACH/wire transfer processing automation with OFAC screening',
+          'teller cash management and vault balancing automation',
+          'deposit account opening automation with real-time ID verification',
+          'credit decisioning automation with adverse action notice generation',
+          'branch daily operations automation (GL posting, end-of-day reconciliation)',
+          'regulatory report generation (Call Report, FR Y-9C, HMDA, CRA)',
+        ],
+        industryContext: 'Builds automations that handle the most process-intensive workflows in any industry. From a teller processing 200 transactions a day needing instant fraud checks, to a loan officer managing a pipeline of 50 applications each requiring 30+ documents, to compliance officers who must file SARs within 30 days. Every automation must maintain a complete audit trail and handle the regulatory edge cases that generic tools miss entirely.',
+        specializedPrinciples: [
+          'Every banking automation must be idempotent and produce an immutable audit log — regulators will review these',
+          'Loan automations must preserve the human-in-the-loop for fair lending decisions — automate the preparation, not the judgment',
+          'BSA/AML automations must balance detection sensitivity (catch bad actors) with specificity (minimize false positives that burden investigators)',
+        ]
+      },
+      'pm': {
+        additionalExpertise: [
+          'branch performance dashboards (transactions, wait times, cross-sell rates)',
+          'loan pipeline analytics with conversion funnel tracking',
+          'deposit growth and attrition monitoring by product and channel',
+          'credit quality dashboards (delinquency, charge-offs, loss reserves)',
+          'regulatory compliance scorecards and exam readiness metrics',
+          'digital banking adoption and channel migration analytics',
+          'customer complaint tracking and CFPB response metrics',
+          'HMDA and CRA data collection and analysis dashboards',
+        ],
+        industryContext: 'Builds analytics that serve three masters in banking: business performance (is the branch profitable?), risk management (is the loan portfolio healthy?), and regulatory compliance (can we prove fair lending?). A teller needs to see their daily transaction count and cross-sell opportunities; a branch manager needs P&L and staffing efficiency; the CRO needs enterprise risk heat maps. Every metric must be reconcilable to the general ledger.',
+        specializedPrinciples: [
+          'Banking analytics must reconcile to the GL — if your dashboard says one thing and the Call Report says another, the dashboard is wrong',
+          'Loan analytics must track every stage from application to booking with drop-off reasons — this data drives both business improvement and fair lending analysis',
+          'Customer analytics must comply with fair lending laws — you cannot segment or target based on prohibited characteristics',
+        ]
+      },
+      'sm': {
+        additionalExpertise: [
+          'branch operations workflow design (open/close procedures, vault management)',
+          'loan processing pipeline optimization (application → underwriting → closing → boarding)',
+          'new account opening process optimization with BSA/CIP requirements',
+          'wire transfer and ACH operations with dual control and OFAC screening',
+          'complaint management process aligned with CFPB requirements',
+          'vendor management program design for third-party risk management (OCC guidance)',
+          'business continuity planning for banking operations (FFIEC guidance)',
+          'audit preparation and regulatory exam management processes',
+        ],
+        industryContext: 'Designs operational processes for an industry where a process failure can result in a consent order, civil money penalties, or loss of charter. Every banking process must balance customer experience speed with the controls that regulators require. From a teller counting cash to a treasury desk managing billions in liquidity, every operation needs documented procedures, dual controls for material transactions, and exception handling that creates audit evidence.',
+        specializedPrinciples: [
+          'Banking processes require dual control (four-eyes principle) for material transactions — automation assists but does not replace this fundamental control',
+          'Every exception to a process must be documented, approved, and traceable — exceptions are where regulators find problems',
+          'Map the full process before automating — in banking, the steps that seem like waste (verification, dual approval) are often regulatory requirements',
+        ]
+      },
+      'tea': {
+        additionalExpertise: [
+          'BSA/AML program management (CDD, EDD, beneficial ownership, 314(a), 314(b))',
+          'fair lending compliance (ECOA, Fair Housing Act, disparate impact analysis)',
+          'consumer compliance (TILA, RESPA, Reg Z, Reg X, TRID, Reg E, Reg CC, UDAAP)',
+          'safety and soundness regulations (OCC guidelines, FDIC guidance, Basel III/IV)',
+          'data privacy in banking (GLBA, CCPA, right to financial privacy)',
+          'third-party risk management and vendor due diligence per OCC Bulletin 2013-29',
+          'model risk management per SR 11-7 / OCC Bulletin 2011-12',
+          'Community Reinvestment Act (CRA) compliance and performance evaluation',
+          'HMDA data integrity and submission requirements',
+          'information security program requirements (GLBA Safeguards Rule, FFIEC CAT)',
+        ],
+        industryContext: 'Navigates the most regulated industry on Earth. Banks answer to 3-5 regulators simultaneously (OCC, FDIC, Fed, state regulators, CFPB), each with overlapping but distinct requirements. A teller must follow CIP procedures for every account opening; a loan officer must ensure TRID timing requirements are met to the day; a compliance officer must file SARs within 30 calendar days. Every AI system that touches a customer decision must be explainable, auditable, and demonstrably free of disparate impact.',
+        specializedPrinciples: [
+          'In banking, "we didn\'t know" is never an acceptable answer to a regulator — ignorance of a rule is treated the same as willful violation',
+          'AI models used in credit decisions must comply with model risk management standards (SR 11-7) including independent validation, ongoing monitoring, and documented governance',
+          'Fair lending analysis must be proactive, not reactive — if your AI model creates disparate impact, the fact that it was unintentional does not create a safe harbor',
+        ]
+      },
+      'ux-designer': {
+        additionalExpertise: [
+          'bank branch customer journey mapping and wait time optimization',
+          'digital banking UX for account opening, transfers, and bill pay',
+          'loan application experience design (progressive disclosure, document upload)',
+          'mobile banking design with biometric authentication',
+          'AI chatbot design for common banking inquiries (balance, transactions, disputes)',
+          'accessible banking design (ADA, WCAG for financial applications)',
+          'wealth management portal and client reporting experience',
+          'regulatory disclosure presentation that satisfies legal requirements without destroying UX',
+        ],
+        industryContext: 'Designs banking experiences across every role level: a teller needs efficient transaction screens that minimize customer wait time; a personal banker needs a unified client view to cross-sell effectively; a loan officer needs a document management interface that tracks the 30+ documents in a mortgage file; the digital banking team needs mobile experiences that compete with Chime and Revolut while maintaining regulatory disclosure requirements.',
+        specializedPrinciples: [
+          'Banking UX must balance security visibility with friction reduction — customers need to feel safe without 7-step authentication for a balance check',
+          'Regulatory disclosures (APR, fees, terms) must be presented clearly per TILA/TRID requirements — burying them in fine print creates both legal risk and trust issues',
+          'Design for the least technical user in the branch — if a teller can\'t use the system efficiently, customer wait times increase and cross-sell opportunities are lost',
+        ]
+      },
+      'tech-writer': {
+        additionalExpertise: [
+          'banking policy and procedure manual creation',
+          'BSA/AML program documentation and risk assessment narratives',
+          'loan policy documentation and exception tracking procedures',
+          'regulatory exam preparation packages and management response drafting',
+          'bank board reporting and committee minutes documentation',
+          'vendor due diligence documentation and ongoing monitoring templates',
+          'customer-facing disclosures, notices, and adverse action letters',
+          'training materials for teller procedures, compliance requirements, and system usage',
+        ],
+        industryContext: 'Creates the documentation that bank examiners demand to see: comprehensive BSA/AML programs, detailed loan policies with exception procedures, information security programs, vendor management documentation, and the board and committee minutes that demonstrate adequate governance oversight. Also creates the frontline training materials that ensure a new teller can follow CIP procedures on day one.',
+        specializedPrinciples: [
+          'Bank documentation must satisfy three audiences simultaneously: regulators (completeness), staff (usability), and auditors (evidence of compliance)',
+          'Policies must include both the requirement and the rationale — examiners test whether staff understand WHY a procedure exists, not just WHAT it is',
+          'Regulatory response documentation must be precise, evidence-based, and reviewed by compliance before submission — every word in a management response becomes a commitment',
+        ]
       }
     }
   },

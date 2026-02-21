@@ -1,8 +1,8 @@
 {
   "_README": "CRITICAL: This file is the SINGLE SOURCE OF TRUTH for all Nexus fixes. ANY AI SESSION must read this file FIRST and NEVER modify code that would break these fixes. Run /validate to verify all fixes are intact.",
-  "_version": "1.0.79",
-  "_lastUpdated": "2026-02-19",
-  "_totalFixes": 178,
+  "_version": "1.0.86",
+  "_lastUpdated": "2026-02-21",
+  "_totalFixes": 185,
 
   "fixes": [
     {
@@ -2163,6 +2163,102 @@
       "codeMarker": "@NEXUS-FIX-196",
       "testCommand": "If streaming endpoint is down, after 3 messages the client should log 'Streaming disabled' and go direct to non-streaming without attempting SSE.",
       "critical": false
+    },
+    {
+      "id": "FIX-197",
+      "date": "2026-02-21",
+      "category": "UX",
+      "title": "AI Consultancy context lost on StrictMode double-mount (localStorage deleted prematurely)",
+      "problem": "When navigating from Chat to AI Consultancy via the clickable AI Consultancy link, the workflow context was loaded correctly on first render but lost after StrictMode's double-mount cycle. The useMemo with localStorage.removeItem ran during first mount, deleting the context before the second mount could read it. Result: context-aware welcome message briefly appeared then reverted to generic.",
+      "solution": "Replaced useMemo with useRef for context capture (survives StrictMode double-mount). Deferred localStorage cleanup to a useEffect with 1-second setTimeout, ensuring the context persists through the mount cycle.",
+      "files": ["nexus/src/pages/AIConsultancy.tsx"],
+      "codeMarker": "@NEXUS-FIX-197",
+      "testCommand": "Click AI Consultancy link from a workflow card in chat. The welcome message should show the workflow context and NOT revert to the generic greeting.",
+      "critical": false
+    },
+    {
+      "id": "FIX-198",
+      "date": "2026-02-20",
+      "category": "API",
+      "title": "Sanitize unpaired Unicode surrogates that break Claude API JSON serialization",
+      "problem": "Chat messages containing unpaired UTF-16 surrogates (e.g., from copy-paste, broken text encodings, or certain emoji fragments) caused Claude API to reject the request with 'no low surrogate in string' error (HTTP 400). This broke chat for any conversation containing these characters.",
+      "solution": "Added sanitizeSurrogates() function that iterates through strings char-by-char, replaces lone high surrogates (U+D800-U+DBFF) and lone low surrogates (U+DC00-U+DFFF) with U+FFFD (replacement character), while preserving valid surrogate pairs (emoji, etc.). Applied at all 3 API call points: callViaProxy, callClaudeWithCaching, and the streaming path in chat.ts.",
+      "files": ["nexus/server/services/claudeProxy.ts", "nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-198",
+      "testCommand": "Send a chat message containing broken Unicode (lone surrogates). Should receive normal AI response instead of 400 error.",
+      "critical": true
+    },
+    {
+      "id": "FIX-199",
+      "date": "2026-02-20",
+      "category": "API",
+      "title": "Allow streaming endpoint to work without ANTHROPIC_API_KEY via proxy fallback",
+      "problem": "The /api/chat/stream SSE endpoint hard-required ANTHROPIC_API_KEY (line 793-799 in chat.ts). When the key was removed to force free proxy-only mode, streaming returned 'AI not configured' immediately, even though the FIX-197 proxy-first logic existed but was unreachable due to the early return.",
+      "solution": "Made the Anthropic client nullable (created only when API key exists). The proxy-first path (FIX-197) now runs regardless of API key presence. Added null guard before direct API streaming section: if proxy returned content, stream it; if proxy failed AND no client exists, return a clean error instead of crashing.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-199",
+      "testCommand": "Comment out ANTHROPIC_API_KEY in .env, restart backend, send a chat message via streaming. Should get response from Claude Code Proxy without errors.",
+      "critical": true
+    },
+    {
+      "id": "FIX-200",
+      "date": "2026-02-20",
+      "category": "AI",
+      "title": "IntentResolver/Claude mismatch gate blocks workflows after multi-turn clarification",
+      "problem": "After 3+ clarifying question exchanges, the IntentResolver only analyzes the user's last short reply (e.g., 'Google Workspace', 'ER doctors/nurses') and assigns low confidence (0.1). The phase gate sees Claude's high confidence (0.85) vs IntentResolver's low (0.1) as a 'mismatch' and suppresses the workflow. This caused an infinite clarification loop where Nexus kept injecting 'What tools do you currently use?' even after the user explicitly asked for the workflow.",
+      "solution": "Added `&& phase === 'discovery'` condition to the IntentResolver/Claude mismatch rule in BOTH the non-stream (line ~586) and stream (line ~1209) paths. After discovery phase (1 message), the conversation moves to clarifying/generating phases where Claude has full context and its confidence should be trusted over the IntentResolver's single-message analysis.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-200",
+      "testCommand": "Start a chat with vague request (e.g., 'my ER keeps getting backed up'), answer 3+ clarifying questions, then verify workflow card generates instead of another clarifying loop.",
+      "critical": true
+    },
+    {
+      "id": "FIX-201",
+      "date": "2026-02-20",
+      "category": "AI",
+      "title": "Max clarification rounds enforcement — force workflow after 3+ exchanges",
+      "problem": "After FIX-200 fixed the phase gate, Claude itself still returns shouldGenerateWorkflow:false with MORE clarifying questions after 4+ user messages. The 'Zero Assumed Tools' rule is so strict that Claude keeps asking about notification methods, status updaters, etc. instead of generating a workflow with available info. Users get stuck in infinite question loops.",
+      "solution": "Two-layer fix: (1) System-prompt enforcement: When userMessageCount >= 4 and phase is 'generating', inject MAX CLARIFICATION ROUNDS REACHED instruction telling Claude it MUST set shouldGenerateWorkflow:true and put remaining questions in missingInfo. (2) Server-side enforcement: If Claude still returns shouldGenerateWorkflow:false but has a workflowSpec, force it to true and move clarifyingQuestions to missingInfo.",
+      "files": ["nexus/server/routes/chat.ts"],
+      "codeMarker": "@NEXUS-FIX-201",
+      "testCommand": "Send vague ER doctor request, answer 3 clarifying questions. On 4th answer, workflow card MUST appear (not more questions).",
+      "critical": true
+    },
+    {
+      "id": "FIX-202",
+      "date": "2026-02-20",
+      "category": "OAuth",
+      "title": "Fetch existing Composio connections on WorkflowPreviewCard mount",
+      "problem": "authState.connectedIntegrations starts as an empty Set and is never populated with existing OAuth connections. Pre-flight check passes empty connectedList to PreFlightService, causing all integrations to show as disconnected (connected: false) even when user has 11+ active Composio connections. This makes 'Run Beta Test' button permanently disabled since ready = allConnected && allAnswered, and allConnected is always false.",
+      "solution": "Added useEffect on mount that fetches connection status for each required integration via GET /api/composio/connection/:toolkit. Active connections are added to authState.connectedIntegrations Set. Pre-flight check then correctly detects these as connected, enabling the Run Beta Test button.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-202",
+      "testCommand": "Generate any workflow requiring Gmail+Sheets. Pre-flight should show connections as 'connected: true' without needing to re-authenticate. Run Beta Test button should be enabled.",
+      "critical": true
+    },
+    {
+      "id": "FIX-203",
+      "date": "2026-02-20",
+      "category": "Execution",
+      "title": "Final schema validation before enabling Run Beta Test prevents 'One More Thing Needed' mid-execution",
+      "problem": "Quick Setup collected params based on orchestration/static questions, but execution used LIVE Composio schemas which sometimes required ADDITIONAL params not asked during Quick Setup. This caused 'One More Thing Needed: Missing Information [param:X]' prompts mid-execution, stopping the workflow and confusing users.",
+      "solution": "Added final schema validation pass after all Quick Setup questions are answered. Before marking pre-flight as 'ready', cross-checks ALL orchestrated nodes against their LIVE Composio schemas (same source execution uses). If any required params are missing, they're added as new Quick Setup questions instead of being discovered mid-execution.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-203",
+      "testCommand": "Generate a multi-integration workflow (e.g., GitHub→Slack→ClickUp). After filling all Quick Setup questions, verify Run Beta Test runs without 'One More Thing Needed' prompts.",
+      "critical": true
+    },
+    {
+      "id": "FIX-204",
+      "date": "2026-02-20",
+      "category": "Execution",
+      "title": "Auto-fill missing execution params with smart defaults instead of 'One More Thing Needed'",
+      "problem": "Even with FIX-197 and FIX-203 pre-flight validation, some params still slipped through to execution time (Composio schema may return different requirements at different times). When execution found missing params, it immediately threw 'Missing Information' error showing 'One More Thing Needed' prompt, breaking the automated workflow flow and requiring manual user input mid-execution.",
+      "solution": "Added a smart auto-fill layer before the missing-params error throw. For common param types (content/message, channel, subject, name/title, description, path), generates contextual defaults from workflow name, node description, and previous node results. Only throws 'One More Thing Needed' for params that truly cannot be auto-filled (e.g., recipient email). This ensures execution continues smoothly even when pre-flight misses a param.",
+      "files": ["nexus/src/components/chat/WorkflowPreviewCard.tsx"],
+      "codeMarker": "@NEXUS-FIX-204",
+      "testCommand": "Generate a workflow with Discord notification step. Skip Discord message content in Quick Setup. Run Beta Test should auto-fill the message content and execute without 'One More Thing Needed' prompt.",
+      "critical": true
     }
   ],
 

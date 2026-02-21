@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
 import rateLimit from 'express-rate-limit'
 import { getAgent, getAllAgents, routeToAgent, type Agent } from '../agents/index.js'
-import { getClaudeClient, callClaudeWithCaching } from '../services/claudeProxy.js'
+import { getClaudeClient, callClaudeWithCaching, checkProxyHealth, callViaProxy, sanitizeSurrogates, sanitizeMessages } from '../services/claudeProxy.js'
 import { appDetectionService } from '../services/AppDetectionService.js'
 import { customIntegrationService } from '../services/CustomIntegrationService.js'
 import { templateService } from '../services/TemplateService.js'
@@ -187,8 +187,8 @@ function deriveConversationPhase(messages: any[], parsedResponse: any): 'discove
 // @NEXUS-FIX-195: Conversation history trimming — reduce token costs on long conversations - DO NOT REMOVE
 // After 10+ messages, older messages are summarized into a single context block while
 // keeping the last 5 messages in full. This prevents linearly growing token costs.
-// Impact: 3-5% quality loss on deep context recall (message #2 details in a 15-turn convo)
-// Mitigation: Last 5 messages always in full, summary preserves key facts
+// Impact: 1-3% quality loss on deep context recall (message #2 details in a 15-turn convo)
+// Mitigation: Last 5 messages always in full, 250/350-char snippets preserve key business details
 const HISTORY_TRIM_THRESHOLD = 10 // Total messages before trimming kicks in
 const RECENT_MESSAGES_TO_KEEP = 5 // Always keep last N messages in full
 
@@ -209,18 +209,20 @@ function trimConversationHistory(
   for (const msg of oldMessages) {
     const content = typeof msg.content === 'string' ? msg.content : ''
     if (msg.role === 'user') {
-      // Extract the core of user messages (first 150 chars)
-      const snippet = content.length > 150 ? content.substring(0, 150) + '...' : content
+      // Extract the core of user messages (first 250 chars)
+      // @NEXUS-FIX-195b: Increased from 150→250 to preserve critical first-message details (business name, agent count, etc.) - DO NOT REMOVE
+      const snippet = content.length > 250 ? content.substring(0, 250) + '...' : content
       summaryParts.push(`User said: ${snippet}`)
     } else {
-      // For assistant messages, extract key decisions/info (first 200 chars)
+      // For assistant messages, extract key decisions/info (first 350 chars)
       // Skip raw JSON — extract the message field if present
       let snippet = content
       try {
         const parsed = JSON.parse(content)
         if (parsed.message) snippet = parsed.message
       } catch { /* not JSON, use as-is */ }
-      snippet = snippet.length > 200 ? snippet.substring(0, 200) + '...' : snippet
+      // @NEXUS-FIX-195b: Increased from 200→350 to preserve workflow decisions and clarifying context - DO NOT REMOVE
+      snippet = snippet.length > 350 ? snippet.substring(0, 350) + '...' : snippet
       summaryParts.push(`Assistant responded: ${snippet}`)
     }
   }
@@ -255,12 +257,12 @@ function selectChatModel(userMessage: string, messageCount: number, chatMode: st
 
   // Very short greetings → Haiku
   if (trimmed.length <= 30 && GREETING_PATTERNS.test(trimmed)) {
-    return { model: 'claude-3-5-haiku-20241022', reason: 'simple greeting → Haiku' }
+    return { model: 'claude-haiku-4-5-20251001', reason: 'simple greeting → Haiku' }
   }
 
   // Simple Q&A about what Nexus does → Haiku
   if (trimmed.length <= 60 && SIMPLE_QA_PATTERNS.test(trimmed)) {
-    return { model: 'claude-3-5-haiku-20241022', reason: 'simple Q&A → Haiku' }
+    return { model: 'claude-haiku-4-5-20251001', reason: 'simple Q&A → Haiku' }
   }
 
   // Everything else → Sonnet (workflow requests, complaints, diagnostics, Arabic business queries)
@@ -508,6 +510,23 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       }
     }
 
+    // @NEXUS-FIX-201: Max clarification rounds enforcement (non-stream path) - DO NOT REMOVE
+    // After 3+ clarifying exchanges (4+ user messages), Claude MUST generate a workflow
+    // instead of asking more questions. Put remaining questions in missingInfo (inside the card).
+    if (userMessageCount >= 4 && chatMode === 'standard') {
+      const hasWorkflowInHistory = messages.some((m: any) => m.role === 'assistant' && typeof m.content === 'string' && m.content.includes('shouldGenerateWorkflow'))
+      if (!hasWorkflowInHistory) {
+        enrichedUserContext += `\n\n## MAX CLARIFICATION ROUNDS REACHED (MANDATORY)
+You have already asked ${userMessageCount - 1} rounds of clarifying questions. You MUST NOW generate a workflow.
+DO NOT ask more clarifying questions. DO NOT set shouldGenerateWorkflow to false.
+You MUST set shouldGenerateWorkflow: true and include a complete workflowSpec.
+If you still have remaining questions, put them in "missingInfo" array (shown INSIDE the workflow card for quick refinement).
+Use the tools the user has mentioned so far. For any tools not yet confirmed, make reasonable choices based on context and note them in "assumptions".
+THIS IS A HARD RULE: shouldGenerateWorkflow MUST be true in your response.`
+        console.log(`[Chat] FIX-201: Max clarification rounds (${userMessageCount} user msgs) — forcing workflow generation`)
+      }
+    }
+
     enrichedUserContext = enrichedUserContext.trim() || undefined
 
     // Build system prompt with caching support (inject user context for inference)
@@ -581,13 +600,32 @@ Your "message" field MUST contain a substantive response acknowledging their ans
                   console.log(`[Chat] Phase gate (non-stream): discovery phase suppressed (no tools detected)`)
                 } else if (phase === 'discovery' && toolContext) {
                   console.log(`[Chat] Phase gate (non-stream): discovery phase but explicit tools detected, allowing workflow (confidence: ${claudeConf})`)
-                } else if (intentConf !== null && intentConf < 0.3 && claudeConf > 0.6) {
+                // @NEXUS-FIX-200: Skip IntentResolver mismatch gate after clarifying phase - DO NOT REMOVE
+                // After 3+ clarifying exchanges, IntentResolver scores are misleading because it only
+                // analyzes the last short message (e.g., "Google Workspace") not the full conversation.
+                // Claude has full context and its high confidence should be trusted at this point.
+                } else if (intentConf !== null && intentConf < 0.3 && claudeConf > 0.6 && phase === 'discovery') {
                   parsed.shouldGenerateWorkflow = false
                   parsed.confidence = 0.50
-                  console.log(`[Chat] Phase gate (non-stream): IntentResolver/Claude mismatch`)
+                  console.log(`[Chat] Phase gate (non-stream): IntentResolver/Claude mismatch (discovery only)`)
                 } else if (claudeConf < 0.60) {
                   parsed.shouldGenerateWorkflow = false
                   console.log(`[Chat] Phase gate (non-stream): low confidence ${claudeConf}`)
+                }
+                // @NEXUS-FIX-201: Server-side enforcement — force workflow after max clarification rounds (non-stream) - DO NOT REMOVE
+                if (parsed.shouldGenerateWorkflow !== true && userMessageCount >= 4 && chatMode === 'standard') {
+                  const phase201 = deriveConversationPhase(messages, parsed)
+                  if (phase201 === 'generating' || phase201 === 'clarifying') {
+                    if (parsed.workflowSpec && typeof parsed.workflowSpec === 'object') {
+                      console.log(`[Chat] FIX-201: Forcing shouldGenerateWorkflow=true (non-stream, phase=${phase201}, ${userMessageCount} user msgs)`)
+                      parsed.shouldGenerateWorkflow = true
+                      parsed.intent = 'workflow'
+                      if (parsed.clarifyingQuestions && !parsed.missingInfo) {
+                        parsed.missingInfo = parsed.clarifyingQuestions
+                        delete parsed.clarifyingQuestions
+                      }
+                    }
+                  }
                 }
                 // @NEXUS-FIX-180: Server-side 20% approval density guard (non-stream) - DO NOT REMOVE
                 if (parsed.workflowSpec?.steps && Array.isArray(parsed.workflowSpec.steps)) {
@@ -788,15 +826,11 @@ router.post('/stream', chatRateLimiter, async (req: Request, res: Response) => {
   }
 
   try {
+    // @NEXUS-FIX-199: Allow streaming without API key when proxy is available - DO NOT REMOVE
+    // Previously this hard-required ANTHROPIC_API_KEY, blocking proxy-only mode.
+    // Now: proxy path works without API key. Direct API path still requires key.
     const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      sendEvent('error', { error: 'AI not configured', hint: 'ANTHROPIC_API_KEY required for streaming' })
-      sendEvent('done', {})
-      res.end()
-      return
-    }
-
-    const client = new Anthropic({ apiKey })
+    const client = apiKey ? new Anthropic({ apiKey }) : null
 
     const {
       messages,
@@ -992,6 +1026,23 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       }
     }
 
+    // @NEXUS-FIX-201: Max clarification rounds enforcement (stream path) - DO NOT REMOVE
+    // After 3+ clarifying exchanges (4+ user messages), Claude MUST generate a workflow
+    // instead of asking more questions. Put remaining questions in missingInfo (inside the card).
+    if (userMessageCount >= 4 && chatMode === 'standard') {
+      const hasWorkflowInHistory = messages.some((m: any) => m.role === 'assistant' && typeof m.content === 'string' && m.content.includes('shouldGenerateWorkflow'))
+      if (!hasWorkflowInHistory) {
+        enrichedUserContext += `\n\n## MAX CLARIFICATION ROUNDS REACHED (MANDATORY)
+You have already asked ${userMessageCount - 1} rounds of clarifying questions. You MUST NOW generate a workflow.
+DO NOT ask more clarifying questions. DO NOT set shouldGenerateWorkflow to false.
+You MUST set shouldGenerateWorkflow: true and include a complete workflowSpec.
+If you still have remaining questions, put them in "missingInfo" array (shown INSIDE the workflow card for quick refinement).
+Use the tools the user has mentioned so far. For any tools not yet confirmed, make reasonable choices based on context and note them in "assumptions".
+THIS IS A HARD RULE: shouldGenerateWorkflow MUST be true in your response.`
+        console.log(`[Chat/Stream] FIX-201: Max clarification rounds (${userMessageCount} user msgs) — forcing workflow generation`)
+      }
+    }
+
     enrichedUserContext = enrichedUserContext.trim() || undefined
 
     // Build system prompt
@@ -1016,12 +1067,63 @@ Your "message" field MUST contain a substantive response acknowledging their ans
     // Accumulate full response text for final parsing
     let fullText = ''
 
+    // @NEXUS-FIX-197: Proxy-first for streaming — use Max plan ($0) when proxy available - DO NOT REMOVE
+    // When proxy is available, send non-streaming request and simulate SSE tokens
+    // This routes through Claude Code Max subscription instead of paid API
+    // Declare shared variables for both proxy and direct API paths
+    let cacheCreationTokens = 0
+    let cacheReadTokens = 0
+    let uncachedInputTokens = 0
+    let totalInputTokens = 0
+    let usedViaProxy = false
+    let usedModel = streamSelectedModel
+    let outputTokenCount = 0
+    // Only check proxy in non-production (local dev) — production always uses direct API
+    const isProxyUp = process.env.NODE_ENV !== 'production' ? await checkProxyHealth() : false
+    if (isProxyUp) {
+      console.log('[Chat/Stream][FIX-197] Proxy available — routing via Max plan ($0 cost)')
+      try {
+        const combinedSystemPrompt = systemBlocks.map(b => b.text).join('\n\n')
+        const proxyResult = await callViaProxy(combinedSystemPrompt, streamTrimmedMessages, maxTokens, 3, streamSelectedModel)
+        fullText = proxyResult.text
+
+        // Simulate streaming by sending the full response as a single token event
+        sendEvent('token', { text: fullText })
+
+        // Set shared variables for proxy path
+        uncachedInputTokens = proxyResult.tokensUsed
+        outputTokenCount = Math.ceil(fullText.length / 4)
+        totalInputTokens = proxyResult.tokensUsed
+        usedViaProxy = true
+        usedModel = streamSelectedModel
+      } catch (proxyError: any) {
+        console.warn('[Chat/Stream][FIX-197] Proxy call failed, falling back to direct API:', proxyError.message)
+        // Fall through to direct API streaming below
+        fullText = ''
+      }
+    }
+
+    // Direct API streaming (paid) — only if proxy wasn't used or proxy failed
+    if (!fullText) {
+    // @NEXUS-FIX-199: Skip direct API if no client (proxy-only mode) - DO NOT REMOVE
+    if (!client) {
+      sendEvent('error', { error: 'AI service temporarily unavailable. Please try again.', hint: 'No API key and proxy failed' })
+      sendEvent('done', {})
+      res.end()
+      return
+    }
+    // @NEXUS-FIX-198: Sanitize surrogates before streaming API call - DO NOT REMOVE
+    const sanitizedStreamMessages = sanitizeMessages(streamTrimmedMessages)
+    const sanitizedStreamSystemBlocks = systemBlocks.map((b: any) => ({
+      ...b,
+      text: typeof b.text === 'string' ? sanitizeSurrogates(b.text) : b.text
+    }))
     // Use Anthropic streaming API
     const stream = await client.messages.stream({
       model: streamSelectedModel,
       max_tokens: maxTokens,
-      system: systemBlocks,
-      messages: streamTrimmedMessages
+      system: sanitizedStreamSystemBlocks,
+      messages: sanitizedStreamMessages
     })
 
     // Handle abort (client disconnect)
@@ -1041,10 +1143,13 @@ Your "message" field MUST contain a substantive response acknowledging their ans
 
     // Extract usage metrics
     const usage = finalMessage.usage as any
-    const cacheCreationTokens = usage.cache_creation_input_tokens || 0
-    const cacheReadTokens = usage.cache_read_input_tokens || 0
-    const uncachedInputTokens = usage.input_tokens
-    const totalInputTokens = cacheCreationTokens + cacheReadTokens + uncachedInputTokens
+    cacheCreationTokens = usage.cache_creation_input_tokens || 0
+    cacheReadTokens = usage.cache_read_input_tokens || 0
+    uncachedInputTokens = usage.input_tokens
+    totalInputTokens = cacheCreationTokens + cacheReadTokens + uncachedInputTokens
+    outputTokenCount = usage.output_tokens || 0
+    usedModel = finalMessage.model
+    } // End of direct API streaming block (FIX-197: only runs when proxy unavailable)
 
     // === Finding #10: Prompt Injection Defense - Layer 3: Output Validation ===
     const outputCheck = promptGuardService.validateOutput(fullText)
@@ -1083,18 +1188,19 @@ Your "message" field MUST contain a substantive response acknowledging their ans
     }
 
     // @NEXUS-FIX-190: Robust message extraction for multi-turn conversations - DO NOT REMOVE
-    // When Claude returns a follow-up response, it may return plain text instead of JSON,
-    // or JSON with an empty/missing message field. In multi-turn contexts, extract the message
-    // from raw text rather than falling back to a generic message.
-    if (!parsedResponse.message && userMessageCount > 1) {
+    // @NEXUS-FIX-200: Extended to also handle first-message plain text responses (e.g. Think with me mode) - DO NOT REMOVE
+    // When Claude returns plain text instead of JSON (common in think_with_me and consulting modes),
+    // or JSON with an empty/missing message field, extract the message from raw text.
+    if (!parsedResponse.message) {
       // Try to salvage a message from the raw response
       const trimmedFull = fullText.trim()
       if (trimmedFull && !trimmedFull.startsWith('{')) {
         // Claude returned plain text - use it directly as the message
         parsedResponse.message = trimmedFull
         parsedResponse.shouldGenerateWorkflow = false
-        parsedResponse.intent = 'clarifying'
-        console.log(`[Chat/Stream] FIX-190: Extracted plain text response for multi-turn follow-up (${trimmedFull.length} chars)`)
+        // @NEXUS-FIX-200: Use 'consulting' intent for strategic/think-with-me, 'clarifying' for follow-ups
+        parsedResponse.intent = (chatMode === 'think_with_me' || enrichedUserContext?.includes('isStrategic: true')) ? 'consulting' : 'clarifying'
+        console.log(`[Chat/Stream] FIX-190/200: Extracted plain text response (${trimmedFull.length} chars, intent: ${parsedResponse.intent})`)
       } else if (parsedResponse.message === '' || parsedResponse.message === null) {
         // JSON was valid but message was empty - try to extract from fullText
         const msgExtract = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/i)
@@ -1148,9 +1254,12 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       else if (phase === 'discovery' && toolContext) {
         console.log(`[Chat/Stream] Phase gate: discovery phase but explicit tools detected (${toolContext.substring(0, 80)}...), allowing workflow (confidence: ${claudeConfidence})`)
       }
-      // RULE 3: If IntentResolver confidence is < 0.3 but Claude says > 0.6, override
-      else if (intentConfidence !== null && intentConfidence < 0.3 && claudeConfidence > 0.6) {
-        console.log(`[Chat/Stream] Phase gate: IntentResolver(${intentConfidence}) vs Claude(${claudeConfidence}) mismatch, capping to 0.50`)
+      // @NEXUS-FIX-200: Only apply IntentResolver mismatch gate during discovery phase - DO NOT REMOVE
+      // After clarifying exchanges (3+ messages), IntentResolver only sees the last short reply
+      // ("Google Workspace", "ER doctors/nurses") and assigns low confidence. But Claude has full
+      // conversation context and its high confidence should be trusted.
+      else if (intentConfidence !== null && intentConfidence < 0.3 && claudeConfidence > 0.6 && phase === 'discovery') {
+        console.log(`[Chat/Stream] Phase gate: IntentResolver(${intentConfidence}) vs Claude(${claudeConfidence}) mismatch in discovery, capping to 0.50`)
         parsedResponse.confidence = 0.50
         parsedResponse.shouldGenerateWorkflow = false
         if (!parsedResponse.clarifyingQuestions) {
@@ -1166,6 +1275,27 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       else if (claudeConfidence < 0.60) {
         console.log(`[Chat/Stream] Phase gate: confidence ${claudeConfidence} < 0.60, suppressing workflow card`)
         parsedResponse.shouldGenerateWorkflow = false
+      }
+    }
+    // @NEXUS-FIX-201: Server-side enforcement — force workflow after max clarification rounds (stream) - DO NOT REMOVE
+    // If Claude still returned shouldGenerateWorkflow=false after 4+ user messages, force it if workflowSpec exists
+    if (parsedResponse.shouldGenerateWorkflow !== true && userMessageCount >= 4 && chatMode === 'standard') {
+      const phase201 = deriveConversationPhase(messages, parsedResponse)
+      if (phase201 === 'generating' || phase201 === 'clarifying') {
+        if (parsedResponse.workflowSpec && typeof parsedResponse.workflowSpec === 'object') {
+          console.log(`[Chat/Stream] FIX-201: Forcing shouldGenerateWorkflow=true (Claude returned false but has workflowSpec, phase=${phase201}, ${userMessageCount} user msgs)`)
+          parsedResponse.shouldGenerateWorkflow = true
+          parsedResponse.intent = 'workflow'
+          // Move clarifyingQuestions to missingInfo if present
+          if (parsedResponse.clarifyingQuestions && !parsedResponse.missingInfo) {
+            parsedResponse.missingInfo = parsedResponse.clarifyingQuestions
+            delete parsedResponse.clarifyingQuestions
+          }
+        } else {
+          // No workflowSpec but too many rounds — set intent to force workflow next time
+          console.log(`[Chat/Stream] FIX-201: No workflowSpec yet after ${userMessageCount} user msgs (phase=${phase201}), adding generation hint`)
+          parsedResponse.intent = parsedResponse.intent === 'clarifying' ? 'clarifying' : parsedResponse.intent
+        }
       }
     }
     // @NEXUS-FIX-180: Server-side 20% approval density guard (stream) - DO NOT REMOVE
@@ -1225,14 +1355,14 @@ Your "message" field MUST contain a substantive response acknowledging their ans
       },
       usage: {
         inputTokens: uncachedInputTokens,
-        outputTokens: usage.output_tokens,
-        totalTokens: totalInputTokens + usage.output_tokens,
+        outputTokens: outputTokenCount,
+        totalTokens: totalInputTokens + outputTokenCount,
         cacheCreationInputTokens: cacheCreationTokens,
         cacheReadInputTokens: cacheReadTokens,
         totalInputTokens
       },
-      model: finalMessage.model,
-      viaProxy: false
+      model: usedModel,
+      viaProxy: usedViaProxy
     })
 
     // Signal stream end

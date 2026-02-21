@@ -41,7 +41,7 @@ Loading state activated (line 630)
 const response = await apiClient.chat({
   messages: conversationMessages,           // Array of {role, content}
   systemPrompt: selectedAgent ? undefined : SYSTEM_PROMPT,
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 2048,
   agentId: selectedAgent || undefined,      // null = auto-route
   autoRoute: !selectedAgent,
@@ -213,7 +213,7 @@ const formattedMessages = messages.map((m, index) => {
 
 ```typescript
 const response = await client.messages.create({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   max_tokens: 2048,
   system: systemBlocks,  // With cache_control
   messages: formattedMessages
@@ -222,8 +222,8 @@ const response = await client.messages.create({
 
 **Models Available:**
 - `claude-3-5-haiku-20241022` - Fast, cheaper
-- `claude-sonnet-4-20250514` - Default, balanced
-- `claude-opus-4-5-20251101` - Most powerful
+- `claude-sonnet-4-6` - Default, balanced
+- `claude-opus-4-6` - Most powerful
 
 **API Features:**
 - Prompt caching enabled via `systemBlocks`

@@ -57,8 +57,8 @@ export const STEP_CONFIGS: OnboardingStepConfig[] = [
   },
   {
     id: OnboardingStepId.BUSINESS_PROFILE,
-    title: 'Business Profile',
-    description: 'Tell us about your business',
+    title: 'About You',
+    description: 'Help us personalize your experience',
     icon: 'Building2',
     estimatedTime: '1 min',
     skippable: true,
@@ -72,33 +72,6 @@ export const STEP_CONFIGS: OnboardingStepConfig[] = [
     estimatedTime: '1 min',
     skippable: true,
     validationRequired: true,
-  },
-  {
-    id: OnboardingStepId.INTEGRATIONS,
-    title: 'Connect Apps',
-    description: 'Connect your favorite tools',
-    icon: 'Plug',
-    estimatedTime: '2 min',
-    skippable: true,
-    validationRequired: false,
-  },
-  {
-    id: OnboardingStepId.TEMPLATES,
-    title: 'Templates',
-    description: 'Choose a starting template',
-    icon: 'LayoutTemplate',
-    estimatedTime: '1 min',
-    skippable: true,
-    validationRequired: false,
-  },
-  {
-    id: OnboardingStepId.FIRST_WORKFLOW,
-    title: 'First Workflow',
-    description: 'Create your first automation',
-    icon: 'Workflow',
-    estimatedTime: '2 min',
-    skippable: true,
-    validationRequired: false,
   },
   {
     id: OnboardingStepId.COMPLETION,
@@ -118,59 +91,59 @@ export const STEP_CONFIGS: OnboardingStepConfig[] = [
 export const BUSINESS_TYPE_OPTIONS: BusinessTypeOption[] = [
   {
     id: BusinessTypeId.ECOMMERCE,
-    name: 'E-commerce',
-    description: 'Online stores and marketplaces',
+    name: 'E-commerce & Retail',
+    description: 'Online stores, marketplaces, or retail teams',
     icon: 'ShoppingCart',
     gradient: 'from-orange-500 to-pink-500',
-    examples: 'Shopify, WooCommerce, Amazon sellers',
+    examples: 'Shopify, WooCommerce, retail operations',
   },
   {
     id: BusinessTypeId.SERVICES,
     name: 'Professional Services',
-    description: 'Consulting, freelancing, client work',
+    description: 'Consulting, legal, accounting, or client work',
     icon: 'Briefcase',
     gradient: 'from-blue-500 to-cyan-500',
-    examples: 'Consultants, lawyers, accountants',
+    examples: 'Consultants, law firms, accounting teams',
   },
   {
     id: BusinessTypeId.AGENCY,
-    name: 'Agency',
-    description: 'Marketing, creative, digital agencies',
+    name: 'Agency / Creative',
+    description: 'Marketing, design, or digital teams',
     icon: 'Building2',
     gradient: 'from-purple-500 to-pink-500',
-    examples: 'Marketing agencies, design studios',
+    examples: 'Marketing teams, design studios, media',
   },
   {
     id: BusinessTypeId.SAAS,
-    name: 'SaaS',
-    description: 'Software as a service companies',
+    name: 'Tech / SaaS',
+    description: 'Software, engineering, or IT teams',
     icon: 'Cloud',
     gradient: 'from-indigo-500 to-blue-500',
-    examples: 'Tech startups, software companies',
+    examples: 'Product teams, engineering, DevOps',
   },
   {
     id: BusinessTypeId.STARTUP,
-    name: 'Startup',
-    description: 'Early-stage companies',
+    name: 'Startup / Growing Company',
+    description: 'Fast-moving teams building something new',
     icon: 'Rocket',
     gradient: 'from-emerald-500 to-teal-500',
-    examples: 'Seed stage, Series A companies',
+    examples: 'Early-stage teams, growth-stage companies',
   },
   {
     id: BusinessTypeId.PERSONAL,
-    name: 'Personal Use',
-    description: 'Individual productivity',
+    name: 'Personal / Freelance',
+    description: 'Individual productivity and side projects',
     icon: 'User',
     gradient: 'from-amber-500 to-orange-500',
-    examples: 'Solo entrepreneurs, freelancers',
+    examples: 'Freelancers, solo professionals, students',
   },
   {
     id: BusinessTypeId.OTHER,
     name: 'Other',
-    description: 'Something else entirely',
+    description: 'Non-profit, education, government, or other',
     icon: 'Sparkles',
     gradient: 'from-gray-500 to-slate-500',
-    examples: 'Non-profits, education, government',
+    examples: 'Non-profits, schools, public sector',
   },
 ]
 
@@ -522,7 +495,7 @@ export function createInitialState(): OnboardingWizardState {
       [OnboardingStepId.WELCOME]: StepStatus.ACTIVE,
       [OnboardingStepId.BUSINESS_PROFILE]: StepStatus.PENDING,
       [OnboardingStepId.GOALS]: StepStatus.PENDING,
-      [OnboardingStepId.INTEGRATIONS]: StepStatus.PENDING,
+      [OnboardingStepId.INTEGRATIONS]: StepStatus.PENDING, // kept for data compatibility
       [OnboardingStepId.TEMPLATES]: StepStatus.PENDING,
       [OnboardingStepId.FIRST_WORKFLOW]: StepStatus.PENDING,
       [OnboardingStepId.COMPLETION]: StepStatus.PENDING,
@@ -744,8 +717,8 @@ export function resetWizard(): void {
  * Validate business profile step
  */
 export function validateBusinessProfile(profile: BusinessProfile): boolean {
+  // Company name is optional — moved to end of the form
   return (
-    profile.companyName.trim().length > 0 &&
     profile.businessType !== null &&
     profile.companySize !== null &&
     profile.primaryRole !== null

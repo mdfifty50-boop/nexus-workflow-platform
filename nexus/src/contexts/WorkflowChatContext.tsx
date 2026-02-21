@@ -298,7 +298,7 @@ export function WorkflowChatProvider({ children }: { children: ReactNode }) {
       const response = await apiClient.chat({
         messages: conversationMessages,
         systemPrompt: WORKFLOW_SYSTEM_PROMPT,
-        model: 'claude-opus-4-6-20250115',
+        model: 'claude-opus-4-6',
         maxTokens: 2048,
         autoRoute: true
       })

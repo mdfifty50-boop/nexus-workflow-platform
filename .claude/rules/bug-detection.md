@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/**/*"
+---
+
 # Bug Detection Rules (MANDATORY)
 
 **CRITICAL:** These rules override any tendency to mark tasks "complete" prematurely.

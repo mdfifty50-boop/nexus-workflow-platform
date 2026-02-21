@@ -69,6 +69,7 @@ export const INDUSTRIES = {
   consulting: 'consulting',
   healthcare: 'healthcare',
   finance: 'finance',
+  banking: 'banking',
   education: 'education',
   realestate: 'realestate',
   manufacturing: 'manufacturing',
@@ -85,7 +86,8 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   [INDUSTRIES.agency]: 'Agency / Creative Services',
   [INDUSTRIES.consulting]: 'Consulting / Professional Services',
   [INDUSTRIES.healthcare]: 'Healthcare',
-  [INDUSTRIES.finance]: 'Finance / Banking',
+  [INDUSTRIES.finance]: 'Finance / FinTech',
+  [INDUSTRIES.banking]: 'Banking',
   [INDUSTRIES.education]: 'Education',
   [INDUSTRIES.realestate]: 'Real Estate',
   [INDUSTRIES.manufacturing]: 'Manufacturing',
@@ -341,6 +343,108 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
 }
 
 // ============================================================================
+// BANKING SPECIFIC FIELDS
+// ============================================================================
+
+export const BANKING_ROLES = {
+  teller: 'teller',
+  personalBanker: 'personal-banker',
+  loanOfficer: 'loan-officer',
+  mortgageSpecialist: 'mortgage-specialist',
+  branchManager: 'branch-manager',
+  operationsManager: 'operations-manager',
+  complianceOfficer: 'compliance-officer',
+  riskAnalyst: 'risk-analyst',
+  treasuryAnalyst: 'treasury-analyst',
+  wealthAdvisor: 'wealth-advisor',
+  vpDirector: 'vp-director',
+  cSuite: 'c-suite',
+  other: 'other',
+} as const
+
+export type BankingRole = (typeof BANKING_ROLES)[keyof typeof BANKING_ROLES]
+
+export const BANKING_ROLE_LABELS: Record<BankingRole, string> = {
+  [BANKING_ROLES.teller]: 'Bank Teller / Customer Service Rep',
+  [BANKING_ROLES.personalBanker]: 'Personal Banker / Relationship Manager',
+  [BANKING_ROLES.loanOfficer]: 'Loan Officer / Credit Analyst',
+  [BANKING_ROLES.mortgageSpecialist]: 'Mortgage Specialist / Underwriter',
+  [BANKING_ROLES.branchManager]: 'Branch Manager / Assistant Manager',
+  [BANKING_ROLES.operationsManager]: 'Operations Manager / Back Office',
+  [BANKING_ROLES.complianceOfficer]: 'Compliance Officer / BSA/AML Analyst',
+  [BANKING_ROLES.riskAnalyst]: 'Risk Analyst / Credit Risk Manager',
+  [BANKING_ROLES.treasuryAnalyst]: 'Treasury / Investment Analyst',
+  [BANKING_ROLES.wealthAdvisor]: 'Wealth Management / Private Banking Advisor',
+  [BANKING_ROLES.vpDirector]: 'VP / Director / SVP',
+  [BANKING_ROLES.cSuite]: 'C-Suite (CEO / CFO / CRO / CIO)',
+  [BANKING_ROLES.other]: 'Other Banking Role',
+}
+
+export const BANKING_INSTITUTION_TYPES = {
+  commercial: 'commercial',
+  retail: 'retail',
+  investmentBank: 'investment-bank',
+  creditUnion: 'credit-union',
+  communityBank: 'community-bank',
+  neobank: 'neobank',
+  centralBank: 'central-bank',
+  mortgageLender: 'mortgage-lender',
+  privateBank: 'private-bank',
+  other: 'other',
+} as const
+
+export type BankingInstitutionType = (typeof BANKING_INSTITUTION_TYPES)[keyof typeof BANKING_INSTITUTION_TYPES]
+
+export const BANKING_INSTITUTION_LABELS: Record<BankingInstitutionType, string> = {
+  [BANKING_INSTITUTION_TYPES.commercial]: 'Commercial Bank',
+  [BANKING_INSTITUTION_TYPES.retail]: 'Retail Bank',
+  [BANKING_INSTITUTION_TYPES.investmentBank]: 'Investment Bank',
+  [BANKING_INSTITUTION_TYPES.creditUnion]: 'Credit Union',
+  [BANKING_INSTITUTION_TYPES.communityBank]: 'Community Bank',
+  [BANKING_INSTITUTION_TYPES.neobank]: 'Neobank / Digital Bank',
+  [BANKING_INSTITUTION_TYPES.centralBank]: 'Central Bank / Regulator',
+  [BANKING_INSTITUTION_TYPES.mortgageLender]: 'Mortgage Lender',
+  [BANKING_INSTITUTION_TYPES.privateBank]: 'Private Bank / Wealth Management',
+  [BANKING_INSTITUTION_TYPES.other]: 'Other',
+}
+
+export const BANKING_REGULATORY_FRAMEWORKS = {
+  occ: 'occ',
+  fdic: 'fdic',
+  fed: 'fed',
+  cfpb: 'cfpb',
+  baselIII: 'basel-iii',
+  doddFrank: 'dodd-frank',
+  bsa: 'bsa',
+  pciDss: 'pci-dss',
+  sox: 'sox',
+  gdpr: 'gdpr',
+  cbk: 'cbk',
+} as const
+
+export type BankingRegulatoryFramework = (typeof BANKING_REGULATORY_FRAMEWORKS)[keyof typeof BANKING_REGULATORY_FRAMEWORKS]
+
+export const BANKING_REGULATORY_LABELS: Record<BankingRegulatoryFramework, string> = {
+  [BANKING_REGULATORY_FRAMEWORKS.occ]: 'OCC (US)',
+  [BANKING_REGULATORY_FRAMEWORKS.fdic]: 'FDIC (US)',
+  [BANKING_REGULATORY_FRAMEWORKS.fed]: 'Federal Reserve (US)',
+  [BANKING_REGULATORY_FRAMEWORKS.cfpb]: 'CFPB (US)',
+  [BANKING_REGULATORY_FRAMEWORKS.baselIII]: 'Basel III / IV',
+  [BANKING_REGULATORY_FRAMEWORKS.doddFrank]: 'Dodd-Frank Act',
+  [BANKING_REGULATORY_FRAMEWORKS.bsa]: 'BSA / AML / KYC',
+  [BANKING_REGULATORY_FRAMEWORKS.pciDss]: 'PCI-DSS',
+  [BANKING_REGULATORY_FRAMEWORKS.sox]: 'SOX (Sarbanes-Oxley)',
+  [BANKING_REGULATORY_FRAMEWORKS.gdpr]: 'GDPR / Data Privacy',
+  [BANKING_REGULATORY_FRAMEWORKS.cbk]: 'CBK (Kuwait Central Bank)',
+}
+
+export interface BankingFields {
+  bankingRole: BankingRole | null
+  institutionType: BankingInstitutionType | null
+  regulatoryFrameworks: BankingRegulatoryFramework[]
+}
+
+// ============================================================================
 // BUSINESS PROFILE STATE
 // ============================================================================
 
@@ -371,6 +475,7 @@ export interface BusinessProfileData {
   ecommerceFields: EcommerceFields
   saasFields: SaasFields
   agencyFields: AgencyFields
+  bankingFields: BankingFields
   customIndustryDescription: string
 
   // Goals & priorities
@@ -398,6 +503,11 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfileData = {
   agencyFields: {
     clientCount: null,
     serviceTypes: [],
+  },
+  bankingFields: {
+    bankingRole: null,
+    institutionType: null,
+    regulatoryFrameworks: [],
   },
   customIndustryDescription: '',
 

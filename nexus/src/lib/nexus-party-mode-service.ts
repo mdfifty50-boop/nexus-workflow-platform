@@ -12,6 +12,8 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { detectIndustryFromTopic, applyIndustryOverlay, type IndustryPersona } from './industry-personas'
+// @NEXUS-FIX-157: Industry-specific dedicated agents with unique names/titles/icons per domain
+import { getIndustryAgents, getIndustryAgent } from './industry-agents'
 
 // Claude Code Proxy URL - skip proxy entirely in production when not configured
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || (import.meta.env.PROD ? '' : 'http://localhost:4567')
@@ -323,10 +325,10 @@ export function selectAgentsForTopic(
     scores[agentId] = score
   })
 
-  // Sort by score
+  // Sort by score — resolve to industry-specific agent personas when available
   const ranked = Object.entries(scores)
     .sort(([, a], [, b]) => b - a)
-    .map(([id]) => NEXUS_AGENTS[id])
+    .map(([id]) => NEXUS_AGENTS[id])  // Base agents for selection logic; industry overlay applied at display time
 
   // Select primary (best match), secondary (complementary), tertiary (different perspective)
   const primary = ranked[0]
@@ -485,8 +487,59 @@ export interface PartyModeConfig {
   mode: 'optimization' | 'troubleshooting' | 'brainstorm'
   workflowContext?: string
   workflowTitle?: string
+  // @NEXUS-FIX-155: Explicit industry context from user's business profile
+  industry?: string
   maxRoundsPerResponse: number
   model?: string
+}
+
+// @NEXUS-FIX-155: Industry-based agent priority ordering
+// Top agents listed first per industry; unlisted agents appear after in default order
+const INDUSTRY_AGENT_PRIORITY: Record<string, string[]> = {
+  ecommerce: ['analyst', 'dev', 'pm', 'sm'],
+  healthcare: ['tea', 'analyst', 'sm', 'arch'],
+  finance: ['tea', 'pm', 'analyst', 'arch'],
+  // @NEXUS-FIX-156: Banking-specific agent priority — compliance first, then risk/ops, then tech
+  banking: ['tea', 'analyst', 'sm', 'arch', 'dev', 'pm', 'ux-designer', 'tech-writer'],
+  saas: ['arch', 'dev', 'pm', 'analyst'],
+  agency: ['analyst', 'sm', 'dev', 'pm'],
+  consulting: ['analyst', 'pm', 'sm', 'tea'],
+  legal: ['tea', 'analyst', 'sm', 'dev'],
+  education: ['pm', 'analyst', 'sm', 'ux-designer'],
+  realestate: ['analyst', 'sm', 'pm', 'dev'],
+  retail: ['analyst', 'sm', 'dev', 'pm'],
+  manufacturing: ['arch', 'pm', 'analyst', 'tea'],
+  nonprofit: ['pm', 'analyst', 'sm', 'tea'],
+}
+
+/**
+ * @NEXUS-FIX-155 + @NEXUS-FIX-157: Returns dedicated industry agents ordered by relevance.
+ * Uses industry-specific agents with unique names/titles/icons per domain.
+ * Priority agents come first; remaining agents follow in default order.
+ */
+export function getIndustryRelevantAgentOrder(industry: string | undefined | null): NexusAgentPersona[] {
+  // @NEXUS-FIX-157: Get industry-specific agents (unique names, titles, icons) instead of generic
+  const allAgents = getIndustryAgents(industry, NEXUS_AGENTS)
+  if (!industry) return allAgents
+
+  const priorityIds = INDUSTRY_AGENT_PRIORITY[industry] || []
+  if (priorityIds.length === 0) return allAgents
+
+  const priorityAgents: NexusAgentPersona[] = []
+  const remainingAgents: NexusAgentPersona[] = []
+
+  for (const agent of allAgents) {
+    if (priorityIds.includes(agent.id)) {
+      priorityAgents.push(agent)
+    } else {
+      remainingAgents.push(agent)
+    }
+  }
+
+  // Sort priority agents by their index in the priority list
+  priorityAgents.sort((a, b) => priorityIds.indexOf(a.id) - priorityIds.indexOf(b.id))
+
+  return [...priorityAgents, ...remainingAgents]
 }
 
 export interface DiscussionRound {
@@ -598,16 +651,21 @@ class NexusPartyModeService {
   }
 
   /**
-   * Get all available Nexus agents
+   * Get all available Nexus agents (industry-specific when industry provided)
+   * @NEXUS-FIX-157: Returns dedicated industry agents with unique names/titles/icons
    */
-  getAllAgents(): NexusAgentPersona[] {
-    return Object.values(NEXUS_AGENTS)
+  getAllAgents(industry?: string | null): NexusAgentPersona[] {
+    return getIndustryAgents(industry, NEXUS_AGENTS)
   }
 
   /**
-   * Get a specific agent by ID
+   * Get a specific agent by ID (industry-specific when industry provided)
+   * @NEXUS-FIX-157: Returns industry-dedicated agent persona
    */
-  getAgent(agentId: string): NexusAgentPersona | undefined {
+  getAgent(agentId: string, industry?: string | null): NexusAgentPersona | undefined {
+    if (industry) {
+      return getIndustryAgent(agentId, industry, NEXUS_AGENTS)
+    }
     return NEXUS_AGENTS[agentId]
   }
 
@@ -669,7 +727,7 @@ class NexusPartyModeService {
       try {
         console.log(`[Nexus Party Mode] ${agent.displayName} responding via API...`)
         const response = await this.client.messages.create({
-          model: context.mode === 'brainstorm' ? 'claude-opus-4-6-20250115' : 'claude-3-5-haiku-20241022',
+          model: context.mode === 'brainstorm' ? 'claude-opus-4-6' : 'claude-3-5-haiku-20241022',
           max_tokens: 500,
           temperature: 0.8, // Higher for more personality
           system: systemPrompt,
@@ -799,9 +857,18 @@ class NexusPartyModeService {
       config.mode
     )
 
-    const agents = [selection.primary, selection.secondary]
+    // @NEXUS-FIX-157: Resolve selected agents to industry-specific personas (unique names/titles)
+    const resolveAgent = (agent: NexusAgentPersona) =>
+      config.industry ? getIndustryAgent(agent.id, config.industry, NEXUS_AGENTS) : agent
+    const agents = [resolveAgent(selection.primary), resolveAgent(selection.secondary)]
     if (selection.tertiary && config.maxRoundsPerResponse >= 3) {
-      agents.push(selection.tertiary)
+      agents.push(resolveAgent(selection.tertiary))
+    }
+
+    // @NEXUS-FIX-155: Enrich workflow context with explicit industry when available
+    let enrichedContext = config.workflowContext || ''
+    if (config.industry) {
+      enrichedContext = `[User's Industry: ${config.industry}] ${enrichedContext}`.trim()
     }
 
     const messages: PartyModeMessage[] = []
@@ -811,7 +878,7 @@ class NexusPartyModeService {
       const response = await this.generateAgentResponse(agent, {
         topic: config.topic,
         mode: config.mode,
-        workflowContext: config.workflowContext,
+        workflowContext: enrichedContext || undefined,
         otherAgents: agents.filter(a => a.id !== agent.id),
         previousMessages: [...previousMessages, ...messages],
         userPrompt
@@ -842,9 +909,10 @@ class NexusPartyModeService {
 
   /**
    * Generate a welcome message for party mode
+   * @NEXUS-FIX-157: Shows industry-specific agent names when industry is known
    */
-  generateWelcomeMessage(userName: string = 'there'): PartyModeMessage {
-    const agents = this.getAllAgents()
+  generateWelcomeMessage(userName: string = 'there', industry?: string | null): PartyModeMessage {
+    const agents = this.getAllAgents(industry)
     const agentIntros = agents
       .slice(0, 3)
       .map(a => `${a.icon} ${a.displayName} (${a.title})`)
@@ -866,11 +934,11 @@ class NexusPartyModeService {
    */
   private calculateCost(model: string, inputTokens: number, outputTokens: number): number {
     const pricing: Record<string, { input: number; output: number }> = {
-      'claude-opus-4-6-20250115': { input: 15.0, output: 75.0 },
-      'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
-      'claude-3-5-haiku-20241022': { input: 1.0, output: 5.0 },
+      'claude-opus-4-6': { input: 15.0, output: 75.0 },
+      'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
+      'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 },
     }
-    const modelPricing = pricing[model] || pricing['claude-opus-4-6-20250115']
+    const modelPricing = pricing[model] || pricing['claude-opus-4-6']
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output
     return Number((inputCost + outputCost).toFixed(6))

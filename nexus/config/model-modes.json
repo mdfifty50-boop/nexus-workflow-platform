@@ -61,6 +61,44 @@
       "estimatedCostPerLoop": "$0.20-0.50"
     }
   },
+  "runtimeAgents": {
+    "marathon": {
+      "director": "opus",
+      "supervisor": "haiku",
+      "salesforce": "sonnet",
+      "hubspot": "sonnet",
+      "email": "sonnet",
+      "data_transform": "sonnet",
+      "calendar": "sonnet"
+    },
+    "default": {
+      "director": "opus",
+      "supervisor": "haiku",
+      "salesforce": "sonnet",
+      "hubspot": "sonnet",
+      "email": "sonnet",
+      "data_transform": "sonnet",
+      "calendar": "sonnet"
+    },
+    "sprint": {
+      "director": "sonnet",
+      "supervisor": "haiku",
+      "salesforce": "haiku",
+      "hubspot": "haiku",
+      "email": "haiku",
+      "data_transform": "sonnet",
+      "calendar": "haiku"
+    },
+    "budget": {
+      "director": "sonnet",
+      "supervisor": "haiku",
+      "salesforce": "haiku",
+      "hubspot": "haiku",
+      "email": "haiku",
+      "data_transform": "haiku",
+      "calendar": "haiku"
+    }
+  },
   "modelMetadata": {
     "opus": {
       "id": "claude-opus-4-6",
@@ -72,7 +110,7 @@
       "notes": "Opus 4.6 - Latest flagship. Superior instruction following, reliable tool use, best for orchestration and complex multi-step tasks."
     },
     "sonnet": {
-      "id": "claude-sonnet-4-20250514",
+      "id": "claude-sonnet-4-6",
       "tier": "balanced",
       "costPerMToken_input": 3.0,
       "costPerMToken_output": 15.0,
@@ -81,7 +119,7 @@
       "notes": "Best value for implementation tasks. Strong code generation, good reasoning."
     },
     "haiku": {
-      "id": "claude-haiku-3-5-20241022",
+      "id": "claude-3-5-haiku-20241022",
       "tier": "fast",
       "costPerMToken_input": 0.80,
       "costPerMToken_output": 4.0,

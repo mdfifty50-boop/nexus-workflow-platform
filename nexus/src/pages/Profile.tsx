@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Award,
@@ -14,6 +15,10 @@ import {
   BarChart3,
   Crown,
   Lock,
+  LogOut,
+  Settings,
+  Mail,
+  Edit3,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/contexts/AuthContext'
@@ -163,7 +168,8 @@ function buildActivityData(workflows: SavedWorkflow[]) {
 
 export function Profile() {
   const { t } = useTranslation()
-  const { userProfile, user } = useAuth()
+  const { userProfile, user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [workflows, setWorkflows] = useState<SavedWorkflow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -310,6 +316,61 @@ export function Profile() {
           </div>
         </div>
       </motion.div>
+
+      {/* Profile Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onClick={() => navigate('/settings')}
+          className="card py-3 flex items-center gap-3 hover:bg-surface-800 transition-colors cursor-pointer"
+        >
+          <Edit3 className="w-5 h-5 text-nexus-400" />
+          <span className="text-sm text-surface-200">Edit Profile</span>
+        </motion.button>
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          onClick={() => navigate('/settings')}
+          className="card py-3 flex items-center gap-3 hover:bg-surface-800 transition-colors cursor-pointer"
+        >
+          <Settings className="w-5 h-5 text-surface-400" />
+          <span className="text-sm text-surface-200">Settings</span>
+        </motion.button>
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          onClick={() => {
+            if (user?.email) {
+              window.location.href = `mailto:${user.email}`
+            }
+          }}
+          className="card py-3 flex items-center gap-3 hover:bg-surface-800 transition-colors cursor-pointer"
+        >
+          <Mail className="w-5 h-5 text-blue-400" />
+          <span className="text-sm text-surface-200 truncate">{user?.email || 'Email'}</span>
+        </motion.button>
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          onClick={async () => {
+            try {
+              await signOut()
+              navigate('/login')
+            } catch (e) {
+              console.error('Sign out failed:', e)
+            }
+          }}
+          className="card py-3 flex items-center gap-3 hover:bg-red-500/10 hover:border-red-500/30 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-5 h-5 text-red-400" />
+          <span className="text-sm text-red-400">Sign Out</span>
+        </motion.button>
+      </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

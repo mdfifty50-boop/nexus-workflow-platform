@@ -1,0 +1,100 @@
+[
+  {
+    "id": "T471",
+    "name": "GitHub→Slack→Discord: PR notify dual (DEEP)",
+    "status": "FAIL",
+    "reason": "AI response timeout after 90s (BUG-001)",
+    "clarifyingRounds": 0,
+    "workflowName": "",
+    "stepCount": 0,
+    "nodesExecuted": 0,
+    "oauthNeeded": [],
+    "errors": [],
+    "screenshots": [],
+    "timing": {
+      "start": 1771613369257
+    }
+  },
+  {
+    "id": "T472",
+    "name": "Gmail→Notion→Slack: Email archive (DEEP)",
+    "status": "PASS",
+    "reason": "1 node(s) executed in 266s → Production Ready",
+    "clarifyingRounds": 1,
+    "workflowName": "Gmail Archive to Notion + Slack Alert",
+    "stepCount": 0,
+    "nodesExecuted": 1,
+    "oauthNeeded": [],
+    "errors": [],
+    "screenshots": [
+      "t472-workflow.png",
+      "t472-final.png"
+    ],
+    "timing": {
+      "start": 1771613472933,
+      "end": 1771613739316,
+      "duration": 266
+    },
+    "reachedProduction": true
+  },
+  {
+    "id": "T473",
+    "name": "Dropbox→Sheets→ClickUp: Document tracker (DEEP)",
+    "status": "PASS",
+    "reason": "1 node(s) executed in 92s → Production Ready",
+    "clarifyingRounds": 0,
+    "workflowName": "Dropbox File Tracker & Review System",
+    "stepCount": 0,
+    "nodesExecuted": 1,
+    "oauthNeeded": [],
+    "errors": [],
+    "screenshots": [
+      "t473-workflow.png",
+      "t473-final.png"
+    ],
+    "timing": {
+      "start": 1771613742433,
+      "end": 1771613834382,
+      "duration": 92
+    },
+    "reachedProduction": true
+  },
+  {
+    "id": "T474",
+    "name": "Calendar→Discord→Sheets: Event tracker (DEEP)",
+    "status": "FAIL",
+    "reason": "Execution never started",
+    "clarifyingRounds": 0,
+    "workflowName": "Calendar Meeting Tracker",
+    "stepCount": 0,
+    "nodesExecuted": 0,
+    "oauthNeeded": [],
+    "errors": [],
+    "screenshots": [
+      "t474-workflow.png",
+      "t474-final.png"
+    ],
+    "timing": {
+      "start": 1771613837507,
+      "end": 1771614098801,
+      "duration": 261
+    },
+    "reachedProduction": false
+  },
+  {
+    "id": "T475",
+    "name": "GitHub→Sheets→Slack→ClickUp→Discord: 5-int release (DEEP)",
+    "status": "PARTIAL",
+    "reason": "No workflow card generated after clarifying questions",
+    "clarifyingRounds": 0,
+    "workflowName": "",
+    "stepCount": 0,
+    "nodesExecuted": 0,
+    "oauthNeeded": [],
+    "errors": [],
+    "screenshots": [],
+    "timing": {
+      "start": 1771614101929
+    }
+  }
+]

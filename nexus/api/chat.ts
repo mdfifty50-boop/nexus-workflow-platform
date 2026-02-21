@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       messages,
       agentId,
       autoRoute = true,
-      model = 'claude-sonnet-4-20250514',
+      model = 'claude-sonnet-4-6',
       maxTokens = 4096,
       images
     } = req.body

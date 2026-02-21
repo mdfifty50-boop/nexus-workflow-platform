@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/**/*"
+---
+
 # Code Protection Rules (MANDATORY)
 
 ## BEFORE MODIFYING ANY FILE

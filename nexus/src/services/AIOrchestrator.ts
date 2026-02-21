@@ -89,7 +89,7 @@ interface OptimizationPreferences {
 // Available models registry
 const AVAILABLE_MODELS: AIModel[] = [
   {
-    id: 'claude-opus-4-6-20250115',
+    id: 'claude-opus-4-6',
     name: 'Claude Opus 4.6',
     provider: 'anthropic',
     capabilities: ['text_generation', 'code_generation', 'analysis', 'reasoning', 'function_calling', 'long_context', 'creative', 'structured_output'],
@@ -101,7 +101,7 @@ const AVAILABLE_MODELS: AIModel[] = [
     specializations: ['complex_reasoning', 'creative_writing', 'code_review', 'analysis', 'critical_decisions', 'multi_step_analysis', 'general', 'coding', 'workflow_planning', 'content_generation', 'translation']
   },
   {
-    id: 'claude-sonnet-4-20250514',
+    id: 'claude-sonnet-4-6',
     name: 'Claude Sonnet 4',
     provider: 'anthropic',
     capabilities: ['text_generation', 'code_generation', 'analysis', 'reasoning', 'function_calling', 'long_context', 'creative', 'structured_output'],
@@ -117,8 +117,8 @@ const AVAILABLE_MODELS: AIModel[] = [
     name: 'Claude Haiku 3.5',
     provider: 'anthropic',
     capabilities: ['text_generation', 'code_generation', 'function_calling', 'structured_output'],
-    costPer1kTokensInput: 0.00025,  // $0.25/1M tokens
-    costPer1kTokensOutput: 0.00125, // $1.25/1M tokens
+    costPer1kTokensInput: 0.0008,  // $0.80/1M tokens
+    costPer1kTokensOutput: 0.004,  // $4.00/1M tokens
     maxTokens: 200000,
     speedTier: 'fast',
     qualityTier: 'standard',
@@ -572,17 +572,17 @@ export class AIOrchestrator {
       case 'travel_booking':
       case 'code_generation':
       case 'workflow_planning':
-        return this.models.find(m => m.id === 'claude-opus-4-6-20250115') || this.models[0]
+        return this.models.find(m => m.id === 'claude-opus-4-6') || this.models[0]
 
       // Opus 4.6 tier - highest quality ($15/1M)
       case 'analysis':
       case 'complex_reasoning':
       case 'creative':
-        return this.models.find(m => m.id === 'claude-opus-4-6-20250115') || this.models[0]
+        return this.models.find(m => m.id === 'claude-opus-4-6') || this.models[0]
 
       default:
         // Default to Opus 4.5 for unknown tasks
-        return this.models.find(m => m.id === 'claude-opus-4-6-20250115') || this.models[0]
+        return this.models.find(m => m.id === 'claude-opus-4-6') || this.models[0]
     }
   }
 }

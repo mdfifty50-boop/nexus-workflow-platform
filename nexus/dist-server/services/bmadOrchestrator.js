@@ -2,6 +2,39 @@ import { workflowService } from './workflowService.js';
 import { agentCoordinator } from './agentCoordinator.js';
 import { composioService } from './ComposioService.js';
 import { tieredCalls, callClaudeWithTiering, recordTieringMetrics } from './claudeProxy.js';
+import { broadcastWorkflowUpdate } from '../routes/sse.js';
+// ============================================================================
+// Golden Path Structured Logging (Move 6.4)
+// ============================================================================
+/**
+ * Emit structured log to console + SSE for Golden Path visibility
+ */
+function emitGoldenPathLog(workflowId, eventType, data) {
+    const timestamp = new Date().toISOString();
+    const logPrefix = '[GOLDEN_PATH]';
+    // Console log with structured format
+    switch (eventType) {
+        case 'status_change':
+            console.log(`${logPrefix} ${timestamp} | workflow=${workflowId} | status=${data.status}`);
+            break;
+        case 'task_start':
+            console.log(`${logPrefix} ${timestamp} | workflow=${workflowId} | task_start | id=${data.taskId} | name=${data.taskName} | tool=${data.toolName}`);
+            break;
+        case 'task_success':
+            console.log(`${logPrefix} ${timestamp} | workflow=${workflowId} | task_success | id=${data.taskId} | duration=${data.durationMs}ms`);
+            break;
+        case 'task_fail':
+            console.log(`${logPrefix} ${timestamp} | workflow=${workflowId} | task_fail | id=${data.taskId} | error=${data.error}`);
+            break;
+    }
+    // Broadcast to SSE clients
+    broadcastWorkflowUpdate({
+        workflowId,
+        type: `golden_path_${eventType}`,
+        timestamp,
+        ...data,
+    });
+}
 const PLANNING_SYSTEM_PROMPT = `You are the BMAD Director agent responsible for analyzing user workflow requests and creating execution plans.
 
 Your task is to:
@@ -47,6 +80,8 @@ export const bmadOrchestrator = {
      */
     async runPlanningStage(workflowId) {
         try {
+            // Emit planning status
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'planning' });
             // Get workflow details using workflowService (supports in-memory storage in dev mode)
             const workflow = await workflowService.getWorkflowById(workflowId, 'dev-user-local');
             if (!workflow) {
@@ -111,6 +146,8 @@ Generate an execution plan as a JSON object.`;
                     executionPlan: plan,
                 },
             });
+            // Emit pending_approval status
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'pending_approval' });
             // Add usage to workflow totals
             await workflowService.addUsage(workflowId, claudeResult.tokensUsed, claudeResult.costUSD);
             return { success: true, plan };
@@ -130,6 +167,8 @@ Generate an execution plan as a JSON object.`;
      */
     async runOrchestratingStage(workflowId) {
         try {
+            // Emit approved status (workflow was approved, now orchestrating)
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'approved' });
             // Get workflow and its execution plan using workflowService (supports in-memory storage)
             const workflow = await workflowService.getWorkflowById(workflowId, 'dev-user-local');
             if (!workflow) {
@@ -178,6 +217,8 @@ Generate an execution plan as a JSON object.`;
             });
             // Update to building stage to begin execution
             await workflowService.updateWorkflowStatus(workflowId, 'building');
+            // Emit building/running status
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'running' });
             return { success: true };
         }
         catch (error) {
@@ -185,6 +226,7 @@ Generate an execution plan as a JSON object.`;
             await workflowService.updateWorkflowStatus(workflowId, 'failed', {
                 error_message: error.message,
             });
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'failed' });
             return { success: false, error: error.message };
         }
     },
@@ -208,6 +250,15 @@ Generate an execution plan as a JSON object.`;
             if (!task) {
                 return { success: false, error: 'Task not found' };
             }
+            // Record start time for duration tracking
+            const taskStartTime = Date.now();
+            // Emit task_start event
+            const toolName = task.config?.toolSlug || task.integrationId || task.agentId || 'unknown';
+            emitGoldenPathLog(workflowId, 'task_start', {
+                taskId,
+                taskName: task.name,
+                toolName,
+            });
             // Update node status to running
             await supabase
                 .from('workflow_nodes')
@@ -303,10 +354,20 @@ Generate an execution plan as a JSON object.`;
             if (tokensUsed > 0) {
                 await workflowService.addUsage(workflowId, tokensUsed, costUsd);
             }
+            // Emit task_success event
+            emitGoldenPathLog(workflowId, 'task_success', {
+                taskId,
+                durationMs: Date.now() - taskStartTime,
+            });
             return { success: true, output };
         }
         catch (error) {
             console.error('Task execution error:', error);
+            // Emit task_fail event
+            emitGoldenPathLog(workflowId, 'task_fail', {
+                taskId,
+                error: error.message,
+            });
             return { success: false, error: error.message };
         }
     },
@@ -328,10 +389,13 @@ Generate an execution plan as a JSON object.`;
                 completed_at: new Date().toISOString(),
                 result_summary: { status: 'success', completedAt: new Date().toISOString() },
             });
+            // Emit completed status
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'completed' });
             return { success: true };
         }
         catch (error) {
             console.error('Workflow completion error:', error);
+            emitGoldenPathLog(workflowId, 'status_change', { status: 'failed' });
             return { success: false, error: error.message };
         }
     },

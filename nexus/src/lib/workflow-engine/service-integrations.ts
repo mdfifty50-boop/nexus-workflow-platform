@@ -424,35 +424,8 @@ const SERVICE_REGISTRY: Record<string, Omit<ServiceIntegration, 'connected' | 'l
   // ========================================
   // Payment Services
   // ========================================
-  stripe: {
-    id: 'stripe',
-    name: 'Stripe',
-    category: 'payment',
-    description: 'Process payments securely',
-    authType: 'api_key',
-    availableRegions: ['*'],
-    logoUrl: 'https://stripe.com/favicon.ico',
-    docsUrl: 'https://stripe.com/docs',
-    actions: [
-      {
-        id: 'create_payment_intent',
-        name: 'Create Payment Intent',
-        description: 'Create a payment intent for processing',
-        inputSchema: {
-          amount: { type: 'number', required: true, description: 'Amount in cents' },
-          currency: { type: 'string', required: true, description: 'Currency code (e.g., USD)' },
-          paymentMethodId: { type: 'string', required: false, description: 'Payment method ID' },
-        },
-        outputSchema: {
-          clientSecret: { type: 'string', required: true, description: 'Client secret for frontend' },
-          paymentIntentId: { type: 'string', required: true, description: 'Payment intent ID' },
-        },
-        endpoint: '/v1/payment_intents',
-        method: 'POST',
-        costPerCall: 0,  // Stripe charges per transaction, not API call
-      },
-    ],
-  },
+  // Stripe removed - not available in Kuwait/GCC region. Will re-add when Nexus goes global.
+  // stripe: { id: 'stripe', name: 'Stripe', ... }
 }
 
 // ========================================

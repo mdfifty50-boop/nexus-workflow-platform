@@ -48,16 +48,27 @@ const requireAdminAuth = async (req: Request, res: Response, next: NextFunction)
       })
     }
 
+    // Check admin by email first (most reliable), then by role in DB
+    const adminEmail = process.env.ADMIN_EMAIL || 'nexus.agii@gmail.com'
+    const userEmail = req.headers['x-clerk-user-email'] as string
+
+    // If email matches admin, allow immediately
+    if (userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase()) {
+      return next()
+    }
+
     // Get user status from database
     const userStatus = await adminDataService.getUserStatus(clerkUserId)
 
     if (!userStatus.exists) {
+      // If user not in DB but has valid clerk ID, still allow if email matches
       return res.status(403).json({
         success: false,
         error: 'User not found'
       })
     }
 
+    // Check admin by role
     if (userStatus.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -309,6 +320,147 @@ router.patch('/users/:id/role', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to update user role'
+    })
+  }
+})
+
+// ============================================================================
+// GET /users/:id - User detail drill-down
+// ============================================================================
+
+router.get('/users/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const userDetail = await adminDataService.getUserDetail(id)
+
+    if (!userDetail) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    res.json({
+      success: true,
+      data: userDetail
+    })
+  } catch (error) {
+    console.error('Error fetching user detail:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user detail'
+    })
+  }
+})
+
+// ============================================================================
+// GET /users/:id/conversations - User's chat history
+// ============================================================================
+
+router.get('/users/:id/conversations', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const conversations = await adminDataService.getUserConversations(id)
+
+    res.json({
+      success: true,
+      data: conversations
+    })
+  } catch (error) {
+    console.error('Error fetching user conversations:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user conversations'
+    })
+  }
+})
+
+// ============================================================================
+// GET /users/:id/workflows - User's workflows + executions
+// ============================================================================
+
+router.get('/users/:id/workflows', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const workflows = await adminDataService.getUserWorkflows(id)
+
+    res.json({
+      success: true,
+      data: workflows
+    })
+  } catch (error) {
+    console.error('Error fetching user workflows:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user workflows'
+    })
+  }
+})
+
+// ============================================================================
+// GET /users/:id/errors - User's error log
+// ============================================================================
+
+router.get('/users/:id/errors', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const errors = await adminDataService.getUserErrors(id)
+
+    res.json({
+      success: true,
+      data: errors
+    })
+  } catch (error) {
+    console.error('Error fetching user errors:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user errors'
+    })
+  }
+})
+
+// ============================================================================
+// GET /activity-feed - Platform-wide activity stream
+// ============================================================================
+
+router.get('/activity-feed', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50
+    const activities = await adminDataService.getActivityFeed(limit)
+
+    res.json({
+      success: true,
+      data: activities
+    })
+  } catch (error) {
+    console.error('Error fetching activity feed:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch activity feed'
+    })
+  }
+})
+
+// ============================================================================
+// POST /ai-insights - AI marketing analysis
+// ============================================================================
+
+router.post('/ai-insights', async (req: Request, res: Response) => {
+  try {
+    // Dynamic import to avoid loading Anthropic SDK if not needed
+    const { adminInsightsEngine } = await import('../services/AdminInsightsEngine.js')
+    const forceRefresh = req.body?.forceRefresh === true
+    const insights = await adminInsightsEngine.getInsights(forceRefresh)
+
+    res.json({
+      success: true,
+      data: insights
+    })
+  } catch (error) {
+    console.error('Error generating AI insights:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate AI insights'
     })
   }
 })

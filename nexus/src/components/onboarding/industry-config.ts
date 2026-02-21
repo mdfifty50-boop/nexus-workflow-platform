@@ -23,6 +23,7 @@ export const INDUSTRY_ICONS: Record<Industry, string> = {
   consulting: 'Briefcase',
   healthcare: 'Heart',
   finance: 'DollarSign',
+  banking: 'Landmark',
   education: 'GraduationCap',
   realestate: 'Home',
   manufacturing: 'Factory',
@@ -38,6 +39,7 @@ export const INDUSTRY_GRADIENTS: Record<Industry, string> = {
   consulting: 'from-blue-500 to-cyan-500',
   healthcare: 'from-red-500 to-pink-500',
   finance: 'from-emerald-500 to-green-500',
+  banking: 'from-sky-600 to-blue-700',
   education: 'from-indigo-500 to-blue-500',
   realestate: 'from-teal-500 to-cyan-500',
   manufacturing: 'from-slate-500 to-zinc-500',
@@ -60,7 +62,7 @@ export interface IndustryConfig {
   suggestedPriorities: AutomationPriority[]
   commonPainPoints: PainPoint[]
   hasCustomFields: boolean
-  customFieldsComponent: 'ecommerce' | 'saas' | 'agency' | null
+  customFieldsComponent: 'ecommerce' | 'saas' | 'agency' | 'banking' | null
 }
 
 export const INDUSTRY_CONFIGS: Record<Industry, IndustryConfig> = {
@@ -125,7 +127,7 @@ export const INDUSTRY_CONFIGS: Record<Industry, IndustryConfig> = {
     customFieldsComponent: null,
   },
   finance: {
-    name: 'Finance / Banking',
+    name: 'Finance / FinTech',
     description: 'Financial services, fintech, insurance',
     icon: 'DollarSign',
     gradient: 'from-emerald-500 to-green-500',
@@ -135,6 +137,21 @@ export const INDUSTRY_CONFIGS: Record<Industry, IndustryConfig> = {
     commonPainPoints: ['error-prone', 'time-consuming', 'no-visibility'],
     hasCustomFields: false,
     customFieldsComponent: null,
+  },
+  banking: {
+    name: 'Banking',
+    description: 'Commercial banks, credit unions, neobanks, private banking',
+    icon: 'Landmark',
+    gradient: 'from-sky-600 to-blue-700',
+    recommendedIntegrations: ['gmail', 'slack', 'sheets', 'notion', 'salesforce'],
+    recommendedTemplates: [
+      'kyc-screening-pipeline', 'loan-origination-tracker', 'compliance-alert-dashboard',
+      'branch-daily-ops', 'customer-onboarding-flow', 'fraud-alert-escalation',
+    ],
+    suggestedPriorities: ['reporting', 'data-entry', 'customer-support', 'email'],
+    commonPainPoints: ['error-prone', 'time-consuming', 'no-visibility', 'process-delays'],
+    hasCustomFields: true,
+    customFieldsComponent: 'banking',
   },
   education: {
     name: 'Education',
@@ -244,7 +261,7 @@ export function hasCustomFields(industry: Industry | null): boolean {
   return INDUSTRY_CONFIGS[industry]?.hasCustomFields || false
 }
 
-export function getCustomFieldsComponent(industry: Industry | null): 'ecommerce' | 'saas' | 'agency' | null {
+export function getCustomFieldsComponent(industry: Industry | null): 'ecommerce' | 'saas' | 'agency' | 'banking' | null {
   if (!industry) return null
   return INDUSTRY_CONFIGS[industry]?.customFieldsComponent || null
 }

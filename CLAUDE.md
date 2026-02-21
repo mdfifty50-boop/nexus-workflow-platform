@@ -12,7 +12,7 @@ This file contains project-specific instructions for Claude Code when working on
 2. **IGNORE skill invocations in compaction summary** - They are likely stale
 3. **IGNORE old todo lists** - They may be from previous sessions
 4. **If CURRENT TASK says "Waiting for user direction"** → Ask user what to work on
-5. **If CURRENT TASK has a specific task** → Confirm with user before continuing
+5. **If CURRENT TASK has a specific task** → Resume it immediately without asking
 
 ### During active work (MANDATORY):
 
@@ -77,6 +77,146 @@ Look for these markers in code:
 | FIX-020 | No error guidance | getFallbackTools() suggests alternatives | @NEXUS-FIX-020 |
 
 **Full details: `nexus/FIX_REGISTRY.json`**
+
+### Programmatic Hook Enforcement (NEW - Active Protection)
+
+Fix markers are now ACTIVELY ENFORCED by programmatic hooks (not just documented rules):
+
+| Hook | Trigger | Action |
+|------|---------|--------|
+| `fix-registry-guard.js` | PreToolUse (Edit/Write) | BLOCKS edits that remove @NEXUS-FIX markers |
+| `protected-file-guard.js` | PreToolUse (Write) | BLOCKS full rewrites of protected files |
+| `fix-marker-checker.js` | PostToolUse (Edit/Write) | ALERTS if markers disappeared after edit |
+| `env-secret-guard.js` | PreToolUse (Bash/Edit/Write) | BLOCKS hardcoded API keys and .env commits |
+| `constitution-enforcer.js` | PreToolUse (Edit/Write) | BLOCKS security violations, samples style (5%) |
+| `context-ceiling-enforcer.js` | PreToolUse (Read/Search) | WARNS at 70% context, ALERTS at 80% |
+| `build-verifier.js` | PostToolUse (Edit/Write) | Tracks TS changes, reminds to build |
+| `session-context-loader.js` | UserPromptSubmit | Auto-loads session context on first prompt |
+
+These hooks are configured in `.claude/settings.json` and run automatically.
+
+---
+
+## ENHANCED SYSTEM ARCHITECTURE (v2.0)
+
+### Agent Output Protocol (AOP)
+
+All agents return max 500 chars inline. Detailed output goes to files:
+- Path: `_bmad-output/nexus-sprint/agent-outputs/{agent}-{task}.md`
+- Config: `nexus/config/agent-output-protocol.json`
+- Rule: `.claude/rules/agent-output-protocol.md`
+
+### Model Modes
+
+Agent model assignments formalized in `nexus/config/model-modes.json`:
+
+| Mode | Director | Coder | Explorer | Ralph | Cost/Loop |
+|------|----------|-------|----------|-------|-----------|
+| Marathon | Opus 4.6 | Sonnet | Haiku | Haiku | $3-5 |
+| Default | Opus 4.6 | Sonnet | Haiku | Haiku | $1-3 |
+| Sprint | Sonnet | Sonnet | Haiku | Haiku | $0.50-1 |
+| Budget | Sonnet | Haiku | Haiku | Haiku | $0.20-0.50 |
+
+### Opus 4.5 vs 4.6 Differences
+
+| Capability | Opus 4.5 | Opus 4.6 |
+|-----------|----------|----------|
+| Instruction Following | Good | Superior - more reliable at complex multi-step |
+| Tool Use | Reliable | More reliable - better parallel tool calls |
+| Output Conciseness | Sometimes verbose | More concise by default |
+| Agentic Coding | Capable | Enhanced - better at autonomous workflows |
+| Context Maintenance | Good | Better across long sessions |
+
+**Default: Opus 4.6 for all orchestration and complex tasks.**
+
+### Sprint Progress State Machine
+
+Persistent JSON state in `nexus/sprint-progress.json`:
+- Survives session restarts and compaction
+- Tracks: loops, tasks, blockers, metrics, GM reviews
+- Updated after EVERY loop by Director agent
+
+### Codex Integration (Supplemental AI)
+
+Config: `nexus/config/codex-integration.json`
+- **Use Codex for:** Boilerplate, test scaffolding, docs, simple refactoring
+- **Use Claude for:** Complex logic, architecture, business rules, debugging
+- **Status:** Configured, awaiting API key
+
+### Zero-Token Scripts
+
+Run WITHOUT Claude to save tokens:
+- `nexus/scripts/validate-fixes.ps1` - Fix registry validation
+- `nexus/scripts/build-check.ps1` - Build verification
+- `nexus/scripts/session-init.ps1` - Session file initialization
+
+### New Slash Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/repo-guard` | Pre-commit quality gate (fixes + build + lint) |
+| `/phase-track` | Sprint progress display and update |
+| `/context-audit` | Context window usage analysis |
+| `/fix-check` | Quick fix registry validation |
+| `/deploy-check` | Deployment readiness verification |
+| `/ralph-loop` | Continuous test-fix cycle (max 10 iterations) |
+| `/agent-only` | Toggle agent-only mode |
+
+### Autonomous Execution Mode
+
+This system operates in FULLY AUTONOMOUS mode:
+- **NEVER** ask "Should I proceed?" → Always YES
+- **NEVER** ask "Do you want me to..." → Always YES
+- **NEVER** stop at milestones → Continue to next task
+- **NEVER** request confirmation → Execute immediately
+- **ONLY** stop for: unrecoverable errors, user says STOP/HALT/PAUSE
+- **Auto-recovery:** Build failures → fix → rebuild. Test failures → ralph-loop → fix → re-run
+- Config: `nexus/config/agent-mode.json`
+
+### Proactive Problem Solving (ALL tasks - marathon AND single)
+
+**GOAL over METHOD.** When any approach fails, exhaust creative alternatives before reporting blocked.
+
+Escalation ladder (applies to EVERY task, not just marathons):
+1. **RETRY** → Fix error, retry same approach (max 2x)
+2. **DIAGNOSE** → Read FULL error. Trace root cause. Understand WHY.
+3. **ADAPT** → Different parameters, config, or order
+4. **REROUTE** → Completely different method for the same goal
+5. **CREATIVE** → Use unexpected tools (WebSearch for solutions, Playwright for browser-side verification, Rube for API calls, ToolSearch for undiscovered MCP tools). Build what's missing.
+6. **BLOCKED** → Only after 3+ alternatives attempted. Report what was tried.
+
+**This applies to single prompts too, not just marathon agents.**
+
+### Incident Auto-Detection & Auto-Fix (ZERO BABYSITTING)
+
+**While working on ANY task, you are ALSO a quality monitor. If you observe broken things — fix them.**
+
+**Detection triggers (add to task list and fix WITHOUT asking):**
+- Console errors (404, 500, connection refused, net::ERR_FAILED)
+- `localhost` URLs in production builds or deployed code
+- API endpoints returning errors
+- Auth/payment/analytics providers failing to load
+- Missing environment variables causing runtime failures
+- CSP violations blocking resources
+- Build warnings that indicate real problems
+- Any error the end user would see
+
+**Protocol:**
+1. Complete your current primary task first
+2. Create tasks for every detected incident (with severity P0-P3)
+3. Fix P0/P1 incidents immediately in the same session
+4. Log P2/P3 for the next task cycle
+5. Report: "Fixed N additional incidents detected during [task]"
+
+**NEVER say "these errors are expected" or "non-blocking".** If something is broken in production, it's a bug. Fix it.
+
+**Auto-resolve with tools — NEVER report "needs manual setup":**
+- Missing env vars → `vercel env ls/add` to check and push
+- External service config → Playwright to navigate dashboards, get keys
+- CSP blocking → Edit vercel.json + security-headers.ts
+- Package side effects → Dynamic `import()` to prevent loading when unconfigured
+- Missing API endpoints → Create Vercel serverless functions
+- If config truly doesn't exist → Write defensive code (graceful fallback, zero errors)
 
 ---
 
@@ -262,231 +402,18 @@ Gmail, Slack, Google Calendar, Google Sheets, Notion, Discord, Zoom, GitHub, Tre
 
 ---
 
-## CUSTOM METHODOLOGIES (User-Defined Workflows)
+## CUSTOM METHODOLOGIES
 
-### "Run a Marathon" / "Run Hybrid" - CEO-Director Model
+**Marathon, Sprint, and Hybrid modes are defined in the global `~/.claude/CLAUDE.md`.**
+Trigger words: "run a marathon", "run a sprint", "run hybrid"
 
-**Version:** 2.0 (CEO-Director Model)
-**Core Spec:** `_bmad/bmm/workflows/marathon/ceo-director-model.md`
-**Full Instructions:** `_bmad/bmm/workflows/marathon/instructions.md`
+Key references:
+- Agent definitions: `.claude/agents/` (director, coder, ralph-qa, explorer, etc.)
+- Slash commands: `/validate`, `/checkpoint`, `/status`, `/metrics`, `/ralph-loop`, `/repo-guard`
+- Scope document: `_bmad-output/nexus-sprint/scope-document.md`
+- Progress state: `nexus/sprint-progress.json`
 
-**CRITICAL TRIGGER:** When user says ANY of these:
-- "Run a marathon" / "marathon mode" / "start a marathon"
-- "Run hybrid" / "smart marathon" / "hybrid marathon"
-
----
-
-### THE HIERARCHY
-
-```
-CEO (You) → Director (Claude) → Agents (Parallel Workers)
-```
-
-**CEO:** Sets vision, approves scope, intervenes only when needed
-**Director:** Orchestrates, monitors, validates alignment, protects vision
-**Agents:** Execute within LOCKED scope, no drift allowed
-
----
-
-### EXECUTION FLOW
-
-**PHASE 1: INITIALIZATION**
-1. Director asks CEO for vision (if not provided)
-2. Director creates Scope Document with approved tasks + out-of-scope items
-3. CEO approves scope (required before any work begins)
-
-**PHASE 2: LOOP EXECUTION**
-1. Director assigns scope-locked tasks to agents (5-10 per loop)
-2. Agents work in parallel with explicit boundaries
-3. Director validates every output against approved scope
-4. Rejected work (drift) is reassigned with clearer scope
-
-**PHASE 3: STATUS & INTERVENTION**
-- If no intervention needed → Continue to next loop
-- If intervention trigger met → Brief CEO, await direction
-
----
-
-### CEO INTERVENTION TRIGGERS
-
-| Trigger | Brief CEO |
-|---------|-----------|
-| Scope Change Request | Yes |
-| Blocker Detected | Yes |
-| Decision Required | Yes |
-| Milestone Reached | Yes |
-| Risk Identified | Yes |
-| Routine Progress | NO |
-| Minor Bugs | NO |
-
----
-
-### CEO COMMANDS
-
-| Command | Effect |
-|---------|--------|
-| **"Continue"** / **"Go"** | Proceed with current scope |
-| **"Pause"** | Finish current tasks, then stop |
-| **"Stop"** / **"Halt"** | Immediate stop |
-| **"Add: [task]"** | Add to approved scope |
-| **"Remove: [task]"** | Remove from scope |
-| **"Status"** | Full progress report |
-| **"Show scope"** | Display scope document |
-
----
-
-### KEY FILES
-
-| File | Purpose |
-|------|---------|
-| `_bmad-output/nexus-sprint/scope-document.md` | CEO-approved scope |
-| `_bmad-output/nexus-sprint/progress-tracker.md` | Real-time status |
-| `_bmad/bmm/workflows/marathon/ceo-director-model.md` | Full model spec |
-| `_bmad/bmm/workflows/marathon/instructions.md` | Execution instructions |
-
----
-
-### GM STRATEGIC REVIEW (EVERY 5 LOOPS)
-
-**CEO DIRECTIVE:** Every 5 loops (Loop 5, 10, 15, 20...), Marcus (Zapier GM) conducts strategic review:
-1. Work progress vs CEO vision alignment
-2. Business strategy fit ($79 launch, 50 customers goal)
-3. Competitive position vs Zapier
-4. Hiring recommendations for REAL AGENTS (cloned from real people)
-
-**If Marcus recommends hire:** Director creates agent in `_agents/` via deep research.
-
----
-
-### KEY AGENTS
-
-- 🧙 BMad Master - Director orchestration
-- 🐛 Ralph Wiggum - QA Validation (validates every loop)
-- 👔 Ava - HR Talent Strategist (gap assessment)
-- 👔 Marcus - Zapier GM (critical challenger, strategic reviews every 5 loops)
-- Plus all BMAD agents and dynamically hired specialists
-
-**Research-Backed Hiring System:**
-- Hired agents persist in `_agents/` folder
-- Auto-integrated with BMAD Party Mode via `agent-manifest.csv`
-- To hire: "Hire a [Company] [Role Title] agent"
-
----
-
-### CUSTOM AGENT CONFIGURATIONS
-
-**Location:** `.claude/agents/` directory
-
-| Agent | Model | Purpose | Invoke |
-|-------|-------|---------|--------|
-| `director.md` | Opus | Sprint orchestration, scope enforcement | @director |
-| `coder.md` | Sonnet | Implementation, bug fixes | @coder |
-| `ralph-qa.md` | Haiku | QA validation, code review | @ralph-qa |
-| `winston-architect.md` | Opus | Architecture decisions | @winston-architect |
-| `marcus-gm.md` | Opus | Strategic review, competitive analysis | @marcus-gm |
-| `ux-expert.md` | Opus | UI/UX design decisions | @ux-expert |
-| `explorer.md` | Haiku | Codebase research, file finding | @explorer |
-
-**Standard Pipeline:**
-```
-@explorer → @winston-architect → @coder → @ralph-qa
-```
-
----
-
-### MODULAR RULES & COMMANDS
-
-**Rules** (`.claude/rules/`) - Path-specific, lazy-loaded:
-- `nexus-architecture.md` - Nexus core patterns
-- `react-patterns.md` - React/TypeScript rules
-- `testing.md` - Test requirements
-
-**Commands** (`.claude/commands/`) - Invoke with `/command`:
-- `/validate` - Ralph's QA checklist
-- `/checkpoint` - Save state before risky ops
-- `/status` - Director progress report
-
----
-
-### CONTEXT PROTECTION
-
-**70% Rule:** At 70% context usage, run `/compact`
-**80% Rule:** At 80%, save to `.claude-session.md` then `/clear`
-
-**Hash-Prefix Pattern:** Start with `#` to auto-save to memory:
-```
-# Kuwait timezone is UTC+3
-# Never use .forEach() for async
-```
-
-**Sources:**
-- [Claude Code Memory Docs](https://code.claude.com/docs/en/memory)
-- [VoltAgent Subagents](https://github.com/VoltAgent/awesome-claude-code-subagents)
-
----
-
-### "Run a Sprint" - Token-Optimized Mode (70-85% cheaper)
-
-**TRIGGER:** "Run a sprint", "marathon lite", "quick marathon"
-
-Same CEO-Director hierarchy but with:
-- 10 phases instead of 50 loops
-- Pre-planned tasks (skip Party Mode)
-- Model tiering: haiku/sonnet/opus
-- Compressed prompts
-
-**Task Plans:** `_bmad/bmm/workflows/marathon/task-plans/phase-XX-*.md`
-
-   f) UPDATE: Mark complete in tracker, show discussion, next loop
-   ```
-
-3. **Stop Conditions:** Loop 50 reached OR user says STOP/HALT/PAUSE
-
-**OUTPUT FORMAT (Clean Status - NOT verbose):**
-```
-╔══════════════════════════════════════════════════════════╗
-║           HYBRID MARATHON - LOOP [N] / 50                ║
-╠══════════════════════════════════════════════════════════╣
-║ AGENTS WORKING: [X] / [Y] tasks                          ║
-║ ├─ T1: [TaskName] ████████░░ 80% (sonnet)               ║
-║ ├─ T2: [TaskName] ██████████ DONE (haiku)               ║
-║ ├─ T3: [TaskName] ███░░░░░░░ 30% (opus)                 ║
-║ └─ T4: [TaskName] ░░░░░░░░░░ QUEUED                     ║
-║                                                          ║
-║ TOKENS: ~[X]K input / ~[Y]K output                      ║
-║ EST. COST: $[X.XX]                                       ║
-╚══════════════════════════════════════════════════════════╝
-```
-
-**Inter-Loop Discussion (ALWAYS SHOW):**
-```
-╔══════════════════════════════════════════════════════════╗
-║          PARTY MODE - LOOP [N+1] PLANNING                ║
-╠══════════════════════════════════════════════════════════╣
-║ 🧙 BMad Master: "Loop complete. Next priorities..."      ║
-║ 👔 Marcus (GM): "I challenge the assumption that..."     ║
-║ 🏗️ Winston: "Architecture suggests..."                   ║
-║ 🐛 Ralph: "Loop [N] validation: X/Y PASSED"             ║
-║ 👔 Ava (HR): "LOOP [N] HR: OK | No gaps"                ║
-╚══════════════════════════════════════════════════════════╝
-```
-
-**Key Agents:**
-- 🐛 Ralph Wiggum - QA Validation (100% responsibility)
-- 🧙 BMad Master - Director (orchestrates discussions)
-- 👔 Marcus - Zapier GM (critical thinking challenger)
-- 👔 Ava - HR Talent Strategist (gap assessment)
-- All BMAD agents + dynamically hired specialists
-
-**Quality vs Cost Summary:**
-
-| Mode | Quality | Cost | Use When |
-|------|---------|------|----------|
-| Marathon | 100% | $150-200 | Unknown codebase, critical launch |
-| **Hybrid** | 95-100% | $50-70 | **Best value - RECOMMENDED** |
-| Sprint | 85-95% | $30-50 | Budget-constrained, well-defined |
-
-**Full Guide:** `_bmad/bmm/workflows/marathon/hybrid-mode.md`
+**Context Protection:** At 70% context → delegate to agents. At 80% → checkpoint to `.claude-session.md` and compact.
 
 ---
 
@@ -503,16 +430,21 @@ Before marking ANY frontend task complete:
    cd nexus && npm run dev
    ```
 
-2. **Use Playwright MCP to verify:**
+2. **Load Playwright (deferred tools - required once per session):**
+   ```
+   ToolSearch query: "playwright"
+   ```
+
+3. **Use Playwright MCP to verify:**
    ```
    mcp__playwright__browser_navigate url: "http://localhost:5176"
    mcp__playwright__browser_snapshot
    mcp__playwright__browser_console_messages level: "error"
    ```
 
-3. **Test the specific feature implemented**
+4. **Test the specific feature implemented**
 
-4. **Check for console errors** - especially "Maximum update depth exceeded"
+5. **Check for console errors** - especially "Maximum update depth exceeded"
 
 ### Full Testing Procedures
 

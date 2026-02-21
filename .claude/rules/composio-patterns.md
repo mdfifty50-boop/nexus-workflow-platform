@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/**/*"
+---
+
 # Composio Integration Patterns (MANDATORY)
 
 ## Tool Slug Resolution

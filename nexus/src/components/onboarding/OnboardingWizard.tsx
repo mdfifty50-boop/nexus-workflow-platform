@@ -23,7 +23,7 @@
  * - Resume from where left off
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -54,7 +54,6 @@ import {
   INDUSTRY_OPTIONS,
   ROLE_OPTIONS,
   GOAL_OPTIONS,
-  TEMPLATE_OPTIONS,
   createInitialState,
   saveWizardState,
   loadWizardState,
@@ -63,8 +62,6 @@ import {
   syncWizardToBusinessProfile,
   canStepProceed,
   calculateProgress,
-  getRecommendedIntegrations,
-  getRecommendedTemplates,
   getEstimatedTimeRemaining,
   KEYBOARD_KEYS,
 } from './onboarding-utils'
@@ -436,31 +433,15 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-bold">Tell us about your business</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold">Tell us about yourself</h2>
         <p className="text-muted-foreground">
-          This helps us recommend the right templates and integrations.
+          This helps us personalize your experience and recommendations.
         </p>
-      </div>
-
-      {/* Company Name */}
-      <div className="max-w-md mx-auto space-y-2">
-        <label htmlFor="company-name" className="block text-sm font-medium">
-          Company Name <span className="text-destructive">*</span>
-        </label>
-        <Input
-          id="company-name"
-          type="text"
-          placeholder="Acme Inc."
-          value={state.businessProfile.companyName}
-          onChange={handleCompanyNameChange}
-          className="text-center"
-          autoFocus
-        />
       </div>
 
       {/* Business Type Selection */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-center">What type of business? <span className="text-destructive">*</span></h3>
+        <h3 className="text-sm font-medium text-center">What type of work do you do? <span className="text-destructive">*</span></h3>
         <div
           ref={gridRef}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl mx-auto"
@@ -477,7 +458,7 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
               role="radio"
               aria-checked={state.businessProfile.businessType === type.id}
               className={cn(
-                'relative p-4 rounded-xl border-2 text-left transition-all duration-200',
+                'relative p-4 rounded-xl border-2 text-left transition-all duration-200 cursor-pointer',
                 'hover:scale-[1.02] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                 state.businessProfile.businessType === type.id
                   ? 'border-primary bg-primary/5 shadow-md'
@@ -505,18 +486,18 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
 
       {/* Company Size Selection */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-center">Company size <span className="text-destructive">*</span></h3>
+        <h3 className="text-sm font-medium text-center">Team size <span className="text-destructive">*</span></h3>
         <div className="flex flex-wrap justify-center gap-2">
           {COMPANY_SIZE_OPTIONS.map((size) => (
             <button
               key={size.id}
               onClick={() => handleCompanySizeSelect(size.id)}
               className={cn(
-                'px-4 py-2 rounded-full border-2 transition-all duration-200',
-                'hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                'px-5 py-2.5 rounded-full border-2 transition-all duration-200 cursor-pointer',
+                'hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
                 state.businessProfile.companySize === size.id
-                  ? 'border-primary bg-primary/10 text-primary font-medium'
-                  : 'border-border hover:border-primary/50'
+                  ? 'border-primary bg-primary/10 text-primary font-medium shadow-sm'
+                  : 'border-muted-foreground/30 bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
               )}
             >
               <span className="font-medium">{size.name}</span>
@@ -528,18 +509,18 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
 
       {/* Industry Selection */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-center">Industry <span className="text-destructive">*</span></h3>
+        <h3 className="text-sm font-medium text-center">Industry</h3>
         <div className="flex flex-wrap justify-center gap-2">
           {INDUSTRY_OPTIONS.map((industry) => (
             <button
               key={industry.id}
               onClick={() => handleIndustrySelect(industry.id)}
               className={cn(
-                'px-3 py-1.5 rounded-full border text-sm transition-all duration-200',
-                'hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                'px-4 py-2 rounded-full border-2 text-sm transition-all duration-200 cursor-pointer',
+                'hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                 state.businessProfile.industry === industry.id
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary/50'
+                  ? 'border-primary bg-primary/10 text-primary font-medium shadow-sm'
+                  : 'border-muted-foreground/30 bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
               )}
             >
               {industry.name}
@@ -557,17 +538,32 @@ function BusinessProfileStep({ state, updateState, navigation }: OnboardingStepP
               key={role.id}
               onClick={() => handleRoleSelect(role.id)}
               className={cn(
-                'px-3 py-1.5 rounded-full border text-sm transition-all duration-200',
-                'hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                'px-4 py-2 rounded-full border-2 text-sm transition-all duration-200 cursor-pointer',
+                'hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
                 state.businessProfile.primaryRole === role.id
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary/50'
+                  ? 'border-primary bg-primary/10 text-primary font-medium shadow-sm'
+                  : 'border-muted-foreground/30 bg-muted/30 hover:border-primary/50 hover:bg-muted/50'
               )}
             >
               {role.name}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Company Name - Optional, at end */}
+      <div className="max-w-md mx-auto space-y-2">
+        <label htmlFor="company-name" className="block text-sm font-medium text-center">
+          Company / Organization Name <span className="text-muted-foreground text-xs">(optional)</span>
+        </label>
+        <Input
+          id="company-name"
+          type="text"
+          placeholder="e.g. Acme Inc."
+          value={state.businessProfile.companyName}
+          onChange={handleCompanyNameChange}
+          className="text-center"
+        />
       </div>
 
       {/* Navigation */}
@@ -673,449 +669,22 @@ function GoalsStep({ state, updateState, navigation }: OnboardingStepProps) {
 }
 
 // =============================================================================
-// STEP 4: INTEGRATIONS
+// STEPS 4-6 REMOVED: Integrations, Templates, FirstWorkflow
+// Onboarding now goes: Welcome → BusinessProfile → Goals → Completion
 // =============================================================================
-
-function IntegrationsStep({ state, updateState, navigation }: OnboardingStepProps) {
-  const [connecting, setConnecting] = useState<string | null>(null)
-
-  const recommendedIntegrations = useMemo(
-    () => getRecommendedIntegrations(state.businessProfile.businessType),
-    [state.businessProfile.businessType]
-  )
-
-  const handleConnect = (integrationId: string) => {
-    setConnecting(integrationId)
-    // Simulate OAuth flow - in production this would trigger actual OAuth
-    setTimeout(() => {
-      const newConnected = [...state.integrationSelection.connectedIntegrations, integrationId]
-      const newSelected = state.integrationSelection.selectedIntegrations.includes(integrationId)
-        ? state.integrationSelection.selectedIntegrations
-        : [...state.integrationSelection.selectedIntegrations, integrationId]
-
-      updateState({
-        integrationSelection: {
-          ...state.integrationSelection,
-          connectedIntegrations: newConnected,
-          selectedIntegrations: newSelected,
-        },
-      })
-      setConnecting(null)
-    }, 1500)
-  }
-
-  const toggleSelection = (integrationId: string) => {
-    const currentSelected = state.integrationSelection.selectedIntegrations
-    const newSelected = currentSelected.includes(integrationId)
-      ? currentSelected.filter((id) => id !== integrationId)
-      : [...currentSelected, integrationId]
-
-    updateState({
-      integrationSelection: {
-        ...state.integrationSelection,
-        selectedIntegrations: newSelected,
-      },
-    })
-  }
-
-  const popularIntegrations = recommendedIntegrations.filter((i) => i.popular)
-  const otherIntegrations = recommendedIntegrations.filter((i) => !i.popular)
-
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-bold">Connect your apps</h2>
-        <p className="text-muted-foreground">
-          Select apps to connect now, or add them later from the integrations page.
-        </p>
-      </div>
-
-      {/* Popular Integrations */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <Icon name="Star" className="w-4 h-4 text-yellow-500" />
-          Recommended for {BUSINESS_TYPE_OPTIONS.find((b) => b.id === state.businessProfile.businessType)?.name || 'you'}
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {popularIntegrations.map((integration) => {
-            const isConnected = state.integrationSelection.connectedIntegrations.includes(integration.id)
-            const isSelected = state.integrationSelection.selectedIntegrations.includes(integration.id)
-            const isConnecting = connecting === integration.id
-
-            return (
-              <div
-                key={integration.id}
-                className={cn(
-                  'relative p-4 rounded-xl border-2 transition-all duration-200',
-                  isConnected
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : isSelected
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-card hover:border-primary/50'
-                )}
-              >
-                {/* Status indicator */}
-                {isConnected && (
-                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                    <Icon name="Check" className="w-3 h-3 text-white" />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br', integration.gradient)}>
-                    {isConnecting ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Icon name={integration.icon} className="w-5 h-5 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium">{integration.name}</h4>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : integration.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  {!isConnected && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant={isSelected ? 'secondary' : 'outline'}
-                        className="flex-1"
-                        onClick={() => toggleSelection(integration.id)}
-                      >
-                        {isSelected ? 'Selected' : 'Select'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={() => handleConnect(integration.id)}
-                        disabled={isConnecting}
-                      >
-                        Connect
-                      </Button>
-                    </>
-                  )}
-                  {isConnected && (
-                    <span className="text-sm text-emerald-600 font-medium">Ready to use</span>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Other Integrations */}
-      {otherIntegrations.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-muted-foreground">More Options</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {otherIntegrations.map((integration) => {
-              const isSelected = state.integrationSelection.selectedIntegrations.includes(integration.id)
-
-              return (
-                <button
-                  key={integration.id}
-                  onClick={() => toggleSelection(integration.id)}
-                  className={cn(
-                    'p-3 rounded-lg border transition-all duration-200 flex items-center gap-2',
-                    isSelected
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50'
-                  )}
-                >
-                  <div className={cn('w-8 h-8 rounded-md flex items-center justify-center bg-gradient-to-br', integration.gradient)}>
-                    <Icon name={integration.icon} className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium truncate">{integration.name}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Skip option */}
-      <div className="text-center">
-        <button
-          onClick={() => {
-            updateState({
-              integrationSelection: {
-                ...state.integrationSelection,
-                skippedForLater: true,
-              },
-            })
-            navigation.onNext()
-          }}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Skip for now - I'll connect apps later
-        </button>
-      </div>
-
-      {/* Navigation */}
-      <StepNavigation {...navigation} />
-    </div>
-  )
-}
-
-// =============================================================================
-// STEP 5: TEMPLATES
-// =============================================================================
-
-function TemplatesStep({ state, updateState, navigation }: OnboardingStepProps) {
-  const recommendedTemplates = useMemo(
-    () => getRecommendedTemplates(
-      state.businessProfile.businessType,
-      state.goalsSelection.primaryGoals
-    ),
-    [state.businessProfile.businessType, state.goalsSelection.primaryGoals]
-  )
-
-  const handleSelect = (templateId: string) => {
-    updateState({
-      templateSelection: {
-        ...state.templateSelection,
-        selectedTemplateId: templateId,
-      },
-    })
-  }
-
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-bold">Choose a starting template</h2>
-        <p className="text-muted-foreground">
-          Personalized recommendations based on your goals
-        </p>
-      </div>
-
-      {/* Template Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-        {recommendedTemplates.slice(0, 6).map((template) => {
-          const isSelected = state.templateSelection.selectedTemplateId === template.id
-
-          return (
-            <button
-              key={template.id}
-              onClick={() => handleSelect(template.id)}
-              className={cn(
-                'relative p-5 rounded-xl border-2 text-left transition-all duration-200',
-                'hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                isSelected
-                  ? 'border-primary bg-primary/5 shadow-lg'
-                  : 'border-border hover:border-primary/50 bg-card'
-              )}
-            >
-              {/* Selection indicator */}
-              {isSelected && (
-                <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <Icon name="Check" className="w-4 h-4 text-white" />
-                </div>
-              )}
-
-              {/* Popularity badge */}
-              {template.popularity >= 90 && (
-                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 text-xs font-medium">
-                  Popular
-                </div>
-              )}
-
-              {/* Icon */}
-              <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br', template.gradient)}>
-                <Icon name={template.icon} className="w-6 h-6 text-white" />
-              </div>
-
-              {/* Content */}
-              <h3 className="font-semibold mb-1">{template.name}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
-
-              {/* Meta */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Icon name="Clock" className="w-3 h-3" />
-                  <span>{template.estimatedSetupTime}</span>
-                </div>
-                <span className="capitalize">{template.category}</span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Browse all templates */}
-      <div className="text-center">
-        <button className="text-sm text-primary hover:underline">
-          Browse all templates
-        </button>
-      </div>
-
-      {/* Navigation */}
-      <StepNavigation {...navigation} />
-    </div>
-  )
-}
-
-// =============================================================================
-// STEP 6: FIRST WORKFLOW
-// =============================================================================
-
-function FirstWorkflowStep({ state, updateState, navigation }: OnboardingStepProps) {
-  const [isCreating, setIsCreating] = useState(false)
-  const selectedTemplate = TEMPLATE_OPTIONS.find((t) => t.id === state.templateSelection.selectedTemplateId)
-
-  const handleCreateWorkflow = () => {
-    setIsCreating(true)
-    // Simulate workflow creation
-    setTimeout(() => {
-      updateState({
-        firstWorkflow: {
-          ...state.firstWorkflow,
-          workflowName: selectedTemplate?.name || 'My First Workflow',
-          workflowDescription: selectedTemplate?.description || 'Created during onboarding',
-          workflowCreated: true,
-          workflowId: `wf_${Date.now()}`,
-        },
-      })
-      setIsCreating(false)
-    }, 2000)
-  }
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    updateState({
-      firstWorkflow: {
-        ...state.firstWorkflow,
-        workflowName: e.target.value,
-      },
-    })
-  }
-
-  if (state.firstWorkflow.workflowCreated) {
-    return (
-      <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <Icon name="Check" className="w-10 h-10 text-emerald-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-emerald-600">Workflow Created!</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            "{state.firstWorkflow.workflowName}" is ready. You can customize it after completing setup.
-          </p>
-        </div>
-
-        {/* Workflow Preview Card */}
-        <div className="max-w-md mx-auto p-6 rounded-xl border bg-card">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br', selectedTemplate?.gradient || 'from-cyan-500 to-blue-500')}>
-              <Icon name={selectedTemplate?.icon || 'Workflow'} className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold">{state.firstWorkflow.workflowName}</h3>
-              <p className="text-sm text-muted-foreground">Ready to activate</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1">
-              <Icon name="Eye" className="w-4 h-4 mr-1" />
-              Preview
-            </Button>
-            <Button variant="default" size="sm" className="flex-1">
-              <Icon name="Play" className="w-4 h-4 mr-1" />
-              Activate
-            </Button>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <StepNavigation {...navigation} />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl sm:text-3xl font-bold">Create your first workflow</h2>
-        <p className="text-muted-foreground">
-          {selectedTemplate
-            ? `We'll set up "${selectedTemplate.name}" for you`
-            : 'Start automating with a custom workflow'}
-        </p>
-      </div>
-
-      {/* Workflow Creator */}
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Template Preview */}
-        {selectedTemplate && (
-          <div className="p-6 rounded-xl border bg-card">
-            <div className="flex items-center gap-4 mb-4">
-              <div className={cn('w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br', selectedTemplate.gradient)}>
-                <Icon name={selectedTemplate.icon} className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg">{selectedTemplate.name}</h3>
-                <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Icon name="Clock" className="w-4 h-4" />
-                <span>~{selectedTemplate.estimatedSetupTime} setup</span>
-              </div>
-              <span className="capitalize">{selectedTemplate.category}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Custom Name */}
-        <div className="space-y-2">
-          <label htmlFor="workflow-name" className="block text-sm font-medium">
-            Workflow Name
-          </label>
-          <Input
-            id="workflow-name"
-            type="text"
-            placeholder={selectedTemplate?.name || 'My Workflow'}
-            value={state.firstWorkflow.workflowName}
-            onChange={handleNameChange}
-          />
-        </div>
-
-        {/* Create Button */}
-        <Button
-          onClick={handleCreateWorkflow}
-          disabled={isCreating}
-          loading={isCreating}
-          variant="cta"
-          size="lg"
-          className="w-full"
-        >
-          {isCreating ? 'Creating...' : 'Create Workflow'}
-          {!isCreating && <Icon name="ArrowRight" className="w-5 h-5 ml-2" />}
-        </Button>
-      </div>
-
-      {/* Skip option */}
-      <div className="text-center">
-        <button
-          onClick={navigation.onSkip}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Skip - I'll create workflows later
-        </button>
-      </div>
-    </div>
-  )
-}
 
 // =============================================================================
 // STEP 7: COMPLETION
+// =============================================================================
+// (kept below - search for "CompletionStep")
+
+// Dead code removed to fix build — the following steps are no longer rendered:
+// IntegrationsStep, TemplatesStep, FirstWorkflowStep
+// They were removed from the onboarding flow to reduce friction.
+
+// =============================================================================
+// STEP 4 (COMPLETION) — formerly Step 7
+// Steps 4-6 (Integrations, Templates, FirstWorkflow) removed to reduce friction
 // =============================================================================
 
 function CompletionStep({ state, updateState, navigation }: OnboardingStepProps & { onTourStart?: () => void }) {
@@ -1142,8 +711,6 @@ function CompletionStep({ state, updateState, navigation }: OnboardingStepProps 
     navigation.onNext()
   }
 
-  const selectedTemplate = TEMPLATE_OPTIONS.find((t) => t.id === state.templateSelection.selectedTemplateId)
-  const connectedCount = state.integrationSelection.connectedIntegrations.length
   const goalsCount = state.goalsSelection.primaryGoals.length
 
   return (
@@ -1210,16 +777,10 @@ function CompletionStep({ state, updateState, navigation }: OnboardingStepProps 
             <span>{goalsCount} goal{goalsCount > 1 ? 's' : ''}</span>
           </div>
         )}
-        {connectedCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-sm text-emerald-600">
-            <Icon name="Check" className="w-4 h-4" />
-            <span>{connectedCount} app{connectedCount > 1 ? 's' : ''} connected</span>
-          </div>
-        )}
-        {selectedTemplate && (
+        {state.businessProfile.businessType && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-sm text-primary">
-            <Icon name={selectedTemplate.icon} className="w-4 h-4" />
-            <span>{selectedTemplate.name}</span>
+            <Icon name="Building2" className="w-4 h-4" />
+            <span>{BUSINESS_TYPE_OPTIONS.find((b) => b.id === state.businessProfile.businessType)?.name || 'Business'}</span>
           </div>
         )}
       </div>
@@ -1461,7 +1022,7 @@ export function OnboardingWizard({
     navigation: navigationProps,
   }
 
-  // Render current step
+  // Render current step (4 steps: Welcome, Business Profile, Goals, Completion)
   const renderStep = () => {
     switch (state.currentStepIndex) {
       case 0:
@@ -1471,12 +1032,6 @@ export function OnboardingWizard({
       case 2:
         return <GoalsStep {...stepProps} />
       case 3:
-        return <IntegrationsStep {...stepProps} />
-      case 4:
-        return <TemplatesStep {...stepProps} />
-      case 5:
-        return <FirstWorkflowStep {...stepProps} />
-      case 6:
         return <CompletionStep {...stepProps} onTourStart={onTourStart} />
       default:
         return <WelcomeStep {...stepProps} />

@@ -356,7 +356,7 @@ Respond with JSON:
         console.log(`[Nexus ${agent.toUpperCase()}] Processing via direct API...`)
 
         const message = await this.client.messages.create({
-          model: 'claude-opus-4-6-20250115',
+          model: 'claude-opus-4-6',
           max_tokens: 4096,
           system: NEXUS_AGENT_PROMPTS[agent],
           messages: [{ role: 'user', content: userMessage }]

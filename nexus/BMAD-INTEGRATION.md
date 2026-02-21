@@ -67,7 +67,7 @@ The integration follows BMAD principles:
 {
   "type": "BMAD",
   "prompt": "Analyze customer churn data and provide retention strategies",
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-4-6",
   "maxTokens": 4096,
   "temperature": 1.0
 }
@@ -92,7 +92,7 @@ Direct Claude interaction without BMAD structure.
 {
   "type": "Scheduled",
   "prompt": "Generate daily sales summary",
-  "model": "claude-sonnet-4-20250514"
+  "model": "claude-sonnet-4-6"
 }
 ```
 
@@ -106,7 +106,7 @@ Available models:
 |-------|-------|---------|------------|-------------|----------|
 | **Claude Opus 4** | Slow | Highest | $15/MTok | $75/MTok | Complex analysis |
 | **Claude Sonnet 4** | Medium | High | $3/MTok | $15/MTok | Most workflows (default) |
-| **Claude Haiku 4** | Fast | Good | $0.25/MTok | $1.25/MTok | Simple tasks |
+| **Claude Haiku 4** | Fast | Good | $0.80/MTok | $1.25/MTok | Simple tasks |
 
 Configure in workflow settings or leave blank for Sonnet (recommended).
 
@@ -130,7 +130,7 @@ View cost analytics in:
 ```
 Type: BMAD
 Prompt: Analyze top 100 customers by revenue. Identify patterns, segment customers, and recommend upsell strategies.
-Model: claude-sonnet-4-20250514
+Model: claude-sonnet-4-6
 ```
 
 ### Email Automation
@@ -144,7 +144,7 @@ Model: claude-haiku-4-20250514
 ```
 Type: Scheduled
 Prompt: Summarize today's support tickets, categorize by issue type, and flag urgent items.
-Model: claude-sonnet-4-20250514
+Model: claude-sonnet-4-6
 ```
 
 ## Best Practices
@@ -231,7 +231,7 @@ import { bmadService } from '@/lib/bmad-service'
 const result = await bmadService.executeWorkflow({
   type: 'BMAD',
   prompt: 'Your task here',
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   maxTokens: 4096,
   temperature: 1.0
 })

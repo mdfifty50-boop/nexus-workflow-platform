@@ -13,6 +13,8 @@
  */
 import { Router } from 'express';
 import { customIntegrationService, KNOWN_APP_APIS } from '../services/CustomIntegrationService';
+// @NEXUS-FIX-022: Multi-tenant identity - per-user Composio entities
+import { getUserEntityId } from '../utils/user-entity';
 const router = Router();
 /**
  * GET /api/custom-integrations/apps
@@ -127,7 +129,9 @@ router.post('/test', async (req, res) => {
  * Save API credentials for a user
  */
 router.post('/save', async (req, res) => {
-    const { appName, apiKey, additionalConfig, userId = 'default', skipValidation = false } = req.body;
+    const { appName, apiKey, additionalConfig, skipValidation = false } = req.body;
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     if (!appName || !apiKey) {
         return res.status(400).json({
             success: false,
@@ -178,7 +182,8 @@ router.post('/save', async (req, res) => {
  */
 router.get('/status/:appName', (req, res) => {
     const { appName } = req.params;
-    const userId = req.query.userId || 'default';
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     const hasCredentials = customIntegrationService.hasCredentials(userId, appName);
     const credentials = customIntegrationService.getCredentials(userId, appName);
     res.json({
@@ -195,7 +200,8 @@ router.get('/status/:appName', (req, res) => {
  */
 router.delete('/:appName', (req, res) => {
     const { appName } = req.params;
-    const userId = req.query.userId || 'default';
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     const deleted = customIntegrationService.deleteCredentials(userId, appName);
     res.json({
         success: deleted,
@@ -207,7 +213,9 @@ router.delete('/:appName', (req, res) => {
  * Execute an API request using stored credentials
  */
 router.post('/execute', async (req, res) => {
-    const { appName, method = 'GET', endpoint, body, userId = 'default' } = req.body;
+    const { appName, method = 'GET', endpoint, body } = req.body;
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     if (!appName || !endpoint) {
         return res.status(400).json({
             success: false,

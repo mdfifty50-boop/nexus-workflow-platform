@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { Webhook } from 'svix';
 import { userProfileService } from '../services/userProfile.js';
+// @NEXUS-FIX-110: Welcome email system - DO NOT REMOVE
+import { sendWelcomeEmail, isEmailServiceConfigured } from '../services/EmailService.js';
 const router = Router();
 // Clerk webhook secret - get from Clerk Dashboard
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
@@ -50,15 +52,44 @@ router.post('/clerk', async (req, res) => {
                     console.error('No email found for new user');
                     return res.status(400).json({ error: 'No email found' });
                 }
+                const fullName = [event.data.first_name, event.data.last_name]
+                    .filter(Boolean)
+                    .join(' ') || null;
                 await userProfileService.createProfile({
                     clerk_user_id: event.data.id,
                     email: primaryEmail,
-                    full_name: [event.data.first_name, event.data.last_name]
-                        .filter(Boolean)
-                        .join(' ') || null,
+                    full_name: fullName,
                     avatar_url: event.data.image_url,
                 });
                 console.log(`✅ Created user profile for ${primaryEmail}`);
+                // @NEXUS-FIX-110: Send welcome email to new users - DO NOT REMOVE
+                if (isEmailServiceConfigured()) {
+                    try {
+                        const emailResult = await sendWelcomeEmail({
+                            email: primaryEmail,
+                            fullName: fullName || undefined,
+                            userId: event.data.id,
+                        });
+                        if (emailResult.success) {
+                            console.log(`📧 Welcome email sent to ${primaryEmail}`);
+                            // Update user profile to mark welcome email as sent
+                            await userProfileService.updateProfile(event.data.id, {
+                                welcome_email_sent: true,
+                                welcome_email_sent_at: new Date().toISOString(),
+                            });
+                        }
+                        else {
+                            console.error(`❌ Failed to send welcome email: ${emailResult.error}`);
+                        }
+                    }
+                    catch (emailError) {
+                        // Don't fail the webhook if email fails - user is still created
+                        console.error('❌ Welcome email error (non-fatal):', emailError);
+                    }
+                }
+                else {
+                    console.warn('⚠️ Email service not configured - skipping welcome email');
+                }
                 break;
             }
             case 'user.updated': {

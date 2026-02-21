@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/src/**/*"
+---
+
 # Nexus UX Enhancement Patterns (MANDATORY)
 
 ## Core Principle: Zero Technical Jargon

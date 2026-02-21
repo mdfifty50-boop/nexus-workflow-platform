@@ -39,7 +39,7 @@ interface ImageContent {
 interface ChatRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
   systemPrompt?: string
-  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-20250514' | 'claude-opus-4-5-20250520' | 'claude-opus-4-5-20251101' | 'claude-opus-4-6-20250115'
+  model?: 'claude-3-5-haiku-20241022' | 'claude-sonnet-4-6' | 'claude-opus-4-6'
   maxTokens?: number
   agentId?: string  // Specific Nexus agent to use
   autoRoute?: boolean  // Let backend auto-route to best agent
@@ -1006,6 +1006,83 @@ class APIClient {
    */
   getCacheStats() {
     return apiCache.getStats()
+  }
+
+  // ===============================
+  // Admin Dashboard API Methods
+  // ===============================
+
+  /**
+   * Get all admin users
+   */
+  async getAdminUsers(): Promise<{ success: boolean; data: any[]; total: number }> {
+    return this.request('/admin-analytics/users', { method: 'GET' })
+  }
+
+  /**
+   * Get admin usage metrics
+   */
+  async getAdminMetrics(): Promise<{ success: boolean; data: any }> {
+    return this.request('/admin-analytics/metrics', { method: 'GET' })
+  }
+
+  /**
+   * Get admin time series data
+   */
+  async getAdminTimeSeries(days: number = 14): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/time-series?days=${days}`, { method: 'GET' })
+  }
+
+  /**
+   * Get top workflows
+   */
+  async getAdminTopWorkflows(limit: number = 5): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/top-workflows?limit=${limit}`, { method: 'GET' })
+  }
+
+  /**
+   * Get user detail for admin drill-down
+   */
+  async getAdminUserDetail(userId: string): Promise<{ success: boolean; data: any }> {
+    return this.request(`/admin-analytics/users/${userId}`, { method: 'GET' })
+  }
+
+  /**
+   * Get user conversations for admin
+   */
+  async getAdminUserConversations(userId: string): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/users/${userId}/conversations`, { method: 'GET' })
+  }
+
+  /**
+   * Get user workflows for admin
+   */
+  async getAdminUserWorkflows(userId: string): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/users/${userId}/workflows`, { method: 'GET' })
+  }
+
+  /**
+   * Get user errors for admin
+   */
+  async getAdminUserErrors(userId: string): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/users/${userId}/errors`, { method: 'GET' })
+  }
+
+  /**
+   * Get platform activity feed
+   */
+  async getAdminActivityFeed(limit: number = 50): Promise<{ success: boolean; data: any[] }> {
+    return this.request(`/admin-analytics/activity-feed?limit=${limit}`, { method: 'GET' })
+  }
+
+  /**
+   * Generate AI marketing insights
+   */
+  async getAdminAIInsights(forceRefresh: boolean = false): Promise<{ success: boolean; data: any }> {
+    return this.request('/admin-analytics/ai-insights', {
+      method: 'POST',
+      body: JSON.stringify({ forceRefresh }),
+    })
   }
 }
 

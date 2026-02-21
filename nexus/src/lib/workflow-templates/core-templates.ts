@@ -803,7 +803,7 @@ For each mention, provide:
 5. Key Points (1-2 sentences)
 
 Format as JSON array.`,
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 400, y: 200 },
         },
@@ -1006,7 +1006,7 @@ Provide classification in JSON format:
   "tags": ["tag1", "tag2"],
   "estimated_resolution_time": "minutes/hours/days"
 }`,
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 350, y: 200 },
         },
@@ -1281,7 +1281,7 @@ Generate a comprehensive weekly report including:
 6. **Week-over-Week Comparison Table**
 
 Format as clean HTML suitable for a professional report.`,
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 400, y: 200 },
         },
@@ -1735,7 +1735,7 @@ Also provide:
 - Any bundling recommendations to save on shipping
 
 Format as JSON.`,
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 500, y: 200 },
         },

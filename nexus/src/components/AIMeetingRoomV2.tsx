@@ -12,12 +12,17 @@ import {
   nexusPartyModeService,
   NEXUS_AGENTS,
   cleanAgentResponse,
+  getIndustryRelevantAgentOrder,
   type NexusAgentPersona,
   type PartyModeMessage
 } from '../lib/nexus-party-mode-service'
+// @NEXUS-FIX-157: Industry-specific agent lookup for dedicated names/titles/icons
+import { getIndustryAgent } from '../lib/industry-agents'
 import { humanTTSService } from '../lib/human-tts-service'
 import { useSwipeToDismiss } from '../hooks/useSwipeNavigation'
 import { useBusinessProfile } from '../hooks/useBusinessProfile'
+import { FEATURE_FLAGS } from '../config/feature-flags'
+import { AutopilotPanel } from './autopilot/AutopilotPanel'
 
 // =============================================================================
 // MOBILE HOOKS & UTILITIES
@@ -99,6 +104,28 @@ const detectEmotion = (text: string): { emoji: string; color: string; label: str
   return { emoji: '💬', color: '#64748B', label: 'Neutral' }
 }
 
+/** Extract service names mentioned in discussion text for Autopilot hint */
+function extractServicesFromDiscussion(text: string): string[] {
+  const serviceKeywords: Record<string, string> = {
+    'gmail': 'Gmail', 'google mail': 'Gmail', 'email': 'Gmail',
+    'slack': 'Slack', 'slack channel': 'Slack',
+    'google sheets': 'Google Sheets', 'spreadsheet': 'Google Sheets',
+    'google calendar': 'Google Calendar', 'calendar': 'Google Calendar',
+    'dropbox': 'Dropbox', 'google drive': 'Google Drive',
+    'github': 'GitHub', 'notion': 'Notion', 'discord': 'Discord',
+    'trello': 'Trello', 'asana': 'Asana', 'linear': 'Linear',
+    'hubspot': 'HubSpot', 'stripe': 'Stripe', 'zoom': 'Zoom',
+    'whatsapp': 'WhatsApp', 'quickbooks': 'QuickBooks',
+    'jira': 'Jira', 'salesforce': 'Salesforce',
+  }
+  const found = new Set<string>()
+  const lower = text.toLowerCase()
+  for (const [keyword, displayName] of Object.entries(serviceKeywords)) {
+    if (lower.includes(keyword)) found.add(displayName)
+  }
+  return Array.from(found)
+}
+
 interface AIMeetingRoomV2Props {
   isOpen: boolean
   onClose: () => void
@@ -120,12 +147,20 @@ export function AIMeetingRoomV2({
   fullPage = false
 }: AIMeetingRoomV2Props) {
   const [messages, setMessages] = useState<PartyModeMessage[]>([])
+  const messagesRef = useRef<PartyModeMessage[]>([])
+  messagesRef.current = messages
   const [userInput, setUserInput] = useState('')
   const [isDiscussing, setIsDiscussing] = useState(false)
   const [activeAgent, setActiveAgent] = useState<string | null>(null)
   const [isTTSEnabled, setIsTTSEnabled] = useState(true)
   const [typingAgent, setTypingAgent] = useState<string | null>(null)
   const [showAgentsList, setShowAgentsList] = useState(false) // Show/hide agents panel
+  const [showAutopilot, setShowAutopilot] = useState(false) // Autopilot browser panel
+  const [autopilotSpec, setAutopilotSpec] = useState<{
+    name: string; description: string;
+    steps: Array<{ id: string; name: string; tool: string; type: string }>;
+    requiredIntegrations: string[]; estimatedTimeSaved?: string;
+  } | null>(null)
   const [_isAPIConfigured, setIsAPIConfigured] = useState(false)
   const [_currentEmotion, setCurrentEmotion] = useState<{ emoji: string; color: string; label: string } | null>(null)
   const [_currentSpeech, setCurrentSpeech] = useState('')
@@ -135,9 +170,16 @@ export function AIMeetingRoomV2({
 
   const isMobile = useIsMobile()
   const keyboard = useKeyboardVisible()
-  const { industryName } = useBusinessProfile()
+  // @NEXUS-FIX-155: Domain-connected consultancy — read industry + inject into agent context
+  const { industry, industryName } = useBusinessProfile()
 
-  const agents = Object.values(NEXUS_AGENTS)
+  // @NEXUS-FIX-155 + @NEXUS-FIX-157: Reorder agents by industry relevance with dedicated names/titles
+  const agents = getIndustryRelevantAgentOrder(industry)
+
+  // @NEXUS-FIX-157: Agent lookup resolves industry-specific agents (unique names, icons, titles)
+  const lookupAgent = useCallback((agentId: string): NexusAgentPersona | undefined => {
+    return getIndustryAgent(agentId, industry, NEXUS_AGENTS)
+  }, [industry])
 
   useEffect(() => {
     setIsAPIConfigured(nexusPartyModeService.canMakeAPICalls())
@@ -185,11 +227,13 @@ export function AIMeetingRoomV2({
     discussionRef.current = true
 
     try {
+      // @NEXUS-FIX-155: Explicit industry injection into discussion context
       const result = await nexusPartyModeService.runDiscussionRound(
         {
           topic: workflowTitle || 'workflow optimization',
           mode,
           workflowContext,
+          industry: industry || undefined,
           maxRoundsPerResponse: 3
         },
         messages,
@@ -200,7 +244,8 @@ export function AIMeetingRoomV2({
       for (const message of result.messages) {
         if (!discussionRef.current) break
 
-        const agent = NEXUS_AGENTS[message.agentId]
+        // @NEXUS-FIX-157: Use industry-specific agent for display
+        const agent = lookupAgent(message.agentId)
         if (!agent) continue
 
         setTypingAgent(message.agentId)
@@ -217,7 +262,18 @@ export function AIMeetingRoomV2({
         setActiveAgent(message.agentId)
         setCurrentSpeech(cleanedText)
 
-        setMessages(prev => [...prev, cleanedMessage])
+        setMessages(prev => {
+          const updated = [...prev, cleanedMessage]
+          // @NEXUS-FIX-176: Persist discussion for "Back to Chat with Insights" - DO NOT REMOVE
+          try {
+            const forStorage = updated.filter(m => m.agentId !== 'system').map(m => ({
+              agentName: m.agentName,
+              content: m.text
+            }))
+            localStorage.setItem('nexus-consultancy-discussion', JSON.stringify(forStorage))
+          } catch { /* ignore storage errors */ }
+          return updated
+        })
 
         if (agent) {
           await speakText(cleanedText, agent)
@@ -242,8 +298,61 @@ export function AIMeetingRoomV2({
       setIsDiscussing(false)
       setActiveAgent(null)
       setCurrentSpeech('')
+
+      // Smart Autopilot hint: Only offer Autopilot AFTER the consultancy has served
+      // its primary purpose — deep discussion, understanding needs, and creating a
+      // tailored solution. Autopilot is the "cherry on top", not a shortcut.
+      // Requirements:
+      //   1. Feature enabled + not already shown
+      //   2. User has had 3+ back-and-forth messages (real conversation depth)
+      //   3. 2+ full rounds of agent responses (6+ agent messages for 3 agents)
+      //   4. Discussion contains automation/workflow context
+      //   5. 2+ distinct services mentioned
+      if (FEATURE_FLAGS.AUTOPILOT_ENABLED && !autopilotSpec) {
+        const currentMessages = messagesRef.current
+        const allText = currentMessages.map(m => m.text).join(' ').toLowerCase()
+        const userMessages = currentMessages.filter(m => m.agentId === 'user').length
+        const agentResponses = currentMessages.filter(m => m.agentId !== 'user' && m.agentId !== 'system').length
+        const hasAutomationContext = [
+          'workflow', 'automate', 'automation', 'integrate', 'connect',
+          'configure', 'set up', 'setup', 'api', 'oauth', 'webhook'
+        ].some(kw => allText.includes(kw))
+        // Require genuine conversation: 3+ user messages AND 6+ agent responses
+        // This means at least 2-3 full rounds of back-and-forth discussion
+        const deepEnoughDiscussion = userMessages >= 3 && agentResponses >= 6
+
+        if (hasAutomationContext && deepEnoughDiscussion) {
+          const detectedServices = extractServicesFromDiscussion(allText)
+          if (detectedServices.length >= 2) {
+            const spec = {
+              name: workflowTitle || 'Consultancy Workflow',
+              description: workflowContext || 'Workflow designed during AI Consultancy session',
+              steps: detectedServices.map((svc, i) => ({
+                id: `step_${i + 1}`,
+                name: i === 0 ? `Trigger: ${svc}` : `Action: ${svc}`,
+                tool: svc.toLowerCase(),
+                type: i === 0 ? 'trigger' : 'action'
+              })),
+              requiredIntegrations: detectedServices.map(s => s.toLowerCase()),
+              estimatedTimeSaved: '2+ hours/week'
+            }
+            setAutopilotSpec(spec)
+
+            // Show hint message
+            setMessages(prev => [...prev, {
+              id: `autopilot-hint-${Date.now()}`,
+              agentId: 'system',
+              agentName: 'Nexus Autopilot',
+              agentIcon: '🤖',
+              role: 'System',
+              text: `I notice this involves ${detectedServices.join(', ')} integration. I can configure all of these services for you automatically while you watch. Click the 🤖 button above to open Autopilot.`,
+              timestamp: new Date()
+            }])
+          }
+        }
+      }
     }
-  }, [mode, workflowTitle, workflowContext, messages, speakText])
+  }, [mode, workflowTitle, workflowContext, messages, speakText, autopilotSpec])
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -363,7 +472,7 @@ export function AIMeetingRoomV2({
   return (
     <div
       className={fullPage
-        ? "w-full h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"
+        ? "w-full h-screen flex items-center justify-center bg-surface-950"
         : "fixed inset-0 z-50 flex bg-black/70 backdrop-blur-sm items-center justify-center"
       }
       role={fullPage ? undefined : "dialog"}
@@ -373,12 +482,12 @@ export function AIMeetingRoomV2({
       <div
         ref={combinedRef}
         tabIndex={-1}
-        className={`relative bg-white dark:bg-slate-900 overflow-hidden shadow-2xl outline-none flex flex-col ${
+        className={`relative bg-surface-900 overflow-hidden shadow-2xl outline-none flex flex-col ${
           fullPage
             ? 'w-full h-full'
             : isMobile
               ? 'w-full h-full'
-              : 'w-full max-w-5xl h-[85vh] rounded-2xl border border-slate-200 dark:border-slate-700'
+              : 'w-full max-w-5xl h-[85vh] rounded-2xl border border-surface-700'
         }`}
         style={(isMobile && !fullPage) ? {
           height: mobileHeight,
@@ -386,13 +495,13 @@ export function AIMeetingRoomV2({
         } : undefined}
       >
         {/* SIMPLIFIED HEADER - ChatGPT Style */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-surface-700 bg-surface-900">
           <div className="flex items-center gap-3">
             {/* Back button on mobile */}
             {isMobile && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-surface-800 rounded-lg transition-colors"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,10 +510,18 @@ export function AIMeetingRoomV2({
               </button>
             )}
             <div>
-              <h2 id="meeting-room-title" className="font-semibold text-slate-900 dark:text-white">
-                AI Consultancy
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <h2 id="meeting-room-title" className="font-semibold text-white">
+                  AI Consultancy
+                </h2>
+                {/* @NEXUS-FIX-155: Industry badge when domain is known */}
+                {industryName && (
+                  <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">
+                    {industryName} Specialists
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-surface-400">
                 {isDiscussing ? 'Consulting...' : `${agents.length} expert consultants`}
               </p>
             </div>
@@ -420,8 +537,8 @@ export function AIMeetingRoomV2({
               }}
               className={`p-2 rounded-lg transition-colors ${
                 showAgentsList
-                  ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  ? 'bg-cyan-500/20 text-cyan-400'
+                  : 'hover:bg-surface-800 text-surface-400'
               }`}
               title="Show agents"
               aria-label="Toggle agents panel"
@@ -439,8 +556,8 @@ export function AIMeetingRoomV2({
               }}
               className={`p-2 rounded-lg transition-colors ${
                 isTTSEnabled
-                  ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  ? 'bg-cyan-500/20 text-cyan-400'
+                  : 'bg-surface-800 text-surface-400'
               }`}
               title={isTTSEnabled ? 'Mute voices' : 'Enable voices'}
               aria-label={isTTSEnabled ? 'Mute voice output' : 'Enable voice output'}
@@ -448,7 +565,27 @@ export function AIMeetingRoomV2({
               {isTTSEnabled ? '🔊' : '🔇'}
             </button>
 
-            {/* 3. Stop (when discussing) */}
+            {/* 3. Autopilot Toggle (feature-flagged) */}
+            {FEATURE_FLAGS.AUTOPILOT_ENABLED && (
+              <button
+                onClick={() => {
+                  setShowAutopilot(!showAutopilot)
+                  if (!showAutopilot) setShowAgentsList(false) // Close agents when opening autopilot
+                  triggerHaptic('medium')
+                }}
+                className={`p-2 rounded-lg transition-colors ${
+                  showAutopilot
+                    ? 'bg-purple-500/20 text-purple-400'
+                    : 'hover:bg-surface-800 text-surface-400'
+                }`}
+                title={showAutopilot ? 'Hide Autopilot' : 'Autopilot - AI configures for you'}
+                aria-label="Toggle Autopilot panel"
+              >
+                🤖
+              </button>
+            )}
+
+            {/* 4. Stop (when discussing) */}
             {isDiscussing && (
               <button
                 onClick={handleStopDiscussion}
@@ -462,7 +599,7 @@ export function AIMeetingRoomV2({
             {!isMobile && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
+                className="p-2 hover:bg-surface-800 rounded-lg transition-colors text-surface-400"
                 aria-label="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -480,7 +617,8 @@ export function AIMeetingRoomV2({
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => {
-                const agent = NEXUS_AGENTS[message.agentId]
+                // @NEXUS-FIX-157: Resolve industry-specific agent for display
+                const agent = lookupAgent(message.agentId)
                 const isUser = message.agentId === 'user'
 
                 return (
@@ -504,10 +642,10 @@ export function AIMeetingRoomV2({
                     {/* Message */}
                     <div className={`flex-1 max-w-[75%] ${isUser ? 'text-right' : ''}`}>
                       <div className={`flex items-baseline gap-2 mb-1 ${isUser ? 'justify-end' : ''}`}>
-                        <span className="font-medium text-sm text-slate-900 dark:text-white">
+                        <span className="font-medium text-sm text-white">
                           {message.agentName}
                         </span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-surface-500">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -515,7 +653,7 @@ export function AIMeetingRoomV2({
                         className={`p-3 rounded-2xl ${
                           isUser
                             ? 'bg-cyan-500 text-white'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+                            : 'bg-surface-800 text-white'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.text}</p>
@@ -525,32 +663,32 @@ export function AIMeetingRoomV2({
                 )
               })}
 
-              {/* Typing indicator */}
-              {typingAgent && NEXUS_AGENTS[typingAgent] && (
+              {/* Typing indicator — @NEXUS-FIX-157: uses industry-specific agent */}
+              {typingAgent && lookupAgent(typingAgent) && (
                 <div className="flex gap-3">
                   <div className="flex-shrink-0">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-lg border-2"
                       style={{
-                        backgroundColor: `${NEXUS_AGENTS[typingAgent].color}20`,
-                        borderColor: NEXUS_AGENTS[typingAgent].color
+                        backgroundColor: `${lookupAgent(typingAgent)!.color}20`,
+                        borderColor: lookupAgent(typingAgent)!.color
                       }}
                     >
-                      {NEXUS_AGENTS[typingAgent].icon}
+                      {lookupAgent(typingAgent)!.icon}
                     </div>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-medium text-sm text-slate-900 dark:text-white">
-                        {NEXUS_AGENTS[typingAgent].displayName}
+                      <span className="font-medium text-sm text-white">
+                        {lookupAgent(typingAgent)!.displayName}
                       </span>
-                      <span className="text-xs text-slate-500">thinking...</span>
+                      <span className="text-xs text-surface-500">thinking...</span>
                     </div>
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl w-fit">
+                    <div className="p-3 bg-surface-800 rounded-2xl w-fit">
                       <div className="flex gap-1.5">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <div className="w-2 h-2 bg-surface-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
                   </div>
@@ -561,7 +699,7 @@ export function AIMeetingRoomV2({
             </div>
 
             {/* Input Area - Sticky */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <div className="p-4 border-t border-surface-700 bg-surface-900">
               <div className="flex gap-2">
                 <input
                   ref={inputRef}
@@ -575,7 +713,7 @@ export function AIMeetingRoomV2({
                   }}
                   placeholder={isDiscussing ? "Consultants are analyzing..." : "Ask your consultants anything..."}
                   disabled={isDiscussing}
-                  className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 border-0 rounded-xl text-slate-900 dark:text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-surface-800 border border-surface-700 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50"
                 />
                 <button
                   onClick={handleSendMessage}
@@ -586,57 +724,86 @@ export function AIMeetingRoomV2({
                 </button>
               </div>
 
-              {/* Quick Actions - Reduced to 5 */}
-              <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+              {/* Quick Actions - Full text visible, wrapped */}
+              <div className="flex flex-wrap gap-2 mt-3">
                 <button
                   onClick={() => setUserInput('What AI strategy should we adopt for our business?')}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-surface-800 border border-surface-600 text-surface-200 rounded-xl hover:bg-surface-700 hover:border-nexus-500/50 transition-colors text-sm"
                 >
-                  🎯 AI Strategy
+                  🎯 AI Strategy for our business
                 </button>
                 <button
                   onClick={() => setUserInput('What processes should we automate first for maximum ROI?')}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-surface-800 border border-surface-600 text-surface-200 rounded-xl hover:bg-surface-700 hover:border-nexus-500/50 transition-colors text-sm"
                 >
-                  ⚡ Automation
+                  ⚡ What to automate first for max ROI
                 </button>
                 <button
                   onClick={() => setUserInput('How can we use data analytics to improve our decision making?')}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-surface-800 border border-surface-600 text-surface-200 rounded-xl hover:bg-surface-700 hover:border-nexus-500/50 transition-colors text-sm"
                 >
-                  📊 Analytics
+                  📊 Data analytics for better decisions
                 </button>
                 <button
                   onClick={() => setUserInput('What compliance and risk considerations do we need for AI?')}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-surface-800 border border-surface-600 text-surface-200 rounded-xl hover:bg-surface-700 hover:border-nexus-500/50 transition-colors text-sm"
                 >
-                  🛡️ Compliance
+                  🛡️ Compliance & risk for AI
                 </button>
                 <button
                   onClick={() => setUserInput('How can we improve our customer experience using AI?')}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm whitespace-nowrap"
+                  className="px-4 py-2 bg-surface-800 border border-surface-600 text-surface-200 rounded-xl hover:bg-surface-700 hover:border-nexus-500/50 transition-colors text-sm"
                 >
-                  ✨ Customer Experience
+                  ✨ Improve customer experience with AI
                 </button>
               </div>
             </div>
           </div>
+
+          {/* Autopilot Panel - Right Side (Desktop) / Overlay (Mobile) */}
+          {showAutopilot && FEATURE_FLAGS.AUTOPILOT_ENABLED && (
+            <div
+              className={`${
+                isMobile
+                  ? 'absolute inset-0 bg-surface-950 z-20'
+                  : 'w-[480px] border-l border-surface-700 bg-surface-950'
+              } flex flex-col overflow-hidden`}
+            >
+              <AutopilotPanel
+                workflowSpec={autopilotSpec}
+                onClose={() => setShowAutopilot(false)}
+                onComplete={() => {
+                  setShowAutopilot(false)
+                  // Add a success message to the consultancy chat
+                  setMessages(prev => [...prev, {
+                    id: `autopilot-done-${Date.now()}`,
+                    agentId: 'system',
+                    agentName: 'Nexus Autopilot',
+                    agentIcon: '🤖',
+                    role: 'System',
+                    text: 'All services have been configured successfully! Your workflow is ready to run.',
+                    timestamp: new Date()
+                  }])
+                }}
+              />
+            </div>
+          )}
 
           {/* Agents Panel - Sidebar (Desktop) / Overlay (Mobile) */}
           {showAgentsList && (
             <div
               className={`${
                 isMobile
-                  ? 'absolute inset-0 bg-white dark:bg-slate-900 z-10'
-                  : 'w-80 border-l border-slate-200 dark:border-slate-700'
+                  ? 'absolute inset-0 bg-surface-900 z-10'
+                  : 'w-80 border-l border-surface-700'
               } flex flex-col`}
             >
               {/* Panel Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                <h3 className="font-semibold text-slate-900 dark:text-white">Consultants ({agents.length})</h3>
+              <div className="flex items-center justify-between p-4 border-b border-surface-700">
+                <h3 className="font-semibold text-white">Consultants ({agents.length})</h3>
                 <button
                   onClick={() => setShowAgentsList(false)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-2 hover:bg-surface-800 rounded-lg transition-colors"
                   aria-label="Close agents panel"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -657,10 +824,10 @@ export function AIMeetingRoomV2({
                         key={agent.id}
                         className={`p-3 rounded-xl border-2 transition-all ${
                           isActive
-                            ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-950'
+                            ? 'border-cyan-500 bg-cyan-950'
                             : isTyping
-                            ? 'border-cyan-300 dark:border-cyan-700 bg-cyan-50/50 dark:bg-cyan-950/50'
-                            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800'
+                            ? 'border-cyan-700 bg-cyan-950/50'
+                            : 'border-surface-700 bg-surface-800'
                         }`}
                       >
                         <div className="flex flex-col items-center text-center gap-2">
@@ -674,20 +841,20 @@ export function AIMeetingRoomV2({
                             {agent.icon}
                           </div>
                           <div>
-                            <div className="font-medium text-sm text-slate-900 dark:text-white">
+                            <div className="font-medium text-sm text-white">
                               {agent.displayName}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                            <div className="text-xs text-surface-400">
                               {agent.title.split(' + ')[0]}
                             </div>
                           </div>
                           {isTyping && (
-                            <div className="text-xs text-cyan-600 dark:text-cyan-400">
+                            <div className="text-xs text-cyan-400">
                               Thinking...
                             </div>
                           )}
                           {isActive && (
-                            <div className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <div className="text-xs text-green-400 flex items-center gap-1">
                               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                               Speaking
                             </div>

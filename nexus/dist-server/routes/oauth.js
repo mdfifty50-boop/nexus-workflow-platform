@@ -11,6 +11,7 @@
  */
 import { Router } from 'express';
 import { oauthProxyService } from '../services/OAuthProxyService';
+import { composioService } from '../services/ComposioService';
 const router = Router();
 /**
  * POST /api/oauth/initiate
@@ -49,41 +50,199 @@ router.post('/initiate', (req, res) => {
 });
 /**
  * GET /api/oauth/callback
- * Handle OAuth callback from providers
+ * FIX-072: Handle OAuth callback from providers
+ * Shows success page that auto-closes popup and notifies parent window
  *
  * Query: { code: string, state: string, error?: string }
  */
 router.get('/callback', async (req, res) => {
-    const { code, state, error, error_description } = req.query;
+    const { code, state, error, error_description, toolkit: queryToolkit } = req.query;
+    console.log(`[OAuth] FIX-072: Callback received (toolkit: ${queryToolkit || 'unknown'}, has_code: ${!!code}, has_state: ${!!state})`);
     // Handle OAuth errors from provider
     if (error) {
         console.error(`[OAuth] Provider returned error: ${error} - ${error_description}`);
-        // Redirect to frontend with error
-        return res.redirect(`/integrations/callback?error=${encodeURIComponent(String(error))}&error_description=${encodeURIComponent(String(error_description || ''))}`);
+        // Show error page that auto-closes
+        return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Connection Error</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; text-align: center; background: #f9fafb; }
+          .container { max-width: 400px; margin: 60px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #dc2626; margin-bottom: 8px; }
+          p { color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">❌</div>
+          <h2>Connection Failed</h2>
+          <p>${String(error_description || error)}</p>
+          <p style="font-size: 14px; margin-top: 16px;">This window will close automatically...</p>
+        </div>
+        <script>
+          // Notify parent window
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'oauth-error',
+              error: ${JSON.stringify(String(error))},
+              description: ${JSON.stringify(String(error_description || ''))}
+            }, '*');
+          }
+          setTimeout(() => window.close(), 2500);
+        </script>
+      </body>
+      </html>
+    `);
     }
     if (!code || !state) {
-        return res.redirect('/integrations/callback?error=missing_params');
+        // Missing params - show error page
+        return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Connection Error</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; text-align: center; background: #f9fafb; }
+          .container { max-width: 400px; margin: 60px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #dc2626; margin-bottom: 8px; }
+          p { color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">❌</div>
+          <h2>Connection Incomplete</h2>
+          <p>Missing required parameters. Please try connecting again.</p>
+          <p style="font-size: 14px; margin-top: 16px;">This window will close automatically...</p>
+        </div>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({ type: 'oauth-error', error: 'missing_params' }, '*');
+          }
+          setTimeout(() => window.close(), 2500);
+        </script>
+      </body>
+      </html>
+    `);
     }
     try {
         const result = await oauthProxyService.handleCallback(String(state), String(code));
         if (!result.success) {
-            console.error(`[OAuth] Callback failed: ${result.error}`);
-            return res.redirect(`/integrations/callback?error=${encodeURIComponent(result.error || 'unknown')}`);
+            console.error(`[OAuth] Callback processing failed: ${result.error}`);
+            return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Connection Error</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; text-align: center; background: #f9fafb; }
+            .container { max-width: 400px; margin: 60px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .icon { font-size: 48px; margin-bottom: 16px; }
+            h2 { color: #dc2626; margin-bottom: 8px; }
+            p { color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">❌</div>
+            <h2>Connection Failed</h2>
+            <p>${result.error || 'Unable to complete connection'}</p>
+            <p style="font-size: 14px; margin-top: 16px;">This window will close automatically...</p>
+          </div>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'oauth-error', error: ${JSON.stringify(result.error || 'unknown')} }, '*');
+            }
+            setTimeout(() => window.close(), 2500);
+          </script>
+        </body>
+        </html>
+      `);
         }
-        // Success - redirect to frontend
-        console.log(`[OAuth] Successfully connected ${result.toolkit} for user ${result.userId}`);
-        res.redirect(`/integrations/callback?success=true&toolkit=${result.toolkit}`);
+        // Success!
+        const connectedToolkit = result.toolkit || queryToolkit || 'your app';
+        console.log(`[OAuth] FIX-072: Successfully connected ${connectedToolkit} for user ${result.userId}`);
+        // Show success page that auto-closes and notifies parent
+        res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Connected!</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; text-align: center; background: #f9fafb; }
+          .container { max-width: 400px; margin: 60px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .icon { font-size: 64px; margin-bottom: 16px; animation: pop 0.3s ease-out; }
+          @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+          h2 { color: #059669; margin-bottom: 8px; }
+          p { color: #6b7280; }
+          .toolkit { font-weight: 600; color: #1f2937; text-transform: capitalize; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">✅</div>
+          <h2>Successfully Connected!</h2>
+          <p><span class="toolkit">${connectedToolkit}</span> is now connected to your account.</p>
+          <p style="font-size: 14px; margin-top: 16px;">This window will close automatically...</p>
+        </div>
+        <script>
+          // Notify parent window of success
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'oauth-success',
+              toolkit: ${JSON.stringify(connectedToolkit)},
+              userId: ${JSON.stringify(result.userId || 'unknown')}
+            }, '*');
+          }
+          // Close after 1.5 seconds
+          setTimeout(() => window.close(), 1500);
+        </script>
+      </body>
+      </html>
+    `);
     }
     catch (err) {
         console.error('[OAuth] Callback error:', err);
-        res.redirect(`/integrations/callback?error=${encodeURIComponent(String(err))}`);
+        res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Connection Error</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; text-align: center; background: #f9fafb; }
+          .container { max-width: 400px; margin: 60px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .icon { font-size: 48px; margin-bottom: 16px; }
+          h2 { color: #dc2626; margin-bottom: 8px; }
+          p { color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">❌</div>
+          <h2>Something went wrong</h2>
+          <p>Please try connecting again.</p>
+          <p style="font-size: 14px; margin-top: 16px;">This window will close automatically...</p>
+        </div>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({ type: 'oauth-error', error: 'unknown' }, '*');
+          }
+          setTimeout(() => window.close(), 2500);
+        </script>
+      </body>
+      </html>
+    `);
     }
 });
 /**
  * GET /api/oauth/proxy/:toolkit
- * Proxy endpoint for Composio-managed OAuth
- * This fetches the real OAuth URL from Composio and redirects
- * User never sees composio.dev URL
+ * FIX-072: Proxy endpoint for Composio-managed OAuth
+ * Fetches OAuth URL from Composio, redirects user to provider (Google, Slack, etc.)
+ * User never sees composio.dev URL - we handle the redirect seamlessly
  */
 router.get('/proxy/:toolkit', async (req, res) => {
     const { toolkit } = req.params;
@@ -91,44 +250,70 @@ router.get('/proxy/:toolkit', async (req, res) => {
     if (!state) {
         return res.status(400).json({ error: 'state is required' });
     }
+    console.log(`[OAuth] FIX-072: Proxy ${toolkit} OAuth request (state: ${String(state).substring(0, 16)}...)`);
     try {
-        // In production, call Composio API to get real OAuth URL:
-        // const composioResponse = await fetch('https://backend.composio.dev/api/v1/connections/initiate', {
-        //   method: 'POST',
-        //   headers: { 'x-api-key': process.env.COMPOSIO_API_KEY },
-        //   body: JSON.stringify({ app: toolkit, redirectUri: `${baseUrl}/api/oauth/callback` })
-        // })
-        // const { authUrl } = await composioResponse.json()
-        // return res.redirect(authUrl)
-        // For now, generate a mock redirect URL that simulates provider OAuth
-        // In production, this would redirect to the actual provider via Composio
-        const providerUrls = {
-            gmail: 'https://accounts.google.com/o/oauth2/v2/auth',
-            googlecalendar: 'https://accounts.google.com/o/oauth2/v2/auth',
-            slack: 'https://slack.com/oauth/v2/authorize',
-            github: 'https://github.com/login/oauth/authorize',
-            notion: 'https://api.notion.com/v1/oauth/authorize',
-            discord: 'https://discord.com/api/oauth2/authorize',
-        };
-        const baseProviderUrl = providerUrls[toolkit.toLowerCase()] || 'https://accounts.google.com/o/oauth2/v2/auth';
-        // Build redirect URL (in production, Composio provides this)
-        const protocol = req.secure ? 'https' : 'http';
-        const callbackUrl = `${protocol}://${req.get('host')}/api/oauth/callback`;
-        const params = new URLSearchParams({
-            state: String(state),
-            redirect_uri: callbackUrl,
-            response_type: 'code',
-            client_id: process.env.GOOGLE_CLIENT_ID || 'demo_client_id',
-            scope: 'openid email profile',
-        });
-        // Redirect to actual provider OAuth
-        const authUrl = `${baseProviderUrl}?${params.toString()}`;
-        console.log(`[OAuth] Proxying ${toolkit} OAuth request`);
-        res.redirect(authUrl);
+        // Build callback URL that points back to Nexus
+        const protocol = req.secure || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+        const baseUrl = `${protocol}://${req.get('host')}`;
+        const callbackUrl = `${baseUrl}/api/oauth/callback`;
+        console.log(`[OAuth] Callback URL: ${callbackUrl}`);
+        // Initialize Composio if needed
+        if (!composioService.initialized) {
+            const apiKey = process.env.COMPOSIO_API_KEY;
+            if (apiKey) {
+                await composioService.initialize(apiKey);
+                console.log('[OAuth] ComposioService initialized for proxy');
+            }
+        }
+        // Get OAuth URL from Composio with our callback
+        const authResult = await composioService.initiateConnection(toolkit, callbackUrl);
+        if (authResult.error || !authResult.authUrl) {
+            console.error(`[OAuth] Failed to get OAuth URL for ${toolkit}:`, authResult.error);
+            // Return a user-friendly error page
+            return res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Connection Error</title></head>
+        <body style="font-family: system-ui; padding: 40px; text-align: center;">
+          <h2>Unable to connect ${toolkit}</h2>
+          <p>Please close this window and try again.</p>
+          <script>
+            // Notify parent window of failure
+            if (window.opener) {
+              window.opener.postMessage({ type: 'oauth-error', toolkit: '${toolkit}' }, '*');
+            }
+            setTimeout(() => window.close(), 3000);
+          </script>
+        </body>
+        </html>
+      `);
+        }
+        console.log(`[OAuth] Got OAuth URL for ${toolkit}: ${authResult.authUrl.substring(0, 80)}...`);
+        // Check if this is going through Composio's platform (not ideal, but functional)
+        if (authResult.authUrl.includes('composio.dev') || authResult.authUrl.includes('platform.composio')) {
+            console.warn(`[OAuth] WARNING: ${toolkit} OAuth goes through Composio platform - connection will work but UX not ideal`);
+        }
+        // Redirect to the OAuth URL
+        res.redirect(authResult.authUrl);
     }
     catch (err) {
         console.error(`[OAuth] Proxy error for ${toolkit}:`, err);
-        res.status(500).json({ error: 'Failed to initiate OAuth' });
+        res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Connection Error</title></head>
+      <body style="font-family: system-ui; padding: 40px; text-align: center;">
+        <h2>Unable to connect ${toolkit}</h2>
+        <p>Please close this window and try again.</p>
+        <script>
+          if (window.opener) {
+            window.opener.postMessage({ type: 'oauth-error', toolkit: '${toolkit}' }, '*');
+          }
+          setTimeout(() => window.close(), 3000);
+        </script>
+      </body>
+      </html>
+    `);
     }
 });
 /**

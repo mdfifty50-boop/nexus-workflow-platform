@@ -1,3 +1,11 @@
+---
+paths:
+  - "nexus/server/services/WhatsApp*"
+  - "nexus/server/routes/whatsapp*"
+  - "nexus/src/components/chat/WhatsApp*"
+  - "nexus/src/hooks/useWhatsApp*"
+---
+
 # WhatsApp Architecture Protection Rules (MANDATORY)
 
 **Last Updated:** 2026-02-02

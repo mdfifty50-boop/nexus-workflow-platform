@@ -46,7 +46,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Writing Agent',
           config: {
             prompt: 'You are a professional writer. Using the research provided, write a compelling 500-word article:\n\nResearch: {{input}}\n\nRequirements:\n- Engaging headline\n- Strong opening hook\n- Well-structured body (3 paragraphs)\n- Compelling conclusion\n- SEO-friendly',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 450, y: 200 },
         },
@@ -56,7 +56,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Editor Agent',
           config: {
             prompt: 'You are a professional editor. Review and improve this article:\n\nArticle: {{input}}\n\nTasks:\n- Fix grammar and spelling\n- Improve clarity and flow\n- Enhance word choice\n- Add subheadings\n- Fact-check claims',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 650, y: 200 },
         },
@@ -122,7 +122,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Response Generator',
           config: {
             prompt: 'Generate a professional customer support response:\n\nTicket Classification: {{input}}\n\nRequirements:\n- Empathetic tone\n- Address the specific issue\n- Provide actionable solution\n- Include next steps\n- Professional sign-off',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 450, y: 200 },
         },
@@ -187,7 +187,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Company Researcher',
           config: {
             prompt: 'Research this company based on lead info:\n\n{{input}}\n\nProvide:\n- Company size estimate\n- Industry challenges\n- Potential pain points\n- Competitive landscape\n- Decision-maker likely concerns',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 450, y: 200 },
         },
@@ -197,7 +197,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Outreach Personalizer',
           config: {
             prompt: 'Create personalized sales outreach:\n\n{{input}}\n\nGenerate:\n- Subject line (3 variants)\n- Email body (consultative approach)\n- Value proposition tailored to their industry\n- Call-to-action\n- Follow-up sequence (3 emails)',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 650, y: 200 },
         },
@@ -252,7 +252,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Data Analyzer',
           config: {
             prompt: 'Analyze this cleaned data:\n\n{{input}}\n\nProvide:\n- Descriptive statistics\n- Key trends and patterns\n- Correlations\n- Outliers\n- 3 key insights',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 450, y: 200 },
         },
@@ -272,7 +272,7 @@ export const advancedWorkflowTemplates: AdvancedWorkflowTemplate[] = [
           label: 'Report Generator',
           config: {
             prompt: 'Generate executive summary report:\n\n{{input}}\n\nInclude:\n- Executive summary (3 bullets)\n- Key findings\n- Recommendations\n- Next steps\n- Appendix with methodology',
-            model: 'claude-3-5-sonnet-20241022',
+            model: 'claude-sonnet-4-6',
           },
           position: { x: 850, y: 200 },
         },

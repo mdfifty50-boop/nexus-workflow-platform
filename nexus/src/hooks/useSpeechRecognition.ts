@@ -392,6 +392,9 @@ export function useSpeechRecognition(
   }, [SpeechRecognitionClass, continuous, interimResults, language, maxAlternatives])
 
   // Start listening
+  // CRITICAL: recognition.start() MUST be called synchronously from the user gesture
+  // to preserve the "user activation" context on mobile browsers (iOS Safari, Chrome Android).
+  // Any await before recognition.start() breaks the gesture chain and mic access silently fails.
   const startListening = useCallback(async () => {
     console.log('[SpeechRecognition] Starting... Language:', language)
 
@@ -403,25 +406,6 @@ export function useSpeechRecognition(
         recoverable: false
       })
       return
-    }
-
-    // Check microphone permission first
-    try {
-      console.log('[SpeechRecognition] Checking microphone permissions...')
-      const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-      console.log('[SpeechRecognition] Permission status:', permissionStatus.state)
-
-      if (permissionStatus.state === 'denied') {
-        setError({
-          type: 'not-allowed',
-          message: 'Microphone access is denied. Please enable it in your browser settings and reload the page.',
-          recoverable: true
-        })
-        return
-      }
-    } catch (err) {
-      console.log('[SpeechRecognition] Permission API not supported, will request on start')
-      // Permission API not supported, continue anyway - mic permission will be requested on start
     }
 
     // Stop any existing recognition
@@ -444,12 +428,17 @@ export function useSpeechRecognition(
       return
     }
 
+    // Start recognition IMMEDIATELY (synchronous from user click) to preserve gesture chain.
+    // Audio analyzer is optional visual feedback — set up AFTER recognition starts.
     try {
-      console.log('[SpeechRecognition] Setting up audio analyzer...')
-      await setupAudioAnalyzer()
-      console.log('[SpeechRecognition] Starting recognition...')
+      console.log('[SpeechRecognition] Starting recognition (sync from user gesture)...')
       recognitionRef.current.start()
       console.log('[SpeechRecognition] Recognition started successfully')
+
+      // Setup audio analyzer AFTER recognition started (async is fine now)
+      setupAudioAnalyzer().catch(err => {
+        console.warn('[SpeechRecognition] Audio analyzer setup failed (non-blocking):', err)
+      })
     } catch (err) {
       console.error('[SpeechRecognition] Start error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to start speech recognition.'

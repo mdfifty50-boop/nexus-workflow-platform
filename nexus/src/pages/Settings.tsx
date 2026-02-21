@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -17,6 +18,7 @@ import {
   ChevronRight,
   Mic,
   Cloud,
+  ArrowLeft,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { WhatsAppWebIntegrationPanel } from '../components/WhatsAppWebIntegration'
@@ -35,7 +37,13 @@ const settingsSections = [
 
 export function Settings() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState('account')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  // Account form fields
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
   // Initialize state directly from service (lazy initialization for correct first render)
   const [darkMode, setDarkMode] = useState(() => userPreferencesService.get('theme') === 'dark')
   const [emailNotifications, setEmailNotifications] = useState(() => userPreferencesService.get('emailNotifications'))
@@ -44,6 +52,23 @@ export function Settings() {
   const [syncStatus, setSyncStatus] = useState<{ lastSync: Date | null; enabled: boolean }>(() =>
     userPreferencesService.getSyncStatus()
   )
+
+  // Load profile data from localStorage
+  useEffect(() => {
+    try {
+      const profile = localStorage.getItem('nexus_business_profile')
+      if (profile) {
+        const data = JSON.parse(profile)
+        if (data.businessName) {
+          const parts = data.businessName.split(' ')
+          setFirstName(parts[0] || '')
+          setLastName(parts.slice(1).join(' ') || '')
+        }
+      }
+      const userEmail = localStorage.getItem('nexus_user_email')
+      if (userEmail) setEmail(userEmail)
+    } catch { /* graceful fallback */ }
+  }, [])
 
   // Update sync status after async cloud check completes
   useEffect(() => {
@@ -89,9 +114,17 @@ export function Settings() {
     <div className="max-w-6xl mx-auto">
       <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('settings.title')}</h1>
-            <p className="text-sm sm:text-base text-surface-400 mt-1">{t('settings.subtitle')}</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-xl bg-surface-800 border border-surface-700 flex items-center justify-center text-surface-300 hover:text-white hover:bg-surface-700 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">{t('settings.title')}</h1>
+              <p className="text-sm sm:text-base text-surface-400 mt-1">{t('settings.subtitle')}</p>
+            </div>
           </div>
           {syncStatus.enabled && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
@@ -162,6 +195,8 @@ export function Settings() {
                       <input
                         type="text"
                         placeholder="Enter your first name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -174,6 +209,8 @@ export function Settings() {
                       <input
                         type="text"
                         placeholder="Enter your last name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                         style={{
                           backgroundColor: '#1e293b',
@@ -187,6 +224,8 @@ export function Settings() {
                     <input
                       type="email"
                       placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl text-white placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-nexus-500/50 transition-all"
                       style={{
                         backgroundColor: '#1e293b',
@@ -210,13 +249,37 @@ export function Settings() {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-surface-700 flex justify-end">
+                <div className="mt-6 pt-6 border-t border-surface-700 flex items-center justify-end gap-3">
+                  {saveStatus === 'saved' && (
+                    <span className="flex items-center gap-1.5 text-sm text-emerald-400">
+                      <Check className="w-4 h-4" /> Saved
+                    </span>
+                  )}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn-primary"
+                    onClick={async () => {
+                      setSaveStatus('saving')
+                      try {
+                        const fullName = [firstName, lastName].filter(Boolean).join(' ')
+                        if (fullName) {
+                          const profile = JSON.parse(localStorage.getItem('nexus_business_profile') || '{}')
+                          profile.businessName = fullName
+                          localStorage.setItem('nexus_business_profile', JSON.stringify(profile))
+                        }
+                        if (email) {
+                          localStorage.setItem('nexus_user_email', email)
+                        }
+                        await new Promise(r => setTimeout(r, 400))
+                        setSaveStatus('saved')
+                        setTimeout(() => setSaveStatus('idle'), 2000)
+                      } catch {
+                        setSaveStatus('idle')
+                      }
+                    }}
                   >
-                    {t('settings.saveChanges')}
+                    {saveStatus === 'saving' ? 'Saving...' : t('settings.saveChanges')}
                   </motion.button>
                 </div>
               </div>

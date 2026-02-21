@@ -1,0 +1,130 @@
+{
+  "url": "https://nexus-theta-peach.vercel.app",
+  "date": "2026-02-16T14:43:07.035Z",
+  "passed": 24,
+  "failed": 0,
+  "consoleErrors": 0,
+  "results": [
+    {
+      "test": "Landing page title exists",
+      "status": "PASS",
+      "detail": "Nexus - AI-Powered Workflow Automation | Build Automations in Seconds"
+    },
+    {
+      "test": "Hero section has branding/product text",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Navigation present",
+      "status": "PASS",
+      "detail": "9 nav elements found"
+    },
+    {
+      "test": "CTA buttons present",
+      "status": "PASS",
+      "detail": "5 CTAs found"
+    },
+    {
+      "test": "Dashboard content loaded",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Auth redirect works correctly",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Chat input field present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Chat sidebar present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "WhatsApp option in sidebar (Batch 7)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Templates auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Integrations auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Settings auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Profile auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Workflows auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Clerk auth components loaded",
+      "status": "PASS",
+      "detail": "69 elements"
+    },
+    {
+      "test": "OAuth social login buttons present",
+      "status": "PASS",
+      "detail": "11 providers"
+    },
+    {
+      "test": "Sign-up page has content",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "AI Consultancy page accessible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "WhatsApp auth gate works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Landing page loads < 3s",
+      "status": "PASS",
+      "detail": "407ms"
+    },
+    {
+      "test": "No horizontal overflow on mobile",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Security headers present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "404 handling works",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "test": "Zero console errors across all pages",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "errors": []
+}

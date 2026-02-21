@@ -3,7 +3,7 @@
  *
  * Generates personalized workflow suggestions using tiered LLM models.
  * Uses the claudeProxy tiering system for cost optimization:
- * - Haiku: Pattern detection, classification (~$0.25/1M tokens)
+ * - Haiku: Pattern detection, classification (~$0.80/1M tokens)
  * - Sonnet: Daily suggestions, workflow generation (~$3/1M tokens)
  * - Opus: Weekly deep analysis, strategic recommendations (~$15/1M tokens)
  *

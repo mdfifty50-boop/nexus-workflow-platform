@@ -47,6 +47,7 @@ export function mapIndustryToPersonaId(industry: Industry | null): string | null
     consulting: 'consulting',
     healthcare: 'healthcare',
     finance: 'finance',
+    banking: 'banking',
     education: 'education',
     realestate: 'realestate',
     manufacturing: 'manufacturing',

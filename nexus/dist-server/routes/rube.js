@@ -15,6 +15,12 @@ import { Router } from 'express';
 import { oauthProxyService } from '../services/OAuthProxyService';
 import { composioService } from '../services/ComposioService';
 import { toolDiscoveryService } from '../services/ToolDiscoveryService';
+// @NEXUS-FIX-095: Import WhatsApp Baileys service for direct message routing
+import { whatsAppBaileysService } from '../services/WhatsAppBaileysService';
+// @NEXUS-FIX-022: Multi-tenant identity - per-user Composio entities
+import { getUserEntityId } from '../utils/user-entity';
+import { executionLimiter, discoveryLimiter, connectionLimiter } from '../middleware/rate-limit.js';
+import { promptGuardService } from '../services/PromptGuardService.js';
 const router = Router();
 /**
  * Extended Tool Catalog for dynamic discovery
@@ -172,7 +178,7 @@ function searchToolCatalog(useCase, toolkit) {
  * Request: { queries: [{ use_case: string, known_fields?: string }], session_id?: string }
  * Response: { tools: [], connection_statuses: [], session_id: string }
  */
-router.post('/search-tools', async (req, res) => {
+router.post('/search-tools', discoveryLimiter, async (req, res) => {
     const { queries, session_id } = req.body;
     if (!queries || !Array.isArray(queries)) {
         return res.status(400).json({
@@ -243,8 +249,10 @@ router.post('/search-tools', async (req, res) => {
  * Request: { toolName: string, checkConnection?: boolean, includeAlternatives?: boolean }
  * Response: ToolDiscoveryResult
  */
-router.post('/discover-tool', async (req, res) => {
-    const { toolName, checkConnection = true, includeAlternatives = true, userId = 'default' } = req.body;
+router.post('/discover-tool', discoveryLimiter, async (req, res) => {
+    const { toolName, checkConnection = true, includeAlternatives = true } = req.body;
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     if (!toolName) {
         return res.status(400).json({
             success: false,
@@ -290,8 +298,10 @@ router.post('/discover-tool', async (req, res) => {
  * Request: { toolNames: string[], checkConnection?: boolean }
  * Response: { results: ToolDiscoveryResult[] }
  */
-router.post('/discover-tools', async (req, res) => {
-    const { toolNames, checkConnection = true, includeAlternatives = true, userId = 'default' } = req.body;
+router.post('/discover-tools', discoveryLimiter, async (req, res) => {
+    const { toolNames, checkConnection = true, includeAlternatives = true } = req.body;
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     if (!toolNames || !Array.isArray(toolNames) || toolNames.length === 0) {
         return res.status(400).json({
             success: false,
@@ -353,8 +363,10 @@ router.post('/discover-tools', async (req, res) => {
  * Request: { toolkits: string[], userId?: string, sessionId?: string }
  * Response: { results: { [toolkit]: { status, redirect_url? } } }
  */
-router.post('/manage-connections', async (req, res) => {
-    const { toolkits, userId = 'default', sessionId } = req.body;
+router.post('/manage-connections', connectionLimiter, async (req, res) => {
+    const { toolkits, sessionId } = req.body;
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     if (!toolkits || !Array.isArray(toolkits)) {
         return res.status(400).json({
             success: false,
@@ -386,30 +398,38 @@ router.post('/manage-connections', async (req, res) => {
                 };
             }
             else {
-                // Initiate connection via Composio's OAuth
-                console.log(`[Rube] Initiating Composio OAuth for: ${toolkit}`);
-                const authResult = await composioService.initiateConnection(toolkit, `${baseUrl}/integrations/callback?toolkit=${toolkit}`);
-                if (authResult.error) {
-                    console.log(`[Rube] Composio OAuth failed for ${toolkit}, trying local OAuth`);
-                    // Fallback to local OAuth for white-labeling
-                    const localAuthResult = oauthProxyService.generateAuthUrl(toolkit, userId, sessionId || `session_${Date.now()}`, baseUrl);
-                    if ('error' in localAuthResult) {
+                // FIX-072: Use white-label OAuth FIRST for seamless UX
+                // Users see direct provider URLs (accounts.google.com, slack.com)
+                // NOT composio.dev or rube.app URLs
+                console.log(`[Rube] FIX-072: Initiating white-label OAuth for: ${toolkit}`);
+                const localAuthResult = oauthProxyService.generateAuthUrl(toolkit, userId, sessionId || `session_${Date.now()}`, baseUrl);
+                if ('error' in localAuthResult) {
+                    // Fallback to Composio only if white-label fails
+                    console.log(`[Rube] White-label OAuth not available for ${toolkit}, trying Composio`);
+                    const authResult = await composioService.initiateConnection(toolkit, `${baseUrl}/integrations/callback?toolkit=${toolkit}`);
+                    if (authResult.error) {
+                        console.log(`[Rube] Both OAuth methods failed for ${toolkit}`);
                         results[toolkit] = {
                             status: 'error',
                             redirect_url: undefined,
                         };
                     }
                     else {
+                        // Check if Composio returned a composio.dev URL - warn about it
+                        if (authResult.authUrl?.includes('composio.dev') || authResult.authUrl?.includes('platform.composio')) {
+                            console.warn(`[Rube] WARNING: Composio returned non-white-label URL for ${toolkit}`);
+                        }
                         results[toolkit] = {
                             status: 'pending',
-                            redirect_url: localAuthResult.authUrl,
+                            redirect_url: authResult.authUrl,
                         };
                     }
                 }
                 else {
+                    console.log(`[Rube] FIX-072: White-label OAuth URL generated for ${toolkit}`);
                     results[toolkit] = {
                         status: 'pending',
-                        redirect_url: authResult.authUrl,
+                        redirect_url: localAuthResult.authUrl,
                     };
                 }
             }
@@ -434,7 +454,7 @@ router.post('/manage-connections', async (req, res) => {
  * Request: { tools: [{ tool_slug: string, arguments: object }], session_id: string }
  * Response: { results: [], success: boolean }
  */
-router.post('/execute', async (req, res) => {
+router.post('/execute', executionLimiter, async (req, res) => {
     const { tools, session_id } = req.body;
     if (!tools || !Array.isArray(tools)) {
         return res.status(400).json({
@@ -461,14 +481,106 @@ router.post('/execute', async (req, res) => {
         // Execute each tool via ComposioService using accountId when available
         const results = await Promise.all(tools.map(async (tool) => {
             try {
+                // === Finding #10: Prompt Injection Defense - Layer 5: Tool Execution Guardrails ===
+                const userId = req.headers['x-user-id'] || req.headers['x-clerk-user-id'] || 'anonymous';
+                const guardCheck = promptGuardService.validateToolExecution(tool.tool_slug, tool.arguments || {}, userId);
+                if (!guardCheck.allowed) {
+                    console.warn(`[Rube][PromptGuard] Tool execution blocked: ${tool.tool_slug} - ${guardCheck.reason}`);
+                    return {
+                        tool_slug: tool.tool_slug,
+                        success: false,
+                        error: guardCheck.reason || 'Tool execution not permitted',
+                        data: null,
+                    };
+                }
                 // Extract toolkit from tool_slug (e.g., GMAIL_SEND_EMAIL -> gmail)
                 const toolkit = tool.tool_slug.split('_')[0].toLowerCase();
                 console.log(`[Rube] Executing tool: ${tool.tool_slug} (toolkit: ${toolkit})`);
                 // Get connection status with accountId
                 const connectionStatus = await composioService.checkConnection(toolkit);
                 if (!connectionStatus.connected || !connectionStatus.accountId) {
-                    console.log(`[Rube] No active connection for ${toolkit}, falling back to default`);
-                    // Fall back to default execution (may still fail with entity mismatch)
+                    console.log(`[Rube] No active connection for ${toolkit}, checking alternatives`);
+                    // @NEXUS-FIX-095: Route WhatsApp through Baileys when Composio not connected - DO NOT REMOVE
+                    // Problem: User connects WhatsApp via QR code (Baileys), but execution tries Composio
+                    // Solution: Check for Baileys session and use it for WhatsApp messages
+                    if (toolkit === 'whatsapp' && tool.tool_slug === 'WHATSAPP_SEND_MESSAGE') {
+                        console.log(`[Rube FIX-095] WhatsApp tool detected, checking Baileys sessions`);
+                        // Get all ready Baileys sessions
+                        const allSessions = whatsAppBaileysService.getAllSessions();
+                        const readySession = allSessions.find(s => s.state === 'ready');
+                        if (readySession) {
+                            console.log(`[Rube FIX-095] Found ready Baileys session: ${readySession.id}, sending via WhatsApp Web`);
+                            const startTime = Date.now();
+                            // Extract params from tool arguments
+                            // @NEXUS-FIX-096: Add debug logging and more parameter aliases for WhatsApp - DO NOT REMOVE
+                            const args = tool.arguments || {};
+                            console.log(`[Rube FIX-096] WhatsApp tool arguments:`, JSON.stringify(args, null, 2));
+                            // Check multiple possible keys for phone number (frontend may use different keys)
+                            const to = args.to ||
+                                args.phone ||
+                                args.recipient ||
+                                args.whatsapp ||
+                                args.phone_number ||
+                                args.number;
+                            const message = args.message ||
+                                args.text ||
+                                args.body ||
+                                args.content;
+                            console.log(`[Rube FIX-096] Extracted: to=${to}, message=${message?.substring(0, 50)}...`);
+                            if (!to || !message) {
+                                console.log(`[Rube FIX-096] Missing params! Available keys: ${Object.keys(args).join(', ')}`);
+                                return {
+                                    tool_slug: tool.tool_slug,
+                                    success: false,
+                                    error: `Missing required params: to=${to ? 'OK' : 'MISSING'}, message=${message ? 'OK' : 'MISSING'}. Available: ${Object.keys(args).join(', ')}`,
+                                    data: null,
+                                    executionTimeMs: Date.now() - startTime,
+                                };
+                            }
+                            // Send via Baileys
+                            // @NEXUS-FIX-098: Correctly handle WhatsAppMessage return type - DO NOT REMOVE
+                            // Problem: sendMessage returns WhatsAppMessage (with id, status) not {success, messageId, error}
+                            // Solution: Try/catch for errors, check returned message for success
+                            try {
+                                const sentMessage = await whatsAppBaileysService.sendMessage(readySession.id, to, message);
+                                // If we get here without throwing, message was sent successfully
+                                // WhatsAppMessage has: id, sessionId, from, to, body, timestamp, fromMe, status
+                                return {
+                                    tool_slug: tool.tool_slug,
+                                    success: true,
+                                    error: null,
+                                    data: {
+                                        messageId: sentMessage.id,
+                                        to: sentMessage.to,
+                                        status: sentMessage.status, // 'sent', 'delivered', etc.
+                                        via: 'whatsapp-web',
+                                        timestamp: sentMessage.timestamp,
+                                    },
+                                    executionTimeMs: Date.now() - startTime,
+                                };
+                            }
+                            catch (sendError) {
+                                console.error(`[Rube FIX-098] WhatsApp send failed:`, sendError);
+                                return {
+                                    tool_slug: tool.tool_slug,
+                                    success: false,
+                                    error: sendError.message || 'Failed to send WhatsApp message',
+                                    data: null,
+                                    executionTimeMs: Date.now() - startTime,
+                                };
+                            }
+                        }
+                        else {
+                            console.log(`[Rube FIX-095] No ready Baileys session found, sessions: ${allSessions.map(s => `${s.id}:${s.state}`).join(', ')}`);
+                            return {
+                                tool_slug: tool.tool_slug,
+                                success: false,
+                                error: 'WhatsApp not connected. Please scan the QR code to link your WhatsApp.',
+                                data: null,
+                            };
+                        }
+                    }
+                    // Fall back to default Composio execution (may still fail with entity mismatch)
                     const result = await composioService.executeTool(tool.tool_slug, tool.arguments || {});
                     return {
                         tool_slug: tool.tool_slug,
@@ -479,15 +591,46 @@ router.post('/execute', async (req, res) => {
                     };
                 }
                 // Use executeWithAccountId for reliable execution with ANY connection
+                // @NEXUS-FIX-111: Backend auto-retry for transient failures - DO NOT REMOVE
                 console.log(`[Rube] Using accountId ${connectionStatus.accountId} for ${tool.tool_slug}`);
-                const result = await composioService.executeWithAccountId(connectionStatus.accountId, tool.tool_slug, tool.arguments || {});
+                const MAX_RETRIES = 2;
+                let lastResult = null;
+                for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                    const result = await composioService.executeWithAccountId(connectionStatus.accountId, tool.tool_slug, tool.arguments || {});
+                    lastResult = result;
+                    if (result.success) {
+                        return {
+                            tool_slug: tool.tool_slug,
+                            success: true,
+                            error: null,
+                            data: result.data,
+                            executionTimeMs: result.executionTimeMs,
+                        };
+                    }
+                    // Check if error is retryable
+                    const errMsg = (result.error || '').toLowerCase();
+                    const isRetryable = errMsg.includes('rate limit') ||
+                        errMsg.includes('429') ||
+                        errMsg.includes('timeout') ||
+                        errMsg.includes('timed out') ||
+                        errMsg.includes('network') ||
+                        errMsg.includes('econnrefused') ||
+                        errMsg.includes('503') ||
+                        errMsg.includes('502');
+                    if (!isRetryable || attempt === MAX_RETRIES)
+                        break;
+                    const backoffMs = 2000 * Math.pow(2, attempt);
+                    console.log(`[Rube] Retrying ${tool.tool_slug} in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+                    await new Promise(r => setTimeout(r, backoffMs));
+                }
                 return {
                     tool_slug: tool.tool_slug,
-                    success: result.success,
-                    error: result.error || null,
-                    data: result.data,
-                    executionTimeMs: result.executionTimeMs,
+                    success: lastResult?.success ?? false,
+                    error: lastResult?.error || null,
+                    data: lastResult?.data,
+                    executionTimeMs: lastResult?.executionTimeMs,
                 };
+                // @NEXUS-FIX-111-END
             }
             catch (toolError) {
                 console.error(`[Rube] Tool ${tool.tool_slug} failed:`, toolError);
@@ -527,9 +670,10 @@ router.post('/execute', async (req, res) => {
  * Query: { userId?: string }
  * Response: { toolkit, connected: boolean, user_info?: object }
  */
-router.get('/connection-status/:toolkit', async (req, res) => {
+router.get('/connection-status/:toolkit', connectionLimiter, async (req, res) => {
     const { toolkit } = req.params;
-    const userId = req.query.userId || 'default';
+    // @NEXUS-FIX-022: Per-user Composio entity
+    const userId = getUserEntityId(req);
     try {
         console.log(`[Rube] Checking connection status for: ${toolkit}`);
         // Initialize Composio if not already done
@@ -793,7 +937,7 @@ function generateGenericSchema(toolSlug) {
  * Request: { tool_slugs: string[], session_id: string }
  * Response: { success: boolean, schemas: Array<{ tool_slug, input_schema }> }
  */
-router.post('/get-tool-schemas', async (req, res) => {
+router.post('/get-tool-schemas', discoveryLimiter, async (req, res) => {
     const { tool_slugs, session_id } = req.body;
     if (!tool_slugs || !Array.isArray(tool_slugs)) {
         return res.status(400).json({

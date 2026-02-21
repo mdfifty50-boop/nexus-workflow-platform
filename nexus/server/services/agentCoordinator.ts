@@ -1,5 +1,26 @@
 import { workflowService } from './workflowService.js'
 import { callClaudeWithTiering, tieredCalls, recordTieringMetrics } from './claudeProxy.js'
+import { createRequire } from 'module'
+import { fileURLToPath } from 'url'
+import path from 'path'
+
+// Load model-modes.json for runtime agent model selection
+const _require = createRequire(import.meta.url)
+const _dirname = path.dirname(fileURLToPath(import.meta.url))
+const modelModes = _require(path.join(_dirname, '../../config/model-modes.json'))
+
+/**
+ * Get the Claude model ID for a given agent based on the active mode.
+ * Reads NEXUS_MODEL_MODE env var or falls back to model-modes.json activeMode.
+ */
+function getModelForAgent(agentId: string): string {
+  const modeName = (process.env.NEXUS_MODEL_MODE || modelModes.activeMode || 'default') as string
+  const runtimeConfig = (modelModes.runtimeAgents as Record<string, Record<string, string>>)[modeName]
+    || (modelModes.runtimeAgents as Record<string, Record<string, string>>)['default']
+  const tierName = runtimeConfig?.[agentId] || 'sonnet'
+  const metadata = modelModes.modelMetadata as Record<string, { id: string }>
+  return metadata[tierName]?.id || modelModes.modelMetadata.sonnet.id
+}
 
 // Agent role definitions
 export interface AgentRole {
@@ -31,15 +52,15 @@ export interface SupervisorDecision {
   modifiedInput?: string
 }
 
-// BMAD Agent Roles
-export const BMAD_AGENTS: Record<string, AgentRole> = {
+// Execution Agent Roles (formerly BMAD_AGENTS — renamed to avoid collision with agents/index.ts BMAD_AGENTS persona registry)
+export const EXECUTION_AGENTS: Record<string, AgentRole> = {
   director: {
     id: 'director',
     name: 'Nexus',
     title: 'Director',
     avatar: '🎯',
     color: '#14B8A6',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('director'),
     capabilities: ['planning', 'delegation', 'orchestration', 'analysis'],
     systemPrompt: `You are the BMAD Director, responsible for high-level workflow orchestration.
 
@@ -65,7 +86,7 @@ Always maintain context across the workflow and ensure tasks are executed in the
     title: 'Supervisor',
     avatar: '👁️',
     color: '#8B5CF6',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('supervisor'),
     capabilities: ['monitoring', 'error-handling', 'quality-assurance', 'escalation'],
     systemPrompt: `You are the BMAD Supervisor, responsible for monitoring agent work quality.
 
@@ -93,7 +114,7 @@ Be strict about quality but pragmatic about progress.`,
     title: 'Salesforce Specialist',
     avatar: '☁️',
     color: '#00A1E0',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('salesforce'),
     capabilities: ['salesforce-queries', 'salesforce-updates', 'salesforce-reports', 'soql'],
     systemPrompt: `You are a Salesforce specialist agent. You handle all Salesforce CRM operations.
 
@@ -119,7 +140,7 @@ Always respond with actionable outputs that can be executed against the Salesfor
     title: 'HubSpot Specialist',
     avatar: '🔶',
     color: '#FF7A59',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('hubspot'),
     capabilities: ['hubspot-contacts', 'hubspot-deals', 'hubspot-marketing', 'hubspot-automation'],
     systemPrompt: `You are a HubSpot specialist agent. You handle all HubSpot CRM and marketing operations.
 
@@ -145,7 +166,7 @@ Always respond with actionable outputs that can be executed against the HubSpot 
     title: 'Email Specialist',
     avatar: '📧',
     color: '#10B981',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('email'),
     capabilities: ['email-compose', 'email-templates', 'email-automation', 'email-analytics'],
     systemPrompt: `You are an email specialist agent. You handle all email-related operations.
 
@@ -171,7 +192,7 @@ Always respond with properly formatted email content ready for sending.`,
     title: 'Data Engineer',
     avatar: '🔄',
     color: '#F59E0B',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('data_transform'),
     capabilities: ['data-mapping', 'data-cleaning', 'data-enrichment', 'data-validation'],
     systemPrompt: `You are a data transformation specialist. You handle all data processing operations.
 
@@ -197,7 +218,7 @@ Always respond with the transformed data and any validation results.`,
     title: 'Calendar Specialist',
     avatar: '📅',
     color: '#3B82F6',
-    model: 'claude-sonnet-4-20250514',
+    model: getModelForAgent('calendar'),
     capabilities: ['calendar-events', 'scheduling', 'availability', 'reminders'],
     systemPrompt: `You are a calendar specialist agent. You handle all calendar and scheduling operations.
 
@@ -234,7 +255,7 @@ export const agentCoordinator = {
     },
     workflowId?: string
   ): Promise<AgentExecutionResult> {
-    const agent = BMAD_AGENTS[agentId] || BMAD_AGENTS.director
+    const agent = EXECUTION_AGENTS[agentId] || EXECUTION_AGENTS.director
     const startTime = Date.now()
 
     try {
@@ -317,7 +338,7 @@ Provide your response with the completed work.`
       previousAttempts?: number
     }
   ): Promise<SupervisorDecision> {
-    const supervisor = BMAD_AGENTS.supervisor
+    const supervisor = EXECUTION_AGENTS.supervisor
 
     try {
       const reviewPrompt = `Review the following agent execution result:
@@ -338,7 +359,7 @@ Provide your decision as a JSON object with:
 - modifiedInput: (optional) if retrying with changes`
 
       // Use Haiku tier for supervisor review - it's a classification task
-      // This saves 12x cost vs Sonnet for a simple pass/fail decision
+      // This saves 3.75x cost vs Sonnet for a simple pass/fail decision ($0.80 vs $3.00 per 1M)
       console.log(`[agentCoordinator] Supervisor reviewing task via Haiku tier: ${taskContext.taskName}...`)
       const claudeResult = await tieredCalls.classify(
         supervisor.systemPrompt,
@@ -608,12 +629,12 @@ Provide your decision as a JSON object with:
    */
   calculateCost(model: string, inputTokens: number, outputTokens: number): number {
     const pricing: Record<string, { input: number; output: number }> = {
-      'claude-opus-4-20250514': { input: 15.0, output: 75.0 },
-      'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
-      'claude-3-5-haiku-20241022': { input: 1.0, output: 5.0 },
+      'claude-opus-4-6': { input: 15.0, output: 75.0 },
+      'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
+      'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 },
     }
 
-    const modelPricing = pricing[model] || pricing['claude-sonnet-4-20250514']
+    const modelPricing = pricing[model] || pricing['claude-sonnet-4-6']
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output
 
@@ -624,13 +645,13 @@ Provide your decision as a JSON object with:
    * Get available agents for UI display
    */
   getAvailableAgents(): AgentRole[] {
-    return Object.values(BMAD_AGENTS)
+    return Object.values(EXECUTION_AGENTS)
   },
 
   /**
    * Get agent by ID
    */
   getAgent(agentId: string): AgentRole | undefined {
-    return BMAD_AGENTS[agentId]
+    return EXECUTION_AGENTS[agentId]
   },
 }

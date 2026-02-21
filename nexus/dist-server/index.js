@@ -26,12 +26,35 @@ import aiProxyRoutes from './routes/ai-proxy.js';
 import rubeRoutes from './routes/rube.js';
 import oauthRoutes from './routes/oauth.js';
 import customIntegrationsRoutes from './routes/customIntegrations.js';
+import { generalApiLimiter } from './middleware/rate-limit.js';
+import preflightRoutes from './routes/preflight.js';
+import whatsappRoutes from './routes/whatsapp.js';
+import whatsappBusinessRoutes from './routes/whatsapp-business.js';
+import whatsappComposioRoutes from './routes/whatsapp-composio.js';
+import whatsappWebRoutes from './routes/whatsapp-web.js';
+import whatsappCampaignRoutes from './routes/whatsapp-campaigns.js';
+import suggestionsRoutes from './routes/suggestions.js';
+import voiceRoutes from './routes/voice.js';
+import chatPersistenceRoutes from './routes/chat-persistence.js';
+import workflowPersistenceRoutes from './routes/workflow-persistence.js';
+import userPreferencesRoutes from './routes/user-preferences.js';
+import userProfileRoutes from './routes/user-profile.js';
+import adminAnalyticsRoutes from './routes/admin-analytics.js';
+import paymentLinksRoutes from './routes/payment-links.js';
+// WhatsApp Business trigger service (auto-initializes and registers message handler)
+import './services/WhatsAppBusinessTriggerService.js';
+// @NEXUS-FIX-141: Import Baileys service for session restore on startup - DO NOT REMOVE
+import { whatsAppBaileysService } from './services/WhatsAppBaileysService.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 4567;
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration
+const FRONTEND_URL = process.env.FRONTEND_URL || '';
+app.use(cors(FRONTEND_URL ? {
+    origin: [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'],
+    credentials: true,
+} : undefined));
 // Stripe webhooks require raw body for signature verification
 // This must be before express.json() middleware
 app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }));
@@ -53,13 +76,27 @@ app.use('/api/tokens', tokenRoutes);
 app.use('/api/results', resultsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/composio', composioRoutes);
+app.use('/api/composio', generalApiLimiter, composioRoutes);
 app.use('/api/browser', browserRoutes);
 app.use('/api/mcp', mcpProvidersRoutes);
 app.use('/api/ai-proxy', aiProxyRoutes);
 app.use('/api/rube', rubeRoutes);
 app.use('/api/oauth', oauthRoutes);
-app.use('/api/custom-integrations', customIntegrationsRoutes);
+app.use('/api/custom-integrations', generalApiLimiter, customIntegrationsRoutes);
+app.use('/api/preflight', preflightRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/whatsapp-business', whatsappBusinessRoutes);
+app.use('/api/whatsapp-business', whatsappCampaignRoutes);
+app.use('/api/whatsapp-composio', whatsappComposioRoutes);
+app.use('/api/whatsapp-web', whatsappWebRoutes);
+app.use('/api/suggestions', suggestionsRoutes);
+app.use('/api/voice', voiceRoutes);
+app.use('/api/chat-persistence', chatPersistenceRoutes);
+app.use('/api/workflow-persistence', workflowPersistenceRoutes);
+app.use('/api/user-preferences', userPreferencesRoutes);
+app.use('/api/user-profile', userProfileRoutes);
+app.use('/api/admin-analytics', adminAnalyticsRoutes);
+app.use('/api/payment-links', paymentLinksRoutes);
 // Serve static frontend in production
 const distPath = path.resolve(process.cwd(), 'dist');
 console.log(`📁 Static files path: ${distPath}`);
@@ -100,26 +137,79 @@ app.use((err, req, res, _next) => {
         error: err.message || 'Internal server error'
     });
 });
-app.listen(PORT, () => {
-    console.log(`🚀 Nexus server running on port ${PORT}`);
-    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   AI Services (proxied - keys secure):`);
-    console.log(`     - Anthropic/Claude: ${process.env.ANTHROPIC_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
-    console.log(`     - HeyGen Avatar: ${process.env.HEYGEN_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
-    console.log(`     - ElevenLabs TTS: ${process.env.ELEVENLABS_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
-    console.log(`     - OpenAI TTS: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
-    console.log(`   MCP Providers:`);
-    console.log(`     - Composio: ${process.env.COMPOSIO_API_KEY ? '✓ Configured' : '⚠ Demo mode'} (500+ apps)`);
-    console.log(`     - Google Cloud: ${process.env.GOOGLE_CLIENT_ID ? '✓ Configured' : '⚠ Not configured'} (FREE for GCP)`);
-    console.log(`     - Zapier: ${process.env.ZAPIER_CLIENT_ID ? '✓ Configured' : '⚠ Not configured'} (8,000+ apps)`);
-    console.log(`   Payments:`);
-    console.log(`     - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '⚠ Not configured'}`);
-    console.log(`     - Subscriptions: ${process.env.VITE_STRIPE_LAUNCH_PRICE_ID ? '✓ Price IDs configured' : '⚠ Price IDs not set'}`);
-    console.log(`   OAuth (White-Labeled):`);
-    console.log(`     - Google: ${process.env.GOOGLE_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
-    console.log(`     - Slack: ${process.env.SLACK_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
-    console.log(`     - GitHub: ${process.env.GITHUB_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
-    console.log(`   Browser: ✓ Playwright available`);
+// Graceful shutdown handling for production
+let server = null;
+function gracefulShutdown(signal) {
+    console.log(`\n⚠️ ${signal} received. Starting graceful shutdown...`);
+    if (server) {
+        server.close((err) => {
+            if (err) {
+                console.error('❌ Error during shutdown:', err);
+                process.exit(1);
+            }
+            console.log('✓ HTTP server closed');
+            console.log('✓ Graceful shutdown complete');
+            process.exit(0);
+        });
+        // Force shutdown after 30 seconds if graceful shutdown fails
+        setTimeout(() => {
+            console.error('⚠️ Forcing shutdown after 30s timeout');
+            process.exit(1);
+        }, 30000);
+    }
+    else {
+        process.exit(0);
+    }
+}
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Handle uncaught exceptions in production
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    if (process.env.NODE_ENV === 'production') {
+        // In production, log the error and attempt graceful shutdown
+        gracefulShutdown('uncaughtException');
+    }
 });
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+// Only start listener when not running under Vitest (for supertest compatibility)
+if (!process.env.VITEST) {
+    server = app.listen(PORT, () => {
+        console.log(`🚀 Nexus server running on port ${PORT}`);
+        console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`   AI Services (proxied - keys secure):`);
+        console.log(`     - Anthropic/Claude: ${process.env.ANTHROPIC_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
+        console.log(`     - HeyGen Avatar: ${process.env.HEYGEN_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
+        console.log(`     - ElevenLabs TTS: ${process.env.ELEVENLABS_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
+        console.log(`     - OpenAI TTS: ${process.env.OPENAI_API_KEY ? '✓ Configured' : '⚠ Not configured'}`);
+        console.log(`   MCP Providers:`);
+        console.log(`     - Composio: ${process.env.COMPOSIO_API_KEY ? '✓ Configured' : '⚠ Demo mode'} (500+ apps)`);
+        console.log(`     - Google Cloud: ${process.env.GOOGLE_CLIENT_ID ? '✓ Configured' : '⚠ Not configured'} (FREE for GCP)`);
+        console.log(`     - Zapier: ${process.env.ZAPIER_CLIENT_ID ? '✓ Configured' : '⚠ Not configured'} (8,000+ apps)`);
+        console.log(`   Payments:`);
+        console.log(`     - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Configured' : '⚠ Not configured'}`);
+        console.log(`     - Subscriptions: ${process.env.VITE_STRIPE_LAUNCH_PRICE_ID ? '✓ Price IDs configured' : '⚠ Price IDs not set'}`);
+        console.log(`     - KNET/MyFatoorah: ${process.env.MYFATOORAH_API_KEY ? '✓ MyFatoorah configured' : '⚠ Mock mode (set MYFATOORAH_API_KEY)'}`);
+        console.log(`   OAuth (White-Labeled):`);
+        console.log(`     - Google: ${process.env.GOOGLE_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
+        console.log(`     - Slack: ${process.env.SLACK_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
+        console.log(`     - GitHub: ${process.env.GITHUB_CLIENT_ID ? '✓ Direct OAuth' : '→ Via Composio proxy'}`);
+        console.log(`   Browser: ✓ Playwright available`);
+        console.log(`   WhatsApp Business: ${process.env.AISENSY_PARTNER_ID ? '✓ AiSensy configured' : '⚠ Configure AISENSY_PARTNER_ID for Embedded Signup'}`);
+        console.log(`   WhatsApp Web: ✓ QR Code integration available`);
+        // @NEXUS-FIX-141: Restore WhatsApp sessions from persistent storage - DO NOT REMOVE
+        // This runs async after server startup so it doesn't block the listen callback
+        whatsAppBaileysService.restoreSessions().then(({ restored, failed }) => {
+            if (restored > 0 || failed > 0) {
+                console.log(`   WhatsApp Sessions: ${restored} restored, ${failed} failed`);
+            }
+        }).catch(err => {
+            console.error('   WhatsApp Sessions: restore error -', err.message);
+        });
+    });
+}
 export default app;
 //# sourceMappingURL=index.js.map

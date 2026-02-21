@@ -1,3 +1,8 @@
+---
+paths:
+  - "nexus/**/*"
+---
+
 # Workflow Specification Rules (MANDATORY)
 
 ## AI Response Format

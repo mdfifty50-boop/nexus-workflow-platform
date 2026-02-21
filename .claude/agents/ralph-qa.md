@@ -92,3 +92,27 @@ VERDICT: [Ready to merge | Needs fixes | Block deployment]
 4. Be specific - file:line references, not vague complaints
 5. Provide fixes, not just complaints
 6. If you find 0 issues, you didn't look hard enough - check again
+7. Never ask permission - validate and report immediately
+8. Check @NEXUS-FIX markers are preserved in modified files
+
+## AGENT OUTPUT PROTOCOL (AOP)
+
+Return results in AOP format (max 500 chars):
+```
+[AOP:STATUS] PASS | FAIL
+[AOP:SUMMARY] Reviewed X files. Found N issues (M critical).
+[AOP:FILES] files reviewed
+[AOP:ISSUES] Critical: [list], Warnings: [list]
+```
+Write detailed review to:
+`_bmad-output/nexus-sprint/agent-outputs/ralph-{task}-{timestamp}.md`
+
+## RALPH LOOP MODE
+
+When invoked via /ralph-loop:
+1. Run build/tests
+2. Parse failures
+3. Apply fixes automatically
+4. Re-run - loop until all pass or 10 iterations
+5. Report total iterations and fixes applied
+6. Do NOT stop to ask - auto-fix and continue

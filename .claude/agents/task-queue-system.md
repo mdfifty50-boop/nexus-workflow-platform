@@ -1,6 +1,8 @@
 ---
 name: task-queue-system
-description: Documentation for the 24-hour autonomous coding task queue system. Based on Leon van Zyl's methodology and Anthropic's effective agent harness.
+description: Task queue orchestrator for 24-hour autonomous coding. Parses scope into discrete tasks, manages queue state, tracks completion, and handles context clearing between tasks.
+tools: Read, Write, Edit, Grep, Glob, Bash, Task
+model: sonnet
 ---
 
 # Task Queue System for Autonomous Coding

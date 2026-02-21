@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useBusinessProfile } from '@/hooks/useBusinessProfile'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -92,12 +93,9 @@ function convertToUITemplate(template: WorkflowTemplate): UITemplate {
   }
 }
 
-// Get all templates from service and convert to UI format
-const templates: UITemplate[] = WorkflowTemplatesService.getAllTemplates().map(convertToUITemplate)
-
 // Build category list from service
 const serviceCategories = WorkflowTemplatesService.getCategories()
-const categories = ['All', 'Popular', ...serviceCategories.filter(c => c.count > 0).map(c => c.name)]
+const categories = ['All', 'Popular', 'Recommended', ...serviceCategories.filter(c => c.count > 0).map(c => c.name)]
 
 export function WorkflowTemplates() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -105,9 +103,35 @@ export function WorkflowTemplates() {
   const [likedTemplates, setLikedTemplates] = useState<string[]>([])
   const [selectedRegion, setSelectedRegion] = useState<string>('global')
 
+  // @NEXUS-FIX-154: Industry-aware template sorting
+  const { industry, industryName } = useBusinessProfile()
+
+  // Get templates sorted by industry relevance when available
+  const templates: UITemplate[] = useMemo(() => {
+    const source = industry
+      ? WorkflowTemplatesService.getByIndustry(industry)
+      : WorkflowTemplatesService.getAllTemplates()
+    return source.map(convertToUITemplate)
+  }, [industry])
+
+  // Top industry-relevant templates for "Recommended" section
+  const recommendedTemplates = useMemo(() => {
+    if (!industry) return []
+    return WorkflowTemplatesService.getByIndustry(industry)
+      .slice(0, 4)
+      .map(convertToUITemplate)
+  }, [industry])
+
   // Use service methods for filtering with memoization
   const filteredTemplates = useMemo(() => {
     let result = templates
+
+    // "Recommended" category filter
+    if (selectedCategory === 'Recommended') {
+      if (recommendedTemplates.length > 0) return recommendedTemplates
+      // Fall back to all if no industry
+      return templates
+    }
 
     // Apply search filter (uses service under the hood for smart search)
     if (searchQuery.trim()) {
@@ -296,6 +320,38 @@ export function WorkflowTemplates() {
           ))}
         </div>
       </div>
+
+      {/* @NEXUS-FIX-154: Recommended for your industry section */}
+      {industryName && recommendedTemplates.length > 0 && selectedCategory === 'All' && !searchQuery.trim() && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-lg font-semibold text-white">Recommended for {industryName}</h3>
+            <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">Based on your profile</span>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {recommendedTemplates.map((template, index) => (
+              <motion.div
+                key={`rec-${template.id}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className="p-4 rounded-xl bg-surface-800/80 border border-cyan-500/20 hover:border-cyan-500/40 cursor-pointer transition-all"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{template.apps.map(a => TOOL_EMOJIS[a] || '🔧').join('')}</span>
+                </div>
+                <h4 className="text-sm font-medium text-white mb-1 line-clamp-1">{template.name}</h4>
+                <p className="text-xs text-surface-400 line-clamp-2">{template.description}</p>
+                <div className="flex items-center gap-1 mt-2">
+                  <Clock className="w-3 h-3 text-surface-500" />
+                  <span className="text-xs text-surface-500">{template.timeSaved}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Template grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

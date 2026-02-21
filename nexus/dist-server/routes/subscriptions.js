@@ -16,10 +16,20 @@
 import { Router } from 'express';
 import Stripe from 'stripe';
 const router = Router();
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2024-12-18.acacia',
-});
+// Initialize Stripe with credential validation
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || '';
+// Validate Stripe key exists and looks valid (starts with 'sk_')
+const isValidStripeKey = stripeSecretKey.startsWith('sk_');
+const hasValidStripeKey = stripeSecretKey && isValidStripeKey;
+if (!hasValidStripeKey) {
+    console.warn('[subscriptions] Missing or invalid Stripe credentials. Subscription features disabled.');
+}
+// Only create Stripe instance if we have valid credentials
+const stripe = hasValidStripeKey
+    ? new Stripe(stripeSecretKey, {
+        apiVersion: '2024-12-18.acacia',
+    })
+    : null;
 const userSubscriptions = new Map();
 // =============================================================================
 // HELPERS
@@ -28,6 +38,10 @@ const userSubscriptions = new Map();
  * Get or create Stripe customer for a user
  */
 async function getOrCreateCustomer(userId, email, name) {
+    // Check if Stripe is configured
+    if (!stripe) {
+        throw new Error('Stripe is not configured');
+    }
     // Check local cache first
     const cached = userSubscriptions.get(userId);
     if (cached?.stripeCustomerId) {
@@ -98,10 +112,10 @@ router.post('/create-checkout-session', async (req, res) => {
                 error: 'Price ID is required',
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
-                error: 'Stripe is not configured',
+                error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
             });
         }
         // Get or create customer if email provided
@@ -161,10 +175,10 @@ router.post('/create-checkout-session', async (req, res) => {
 router.post('/create-portal-session', async (req, res) => {
     try {
         const { returnUrl, customerId, customerEmail } = req.body;
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
-                error: 'Stripe is not configured',
+                error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
             });
         }
         // Get customer ID
@@ -228,10 +242,10 @@ router.get('/status', async (req, res) => {
                 canAccessFeatures: false,
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
-                error: 'Stripe is not configured',
+                error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
             });
         }
         // Find customer
@@ -331,10 +345,10 @@ router.post('/cancel', async (req, res) => {
                 error: 'Subscription ID is required',
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
-                error: 'Stripe is not configured',
+                error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
             });
         }
         const subscription = await stripe.subscriptions.update(subscriptionId, {
@@ -371,10 +385,10 @@ router.post('/reactivate', async (req, res) => {
                 error: 'Subscription ID is required',
             });
         }
-        if (!process.env.STRIPE_SECRET_KEY) {
+        if (!stripe) {
             return res.status(500).json({
                 success: false,
-                error: 'Stripe is not configured',
+                error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment.',
             });
         }
         const subscription = await stripe.subscriptions.update(subscriptionId, {
@@ -405,6 +419,10 @@ router.post('/reactivate', async (req, res) => {
  * Handle Stripe webhook events
  */
 router.post('/webhook', async (req, res) => {
+    // Check if Stripe is configured
+    if (!stripe) {
+        return res.status(500).json({ error: 'Stripe is not configured' });
+    }
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {

@@ -91,7 +91,7 @@ Deliver:
     expectedOutput: 'Complete business analysis with actionable retention plan',
     estimatedCost: '$0.05 - $0.15',
     estimatedTime: '10-15 seconds',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-6',
   },
   {
     id: 'meeting-summarizer',
@@ -165,7 +165,7 @@ Deliver:
     expectedOutput: 'Complete competitive analysis with strategic recommendations',
     estimatedCost: '$0.08 - $0.20',
     estimatedTime: '12-18 seconds',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-6',
   },
   {
     id: 'support-ticket-router',
@@ -234,7 +234,7 @@ Ensure each format is optimized for its platform and includes appropriate CTAs.`
     expectedOutput: 'Complete content package across 5 platforms',
     estimatedCost: '$0.01 - $0.03',
     estimatedTime: '8-12 seconds',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-6',
   },
   {
     id: 'lead-scorer',
@@ -285,7 +285,7 @@ Provide:
     expectedOutput: 'Scored leads with actionable sales strategies',
     estimatedCost: '$0.06 - $0.12',
     estimatedTime: '10-15 seconds',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-6',
   },
 ]
 

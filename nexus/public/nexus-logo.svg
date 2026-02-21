@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Main purple gradient flowing across the N -->
+    <linearGradient id="n-stroke" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9333EA"/>
+      <stop offset="25%" stop-color="#8B5CF6"/>
+      <stop offset="50%" stop-color="#A855F7"/>
+      <stop offset="75%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+
+    <!-- Fuchsia glow at the nexus point (center of diagonal) -->
+    <radialGradient id="nexus-glow" cx="256" cy="260" r="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F5D0FE" stop-opacity="0.85"/>
+      <stop offset="25%" stop-color="#E879F9" stop-opacity="0.5"/>
+      <stop offset="55%" stop-color="#D946EF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C026D3" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Soft blur for the glow -->
+    <filter id="glow-soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20"/>
+    </filter>
+  </defs>
+
+  <!-- Glow layer at the nexus point (center of the diagonal crossing) -->
+  <ellipse cx="256" cy="260" rx="100" ry="85" fill="url(#nexus-glow)" filter="url(#glow-soft)"/>
+
+  <!-- The N — 4-point path: up, diagonal-down-right, up -->
+  <path
+    d="M 120 416 L 120 96 L 392 416 L 392 96"
+    fill="none"
+    stroke="url(#n-stroke)"
+    stroke-width="62"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

@@ -10,6 +10,8 @@
  */
 import { EventEmitter } from 'events';
 import { composioService } from './ComposioService.js';
+// Production-ready: Use env var or fallback to localhost for development
+const EMBEDDED_API_URL = process.env.EMBEDDED_API_URL || 'http://localhost:4567';
 // Tool routing configuration
 const TOOL_CONFIG = {
     // Email
@@ -43,7 +45,11 @@ const TOOL_CONFIG = {
     browser_navigate: { provider: 'playwright', playwrightTemplate: 'navigate' },
     browser_scrape: { provider: 'playwright', playwrightTemplate: 'scrape' },
     browser_form: { provider: 'playwright', playwrightTemplate: 'form_submit' },
-    browser_login: { provider: 'playwright', playwrightTemplate: 'login' }
+    browser_login: { provider: 'playwright', playwrightTemplate: 'login' },
+    // WhatsApp Business (via AiSensy)
+    whatsapp_send: { provider: 'embedded', embeddedEndpoint: '/api/whatsapp-business/send' },
+    whatsapp_reply: { provider: 'embedded', embeddedEndpoint: '/api/whatsapp-business/reply' },
+    whatsapp_template: { provider: 'embedded', embeddedEndpoint: '/api/whatsapp-business/send' }
 };
 // Agent task to tool mapping
 const AGENT_TASK_TOOLS = {
@@ -56,8 +62,13 @@ const AGENT_TASK_TOOLS = {
     },
     mary: {
         'planning': ['calendar_create', 'sheets_write'],
-        'communication': ['slack_send', 'gmail_send'],
+        'communication': ['slack_send', 'gmail_send', 'whatsapp_send'],
         'documentation': ['sheets_write', 'notion']
+    },
+    nexus: {
+        'whatsapp': ['whatsapp_send', 'whatsapp_reply', 'whatsapp_template'],
+        'messaging': ['whatsapp_send', 'slack_send'],
+        'notification': ['whatsapp_send', 'gmail_send', 'slack_send']
     },
     alex: {
         'design': ['github_issue'],
@@ -360,7 +371,7 @@ export class WorkflowOrchestrator extends EventEmitter {
     async executeEmbeddedAPI(endpoint, params, state) {
         console.log(`[WorkflowOrchestrator] Embedded API: ${endpoint}`);
         return this.executeWithRetry(async () => {
-            const response = await fetch(`http://localhost:4567${endpoint}`, {
+            const response = await fetch(`${EMBEDDED_API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(params)

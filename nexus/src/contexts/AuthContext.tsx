@@ -8,6 +8,7 @@ export interface UserProfile {
   email: string
   full_name: string | null
   avatar_url: string | null
+  role?: string
   thinking_patterns: Record<string, any>
   behavior_patterns: Record<string, any>
   emotional_responses: Record<string, any>

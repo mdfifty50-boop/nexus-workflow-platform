@@ -1036,8 +1036,20 @@ export function ChatContainer({
             console.log('[ChatContainer] Claude handled naturally, no workflow needed')
             console.log('[ChatContainer] Intent:', aiResponse.intent, 'ClarifyingQuestions:', aiResponse.clarifyingQuestions)
 
-            // @NEXUS-FIX-160: Arabic-safe JSON stripping - NEVER display raw JSON to users - DO NOT REMOVE
+            // @NEXUS-FIX-200: Prefer streamed text for consulting/strategic responses - DO NOT REMOVE
+            // The `complete` event's `message` field may be a short JSON excerpt, while the
+            // streamed tokens contain the full detailed response. For non-workflow responses,
+            // prefer the richer streamed text when it's substantially longer and not raw JSON.
             let displayText = aiResponse.text
+            if (streamedText && !looksLikeWorkflowJSON && streamedText.length > (displayText?.length || 0) * 1.5) {
+              const trimmedStream = streamedText.trim()
+              // Only use streamed text if it's NOT raw JSON
+              if (!trimmedStream.startsWith('{') && !trimmedStream.startsWith('[') && !trimmedStream.startsWith('```')) {
+                console.log(`[ChatContainer] FIX-200: Using richer streamed text (${trimmedStream.length} chars) over message field (${displayText?.length || 0} chars)`)
+                displayText = trimmedStream
+              }
+            }
+            // @NEXUS-FIX-160: Arabic-safe JSON stripping - NEVER display raw JSON to users - DO NOT REMOVE
             // @NEXUS-FIX-188: Also strip ```json wrapper before JSON check - DO NOT REMOVE
             if (displayText) {
               displayText = displayText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
@@ -1291,12 +1303,19 @@ export function ChatContainer({
                 ctaMessage = `Review the assumptions above and click **Execute** when ready!`
               }
 
+              // Add Autopilot hint for complex workflows (3+ steps)
+              // The [AUTOPILOT_CONSULTANCY_LINK] marker renders "AI Consultancy" as a clickable link
+              // that navigates to /ai-consultancy with the full workflow + chat context
+              const autopilotHint = workflow.nodes.length >= 3
+                ? `\n\n💡 Need help setting up ${workflow.nodes.length} services? Open [AUTOPILOT_CONSULTANCY_LINK:${workflowDisplayId}] and let Autopilot configure everything for you.`
+                : ''
+
               workflowSummary = `**Your workflow is ready!** 🎉\n\n` +
                 `**${workflow.name}**\n\n` +
                 `${workflow.description}\n\n` +
                 `**Steps:**\n${workflow.nodes.map((n, i) => `${i + 1}. ${n.name}`).join('\n')}\n\n` +
                 `[WORKFLOW_PREVIEW:${workflowDisplayId}]\n\n` +
-                ctaMessage
+                ctaMessage + autopilotHint
 
               // Custom integrations are now rendered inside WorkflowPreviewCard (no separate markers needed)
             }

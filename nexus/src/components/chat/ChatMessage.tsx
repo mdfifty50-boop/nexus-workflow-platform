@@ -221,9 +221,10 @@ export function ChatMessage({
     // Combined regex to match all types of markers (clarifying options use Base64 encoding)
     // @NEXUS-FIX-176: Added DEEP_DIVE_BUTTON marker for strategic consulting bridge - DO NOT REMOVE
     // @NEXUS-FIX-192: Permissive B64 capture group matches COMBINED_REGEX standalone pattern - DO NOT REMOVE
-    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([^\]]+)\]|\[DEEP_DIVE_BUTTON\]/g
+    // AUTOPILOT_CONSULTANCY_LINK: Clickable "AI Consultancy" link with full context handoff
+    const COMBINED_REGEX = /\[WORKFLOW_PREVIEW:([^\]]+)\]|\[CUSTOM_INTEGRATION:([^\]]+)\]|\[CLARIFYING_OPTIONS_B64:([^\]]+)\]|\[DEEP_DIVE_BUTTON\]|\[AUTOPILOT_CONSULTANCY_LINK:([^\]]+)\]/g
 
-    // Remove markers if no renderers provided
+    // Remove markers if no renderers provided (keep AUTOPILOT_CONSULTANCY_LINK — always rendered)
     if (!renderWorkflowPreview && !renderCustomIntegration && !renderClarifyingOptions) {
       return renderMarkdown(
         content
@@ -231,6 +232,7 @@ export function ChatMessage({
           .replace(CUSTOM_INTEGRATION_REGEX, '')
           .replace(CLARIFYING_OPTIONS_REGEX, '')
           .replace(/\[DEEP_DIVE_BUTTON\]/g, '')
+          .replace(/\[AUTOPILOT_CONSULTANCY_LINK:[^\]]+\]/g, 'AI Consultancy')
       )
     }
 
@@ -309,6 +311,45 @@ export function ChatMessage({
             </button>
           </div>
         )
+      } else if (match[4]) {
+        // Autopilot Consultancy Link — clickable inline "AI Consultancy" with full context handoff
+        // Passes: workflow spec, conversation history, and workflow nodes to AI Consultancy room
+        const workflowId = match[4]
+        parts.push(
+          <button
+            key={`consultancy-link-${partKey++}`}
+            onClick={() => {
+              // Build rich context: full conversation + workflow spec + chat history
+              const allMessages = document.querySelectorAll('[data-message-role]')
+              const chatHistory: Array<{ role: string; content: string }> = []
+              allMessages.forEach(el => {
+                const role = el.getAttribute('data-message-role') || 'unknown'
+                const text = el.textContent?.trim() || ''
+                if (text.length > 5) chatHistory.push({ role, content: text.substring(0, 500) })
+              })
+
+              // Clean the message content for context (strip markers)
+              const cleanContent = message.content
+                .replace(/\[WORKFLOW_PREVIEW:[^\]]+\]/g, '')
+                .replace(/\[AUTOPILOT_CONSULTANCY_LINK:[^\]]+\]/g, '')
+                .replace(/\[DEEP_DIVE_BUTTON\]/g, '')
+                .trim()
+
+              localStorage.setItem('nexus-consultancy-context', JSON.stringify({
+                question: cleanContent,
+                workflowId,
+                source: 'autopilot-hint',
+                returnTo: 'chat',
+                chatHistory: chatHistory.slice(-10),
+                timestamp: Date.now()
+              }))
+              navigate('/ai-consultancy')
+            }}
+            className="inline text-nexus-400 hover:text-nexus-300 underline underline-offset-2 decoration-nexus-500/40 hover:decoration-nexus-500/80 font-semibold transition-colors cursor-pointer bg-transparent border-none p-0 m-0"
+          >
+            AI Consultancy
+          </button>
+        )
       }
 
       lastIndex = match.index + match[0].length
@@ -324,7 +365,7 @@ export function ChatMessage({
     }
 
     return parts.length > 0 ? parts : renderMarkdown(content)
-  }, [renderWorkflowPreview, renderCustomIntegration, renderClarifyingOptions])
+  }, [renderWorkflowPreview, renderCustomIntegration, renderClarifyingOptions, message.content, navigate])
 
   const handleCopy = React.useCallback(async () => {
     try {
@@ -346,6 +387,7 @@ export function ChatMessage({
 
   return (
     <div
+      data-message-role={message.role}
       className={cn(
         'group flex gap-3 sm:gap-4 px-3 sm:px-4 py-4 sm:py-6 transition-all duration-200',
         isUser

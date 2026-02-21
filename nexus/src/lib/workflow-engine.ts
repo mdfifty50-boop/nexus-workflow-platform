@@ -350,7 +350,7 @@ export class WorkflowEngine {
     const result = await nexusService.executeWorkflow({
       type: 'Nexus',
       prompt: fullPrompt,
-      model: node.config.model || 'claude-3-5-sonnet-20241022',
+      model: node.config.model || 'claude-sonnet-4-6',
     })
 
     // Update tokens and cost
@@ -522,7 +522,7 @@ export function createWorkflowFromTemplate(_templateId?: string): WorkflowDefini
         label: 'AI Agent',
         config: {
           prompt: 'Process the input',
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-6',
         },
         position: { x: 300, y: 100 },
       },
