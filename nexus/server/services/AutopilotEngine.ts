@@ -540,8 +540,12 @@ export class AutopilotEngine extends EventEmitter {
    * Launch a new Chromium browser instance for a session
    */
   private async launchBrowser(sessionId: string): Promise<BrowserSession> {
+    // Use headless mode in production (no display server on cloud containers)
+    // Visible browser only works on desktop environments with a display
+    const isHeadlessEnv = process.env.NODE_ENV === 'production' || (!process.env.DISPLAY && !process.env.WAYLAND_DISPLAY && process.platform === 'linux')
+
     const browser = await chromium.launch({
-      headless: false, // Visible browser for user to interact with
+      headless: isHeadlessEnv, // Auto-detect: headless on servers, visible on desktop
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

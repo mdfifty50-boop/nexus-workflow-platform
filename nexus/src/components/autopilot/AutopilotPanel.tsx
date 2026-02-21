@@ -23,6 +23,7 @@ import { AutopilotProgress, type AutopilotProgressStep } from './AutopilotProgre
 import { AutopilotControls } from './AutopilotControls'
 import { CredentialPrompt } from './CredentialPrompt'
 import { GuidedInstructions } from './GuidedInstructions'
+import { FEATURE_FLAGS } from '@/config/feature-flags'
 
 // -------------------------------------------------------------------
 // Types (mirrors the service layer that will be created separately)
@@ -162,7 +163,8 @@ export function AutopilotPanel({ workflowSpec, onClose, onComplete }: AutopilotP
   const [credentialServiceName, setCredentialServiceName] = useState<string>('')
   const [isNewAccount, setIsNewAccount] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showGuidedFallback, setShowGuidedFallback] = useState(false)
+  // When browser mode is disabled, go straight to guided instructions
+  const [showGuidedFallback, setShowGuidedFallback] = useState(!FEATURE_FLAGS.AUTOPILOT_BROWSER_MODE)
   const [progress, setProgress] = useState({ completed: 0, total: 0, remaining: 0 })
 
   const sessionRef = useRef(sessionId)
