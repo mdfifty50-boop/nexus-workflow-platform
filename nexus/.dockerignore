@@ -13,6 +13,5 @@ public/
 .whatsapp-sessions/
 .whatsapp-sessions-baileys/
 _bmad-output/
-config/
 scripts/
 *.cjs
