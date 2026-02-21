@@ -41,6 +41,7 @@ import userPreferencesRoutes from './routes/user-preferences.js';
 import userProfileRoutes from './routes/user-profile.js';
 import adminAnalyticsRoutes from './routes/admin-analytics.js';
 import paymentLinksRoutes from './routes/payment-links.js';
+import autopilotRoutes from './routes/autopilot.js';
 // WhatsApp Business trigger service (auto-initializes and registers message handler)
 import './services/WhatsAppBusinessTriggerService.js';
 // @NEXUS-FIX-141: Import Baileys service for session restore on startup - DO NOT REMOVE
@@ -97,6 +98,7 @@ app.use('/api/user-preferences', userPreferencesRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/api/admin-analytics', adminAnalyticsRoutes);
 app.use('/api/payment-links', paymentLinksRoutes);
+app.use('/api/autopilot', autopilotRoutes);
 // Serve static frontend in production
 const distPath = path.resolve(process.cwd(), 'dist');
 console.log(`📁 Static files path: ${distPath}`);

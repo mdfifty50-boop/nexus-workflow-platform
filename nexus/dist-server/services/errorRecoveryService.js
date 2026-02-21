@@ -262,7 +262,7 @@ export const errorRecoveryService = {
     },
     // ---------------------------------------------------------------------------
     // AI Error Translation (Story 8.2)
-    // Uses Haiku for cost-effective error translation (12x cheaper than Sonnet)
+    // Uses Haiku for cost-effective error translation (3.75x cheaper than Sonnet)
     // ---------------------------------------------------------------------------
     async translateWithAI(errorMessage, stackTrace) {
         try {

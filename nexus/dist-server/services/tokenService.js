@@ -17,12 +17,16 @@ const supabase = hasValidCredentials
 // Pricing (per 1M tokens as of 2024)
 // =============================================================================
 const MODEL_PRICING = {
+    // Current models
+    'claude-opus-4-6': { input: 15.0, output: 75.0 },
+    'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
+    'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00 },
+    // Legacy Claude 3 entries (kept for old log compatibility)
     'claude-3-opus-20240229': { input: 15.0, output: 75.0 },
     'claude-3-sonnet-20240229': { input: 3.0, output: 15.0 },
-    'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
     'claude-3-5-sonnet-20241022': { input: 3.0, output: 15.0 },
     'claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
-    'claude-opus-4-5-20251101': { input: 15.0, output: 75.0 },
+    // OpenAI fallback
     'gpt-4-turbo': { input: 10.0, output: 30.0 },
     'gpt-4': { input: 30.0, output: 60.0 },
     'gpt-3.5-turbo': { input: 0.5, output: 1.5 },
@@ -43,7 +47,7 @@ export const tokenService = {
     // Calculate Cost
     // ---------------------------------------------------------------------------
     calculateCost(model, inputTokens, outputTokens) {
-        const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-20250514'];
+        const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-6'];
         const inputCost = (inputTokens / 1_000_000) * pricing.input;
         const outputCost = (outputTokens / 1_000_000) * pricing.output;
         return Math.round((inputCost + outputCost) * 10000) / 10000; // 4 decimal places

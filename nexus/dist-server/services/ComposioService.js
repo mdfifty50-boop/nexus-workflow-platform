@@ -33,7 +33,8 @@ export const AVAILABLE_APPS = [
     { id: 'linear', name: 'Linear', description: 'Issue tracking', icon: '🔷', color: '#5E6AD2', category: 'development' },
     // CRM & Sales
     { id: 'hubspot', name: 'HubSpot', description: 'CRM & contacts', icon: '🧡', color: '#FF7A59', category: 'crm' },
-    { id: 'stripe', name: 'Stripe', description: 'Payments', icon: '💳', color: '#635BFF', category: 'crm' },
+    // Stripe removed - not available in Kuwait/GCC region. Will re-add when Nexus goes global.
+    // { id: 'stripe', name: 'Stripe', description: 'Payments', icon: '💳', color: '#635BFF', category: 'crm' },
     { id: 'intercom', name: 'Intercom', description: 'Customer chat', icon: '💁', color: '#1F8DED', category: 'crm' },
     // Social
     { id: 'twitter', name: 'Twitter/X', description: 'Social posts', icon: '🐦', color: '#1DA1F2', category: 'social' },
