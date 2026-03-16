@@ -50,6 +50,8 @@ export interface WorkflowNode {
     }>
   }
   approvalRequestId?: string
+  // GAP-2: Integration confidence tier — verified (Composio), ai_comprehended (Claude-known), discovery (unknown)
+  integrationTier?: 'verified' | 'ai_comprehended' | 'discovery'
 }
 
 export interface MissingInfoItem {
@@ -67,6 +69,8 @@ export interface ChatWorkflow {
     name: string
     type: string
     integration?: string
+    // GAP-2: Integration confidence tier from AI response
+    integrationTier?: 'verified' | 'ai_comprehended' | 'discovery'
   }>
   // Confidence-based execution fields
   confidence?: number  // 0.0-1.0, >= 0.85 means ready to execute
@@ -114,6 +118,15 @@ export interface ParallelAuthState {
     pollAttempts: number
     error?: string
   }
+}
+
+// Mobile OAuth redirect queue (persisted in localStorage for cross-navigation survival)
+export interface MobileOAuthQueue {
+  workflowId: string           // Which workflow this belongs to
+  pendingToolkits: string[]    // Ordered list of toolkits still needing connection
+  connectedToolkits: string[]  // Already connected in this chain
+  returnUrl: string            // Where to navigate back when done (e.g., /chat)
+  timestamp: number            // For staleness detection (expire after 10 min)
 }
 
 // ============================================================================

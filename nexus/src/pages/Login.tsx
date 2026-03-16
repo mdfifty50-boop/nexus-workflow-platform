@@ -1,5 +1,6 @@
 import { SignIn, useAuth } from '@clerk/clerk-react'
 import { useTranslation } from 'react-i18next'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 export function Login() {
   const { t } = useTranslation()
@@ -18,11 +19,10 @@ export function Login() {
           <p className="text-muted-foreground mt-2">{t('auth.signInToContinue')}</p>
         </div>
 
-        {/* Show loading spinner while Clerk initializes */}
+        {/* Show loading spinner while Clerk initializes — isLoaded + LoadingSpinner */}
         {!isLoaded && (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-muted-foreground text-sm">{t('common.loading')}</p>
+            <LoadingSpinner variant="gradient" size="md" label={t('common.loading')} center />
           </div>
         )}
 

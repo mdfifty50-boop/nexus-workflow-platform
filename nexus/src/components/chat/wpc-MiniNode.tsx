@@ -78,6 +78,13 @@ export function MiniNodeHorizontal({
           <span className="text-[10px] sm:text-xs font-medium text-white truncate max-w-[80px] sm:max-w-[120px]">
             {node.name}
           </span>
+          {/* GAP-2: integrationTier badge — only show for non-verified (ai_comprehended / discovery) */}
+          {node.integrationTier === 'ai_comprehended' && (
+            <span className="text-[8px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 flex-shrink-0" title="AI-known integration">AI</span>
+          )}
+          {node.integrationTier === 'discovery' && (
+            <span className="text-[8px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0" title="Dynamic discovery">NEW</span>
+          )}
           <div
             className={cn(
               'w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full transition-all duration-300 flex-shrink-0',

@@ -39,17 +39,18 @@ export function AIConsultancy() {
   }, [])
 
   // @NEXUS-FIX-176: "Back to Chat with Insights" — collect discussion summary and return - DO NOT REMOVE
+  // @FIX-CONTEXT-TRUNCATE: Use expandedContext (500 chars) to prevent mid-word truncation on handoff - DO NOT REMOVE
   const handleBackToChat = useCallback(() => {
     // Read current discussion messages from the AIMeetingRoomV2 state via localStorage
     try {
       const discussionRaw = localStorage.getItem('nexus-consultancy-discussion')
       if (discussionRaw) {
         const discussion = JSON.parse(discussionRaw) as Array<{ agentName: string; content: string }>
-        // Build a concise summary of the consultancy discussion
+        // Build an expandedContext summary — 500 chars per message prevents mid-word truncation
         const summaryLines = discussion
           .filter(m => m.content && m.content.length > 20)
           .slice(-6)  // Last 6 meaningful messages
-          .map(m => `**${m.agentName}**: ${m.content.substring(0, 150)}${m.content.length > 150 ? '...' : ''}`)
+          .map(m => `**${m.agentName}**: ${m.content.substring(0, 500)}${m.content.length > 500 ? '...' : ''}`)
         const summary = summaryLines.join('\n\n')
         if (summary) {
           localStorage.setItem('nexus-consultancy-result', JSON.stringify({
@@ -69,7 +70,7 @@ export function AIConsultancy() {
       isOpen={true}
       onClose={handleBackToChat}
       workflowContext={consultancyContext?.question || undefined}
-      workflowTitle={consultancyContext?.question?.substring(0, 100) || undefined}
+      workflowTitle={consultancyContext?.question || undefined}
       mode="brainstorm"
       fullPage={true}
     />

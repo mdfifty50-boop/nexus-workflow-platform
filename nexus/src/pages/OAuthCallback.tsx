@@ -107,6 +107,49 @@ export function OAuthCallback() {
         }
       }
 
+      // === MOBILE OAUTH QUEUE: Chain to next integration if queue has more ===
+      const mobileQueueRaw = localStorage.getItem('nexus_mobile_oauth_queue')
+      if (mobileQueueRaw && !window.opener) {
+        try {
+          const queue = JSON.parse(mobileQueueRaw)
+          const isStale = Date.now() - queue.timestamp > 10 * 60 * 1000
+
+          if (!isStale && storedProvider) {
+            // Advance the queue
+            queue.pendingToolkits = queue.pendingToolkits.filter((t: string) => t !== storedProvider)
+            queue.connectedToolkits = [...(queue.connectedToolkits || []), storedProvider]
+            localStorage.setItem('nexus_mobile_oauth_queue', JSON.stringify(queue))
+
+            if (queue.pendingToolkits.length > 0) {
+              // MORE INTEGRATIONS — redirect to next one
+              const nextToolkit = queue.pendingToolkits[0]
+              setMessage(`Connected! Now connecting ${nextToolkit}...`)
+
+              const response = await fetch('/api/rube/manage-connections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ toolkits: [nextToolkit] }),
+              })
+              const data = await response.json()
+              const nextAuthUrl = data.results?.[nextToolkit]?.redirect_url
+
+              if (nextAuthUrl) {
+                sessionStorage.setItem('oauth_provider', nextToolkit)
+                setTimeout(() => { window.location.href = nextAuthUrl }, 1200)
+                return // Don't navigate back yet — chain continues
+              }
+              // If fetch fails, fall through to normal redirect-back
+            } else {
+              // ALL DONE — clean up
+              localStorage.removeItem('nexus_mobile_oauth_queue')
+            }
+          }
+        } catch (e) {
+          console.warn('[OAuthCallback] Mobile queue error:', e)
+          localStorage.removeItem('nexus_mobile_oauth_queue')
+        }
+      }
+
       // Clean up stored state
       sessionStorage.removeItem('oauth_state')
       sessionStorage.removeItem('oauth_provider')

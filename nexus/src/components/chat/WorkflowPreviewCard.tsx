@@ -42,12 +42,14 @@ import {
   getRequiredIntegrations,
   type IntegrationInfo,
 } from '@/services/IntegrationAuthService'
+import { useIsMobile } from '@/hooks'
 import { rubeClient } from '@/services/RubeClient'
 import { PreFlightService, type PreFlightResult, type PreFlightQuestion } from '@/services/PreFlightService'
 // @NEXUS-FIX-039: WorkflowIntelligenceService integration for enhanced error handling - DO NOT REMOVE
 import { WorkflowIntelligenceService } from '@/services/WorkflowIntelligenceService'
 // @NEXUS-FIX-041: VerifiedExecutor for execution with verification - DO NOT REMOVE
-import { VerifiedExecutorService, type VerifiedResult } from '@/services/VerifiedExecutor'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { VerifiedExecutorService, type VerifiedResult as _VerifiedResult } from '@/services/VerifiedExecutor'
 // @NEXUS-FIX-042: UnifiedToolRegistry - Single source of truth for tools - DO NOT REMOVE
 // NOTE: Now used in wpc-helpers.ts; kept here for marker preservation
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -96,6 +98,8 @@ import {
 import { userMemoryService } from '@/services/UserMemoryService'
 // Cross-conversation entity learning (Finding #2)
 import { userContextService } from '@/services/UserContextService'
+// Execution engine — extracted from executeWorkflow useCallback (T0.2)
+import { runWorkflowExecution } from '@/lib/workflow-engine/execution-engine'
 
 // ============================================================================
 // Extracted modules - types, constants, utilities, and sub-components
@@ -112,6 +116,7 @@ import type {
   ParallelAuthState,
   OrchestrationResult,
   WorkflowValidation,
+  MobileOAuthQueue,
 } from './wpc-types'
 
 // Constants
@@ -144,6 +149,9 @@ import {
   validateWorkflowBeforeExecution,
   getParamFixSuggestion,
   getTriggerSampleFields,
+  saveMobileOAuthQueue,
+  loadMobileOAuthQueue,
+  clearMobileOAuthQueue,
 } from './wpc-helpers'
 
 // Sub-components
@@ -585,12 +593,14 @@ export function WorkflowPreviewCard({
   chatLanguage,
 }: WorkflowPreviewCardProps): React.ReactElement {
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   // @NEXUS-FIX-161: Arabic RTL and translation support - DO NOT REMOVE
   const isArabic = chatLanguage?.startsWith('ar') || false
 
   // Phase and execution state
   const [phase, setPhase] = React.useState<CardPhase>('ready')
   const [_executionLog, setExecutionLog] = React.useState<string[]>([])
+  const [authSkipped, setAuthSkipped] = React.useState(false)
 
   // Pre-execution validation state
   const [_workflowValidation, setWorkflowValidation] = React.useState<WorkflowValidation | null>(null)
@@ -656,6 +666,13 @@ export function WorkflowPreviewCard({
     }
   }, [workflow.collectedParams])
 
+  // Discovery progress state for UX-DISCOVERY-PROGRESS
+  const [discoveryProgress, setDiscoveryProgress] = React.useState<{
+    current: number
+    total: number
+    currentName: string
+  } | null>(null)
+
   // @NEXUS-FIX-055: Store orchestration results for unknown toolkits - DO NOT REMOVE
   // When pre-flight discovers unknown toolkits, it calls orchestration to get required params.
   // Those params are converted to PreFlightQuestions and merged into the pre-flight result.
@@ -682,6 +699,8 @@ export function WorkflowPreviewCard({
       type: (n.type as 'trigger' | 'action' | 'output' | 'approval') || 'action',
       integration: n.integration,
       status: 'idle' as NodeStatus,
+      // GAP-2: Pass integrationTier from AI response to node UI
+      integrationTier: n.integrationTier,
     }))
   )
 
@@ -1012,10 +1031,19 @@ export function WorkflowPreviewCard({
         // @NEXUS-FIX-059: Track nodes where orchestration failed (for static fallback)
         const orchestrationFailedNodes: string[] = []
 
+        setDiscoveryProgress({ current: 0, total: nodesToOrchestrate.length, currentName: '' })
+
         for (const node of nodesToOrchestrate) {
           const integration = node.integration || ''
           const integrationLower = integration.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
           const isKnown = isToolkitKnown(integrationLower)
+
+          // UX-DISCOVERY-PROGRESS: Report per-node discovery progress
+          setDiscoveryProgress({
+            current: nodesToOrchestrate.indexOf(node),
+            total: nodesToOrchestrate.length,
+            currentName: node.name || integration || ''
+          })
 
           if (USE_ORCHESTRATION_FIRST && isKnown) {
             console.log(`[ORCHESTRATION-FIRST] Discovering params for KNOWN toolkit: ${node.name} (${integration})`)
@@ -1173,6 +1201,9 @@ export function WorkflowPreviewCard({
             }
           }
         }
+
+        // UX-DISCOVERY-PROGRESS: Clear progress after discovery loop completes
+        setDiscoveryProgress(null)
 
         // @NEXUS-FIX-184: Update both state (for rendering) and ref (for effect reads) - DO NOT REMOVE
         orchestrationResultsRef.current = newOrchResults
@@ -1887,6 +1918,16 @@ export function WorkflowPreviewCard({
     return () => clearTimeout(timer)
   }, [requiredIntegrations, checkConnections])
 
+  // Mobile OAuth: Clean up queue when returning from redirect chain
+  React.useEffect(() => {
+    if (!isMobile) return
+    const queue = loadMobileOAuthQueue()
+    if (queue && queue.pendingToolkits.length === 0) {
+      clearMobileOAuthQueue()
+      addLog('[Mobile] All OAuth connections completed via redirect flow')
+    }
+  }, [isMobile, addLog])
+
   // Handle connect button click - get real OAuth URL from Rube MCP
   const handleConnect = React.useCallback(async () => {
     if (!authState.currentIntegration) return
@@ -2364,6 +2405,62 @@ export function WorkflowPreviewCard({
     }
   }, [authState.pendingIntegrations, addLog])
 
+  // Mobile OAuth: redirect-based sequential flow (no popups needed)
+  // Desktop parallel popup flow (@NEXUS-FIX-001 & @NEXUS-FIX-003) is UNTOUCHED above
+  const handleConnectAllMobile = React.useCallback(async () => {
+    const pendingIntegrations = authState.pendingIntegrations
+    if (pendingIntegrations.length === 0) return
+
+    addLog(`[Mobile] Connecting ${pendingIntegrations.length} integration(s) via redirect...`)
+    setAuthState((prev) => ({ ...prev, isChecking: true }))
+
+    // Save queue to localStorage (survives page navigation)
+    const queue: MobileOAuthQueue = {
+      workflowId: workflow.id || 'unknown',
+      pendingToolkits: pendingIntegrations.map(i => i.toolkit),
+      connectedToolkits: [],
+      returnUrl: window.location.pathname + window.location.search,
+      timestamp: Date.now(),
+    }
+    saveMobileOAuthQueue(queue)
+
+    // Get auth URL for FIRST integration only (sequential on mobile)
+    const firstIntegration = pendingIntegrations[0]
+    try {
+      const results = await rubeClient.initiateConnection([firstIntegration.toolkit])
+      const result = results[firstIntegration.toolkit]
+
+      if (result?.connected) {
+        // Already connected — advance queue, re-check
+        addLog(`[Mobile] ${firstIntegration.name} already connected`)
+        setAuthState((prev) => ({ ...prev, isChecking: false }))
+        checkConnections()
+        return
+      }
+
+      if (result?.authUrl) {
+        sessionStorage.setItem('oauth_provider', firstIntegration.toolkit)
+        sessionStorage.setItem('oauth_return_url', queue.returnUrl)
+
+        setParallelAuthState((prev) => ({
+          ...prev,
+          [firstIntegration.id]: { status: 'connecting', pollAttempts: 0 },
+        }))
+
+        addLog(`[Mobile] Redirecting to ${firstIntegration.name} sign-in...`)
+        window.location.href = result.authUrl
+      } else {
+        addLog(`[Mobile] No auth URL returned for ${firstIntegration.name}`)
+        setAuthState((prev) => ({ ...prev, isChecking: false }))
+      }
+    } catch (error) {
+      console.error('[WorkflowPreviewCard] Mobile connect error:', error)
+      addLog('Error getting connection link')
+      setAuthState((prev) => ({ ...prev, isChecking: false }))
+      clearMobileOAuthQueue()
+    }
+  }, [authState.pendingIntegrations, workflow.id, addLog, checkConnections])
+
   // Handle single integration connect (for use within ParallelAuthPrompt)
   const handleConnectSingle = React.useCallback(async (integration: IntegrationInfo) => {
     // Directly initiate OAuth for this integration
@@ -2485,8 +2582,46 @@ export function WorkflowPreviewCard({
     }
   }, [authState, addLog])
 
+  // Mobile: redirect-based single integration connect
+  const handleConnectSingleMobile = React.useCallback(async (integration: IntegrationInfo) => {
+    addLog(`[Mobile] Connecting ${integration.name} via redirect...`)
+    setAuthState((prev) => ({ ...prev, isChecking: true }))
+
+    const queue: MobileOAuthQueue = {
+      workflowId: workflow.id || 'unknown',
+      pendingToolkits: [integration.toolkit],
+      connectedToolkits: [],
+      returnUrl: window.location.pathname + window.location.search,
+      timestamp: Date.now(),
+    }
+    saveMobileOAuthQueue(queue)
+
+    try {
+      const results = await rubeClient.initiateConnection([integration.toolkit])
+      const result = results[integration.toolkit]
+
+      if (result?.authUrl) {
+        sessionStorage.setItem('oauth_provider', integration.toolkit)
+        sessionStorage.setItem('oauth_return_url', queue.returnUrl)
+        window.location.href = result.authUrl
+      } else {
+        addLog(`[Mobile] No auth URL for ${integration.name}`)
+        setAuthState((prev) => ({ ...prev, isChecking: false }))
+        clearMobileOAuthQueue()
+      }
+    } catch (error) {
+      console.error('[WorkflowPreviewCard] Mobile single connect error:', error)
+      setAuthState((prev) => ({ ...prev, isChecking: false }))
+      clearMobileOAuthQueue()
+    }
+  }, [workflow.id, addLog])
+
   // @NEXUS-FIX-111: Track retry counts per node to prevent infinite retries - DO NOT REMOVE
   const nodeRetryCounts = React.useRef<Map<string, number>>(new Map())
+  // Abort controller for cancellation support (R-P2-11 — execution-engine.ts)
+  const abortControllerRef = React.useRef<AbortController | null>(null)
+  // Checkpoint storage for persistent agent resume (R-P0-1 — execution-engine.ts)
+  const preservedCheckpointRef = React.useRef<import('@/lib/workflow-engine/execution-types').ExecutionCheckpoint | null>(null)
 
   // @NEXUS-FIX-179: Approval decision handler with resume mechanism - DO NOT REMOVE
   const handleApprovalDecision = React.useCallback(async (
@@ -2598,10 +2733,11 @@ export function WorkflowPreviewCard({
   }, [workflow.id, approvalResumeIndex, addLog, onExecutionComplete])
 
   // Execute workflow with REAL API calls via Composio
+  // Execution logic extracted to execution-engine.ts — fix markers FIX-006 through FIX-204 moved there
+  // Original inline code (~840 lines) replaced with thin dispatch wrapper
   const executeWorkflow = React.useCallback(async () => {
-    // Reset retry counts for fresh execution
+    // Auth check stays in component (needs React state directly)
     nodeRetryCounts.current.clear()
-    // First check if we need authentication
     if (phase === 'ready' && requiredIntegrations.length > 0) {
       const allConnected = await checkConnections()
       if (!allConnected) {
@@ -2609,840 +2745,134 @@ export function WorkflowPreviewCard({
       }
     }
 
-    setPhase('executing')
-    addLog('Starting workflow execution...')
-
-    // Rube MCP is already initialized via backend - no client init needed
-
-    // @NEXUS-FIX-178: Preserve already-completed nodes on approval resume - DO NOT REMOVE
-    setNodes((prev) => prev.map((n) => ({
-      ...n,
-      status: (n.status === 'success' && n.result) ? 'success' : 'pending' as NodeStatus,
-    })))
-
-    // Execute each node
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i]
-
-      // @NEXUS-FIX-178: Skip already-completed nodes on approval resume - DO NOT REMOVE
-      if (node.status === 'success' && node.result) {
-        addLog(`${node.name} - Already completed (skipping)`)
-        continue
-      }
-
-      // Set current node to connecting
-      setNodes((prev) =>
-        prev.map((n, idx) => ({
-          ...n,
-          status: idx === i ? 'connecting' : idx < i ? 'success' : 'pending',
-        }))
-      )
-
-      addLog(`Executing: ${node.name}...`)
-
-      try {
-        // Get integration info for this node
-        const integrationInfo = getIntegrationInfo(node.integration || node.name)
-        // Note: execution time is now tracked by VerifiedExecutor (@NEXUS-FIX-041)
-
-        // HANDLE DIFFERENT NODE TYPES:
-        // 1. Trigger nodes (webhooks) - These are EVENT LISTENERS, not runtime executions
-        //    In production: Configured once in Composio to send webhooks to our endpoint
-        //    In beta test: Mark as "configured" - actual events come from the connected service
-        // 2. AI nodes - Internal processing, no external API call needed
-        // 3. Action nodes - These ARE runtime executions (send email, create task, etc.)
-
-        const isTriggerNode = node.type === 'trigger' ||
-          node.name.toLowerCase().includes('monitor') ||
-          node.name.toLowerCase().includes('watch') ||
-          node.name.toLowerCase().includes('listen') ||
-          node.name.toLowerCase().includes('receive') ||
-          node.name.toLowerCase().includes('capture') ||
-          node.name.toLowerCase().includes('incoming')
-
-        // @NEXUS-FIX-110: Tightened AI/Internal node classification - DO NOT REMOVE
-        // Problem: Keywords like 'extract', 'analyze', 'generate', 'process' caused REAL
-        // action nodes (e.g., "Extract Email Attachments", "Generate Invoice", "Process Payment")
-        // to be skipped as "AI processing" when they are actually real API calls.
-        // Solution: ONLY classify as AI/internal when the integration is EXPLICITLY 'ai' or 'nexus'.
-        // Nodes with real integrations (gmail, slack, etc.) should ALWAYS go through execution.
-        const hasRealIntegration = integrationInfo.toolkit !== 'ai' &&
-          integrationInfo.toolkit !== 'nexus' &&
-          integrationInfo.toolkit !== 'unknown' &&
-          integrationInfo.toolkit !== 'default' &&
-          node.integration?.toLowerCase() !== 'ai' &&
-          node.integration?.toLowerCase() !== 'nexus'
-
-        const nodeNameLower = node.name.toLowerCase()
-
-        // @NEXUS-FIX-144: Expanded AI node detection for universal execution - DO NOT REMOVE
-        // Problem: Only toolkit==='ai' was detected. Steps like "Generate Quote" (toolkit=generate) fell to Composio and failed.
-        // Solution: Recognize all AI-internal toolkit names + keyword patterns when no real integration exists.
-        const AI_INTERNAL_TOOLKITS = new Set([
-          'ai', 'nexus-ai', 'claude', 'anthropic', 'openai',
-          'generate', 'summarize', 'translate', 'transform', 'analyze',
-          'filter', 'condition', 'format'
-        ])
-        const isAINode = !hasRealIntegration && (
-          AI_INTERNAL_TOOLKITS.has(integrationInfo.toolkit.toLowerCase()) ||
-          AI_INTERNAL_TOOLKITS.has((node.integration || '').toLowerCase()) ||
-          (node.config as Record<string, unknown>)?.executorHint === 'ai' ||
-          // Catch-all: name implies AI generation + no real integration + unknown toolkit
-          ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') &&
-            /\b(generat|compose|write|summariz|analyz|translat|classify|extract text|draft|creat(?:e|ing)\s+(?:a|an|the))\b/i.test(nodeNameLower))
-        )
-
-        // Detect internal/output nodes that don't need external API calls
-        // These are Nexus-internal steps like "Display Results", "Show Summary", etc.
-        // CRITICAL: Only treat as internal if the node does NOT have a real integration
-        const hasOutputPattern = nodeNameLower.includes('display') ||
-          nodeNameLower.includes('show output') ||
-          nodeNameLower.includes('show result') ||
-          nodeNameLower.includes('show summary') ||
-          nodeNameLower.includes('present result') ||
-          nodeNameLower.includes('format output') ||
-          nodeNameLower.includes('notify user') ||
-          nodeNameLower.includes('workflow complete')
-
-        const isInternalNode = !hasRealIntegration && (
-          integrationInfo.toolkit === 'nexus' ||
-          node.integration?.toLowerCase() === 'nexus' ||
-          node.type === 'output' ||
-          // For unknown/default toolkit, only treat as internal if it has output patterns
-          ((integrationInfo.toolkit === 'unknown' || integrationInfo.toolkit === 'default') && hasOutputPattern)
-        )
-        // @NEXUS-FIX-110-END
-
-        // Handle trigger nodes - they need sample data for beta testing
-        if (isTriggerNode) {
-          // Check if we have sample data for this trigger
-          const sampleData = triggerSampleData[node.id]
-
-          if (!sampleData || Object.keys(sampleData).length === 0) {
-            // No sample data provided - prompt the user
-            addLog(`⏸️ ${node.name} - Needs sample data for beta test`)
-
-            // Show the sample data prompt
-            setCurrentTriggerNode(node.id)
-            setShowTriggerDataPrompt(true)
-
-            // Pause execution and set node to "waiting" status
-            setNodes((prev) =>
-              prev.map((n, idx) => ({
-                ...n,
-                status: idx === i ? 'connecting' : idx < i ? 'success' : 'pending',
-              }))
-            )
-
-            // Set phase to indicate we're waiting for input
-            setPhase('ready')
-
-            // Don't continue - we need to wait for user input
-            // The workflow will be retried after sample data is provided
-            return
-          }
-
-          // Check if this was skipped (user clicked "Skip" button)
-          const wasSkipped = sampleData._skipped === 'true'
-
-          if (wasSkipped) {
-            addLog(`⚡ ${node.name} - Skipped (no sample data provided)`)
-            setNodes((prev) =>
-              prev.map((n, idx) => ({
-                ...n,
-                status: idx <= i ? 'success' : 'pending',
-                result: idx === i ? {
-                  type: 'trigger_skipped',
-                  data: {},
-                  message: 'Trigger skipped (no sample data)',
-                  note: 'In production, this would receive real events from the webhook'
-                } : n.result,
-              }))
-            )
-          } else {
-            // We have real sample data - use it!
-            addLog(`⚡ ${node.name} - Using sample data: ${JSON.stringify(sampleData).substring(0, 50)}...`)
-
-            // Mark trigger as complete with the sample data as its "result"
-            // This data will flow to subsequent nodes
-            setNodes((prev) =>
-              prev.map((n, idx) => ({
-                ...n,
-                status: idx <= i ? 'success' : 'pending',
-                result: idx === i ? {
-                  type: 'trigger_sample_data',
-                  data: sampleData,
-                  message: 'Sample data received (beta test)',
-                  note: 'In production, this would be real event data from the webhook'
-                } : n.result,
-              }))
-            )
-          }
-          continue // Move to next node
-        }
-
-        // @NEXUS-FIX-144: Real AI execution via backend Claude call - DO NOT REMOVE
-        // Problem: AI nodes did nothing (fake 500ms delay). No content was generated.
-        // Solution: Call POST /api/workflow/ai-step which uses callClaudeWithTiering() with model tiering.
-        if (isAINode) {
-          addLog(`🤖 ${node.name} - AI processing...`)
-
-          try {
-            // Gather context from previous steps for data flow
-            const prevResults = nodes.slice(0, i).map(n => n.result).filter(Boolean)
-            const prevData: Record<string, unknown> = {}
-            for (const r of prevResults) {
-              const res = r as Record<string, unknown>
-              if (res?.type === 'trigger_sample_data' && res.data) Object.assign(prevData, res.data as Record<string, unknown>)
-              if (res?.type === 'ai_output' && res.generated) prevData.previous_ai_output = res.generated
-              if (res?.text) prevData.previous_text = res.text
-            }
-
-            // Auto-gauge complexity for model tiering (Haiku/Sonnet/Opus)
-            const gaugeComplexity = (name: string, desc: string): string => {
-              const t = `${name} ${desc}`.toLowerCase()
-              if (/\b(analyz|strateg|decision|evaluat|comprehensive|detailed report|business plan|compar)\b/.test(t)) return 'complex'
-              if (/\b(quote|greet|hello|format|label|tag|short|simple|one.?line|joke|tip)\b/.test(t)) return 'simple'
-              return 'moderate'
-            }
-
-            const complexity = gaugeComplexity(node.name, node.description || '')
-            const aiPrompt = node.description || node.name
-
-            const response = await fetch('/api/workflow/ai-step', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: aiPrompt, previousData: prevData, complexity }),
-            })
-
-            if (!response.ok) throw new Error(`AI step failed: ${response.status}`)
-            const aiResult = await response.json()
-            if (!aiResult.success) throw new Error(aiResult.error || 'AI processing failed')
-
-            // @NEXUS-FIX-171: AI step output validation - DO NOT REMOVE
-            if (!aiResult.output || typeof aiResult.output !== 'string' || aiResult.output.trim().length === 0) {
-              throw new Error('AI step produced empty output — please try again')
-            }
-            if (aiResult.output.length > 10000) {
-              aiResult.output = aiResult.output.substring(0, 10000) + '... [truncated]'
-            }
-
-            addLog(`✓ ${node.name}: Done (${aiResult.tier || 'ai'}, ${aiResult.tokensUsed || 0} tokens)`)
-
-            setNodes((prev) =>
-              prev.map((n, idx) => ({
-                ...n,
-                status: idx <= i ? 'success' : 'pending',
-                result: idx === i ? {
-                  type: 'ai_output',
-                  generated: aiResult.output,
-                  text: aiResult.output,
-                  message: `AI generated: ${(aiResult.output || '').substring(0, 80)}...`,
-                  data: { generated_content: aiResult.output, ai_output: aiResult.output, text: aiResult.output },
-                } : n.result,
-              }))
-            )
-          } catch (aiErr) {
-            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
-            throw aiErr
-          }
-          continue // Move to next node
-        }
-
-        // Handle internal/output nodes - no external API needed
-        // These are steps like "Display Results", "Show Summary" that present data within Nexus
-        if (isInternalNode) {
-          addLog(`📊 ${node.name} - Internal Nexus step`)
-
-          // Brief delay for UX consistency
-          await new Promise(resolve => setTimeout(resolve, 300))
-
-          // Collect results from previous nodes to display
-          const previousResults = nodes.slice(0, i).map(n => n.result).filter(Boolean)
-
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx <= i ? 'success' : 'pending',
-              result: idx === i ? {
-                type: 'internal_output',
-                message: `${node.name} complete`,
-                note: 'Internal Nexus step - displays workflow results',
-                previousData: previousResults.length > 0 ? previousResults : 'No data from previous steps'
-              } : n.result,
-            }))
-          )
-          continue // Move to next node
-        }
-
-        // @NEXUS-FIX-178: HITL Approval Node Handling - DO NOT REMOVE
-        // Detect explicit approval nodes or action nodes with approval-triggering characteristics
-        const isExplicitApprovalNode = node.type === 'approval'
-
-        if (isExplicitApprovalNode) {
-          addLog(`${node.name} - Approval required`)
-
-          // Build approval context from the node's config
-          const approvalConfig = (node as any).approvalConfig || {}
-          const approvalContext = {
-            data: {
-              workflowName: workflow.name,
-              stepName: node.name,
-              stepIndex: i,
-              ...(node.config || {}),
-            },
-            reason: approvalConfig.reason || approvalConfig.approvalMessage || `Approval required for: ${node.name}`,
-            displayMessage: approvalConfig.approvalMessage || `Please review before proceeding with "${node.name}"`,
-            riskLevel: approvalConfig.riskLevel || 'medium',
-          }
-
-          // Preserve all node results so far for resume
-          preservedNodeResultsRef.current.clear()
-          for (let j = 0; j < i; j++) {
-            if (nodes[j].result) {
-              preservedNodeResultsRef.current.set(nodes[j].id, nodes[j].result)
-            }
-          }
-
-          // Create the approval request via HITL library
-          const requestId = await hitlWorkflowIntegration.pauseForApproval(
-            workflow.id,
-            node.id,
-            approvalContext,
-            {
-              priority: approvalConfig.priority || 'medium',
-              workflowName: workflow.name,
-              stepName: node.name,
-              timeoutMs: approvalConfig.timeoutMs,
-            }
-          )
-
-          // Update node with request ID
-          setNodes(prev => prev.map((n, idx) => ({
-            ...n,
-            status: idx === i ? ('awaiting_approval' as NodeStatus) : idx < i ? 'success' : 'pending',
-          })))
-
-          // Set up approval UI state
-          const request = hitlWorkflowIntegration.getRequest(requestId)
-          setPendingApprovalRequest(request || null)
-          setApprovalResumeIndex(i)
-          setShowApprovalCard(true)
-          setPhase('awaiting_approval' as CardPhase)
-
-          // Try to send WhatsApp notification (non-blocking)
-          try {
-            await fetch('/api/workflow/notify-approval', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                requestId,
-                workflowName: workflow.name,
-                stepName: node.name,
-                approvalConfig,
-                channel: 'whatsapp',
-              }),
-            })
-          } catch (_err) {
-            // WhatsApp notification is non-blocking
-          }
-
-          addLog(`Waiting for approval...`)
-          // PAUSE execution - return from the for-loop (same pattern as trigger sample data)
-          return
-        }
-        // @NEXUS-FIX-178-END
-
-        // @NEXUS-FIX-146: Native WhatsApp execution via Baileys - DO NOT REMOVE
-        // Problem: WhatsApp personal (toolkit='whatsapp') was routed to Composio which doesn't have it.
-        // Solution: Intercept before Composio path and send via Baileys API directly.
-        if (integrationInfo.toolkit.toLowerCase() === 'whatsapp' ||
-            (node.config as Record<string, unknown>)?.executorHint === 'native-whatsapp') {
-          addLog(`📱 ${node.name} - Sending via WhatsApp...`)
-          try {
-            // Resolve message content from previous steps via existing data flow pipeline
-            const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
-            const pipeResult = await _resolveParamsWithPipeline(
-              'WHATSAPP_SEND_MESSAGE',
-              'whatsapp',
-              node,
-              workflow.collectedParams as Record<string, string> | undefined,
-              { name: workflow.name, description: workflow.description },
-              previousNodeResults
-            )
-            const p = pipeResult.params
-            // @NEXUS-FIX-172: Canonical WhatsApp message resolution - DO NOT REMOVE
-            // Priority: explicit message param → previous AI output → previous text output → fallback aliases
-            const waMessage = (() => {
-              if (p.message && typeof p.message === 'string') return p.message
-              const lastAI = [...previousNodeResults].reverse().find((r: any) => r?.type === 'ai_output')
-              if (lastAI && (lastAI as any).generated) return (lastAI as any).generated as string
-              const lastText = [...previousNodeResults].reverse().find((r: any) => r?.text)
-              if (lastText) return (lastText as any).text as string
-              return (p.text || p.body || p.notification_text || '') as string
-            })()
-            const waTo = (p.to || p.phone || p.phone_number ||
-              (workflow.collectedParams as Record<string, string>)?.whatsapp || '') as string
-
-            if (!waTo) {
-              throw new Error('Missing Information: Send WhatsApp Message [param:to]\n\n💡 I need the recipient phone number to send this WhatsApp message.\nPlease tell me:\n• Who should I send the WhatsApp message to? (phone number with country code)')
-            }
-            if (!waMessage) {
-              throw new Error('Missing Information: Send WhatsApp Message [param:message]\n\n💡 I need the message content.\nPlease tell me:\n• What message should I send?')
-            }
-
-            // Find active Baileys session (FIX-185: use persistent backend URL)
-            const sessResp = await fetch(`${WA_BACKEND_URL}/sessions`)
-            const sessData = await sessResp.json()
-            const activeSession = sessData.sessions?.find((s: { state: string }) => s.state === 'ready')
-
-            if (!activeSession) {
-              throw new Error('WhatsApp is not connected. Please connect WhatsApp first using the QR code in Settings → WhatsApp.')
-            }
-
-            // Send via Baileys API (FIX-185: use persistent backend URL)
-            const sendResp = await fetch(`${WA_BACKEND_URL}/send`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId: activeSession.id,
-                to: waTo.replace(/[^0-9]/g, ''),
-                message: waMessage,
-              }),
-            })
-
-            const sendResult = await sendResp.json()
-            if (!sendResult.success) throw new Error(sendResult.error || 'Failed to send WhatsApp message')
-
-            addLog(`✓ ${node.name}: Message sent to ${waTo}`)
-            setNodes((prev) =>
-              prev.map((n, idx) => ({
-                ...n,
-                status: idx <= i ? 'success' : 'pending',
-                result: idx === i ? {
-                  type: 'whatsapp_sent',
-                  messageId: sendResult.messageId,
-                  to: waTo,
-                  message: waMessage.substring(0, 100),
-                  _verified: true,
-                  _proof: { type: 'message_sent', details: { id: sendResult.messageId, destination: waTo, summary: `WhatsApp message sent to ${waTo}` } },
-                } : n.result,
-              }))
-            )
-            continue // Skip Composio path
-          } catch (waErr) {
-            // Re-throw to let the existing error handler (FIX-039/111/112) handle it
-            throw waErr
-          }
-        }
-
-        // For ACTION nodes - these require actual API execution
-        // Map node name to Composio tool slug
-        // @NEXUS-FIX-062: Orchestration-First Execution Path - DO NOT REMOVE
-        // Problem: Even with USE_ORCHESTRATION_FIRST=true, execution still used legacy path for known toolkits
-        // Solution: Check orchestration results FIRST (for all toolkits), then fall back to legacy
-        const toolkitLower = integrationInfo.toolkit.toLowerCase().replace(/\s+/g, '').replace(/-/g, '')
-        let toolSlug: string | null = null
-
-        // @NEXUS-FIX-062: Check for pre-discovered orchestration result FIRST (for ALL toolkits)
-        const storedOrchResult = orchestrationResults.get(node.id)
-        if (storedOrchResult && storedOrchResult.slug) {
-          // We have a valid orchestration result from pre-flight - use it!
-          toolSlug = storedOrchResult.slug
-          const isKnown = isToolkitKnown(toolkitLower)
-
-          // @NEXUS-FIX-063: Override orchestration slug with legacy for KNOWN toolkits during EXECUTION - DO NOT REMOVE
-          // Problem: Pre-flight stores orchestration slug (e.g., CALENDAR_CREATE) but this is often wrong
-          // Solution: For known toolkits, always use legacy TOOL_SLUGS mapping which has correct tool names
-          // This mirrors the pre-flight FIX-063 logic but applies it during execution phase
-          if (isKnown) {
-            const legacySlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
-            if (legacySlug && legacySlug !== toolSlug) {
-              console.log(`[ORCHESTRATION-FIRST] FIX-063: Overriding execution slug ${toolSlug} with legacy slug ${legacySlug}`)
-              toolSlug = legacySlug
-            }
-          }
-
-          if (USE_ORCHESTRATION_FIRST && isKnown) {
-            console.log(`[ORCHESTRATION-FIRST] Using tool for KNOWN toolkit ${toolkitLower}: ${toolSlug}`)
-          } else {
-            console.log(`[ORCHESTRATION] Using pre-discovered tool for ${node.id}: ${toolSlug}`)
-          }
-        } else if (isToolkitKnown(toolkitLower)) {
-          // KNOWN TOOLKIT with no orchestration result: Use legacy fast path
-          toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
-          console.log(`[LEGACY] Using legacy path for known toolkit ${toolkitLower}: ${toolSlug}`)
-        } else if (USE_GENERIC_ORCHESTRATION) {
-          // UNKNOWN TOOLKIT with no orchestration result: Try orchestration now
-          addLog(`🔍 ${node.name} - Unknown toolkit "${integrationInfo.toolkit}", discovering via orchestration...`)
-          console.log(`[ORCHESTRATION] Unknown toolkit "${integrationInfo.toolkit}" - trying orchestration first`)
-          const orchResult = await resolveToolViaOrchestration(node.name, integrationInfo.toolkit)
-          if (orchResult) {
-            toolSlug = orchResult.slug
-            addLog(`✅ Discovered: ${orchResult.displayName} (${orchResult.slug})`)
-            console.log(`[ORCHESTRATION] Session: ${orchResult.sessionId}, Questions: ${orchResult.questions.length}`)
-            // Store result for schema validation later
-            setOrchestrationResults(prev => {
-              const updated = new Map(prev)
-              updated.set(node.id, orchResult)
-              return updated
-            })
-          } else {
-            // Orchestration failed - fall back to dynamic construction
-            console.log(`[ORCHESTRATION] Discovery failed for "${integrationInfo.toolkit}", using dynamic construction fallback`)
-            toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
-          }
-        } else {
-          // Orchestration disabled - use legacy dynamic construction
-          toolSlug = mapNodeToToolSlug(node.name, integrationInfo.toolkit)
-        }
-
-        // @NEXUS-FIX-019: Pre-execution tool validation - DO NOT REMOVE
-        if (toolSlug) {
-          const validation = validateToolSlug(toolSlug, integrationInfo.toolkit)
-          if (!validation.valid && validation.suggestion) {
-            addLog(`⚠️ Validation: ${validation.reason}`)
-          }
-        }
-
-        if (!toolSlug) {
-          // NO tool mapping - this is an error, not something to simulate
-          throw new Error(
-            `No tool mapping for "${node.name}" (toolkit: ${integrationInfo.toolkit}). ` +
-            `This integration is not yet supported. Please check that ${integrationInfo.name} ` +
-            `is correctly configured and has the required API access.`
-          )
-        }
-
-        // @NEXUS-FIX-043: Resolve params via ParamResolutionPipeline with legacy fallback - DO NOT REMOVE
-        // @NEXUS-FIX-113: Pass previous node results for data flow between steps - DO NOT REMOVE
-        // @NEXUS-FIX-029: Merge collected params from user answers (handled inside pipeline) - DO NOT REMOVE
-        const previousNodeResults = nodes.slice(0, i).map(n => ({ node: n, result: n.result }))
-        const pipelineResult = await _resolveParamsWithPipeline(
-          toolSlug,
-          integrationInfo.toolkit,
-          node,
-          workflow.collectedParams as Record<string, string> | undefined,
-          { name: workflow.name, description: workflow.description },
-          previousNodeResults
-        )
-        const params = pipelineResult.params
-        console.log(`[WorkflowPreviewCard] Final params via ${pipelineResult.source}:`, params)
-
-        // @NEXUS-FIX-062: Dynamic schema-based parameter validation - DO NOT REMOVE
-        // Problem: Hardcoded validateRequiredParams() only knows ~30 tools out of 500+
-        // Solution: Fetch actual required params from Composio schema dynamically
-        // When pipeline resolved params, also cross-check against Composio schema
-        let missingParams: string[] = []
-        const storedOrch = orchestrationResults.get(node.id)
-        if (storedOrch?.sessionId) {
-          // We have a sessionId from orchestration - use dynamic schema
-          try {
-            const schemaResolver = getSchemaResolver()
-            const schema = await schemaResolver.getSchema(toolSlug, storedOrch.sessionId)
-            console.log(`[WorkflowPreviewCard] FIX-062: Got schema for ${toolSlug}, required: ${schema.required?.join(', ') || 'none'}`)
-
-            // Check which required params are missing
-            const requiredFromSchema = schema.required || []
-            missingParams = requiredFromSchema.filter(param => {
-              const value = params[param]
-              return value === undefined || value === null || value === ''
-            })
-          } catch (schemaError) {
-            console.warn(`[WorkflowPreviewCard] FIX-062: Schema fetch failed, using fallback validation`, schemaError)
-            missingParams = validateRequiredParams(toolSlug, params)
-          }
-        } else if (pipelineResult.source === 'pipeline' && pipelineResult.resolved) {
-          // Pipeline resolved - use its own missing params detection
-          missingParams = pipelineResult.resolved.missingRequired
-        } else {
-          // No sessionId and no pipeline - fall back to hardcoded validation
-          missingParams = validateRequiredParams(toolSlug, params)
-        }
-
-        // @NEXUS-FIX-021: User-friendly missing parameter messages - DO NOT REMOVE
-        // @NEXUS-FIX-031: Include raw param name for correct collection key - DO NOT REMOVE
-        // @NEXUS-FIX-043: Use enhanced missing params from pipeline when available - DO NOT REMOVE
-        // @NEXUS-FIX-204: Auto-fill missing params with smart defaults before throwing - DO NOT REMOVE
-        // Problem: Quick Setup doesn't always collect ALL params the execution schema requires.
-        // This caused "One More Thing Needed" prompts mid-execution, breaking user flow.
-        // Solution: Before throwing, try to generate smart defaults for common param types.
-        // Only throw if a param truly cannot be auto-filled (e.g., recipient email).
-        if (missingParams.length > 0) {
-          // FIX-199: Try to auto-fill missing params with smart defaults
-          const toolkit = integrationInfo.toolkit.toLowerCase()
-          const trulyMissing: string[] = []
-
-          for (const paramName of missingParams) {
-            const pLower = paramName.toLowerCase()
-            let autoValue: string | null = null
-
-            // Content/message params: generate from workflow context
-            if (pLower === 'content' || pLower === 'text' || pLower === 'message' || pLower === 'body') {
-              // Use previous node results to build a message
-              const prevResults = nodes.slice(0, i).filter(n => n.result)
-              if (prevResults.length > 0) {
-                autoValue = `📋 Workflow update from ${workflow.name}: Step "${node.name}" triggered`
-              } else {
-                autoValue = `Automated notification from workflow: ${workflow.name}`
-              }
-              console.log(`[FIX-204] Auto-filled ${paramName} with context message for ${toolkit}`)
-            }
-            // Channel params: default to general
-            else if (pLower === 'channel' || pLower === 'channel_id') {
-              autoValue = toolkit === 'slack' ? 'general' : toolkit === 'discord' ? 'general' : 'general'
-              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
-            }
-            // Subject params: generate from workflow name
-            else if (pLower === 'subject' || pLower === 'email_subject' || pLower === 'subject_line') {
-              autoValue = `${workflow.name} — Automated Update`
-              console.log(`[FIX-204] Auto-filled ${paramName} with subject for ${toolkit}`)
-            }
-            // Name/title params: use node name or workflow name
-            else if (pLower === 'name' || pLower === 'title' || pLower === 'summary' || pLower === 'item_name' || pLower === 'task_name') {
-              autoValue = node.name || workflow.name || 'Nexus Workflow Item'
-              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
-            }
-            // Description params: use workflow description or generate
-            else if (pLower === 'description' || pLower === 'desc' || pLower === 'notes') {
-              autoValue = workflow.description || `Created by ${workflow.name} workflow`
-              console.log(`[FIX-204] Auto-filled ${paramName} with description for ${toolkit}`)
-            }
-            // Topic params (Zoom, etc.)
-            else if (pLower === 'topic') {
-              autoValue = node.name || 'Nexus Meeting'
-              console.log(`[FIX-204] Auto-filled ${paramName} → "${autoValue}" for ${toolkit}`)
-            }
-            // Path/folder params: default to root
-            else if (pLower === 'path' || pLower === 'folder' || pLower === 'folder_path') {
-              autoValue = '/'
-              console.log(`[FIX-204] Auto-filled ${paramName} → "/" for ${toolkit}`)
-            }
-            // List/board ID params: use "default" placeholder that triggers auto-resolution
-            else if (pLower === 'list_id' || pLower === 'board_id' || pLower === 'project_key') {
-              autoValue = 'default'
-              console.log(`[FIX-204] Auto-filled ${paramName} → "default" for ${toolkit}`)
-            }
-
-            if (autoValue) {
-              params[paramName] = autoValue
-            } else {
-              trulyMissing.push(paramName)
-            }
-          }
-
-          // Only throw if there are TRULY missing params that cannot be auto-filled
-          if (trulyMissing.length > 0) {
-            const enhancedMissing = _getEnhancedMissingParams(
-              pipelineResult.resolved,
-              integrationInfo.toolkit,
-              trulyMissing
-            )
-            const friendlyPrompts = enhancedMissing.map(p => p.prompt)
-            // @NEXUS-FIX-031: Include first missing param name for UI to use as collection key
-            throw new Error(
-              `Missing Information: ${node.name} [param:${trulyMissing[0]}]\n\n` +
-              `💡 I need more details to complete this step. Please tell me:\n` +
-              friendlyPrompts.map(p => `• ${p}`).join('\n')
-            )
-          } else {
-            console.log(`[FIX-204] All ${missingParams.length} missing params auto-filled! Proceeding with execution.`)
-          }
-        }
-
-        // @NEXUS-FIX-115: Pre-execution connection validation - DO NOT REMOVE
-        // Problem: Expired OAuth tokens caused execution failures mid-workflow
-        // Solution: Check connection status before executing and warn early
-        try {
-          const connStatus = await rubeClient.checkConnection(integrationInfo.toolkit)
-          if (!connStatus.connected) {
-            addLog(`⚠️ ${integrationInfo.name} connection may be expired — attempting execution anyway...`)
-            console.warn(`[FIX-115] ${integrationInfo.toolkit} not connected before execution. Will attempt anyway.`)
-          }
-        } catch (connCheckErr) {
-          // Non-blocking — don't fail the workflow just because connection check failed
-          console.warn(`[FIX-115] Connection pre-check failed for ${integrationInfo.toolkit}:`, connCheckErr)
-        }
-        // @NEXUS-FIX-115-END
-
-        // @NEXUS-FIX-041: Execute with VERIFICATION via VerifiedExecutor - DO NOT REMOVE
-        // This replaces direct rubeClient.executeTool() to fix silent failures
-        const verifiedResult: VerifiedResult = await VerifiedExecutorService.execute(
-          toolSlug,
-          params,
-          {
-            nodeId: node.id,
-            nodeName: node.name,
-            toolkit: integrationInfo.toolkit,
-            action: node.type,
-            workflowName: workflow.name,
-          }
-        )
-
-        const executionTime = verifiedResult.executionTimeMs
-
-        if (verifiedResult.success && verifiedResult.verified) {
-          // VERIFIED SUCCESS - action actually happened!
-          const proofSummary = verifiedResult.proof
-            ? VerifiedExecutorService.formatProofForDisplay(verifiedResult.proof)
-            : 'Completed'
-          addLog(`✓ ${node.name}: ${proofSummary} (${executionTime}ms)`)
-
-          // Update node with result and proof
-          const rawData = (verifiedResult.rawResponse as Record<string, unknown>) || {}
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx <= i ? 'success' : 'pending',
-              result: idx === i ? {
-                ...rawData,
-                _verified: true,
-                _proof: verifiedResult.proof,
-              } : n.result,
-            }))
-          )
-        } else if (verifiedResult.success && !verifiedResult.verified) {
-          // API succeeded but couldn't verify - warn user
-          addLog(`⚠️ ${node.name}: Completed but unverified (${executionTime}ms)`)
-          console.warn('[WorkflowPreviewCard] Unverified result:', verifiedResult)
-
-          // Still mark as success but with warning
-          const rawDataUnverified = (verifiedResult.rawResponse as Record<string, unknown>) || {}
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx <= i ? 'success' : 'pending',
-              result: idx === i ? {
-                ...rawDataUnverified,
-                _verified: false,
-                _warning: verifiedResult.error?.message || 'Could not verify action',
-              } : n.result,
-            }))
-          )
-        } else {
-          // Execution failed - throw with user-friendly error
-          const errorMsg = verifiedResult.error?.message || 'Execution failed'
-          throw new Error(errorMsg)
-        }
-      } catch (error) {
-        console.error(`[WorkflowPreviewCard] Error executing ${node.name}:`, error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-        // @NEXUS-FIX-039: Enhanced error classification for user-friendly messages - DO NOT REMOVE
-        const catchIntegrationInfo = getIntegrationInfo(node.integration || node.name)
-        const errorAnalysis = WorkflowIntelligenceService.classifyError(error as Error, {
-          nodeId: node.id,
-          toolkit: catchIntegrationInfo.toolkit,
-          nodeName: node.name,
-        })
-        const friendlyMsg = errorAnalysis.friendlyMessage
-
-        // @NEXUS-FIX-111: Auto-retry for recoverable errors - DO NOT REMOVE
-        // Problem: Transient errors (rate limits, network, timeouts) killed the entire workflow
-        // Solution: Classify the error and retry recoverable ones with exponential backoff
-        const retryableCategories = ['rate_limited', 'network_error', 'timeout', 'service_unavailable']
-        const errorCategory = errorAnalysis.classification?.category || 'unknown'
-        const isRetryable = retryableCategories.includes(errorCategory)
-        const maxRetries = errorCategory === 'rate_limited' ? 3 : 2
-        const nodeRetryKey = `retry_${node.id}`
-        const currentRetry = (nodeRetryCounts.current.get(nodeRetryKey) || 0)
-
-        if (isRetryable && currentRetry < maxRetries) {
-          // Increment retry count
-          nodeRetryCounts.current.set(nodeRetryKey, currentRetry + 1)
-          const backoffMs = Math.min(2000 * Math.pow(2, currentRetry), 15000)
-          addLog(`⏳ ${node.name}: ${friendlyMsg} — Retrying in ${Math.round(backoffMs / 1000)}s (attempt ${currentRetry + 1}/${maxRetries})...`)
-
-          // Set node to connecting status during retry wait
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx === i ? 'connecting' : idx < i ? 'success' : 'pending',
-            }))
-          )
-
-          // Wait then retry this node by decrementing i
-          await new Promise(resolve => setTimeout(resolve, backoffMs))
-          i-- // Will be incremented by for loop, net effect: retry same node
-          continue
-        }
-        // @NEXUS-FIX-111-END
-
-        // @NEXUS-FIX-020: Tool-not-found detection with fallback suggestions - DO NOT REMOVE
-        if (isToolNotFoundError(error as Error)) {
-          // Re-compute tool slug in catch block since try-block variables are out of scope
-          const catchToolSlug = mapNodeToToolSlug(node.name, catchIntegrationInfo.toolkit)
-          const fallbacks = getFallbackTools(catchIntegrationInfo.toolkit, catchToolSlug || '', node.name)
-          if (fallbacks.length > 0) {
-            addLog(`⚠️ Tool not found: ${catchToolSlug}. Try: ${fallbacks.join(', ')}`)
-          } else {
-            addLog(`✗ ${node.name}: ${friendlyMsg}`)
-          }
-        } else {
-          // Use friendly message from ErrorClassifier
-          addLog(`✗ ${node.name}: ${friendlyMsg}`)
-        }
-
-        // @NEXUS-FIX-112: Continue-on-error for non-critical nodes - DO NOT REMOVE
-        // Problem: Any node failure killed the entire workflow, even for non-critical steps
-        // Solution: Notification/output/non-critical nodes show warning but don't stop execution
-        const catchNodeNameLower = node.name.toLowerCase()
-        const isNonCriticalNode = catchNodeNameLower.includes('notify') ||
-          catchNodeNameLower.includes('alert') ||
-          catchNodeNameLower.includes('log') ||
-          catchNodeNameLower.includes('notification') ||
-          node.type === 'output' ||
-          (i === nodes.length - 1 && catchNodeNameLower.includes('summary'))
-
-        if (isNonCriticalNode && !errorMessage.includes('Missing Information')) {
-          addLog(`⚠️ ${node.name}: Skipped (non-critical) — ${friendlyMsg}`)
-          setNodes((prev) =>
-            prev.map((n, idx) => ({
-              ...n,
-              status: idx === i ? 'success' : idx < i ? 'success' : 'pending',
-              result: idx === i ? {
-                _skipped: true,
-                _warning: friendlyMsg,
-                _error: errorMessage,
-              } : n.result,
-            }))
-          )
-          continue // Skip this node and continue workflow
-        }
-        // @NEXUS-FIX-112-END
-
-        // Execution genuinely failed — show the error to the user
-        setNodes((prev) =>
-          prev.map((n, idx) => ({
-            ...n,
-            status: idx === i ? 'error' : idx < i ? 'success' : 'pending',
-            error: idx === i ? errorMessage : undefined,
+    // Create abort controller for cancellation support (R-P2-11)
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    // Dispatch function maps engine actions to component state
+    const engineDispatch = (action: import('@/lib/workflow-engine/execution-types').ExecutionAction) => {
+      switch (action.type) {
+        case 'NODE_STATUS':
+          setNodes(prev => prev.map((n, idx) =>
+            idx === action.index
+              ? { ...n, status: action.status, result: action.result ?? n.result, error: action.error }
+              : n
+          ))
+          break
+        case 'NODES_BATCH_UPDATE':
+          setNodes(prev => prev.map((n, idx) => {
+            const update = action.updates.find(u => u.index === idx)
+            if (!update) return n
+            return { ...n, status: update.status, result: update.result ?? n.result, error: update.error }
           }))
-        )
-
-        setPhase('error')
-        userMemoryService.recordEvent('workflow_executed', { success: false, name: workflow.name })
-        onExecutionComplete?.(false)
-        return
+          break
+        case 'PHASE_CHANGE':
+          setPhase(action.phase)
+          break
+        case 'LOG':
+          addLog(action.message)
+          break
+        case 'TRIGGER_SAMPLE_DATA':
+          // Trigger sample data is managed by the engine internally
+          break
+        case 'TRIGGER_DATA_NEEDED':
+          setCurrentTriggerNode(action.nodeId)
+          setShowTriggerDataPrompt(true)
+          break
+        case 'STORE_ORCHESTRATION_RESULT':
+          setOrchestrationResults(prev => {
+            const updated = new Map(prev)
+            updated.set(action.nodeId, action.result)
+            return updated
+          })
+          break
+        case 'APPROVAL_NEEDED': {
+          const request = hitlWorkflowIntegration.getRequest(action.approvalRequestId)
+          setPendingApprovalRequest(request || null)
+          setApprovalResumeIndex(action.nodeIndex)
+          setShowApprovalCard(true)
+          break
+        }
+        case 'CHECKPOINT':
+          // Store checkpoint for resume (available for persistent agents F8)
+          preservedCheckpointRef.current = action.checkpoint
+          break
+        case 'EXECUTION_COMPLETE':
+          onExecutionComplete?.(action.success)
+          break
       }
     }
 
-    // All done!
-    addLog('Workflow completed successfully!')
-    setPhase('complete')
-    userMemoryService.recordEvent('workflow_executed', {
-      success: true,
-      name: workflow.name,
-      integrations: requiredIntegrations.map(i => i.toolkit),
-    })
-    onExecutionComplete?.(true)
-  // @NEXUS-FIX-023: Added triggerSampleData to dependencies to fix stale closure bug - DO NOT REMOVE
-  }, [phase, requiredIntegrations.length, nodes, checkConnections, addLog, onExecutionComplete, triggerSampleData])
+    // Build execution context from current component state
+    const engineContext: import('@/lib/workflow-engine/execution-types').ExecutionContext = {
+      workflow,
+      nodes,
+      requiredIntegrations,
+      orchestrationResults,
+      triggerSampleData,
+      waBackendUrl: WA_BACKEND_URL,
+    }
 
+    // Wire up engine services from existing WPC imports
+    const engineServices: import('@/lib/workflow-engine/execution-types').EngineServices = {
+      getIntegrationInfo,
+      mapNodeToToolSlug,
+      validateToolSlug,
+      isToolkitKnown,
+      resolveToolViaOrchestration,
+      resolveParamsWithPipeline: _resolveParamsWithPipeline as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['resolveParamsWithPipeline'],
+      validateRequiredParams,
+      getEnhancedMissingParams: _getEnhancedMissingParams as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['getEnhancedMissingParams'],
+      getSchemaResolver,
+      verifiedExecute: ((slug: string, params: Record<string, unknown>, ctx: unknown) => VerifiedExecutorService.execute(slug, params, ctx as Parameters<typeof VerifiedExecutorService.execute>[2])) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['verifiedExecute'],
+      formatProofForDisplay: ((proof: unknown) => VerifiedExecutorService.formatProofForDisplay(proof as Parameters<typeof VerifiedExecutorService.formatProofForDisplay>[0])) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['formatProofForDisplay'],
+      classifyError: ((error: Error, ctx: unknown) => WorkflowIntelligenceService.classifyError(error, ctx as Parameters<typeof WorkflowIntelligenceService.classifyError>[1])) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['classifyError'],
+      isToolNotFoundError,
+      getFallbackTools,
+      checkConnection: ((toolkit: string) => rubeClient.checkConnection(toolkit)) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['checkConnection'],
+      pauseForApproval: ((wfId: string, nodeId: string, ctx: unknown, opts: unknown) => hitlWorkflowIntegration.pauseForApproval(wfId, nodeId, ctx as Parameters<typeof hitlWorkflowIntegration.pauseForApproval>[2], opts as Parameters<typeof hitlWorkflowIntegration.pauseForApproval>[3])) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['pauseForApproval'],
+      getApprovalRequest: (id: string) => hitlWorkflowIntegration.getRequest(id),
+      recordEvent: ((type: string, data: Record<string, unknown>) => userMemoryService.recordEvent(type as Parameters<typeof userMemoryService.recordEvent>[0], data)) as unknown as import('@/lib/workflow-engine/execution-types').EngineServices['recordEvent'],
+      fetch: window.fetch.bind(window),
+    }
+
+    // Run the extracted execution engine
+    try {
+      await runWorkflowExecution({
+        context: engineContext,
+        dispatch: engineDispatch,
+        abortSignal: controller.signal,
+        config: {
+          useOrchestrationFirst: USE_ORCHESTRATION_FIRST,
+          useGenericOrchestration: USE_GENERIC_ORCHESTRATION,
+        },
+        services: engineServices,
+      })
+    } catch (engineError) {
+      console.error('[WorkflowPreviewCard] Engine error:', engineError)
+      setPhase('error')
+      addLog(`Workflow execution failed: ${engineError instanceof Error ? engineError.message : 'Unknown error'}`)
+      onExecutionComplete?.(false)
+    }
+
+  // @NEXUS-FIX-023: Added triggerSampleData to dependencies to fix stale closure bug - DO NOT REMOVE
+  // Note: Execution logic moved to execution-engine.ts. Dependencies preserved for executeWorkflow wrapper.
+  }, [phase, requiredIntegrations, nodes, checkConnections, addLog, onExecutionComplete, triggerSampleData,
+      workflow, orchestrationResults, setNodes, setPhase, setOrchestrationResults, setCurrentTriggerNode,
+      setShowTriggerDataPrompt, setPendingApprovalRequest, setApprovalResumeIndex, setShowApprovalCard])
+
+  // Execution logic extracted to execution-engine.ts (T0.2). Fix markers preserved there.
   // @NEXUS-FIX-023: Keep ref updated with latest executeWorkflow (for use in setTimeout) - DO NOT REMOVE
   React.useEffect(() => {
     executeWorkflowRef.current = executeWorkflow
   }, [executeWorkflow])
+
+  // Execution logic (~800 lines) extracted to src/lib/workflow-engine/execution-engine.ts
+  // Fix markers preserved there: FIX-019, FIX-020, FIX-021, FIX-029, FIX-031,
+  // FIX-039, FIX-041, FIX-043, FIX-062, FIX-063, FIX-110, FIX-111, FIX-112,
+  // FIX-113, FIX-115, FIX-144, FIX-146, FIX-171, FIX-172, FIX-178, FIX-185,
+  // FIX-199, FIX-204
+
 
   // Auto-execute on mount if requested
   React.useEffect(() => {
@@ -3683,10 +3113,11 @@ export function WorkflowPreviewCard({
         <ParallelAuthPrompt
           integrations={authState.pendingIntegrations}
           parallelState={parallelAuthState}
-          onConnectAll={handleConnectAll}
-          onConnectSingle={handleConnectSingle}
+          onConnectAll={isMobile ? handleConnectAllMobile : handleConnectAll}
+          onConnectSingle={isMobile ? handleConnectSingleMobile : handleConnectSingle}
           isLoading={authState.isChecking}
           connectedCount={authState.connectedIntegrations.size}
+          isMobile={isMobile}
         />
       )}
 
@@ -3695,8 +3126,11 @@ export function WorkflowPreviewCard({
         <AuthPrompt
           integration={authState.currentIntegration}
           redirectUrl={authState.redirectUrl}
-          onConnect={handleConnect}
-          onSkip={() => setPhase('ready')}
+          onConnect={isMobile ? () => handleConnectSingleMobile(authState.currentIntegration!) : handleConnect}
+          onSkip={() => {
+            setAuthSkipped(true)
+            setPhase('ready')
+          }}
           connectedCount={authState.connectedIntegrations.size}
           totalCount={oauthIntegrations.length}
           isLoading={authState.isChecking}
@@ -3708,6 +3142,28 @@ export function WorkflowPreviewCard({
       {/* Workflow visualization (when not in auth mode) */}
       {!needsAuth && (
         <>
+          {/* GAP-5: Banner when user skipped connections — workflow may not execute fully */}
+          {authSkipped && phase === 'ready' && (
+            <div className="mx-4 mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="text-xs text-amber-300">
+                  {t_wpc('Some connections were skipped — workflow may not execute fully', isArabic)}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setAuthSkipped(false)
+                  setPhase('checking')
+                }}
+                className="text-xs text-amber-400 hover:text-amber-300 underline flex-shrink-0 ml-2"
+              >
+                {t_wpc('Connect Now', isArabic)}
+              </button>
+            </div>
+          )}
           <div className="px-2 sm:px-4 py-3 sm:py-4">
             {/* @NEXUS-FIX-103: Unified horizontal scroll for all screen sizes - IDENTICAL mobile/desktop experience - DO NOT REMOVE */}
             <div className="flex items-center overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700 pb-2 snap-x snap-mandatory touch-pan-x">
@@ -4070,12 +3526,29 @@ export function WorkflowPreviewCard({
           {isLoadingOrchestration && !hasError && phase !== 'complete' && (
             <div className="px-4 pb-4">
               <div className="bg-gradient-to-br from-purple-500/10 to-cyan-500/10 rounded-xl border border-purple-500/20 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-purple-300">
-                    {t_wpc('Discovering required fields for new integration...', isArabic)}
-                  </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-purple-300">
+                      {discoveryProgress
+                        ? t_wpc(`Discovering ${discoveryProgress.currentName}...`, isArabic)
+                        : t_wpc('Discovering required fields...', isArabic)}
+                    </span>
+                  </div>
+                  {discoveryProgress && discoveryProgress.total > 1 && (
+                    <span className="text-xs text-slate-400">
+                      {discoveryProgress.current + 1} / {discoveryProgress.total}
+                    </span>
+                  )}
                 </div>
+                {discoveryProgress && discoveryProgress.total > 1 && (
+                  <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300"
+                      style={{ width: `${((discoveryProgress.current + 1) / discoveryProgress.total) * 100}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}

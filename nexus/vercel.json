@@ -57,7 +57,7 @@
   ],
   "rewrites": [
     {
-      "source": "/api/((?!admin-analytics).*)",
+      "source": "/api/((?!admin-analytics|services|user-profile|integrations|autopilot|composio|rube|chat|health|execute-workflow|whatsapp-web).*)",
       "destination": "https://http--nexus-server--qlbw2fmhf4z2.code.run/api/$1"
     },
     {

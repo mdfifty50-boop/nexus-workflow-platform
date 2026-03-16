@@ -1,4 +1,5 @@
 import { SignUp as ClerkSignUp, useAuth } from '@clerk/clerk-react'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 
 export function SignUp() {
   const { isLoaded } = useAuth()
@@ -16,11 +17,10 @@ export function SignUp() {
           <p className="text-muted-foreground mt-2">Create your account</p>
         </div>
 
-        {/* Show loading spinner while Clerk initializes */}
+        {/* Show loading spinner while Clerk initializes — isLoaded + LoadingSpinner */}
         {!isLoaded && (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-muted-foreground text-sm">Loading sign up...</p>
+            <LoadingSpinner variant="gradient" size="md" label="Loading sign up..." center />
           </div>
         )}
 

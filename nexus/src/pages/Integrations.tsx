@@ -177,7 +177,7 @@ export function Integrations() {
   // @NEXUS-FIX-046: Fetch REAL connection status from API
   const fetchConnectionStatus = useCallback(async (toolkit: string): Promise<{ connected: boolean; error?: string }> => {
     try {
-      const response = await fetch(`/api/rube/connection-status/${toolkit}`)
+      const response = await fetch(`/api/rube/connection-status?toolkit=${encodeURIComponent(toolkit)}`)
       if (!response.ok) {
         // API returned error, treat as not connected
         console.warn(`[Integrations] Connection check failed for ${toolkit}: ${response.status}`)

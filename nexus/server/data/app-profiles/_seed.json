@@ -1,0 +1,15 @@
+{
+  "profiles": [
+    { "name": "gmail", "category": "EMAIL", "tier": "verified", "actions": ["send", "read", "list", "search"], "authType": "oauth2" },
+    { "name": "slack", "category": "COMMUNICATION", "tier": "verified", "actions": ["send", "read", "list", "search"], "authType": "oauth2" },
+    { "name": "dropbox", "category": "STORAGE", "tier": "verified", "actions": ["upload", "download", "list", "delete"], "authType": "oauth2" },
+    { "name": "google calendar", "category": "CALENDAR", "tier": "verified", "actions": ["create", "read", "update", "delete", "list"], "authType": "oauth2" },
+    { "name": "google sheets", "category": "SPREADSHEET", "tier": "verified", "actions": ["read", "write", "update", "append"], "authType": "oauth2" },
+    { "name": "notion", "category": "PROJECT", "tier": "verified", "actions": ["create", "read", "update", "search"], "authType": "oauth2" },
+    { "name": "github", "category": "DEVELOPMENT", "tier": "verified", "actions": ["create", "read", "update", "list", "search"], "authType": "oauth2" },
+    { "name": "hubspot", "category": "CRM", "tier": "verified", "actions": ["create", "read", "update", "list", "search"], "authType": "oauth2" },
+    { "name": "stripe", "category": "PAYMENT", "tier": "verified", "actions": ["create", "read", "list", "refund"], "authType": "api_key" },
+    { "name": "whatsapp", "category": "COMMUNICATION", "tier": "verified", "actions": ["send", "receive"], "authType": "qr_code" }
+  ],
+  "seededAt": "2026-02-22T00:00:00Z"
+}

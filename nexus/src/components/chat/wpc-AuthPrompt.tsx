@@ -227,6 +227,7 @@ interface ParallelAuthPromptProps {
   onConnectSingle: (integration: IntegrationInfo) => void
   isLoading: boolean
   connectedCount: number
+  isMobile?: boolean
 }
 
 export function ParallelAuthPrompt({
@@ -236,6 +237,7 @@ export function ParallelAuthPrompt({
   onConnectSingle,
   isLoading,
   connectedCount,
+  isMobile,
 }: ParallelAuthPromptProps) {
   // Total required = pending integrations + already connected integrations
   const totalRequired = integrations.length + connectedCount
@@ -320,7 +322,7 @@ export function ParallelAuthPrompt({
                       {isConnected
                         ? 'Ready to go!'
                         : isIntegrationPolling
-                        ? 'Complete sign-in in the popup...'
+                        ? (isMobile ? 'Redirecting to sign-in...' : 'Complete sign-in in the popup...')
                         : hasError
                         ? `${state.error || 'Let\'s try again'}`
                         : 'One click to connect'}
@@ -381,7 +383,11 @@ export function ParallelAuthPrompt({
           ) : (
             <>
               <Zap className="w-4 h-4" />
-              {pendingCount === 1 ? 'Connect & Unlock' : `Connect All ${pendingCount} Apps`}
+              {pendingCount === 1 ? 'Connect & Unlock' : (
+                isMobile
+                  ? `Connect ${pendingCount} Apps`
+                  : `Connect All ${pendingCount} Apps`
+              )}
             </>
           )}
         </button>
@@ -391,7 +397,11 @@ export function ParallelAuthPrompt({
       {anyPolling && (
         <div className="p-3 rounded-lg bg-amber-900/20 border border-amber-500/20">
           <div className="text-sm text-amber-200">
-            <p className="font-medium mb-1">Complete the sign-in in the popup windows</p>
+            <p className="font-medium mb-1">
+              {isMobile
+                ? 'You\'ll be redirected to sign in to each app'
+                : 'Complete the sign-in in the popup windows'}
+            </p>
             <p className="text-xs text-amber-300/70">
               Just click "Allow" or "Authorize" in each window. This page updates automatically when done!
             </p>

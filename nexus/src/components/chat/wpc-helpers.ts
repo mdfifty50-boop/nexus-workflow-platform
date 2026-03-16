@@ -23,6 +23,7 @@ import type {
   OrchestrationResult,
   NodeValidation,
   WorkflowValidation,
+  MobileOAuthQueue,
 } from './wpc-types'
 import type { CollectionQuestion } from '@/services/orchestration'
 import type { ResolvedParams } from '@/services/ParamResolutionPipeline'
@@ -721,4 +722,44 @@ export {
   getFallbackTools,
   validateToolSlug,
   isToolNotFoundError,
+}
+
+// ============================================================================
+// Mobile OAuth Queue Utilities
+// ============================================================================
+
+const MOBILE_OAUTH_QUEUE_KEY = 'nexus_mobile_oauth_queue'
+const MOBILE_OAUTH_QUEUE_TTL = 10 * 60 * 1000 // 10 minutes
+
+export function saveMobileOAuthQueue(queue: MobileOAuthQueue): void {
+  localStorage.setItem(MOBILE_OAUTH_QUEUE_KEY, JSON.stringify(queue))
+}
+
+export function loadMobileOAuthQueue(): MobileOAuthQueue | null {
+  const raw = localStorage.getItem(MOBILE_OAUTH_QUEUE_KEY)
+  if (!raw) return null
+  try {
+    const queue = JSON.parse(raw) as MobileOAuthQueue
+    if (Date.now() - queue.timestamp > MOBILE_OAUTH_QUEUE_TTL) {
+      localStorage.removeItem(MOBILE_OAUTH_QUEUE_KEY)
+      return null
+    }
+    return queue
+  } catch {
+    localStorage.removeItem(MOBILE_OAUTH_QUEUE_KEY)
+    return null
+  }
+}
+
+export function advanceMobileOAuthQueue(completedToolkit: string): MobileOAuthQueue | null {
+  const queue = loadMobileOAuthQueue()
+  if (!queue) return null
+  queue.pendingToolkits = queue.pendingToolkits.filter(t => t !== completedToolkit)
+  queue.connectedToolkits.push(completedToolkit)
+  saveMobileOAuthQueue(queue)
+  return queue
+}
+
+export function clearMobileOAuthQueue(): void {
+  localStorage.removeItem(MOBILE_OAUTH_QUEUE_KEY)
 }

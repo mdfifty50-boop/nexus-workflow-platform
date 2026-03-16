@@ -45,8 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'execute':
         return handleExecute(req, res, isDemoMode, apiKey)
       case 'connection-status':
-        // Handle /api/rube/connection-status/:toolkit
-        const toolkit = pathParts[1]
+        // Handle /api/rube/connection-status?toolkit=X or /api/rube/connection-status/:toolkit
+        const toolkit = (req.query.toolkit as string) || pathParts[1]
         return handleConnectionStatus(req, res, isDemoMode, apiKey, toolkit)
       default:
         return res.status(404).json({ success: false, error: `Unknown route: ${route}` })

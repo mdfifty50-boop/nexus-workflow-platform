@@ -18,6 +18,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
+import { fetchWithTimeout } from '../utils/fetch-utils.js'
 
 // @NEXUS-FIX-198: Sanitize unpaired Unicode surrogates that break JSON serialization - DO NOT REMOVE
 // The Claude API rejects requests with unpaired surrogates ("no low surrogate in string").
@@ -249,12 +250,9 @@ export async function checkProxyHealth(): Promise<boolean> {
   }
 
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 3000)
-    const response = await fetch(`${PROXY_URL}/health`, {
-      signal: controller.signal
+    const response = await fetchWithTimeout(`${PROXY_URL}/health`, {
+      timeout: 3000,
     })
-    clearTimeout(timeout)
     proxyAvailable = response.ok
     lastProxyCheck = now
     if (proxyAvailable) {
@@ -296,7 +294,7 @@ export async function callViaProxy(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log('[Backend] Passing model to proxy:', model)
-      const response = await fetch(`${PROXY_URL}/api/chat`, {
+      const response = await fetchWithTimeout(`${PROXY_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -304,7 +302,8 @@ export async function callViaProxy(
           systemPrompt: cleanSystemPrompt,
           maxTokens,
           model
-        })
+        }),
+        timeout: 120_000, // LLM calls can be slow
       })
 
       if (!response.ok) {
@@ -419,6 +418,11 @@ export async function callClaude(options: {
  * Claude call with prompt caching support for direct API calls
  * Uses cache_control blocks for system prompts to reduce token costs
  * NOW SUPPORTS FULL CONVERSATION HISTORY FOR CONTEXT
+ *
+ * COST-PROMPT-MODULAR: promptSection modularization is SUPERSEDED by this caching approach.
+ * Splitting the 15K-token personality into sections would break cache coherence
+ * (different section combos = different cache keys = no cache hits).
+ * Full-personality caching with cache_control gives better savings (90% on hits).
  *
  * Pricing impact:
  * - Cache write: 25% extra (first request)

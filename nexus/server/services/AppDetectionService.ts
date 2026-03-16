@@ -59,6 +59,35 @@ const USAGE_CONTEXT_PATTERNS = [
   /my\s+([a-z]+)\s+(?:account|data|contacts)/gi,
 ]
 
+// GAP-4: GENERIC_APP_PATTERN — Universal catch-all heuristic for ANY app mention
+// Catches apps not in the pre-mapped APP_PATTERNS list above
+// Examples: "I use Wafeq for accounting", "my KashFlow account", "connect to Todoist"
+const GENERIC_APP_PATTERN = [
+  // "I/we use [AppName]" or "using [AppName]"
+  /(?:i|we)\s+(?:use|work\s+with|have|manage\s+with|rely\s+on|switched?\s+to)\s+([A-Z][a-zA-Z0-9.]+)/g,
+  // "[AppName] app/tool/platform/system/software/service/account"
+  /\b([A-Z][a-zA-Z0-9.]{2,})\s+(?:app|tool|platform|system|software|service|account|dashboard|workspace|integration)\b/g,
+  // "my [AppName] account/data/contacts"
+  /my\s+([A-Z][a-zA-Z0-9.]{2,})\s+(?:account|data|contacts|files|workspace|dashboard|inbox|board|list)\b/g,
+  // "connect/integrate/sync [AppName]"
+  /(?:connect|integrate|sync|link|hook\s+up|pair)\s+(?:to\s+|with\s+)?([A-Z][a-zA-Z0-9.]{2,})\b/g,
+  // "from [AppName] to [AppName]"
+  /from\s+([A-Z][a-zA-Z0-9.]{2,})\s+to\s+([A-Z][a-zA-Z0-9.]{2,})/g,
+]
+
+// Words that look like app names but aren't (filter false positives)
+const GENERIC_APP_BLOCKLIST = new Set([
+  'the', 'this', 'that', 'when', 'what', 'which', 'where', 'how', 'who',
+  'and', 'but', 'for', 'not', 'can', 'could', 'would', 'should', 'will',
+  'every', 'each', 'all', 'any', 'some', 'our', 'your', 'their', 'its',
+  'new', 'old', 'first', 'last', 'next', 'best', 'more', 'most', 'other',
+  'help', 'make', 'create', 'build', 'send', 'get', 'set', 'add', 'run',
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+  'september', 'october', 'november', 'december',
+  'yes', 'yeah', 'sure', 'okay', 'thanks', 'please', 'hello', 'hey',
+])
+
 export interface DetectedApp {
   name: string
   category: string
@@ -80,6 +109,7 @@ class AppDetectionService {
     const detected: DetectedApp[] = []
     const seenApps = new Set<string>()
 
+    // Phase 1: Check pre-mapped APP_PATTERNS (known apps)
     for (const { pattern, category } of APP_PATTERNS) {
       let match
       // Reset regex state
@@ -92,6 +122,29 @@ class AppDetectionService {
             name: appName,
             category,
             originalMatch: match[0],
+          })
+        }
+      }
+    }
+
+    // Phase 2: GAP-4 — GENERIC_APP_PATTERN catch-all heuristic for unknown apps
+    // Detects capitalized app names in usage context that weren't caught by static patterns
+    for (const pattern of GENERIC_APP_PATTERN) {
+      let match
+      pattern.lastIndex = 0
+      while ((match = pattern.exec(message)) !== null) {
+        // Extract all capture groups (some patterns have 2 groups, e.g. "from X to Y")
+        for (let i = 1; i < match.length; i++) {
+          if (!match[i]) continue
+          const appName = match[i].toLowerCase()
+          if (seenApps.has(appName)) continue
+          if (GENERIC_APP_BLOCKLIST.has(appName)) continue
+          if (appName.length < 3) continue  // Too short to be an app name
+          seenApps.add(appName)
+          detected.push({
+            name: appName,
+            category: 'UNKNOWN',
+            originalMatch: match[i],
           })
         }
       }

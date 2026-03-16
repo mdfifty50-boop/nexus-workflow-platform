@@ -5,6 +5,8 @@
  * to provide OAuth connections and workflow execution via Rube MCP.
  */
 
+import { fetchWithTimeout } from '../lib/fetch-utils'
+
 // Types matching backend RubeMCPService
 export interface RubeConnectionStatus {
   app: string
@@ -70,10 +72,11 @@ class RubeClientService {
   async searchTools(
     queries: Array<{ use_case: string; known_fields?: string }>
   ): Promise<RubeSearchResult> {
-    const response = await fetch(`${this.baseUrl}/search-tools`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/search-tools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ queries, session_id: this.getSessionId() }),
+      timeout: 30_000,
     })
 
     if (!response.ok) {
@@ -94,7 +97,7 @@ class RubeClientService {
    * Check connection status for a toolkit
    */
   async checkConnection(toolkit: string): Promise<RubeConnectionStatus> {
-    const response = await fetch(`${this.baseUrl}/connection-status/${toolkit}`)
+    const response = await fetchWithTimeout(`${this.baseUrl}/connection-status?toolkit=${encodeURIComponent(toolkit)}`)
 
     if (!response.ok) {
       throw new Error(`Connection check failed: ${response.statusText}`)
@@ -118,13 +121,14 @@ class RubeClientService {
   async initiateConnection(
     toolkits: string[]
   ): Promise<Record<string, RubeConnectionStatus>> {
-    const response = await fetch(`${this.baseUrl}/manage-connections`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/manage-connections`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         toolkits,
         session_id: this.getSessionId(),
       }),
+      timeout: 30_000,
     })
 
     if (!response.ok) {
@@ -160,13 +164,14 @@ class RubeClientService {
   ): Promise<RubeToolExecutionResult> {
     const startTime = Date.now()
 
-    const response = await fetch(`${this.baseUrl}/execute`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tools: [{ tool_slug: toolSlug, arguments: params }],
         session_id: this.getSessionId(),
       }),
+      timeout: 60_000, // Execution can take longer
     })
 
     if (!response.ok) {
@@ -198,13 +203,14 @@ class RubeClientService {
   ): Promise<RubeToolExecutionResult[]> {
     const startTime = Date.now()
 
-    const response = await fetch(`${this.baseUrl}/execute`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/execute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tools,
         session_id: this.getSessionId(),
       }),
+      timeout: 60_000, // Multi-tool execution can take longer
     })
 
     if (!response.ok) {
@@ -241,7 +247,7 @@ class RubeClientService {
     message?: string
   }> {
     try {
-      const response = await fetch(`${this.baseUrl}/status`)
+      const response = await fetchWithTimeout(`${this.baseUrl}/status`, { timeout: 10_000 })
       if (!response.ok) {
         return { initialized: false, available: false, message: response.statusText }
       }

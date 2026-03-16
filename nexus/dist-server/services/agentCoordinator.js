@@ -3,10 +3,21 @@ import { callClaudeWithTiering, tieredCalls, recordTieringMetrics } from './clau
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import path from 'path';
-// Load model-modes.json for runtime agent model selection
+// Load model-modes.json for runtime agent model selection (resilient to missing file in Docker)
 const _require = createRequire(import.meta.url);
 const _dirname = path.dirname(fileURLToPath(import.meta.url));
-const modelModes = _require(path.join(_dirname, '../../config/model-modes.json'));
+let modelModes;
+try {
+    modelModes = _require(path.join(_dirname, '../../config/model-modes.json'));
+}
+catch {
+    console.warn('[agentCoordinator] config/model-modes.json not found, using defaults');
+    modelModes = {
+        activeMode: 'default',
+        runtimeAgents: { default: { director: 'sonnet', supervisor: 'haiku', salesforce: 'sonnet', hubspot: 'sonnet', email: 'sonnet', data_transform: 'sonnet', calendar: 'sonnet' } },
+        modelMetadata: { opus: { id: 'claude-opus-4-6' }, sonnet: { id: 'claude-sonnet-4-6' }, haiku: { id: 'claude-3-5-haiku-20241022' } }
+    };
+}
 /**
  * Get the Claude model ID for a given agent based on the active mode.
  * Reads NEXUS_MODEL_MODE env var or falls back to model-modes.json activeMode.

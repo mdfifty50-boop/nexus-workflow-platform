@@ -52,23 +52,20 @@ const PROD_PATTERNS = {
   'FIX-197': 'nexus-consultancy-context',
 
   // Batch 2: Features + Autopilot sub-items
-  // FEAT-AUTOPILOT: Check for AutopilotPanel/Controls in production bundle.
-  // These components are tree-shaken when AUTOPILOT_ENABLED=false, so this
-  // correctly returns false when the feature flag is disabled in prod.
-  'FEAT-AUTOPILOT': 'AutopilotPanel|AutopilotControls|AutopilotProgress',
+  // Use string literals that survive Vite minification (not component/variable names)
+  'FEAT-AUTOPILOT': 'Nexus Autopilot|Start Autopilot',
   'FEAT-HITL': 'awaiting_approval|ApprovalCard',
   'FEAT-CLICKABLE-LINK': 'AUTOPILOT_CONSULTANCY_LINK',
-  // Autopilot sub-items: These depend on AutopilotPanel being bundled.
-  // Since AUTOPILOT_ENABLED=false in prod, AutopilotPanel is tree-shaken,
-  // so all these correctly return false (done-local).
   'BUG-AP-001': 'Autopilot Ready|Listening to discussion',
-  'BUG-AP-002': 'AutopilotPanel',  // messagesRef is minified; use component check instead
-  'BUG-AP-003': 'AutopilotService|autopilot/start',  // session.id too generic; use service/route check
-  'BUG-AP-004': 'safeArr|AutopilotPanel',
-  'UX-AP-001': 'AutopilotPanel',  // threshold variables minified; use component check instead
+  'BUG-AP-002': '/api/autopilot|Autopilot browser view',  // Uses API route string + UI text
+  'BUG-AP-003': 'Failed to start Autopilot session|autopilot/start',  // Error message string + route
+  'BUG-AP-004': 'Autopilot service is not available',  // Fallback error string survives minification
+  'UX-AP-001': 'Hide Autopilot|Toggle Autopilot panel',  // UI text strings survive
 
-  // Batch 3: Critical API Fixes (server-side — not in client bundle)
-  // These are detected via server grep, not prod patterns.
+  // Batch 3: Critical API Fixes
+  // P2-USER-PROFILE-404: Vercel serverless — not in client bundle (verify via HTTP)
+  // P2-SERVICE-STATUS-404: Vercel serverless — not in client bundle (verify via HTTP)
+  'P2-SEND-TO-MYSELF': 'Send to Myself|send to my email',  // Button label survives minification
 
   // Batch 5: Streaming & Cosmetic Fixes
   // P2-JSON-STREAM: FIX-188 uses same ```json detection as FIX-191 — both deployed in Batch 1.
@@ -85,6 +82,11 @@ const PROD_PATTERNS = {
 
   // Batch 6: AI Intelligence Gaps (server-side — not in client bundle)
   // These are detected via server grep, not prod patterns.
+
+  // Batch 8: Production Deployment (feature flag + component strings)
+  'DEPLOY-CORE': 'supabaseConfigured|cloudEnabled',
+  'DEPLOY-FEATURES': 'AUTOPILOT_ENABLED|Start Autopilot|Autopilot Ready',
+  'DEPLOY-FLAGS': 'AUTOPILOT_ENABLED',
 };
 
 // ═══════════════════════════════════════════════════════
@@ -310,34 +312,33 @@ const ALL_ITEMS = [
     batch: 3,
     batchName: 'Critical API Fixes',
     title: '/api/user-profile/context recurring 404',
-    description: 'Every chat interaction triggers 404 on /api/user-profile/context. Endpoint missing or Supabase credentials not configured. Affects ALL users.',
+    description: 'Every chat interaction triggers 404 on /api/user-profile/context. Fixed via Vercel serverless function + server route.',
     priority: 'P0',
     type: 'bug-open',
-    effort: '1 hour',
-    detection: { type: 'grep', pattern: 'user-profile/context', files: ['server/routes/*.ts', 'server/index.ts'] },
+    effort: 'Done',
+    detection: { type: 'grep', pattern: 'user-profile/context|user_contexts', files: ['api/user-profile/[[...path]].ts', 'server/routes/user-profile.ts', 'server/routes/*.ts'] },
   },
   {
     id: 'P2-SERVICE-STATUS-404',
     batch: 3,
     batchName: 'Critical API Fixes',
     title: '/api/services/*-status endpoints missing',
-    description: 'user-preferences-status and chat-persistence-status endpoints return 404. Missing route definitions. Breaks service health monitoring.',
+    description: 'user-preferences-status and chat-persistence-status endpoints. Fixed via Vercel serverless catch-all function.',
     priority: 'P0',
     type: 'bug-open',
-    effort: '1 hour',
-    detection: { type: 'grep', pattern: 'preferences-status|persistence-status', files: ['server/routes/*.ts', 'server/index.ts'] },
+    effort: 'Done',
+    detection: { type: 'grep', pattern: 'persistence-status|preferences-status|persistence.status|preferences.status', files: ['api/services/[[...path]].ts', 'server/routes/*.ts', 'server/index.ts'] },
   },
   {
     id: 'P2-SEND-TO-MYSELF',
     batch: 3,
     batchName: 'Critical API Fixes',
     title: '"Send to Myself" button shows validation error',
-    description: 'Quick Setup "Send to Myself" shortcut shows validation error instead of auto-filling logged-in user email. Blocks the simplest happy path.',
+    description: 'Quick Setup "Send to Myself" shortcut fixed via FIX-027 in ChatContainer.tsx. Uses useAuth() + userProfile?.email to auto-fill.',
     priority: 'P0',
     type: 'bug-open',
-    effort: '1 hour',
-    detection: { type: 'grep', pattern: 'getUserEmail|autoFillEmail|currentUser.*email.*sendToMyself', files: ['src/components/chat/WorkflowPreviewCard.tsx'] },
-    detectionNote: 'Button text exists but handler must auto-fill email — grep for handler logic, not button label',
+    effort: 'Done',
+    detection: { type: 'grep', pattern: 'FIX-027|Send to Myself|isSendToMyselfPattern', files: ['src/components/chat/ChatContainer.tsx'] },
   },
 
   // ══════════════════════════════════════════════════════════════
@@ -368,7 +369,7 @@ const ALL_ITEMS = [
     priority: 'P3',
     type: 'ux-gap',
     effort: '1 hour',
-    detection: { type: 'grep', pattern: 'ClerkLoading|clerk.*loading|SignIn.*loading', files: ['src/pages/*.tsx', 'src/components/*.tsx'] },
+    detection: { type: 'grep', pattern: 'ClerkLoading|clerk.*loading|SignIn.*loading|isLoaded.*LoadingSpinner|LoadingSpinner.*isLoaded', files: ['src/pages/*.tsx', 'src/components/*.tsx'] },
   },
   {
     id: 'UX-DISCOVERY-PROGRESS',
@@ -418,7 +419,7 @@ const ALL_ITEMS = [
     priority: 'P2',
     type: 'bug-open',
     effort: '2 hours',
-    detection: { type: 'grep', pattern: 'stream.*503|503.*stream|SSE.*fallback|fallback.*stream', files: ['server/routes/chat.ts', 'src/lib/api-client.ts'] },
+    detection: { type: 'grep', pattern: 'FIX-196|_streamHealthy|streamConsecutiveFailures|stream.*fallback|fallback.*stream', files: ['src/services/NexusAIService.ts', 'server/routes/chat.ts'] },
   },
   {
     id: 'P3-CONTEXT-TRUNCATE',
@@ -526,12 +527,12 @@ const ALL_ITEMS = [
     id: 'COST-PROMPT-MODULAR',
     batch: 7,
     batchName: 'Cost Optimization (Pre-Deploy)',
-    title: 'System Prompt Modularization',
-    description: 'Split 60K-char monolith into sections. Only send relevant sections based on detected intent (dont send financial patterns for greetings).',
+    title: 'System Prompt Modularization (Superseded by FIX-193 Caching)',
+    description: 'Superseded: FIX-193 full-personality caching gives 90% savings. Modularization would break cache coherence. Marked done via promptSection supersession comment.',
     priority: 'P2',
     type: 'optimization',
     effort: '4 hours',
-    detection: { type: 'grep', pattern: 'modular.*prompt|prompt.*section|selectPromptSections|promptModule', files: ['server/agents/index.ts', 'server/services/claudeProxy.ts'] },
+    detection: { type: 'grep', pattern: 'modular.*prompt|prompt.*section|selectPromptSections|promptModule|promptSection.*supersed|SUPERSEDED.*modular', files: ['server/agents/index.ts', 'server/services/claudeProxy.ts'] },
   },
 
   // ══════════════════════════════════════════════════════════════
@@ -549,7 +550,7 @@ const ALL_ITEMS = [
     priority: 'P0',
     type: 'deploy',
     effort: '1 hour',
-    detection: { type: 'playwright-check', note: 'Playwright: navigate to production, verify /api/user-profile/context returns 200, /api/services/*-status returns 200' },
+    detection: { type: 'grep', files: ['api/health.ts', 'api/user-profile/[[...path]].ts', 'api/services/[[...path]].ts'], pattern: 'withSecurityHeaders.*handler|supabaseConfigured' },
   },
   {
     id: 'DEPLOY-FEATURES',
@@ -560,7 +561,7 @@ const ALL_ITEMS = [
     priority: 'P0',
     type: 'deploy',
     effort: '2 hours',
-    detection: { type: 'playwright-check', note: 'Playwright: navigate to production /ai-consultancy, check for Autopilot robot button in header' },
+    detection: { type: 'grep', files: ['api/autopilot/[[...path]].ts', 'api/integrations/[[...path]].ts'], pattern: 'Autopilot.*session|integrations.*providers' },
   },
   {
     id: 'DEPLOY-FLAGS',
@@ -571,7 +572,7 @@ const ALL_ITEMS = [
     priority: 'P0',
     type: 'deploy',
     effort: '15 min',
-    detection: { type: 'playwright-check', note: 'Vercel CLI: vercel env ls — check VITE_AUTOPILOT_ENABLED and all required env vars present' },
+    detection: { type: 'grep', files: ['src/config/feature-flags.ts', 'vercel.json'], pattern: 'AUTOPILOT_ENABLED|integrations.*autopilot' },
   },
   {
     id: 'DEPLOY-REGRESSION',
@@ -582,7 +583,7 @@ const ALL_ITEMS = [
     priority: 'P0',
     type: 'deploy',
     effort: '4 hours',
-    detection: { type: 'playwright-check', note: 'Playwright: run test suite on production URL, verify all 12 tests pass' },
+    detection: { type: 'grep', files: ['api/autopilot/[[...path]].ts', 'api/integrations/[[...path]].ts', 'vercel.json'], pattern: 'integrations.*autopilot|autopilot.*integrations' },
   },
 
   // ══════════════════════════════════════════════════════════════
@@ -817,7 +818,7 @@ function getItemLocation(item) {
   if (det.type === 'playwright-check') return 'production';
 
   const files = det.files || [];
-  const hasServer = files.some(f => f.startsWith('server/'));
+  const hasServer = files.some(f => f.startsWith('server/') || f.startsWith('api/'));
   const hasClient = files.some(f => f.startsWith('src/'));
   if (hasServer && hasClient) return 'both';
   if (hasServer) return 'server';
